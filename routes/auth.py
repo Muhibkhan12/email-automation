@@ -7,11 +7,16 @@ from models.user import User
 from services.auth import oauth2_scheme
 from services.user import (LoginUser, RegisterUser, ForgetPassword, GetCurrentUser)
 
-
 router = APIRouter(
     prefix="/auth",
     tags=["Authentication"]
 )
+
+@router.get("/")
+def welcome():
+    return{
+        "message" : "Hola Amigo"
+    }
 
 @router.post("/register", status_code=201)
 def registerUser(credentials : RegisterSchema , db: Session = Depends(get_db)):
@@ -27,7 +32,6 @@ def login(
         credential=credentials
     )
 
-
 @router.post("/forget_password")
 def forgetPassword(credentials: ForgetSchema, db: Session  = Depends(get_db)):
     return ForgetPassword(db, credentials)
@@ -36,6 +40,6 @@ def forgetPassword(credentials: ForgetSchema, db: Session  = Depends(get_db)):
 def profile(current_user : User = Depends(GetCurrentUser)):
     return{
         "user_id" : current_user.id,
-        "user_name" : current_user.name,
+        "user_name" : current_user.username,
         "user_email" : current_user.email,
     }

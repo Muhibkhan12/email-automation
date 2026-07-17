@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from config import settings
 
 oauth2_scheme = OAuth2PasswordBearer(
-     tokenUrl= "/auth/login" 
+     tokenUrl= "/auth/login"
 )
 
 def create_access_token(data: dict):
@@ -35,7 +35,7 @@ def create_refresh_token(data : dict):
       encoded_jwt = jwt.encode(
             to_encode,
             settings.SECRET_KEY,
-            algorithm=settings.ALGORITHM
+            algorithm=[settings.ALGORITHM]
       )
 
       return encoded_jwt
@@ -68,7 +68,7 @@ def verify_refresh_token(token : str):
             payload = jwt.decode(
                 token,
                 settings.SECRET_KEY,
-                algorithms=settings.ALGORITHM,
+                algorithms=[settings.ALGORITHM],
             )
             if payload.get("type") != "refresh":
                 raise HTTPException(
