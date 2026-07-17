@@ -34,5 +34,3 @@ def RegisterUser(db: Session, credential : RegisterSchema):
 
 def LoginUser(db: Session, credential : LoginSchema):
     pass
-
-
