@@ -9,3 +9,12 @@ class RegisterSchema(BaseModel):
 class LoginSchema(BaseModel):
     email : EmailStr
     password : str
+
+
+class ForgetSchema(BaseModel):
+    email: EmailStr
+
+class GetCurrentUserSchema(BaseModel):
+    token : str
+
+

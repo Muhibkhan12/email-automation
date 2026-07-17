@@ -1,8 +1,13 @@
 from jose import jwt, JWTError
 from fastapi import HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta, timezone
 
 from config import settings
+
+oauth2_scheme = OAuth2PasswordBearer(
+     tokenUrl= "/auth/login" 
+)
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -35,13 +40,12 @@ def create_refresh_token(data : dict):
 
       return encoded_jwt
 
-
 def verify_access_token(token : str):
         try:
             payload = jwt.decode(
                   token,
                   settings.SECRET_KEY,
-                  algorithms=settings.ALGORITHM
+                  algorithms=[settings.ALGORITHM]
             )
 
             if payload.get("type") != "access":

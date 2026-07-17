@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from schema.user import (RegisterSchema, LoginSchema)
+from schema.user import (RegisterSchema, LoginSchema, ForgetSchema, GetCurrentUserSchema)
 from database import get_db
-from services.user import (LoginUser, RegisterUser)
+from models.user import User
+from services.auth import oauth2_scheme
+from services.user import (LoginUser, RegisterUser, ForgetPassword, GetCurrentUser)
 
 
 router = APIRouter(
@@ -24,3 +26,16 @@ def login(
         db=db,
         credential=credentials
     )
+
+
+@router.post("/forget_password")
+def forgetPassword(credentials: ForgetSchema, db: Session  = Depends(get_db)):
+    return ForgetPassword(db, credentials)
+
+@router.get("/profile")
+def profile(current_user : User = Depends(GetCurrentUser)):
+    return{
+        "user_id" : current_user.id,
+        "user_name" : current_user.name,
+        "user_email" : current_user.email,
+    }
