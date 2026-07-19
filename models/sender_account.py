@@ -20,5 +20,50 @@ class SenderAccount(Base):
 
     provider : Mapped[str] = mapped_column(
         String(50),
-        default="gmail",
+        default="gmail"
+    )
+
+    username : Mapped[str] = mapped_column(
+        String(255),
+        nullable=False
+    )
+
+    password : Mapped[str] = mapped_column(
+        String(255),
+        nullable=False
+    )
+
+    smtp_host : Mapped[str] = mapped_column(
+        String(255),
+        nullable=False
+    )
+    smtp_port : Mapped[str] = mapped_column(
+        String(255),
+        nullable=False
+    )
+
+    daily_limit : Mapped[int] = mapped_column(
+        Integer,
+        default=500
+    )
+    hourly_limit : Mapped[int] = mapped_column(
+        Integer,
+        default=50
+    )
+    email_sent_hour : Mapped[int] = mapped_column(
+        Integer,
+        default=0
+    )
+    status : Mapped[bool] = mapped_column(
+        Boolean,
+        default="Inactive"
+    )
+    created_at : Mapped[datetime] = mapped_column(
+        datetime,
+        default=datetime.now(UTC)
+    )
+    updated_at : Mapped[datetime] = mapped_column(
+        datetime,
+        default=datetime.now(UTC),
+        onupdate=datetime.now(UTC)
     )
