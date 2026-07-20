@@ -2,10 +2,10 @@ from fastapi import HTTPException,status
 
 from sqlalchemy.orm import Session
 from security import hash_password
-from schema.sender_account import addSenderAccountSchema
+from schema.sender_account import addSenderAccountSchema, updateSenderAccout
 from models.sender_account import SenderAccount
 
-def AddSenderAccount(db : Session ,credentials : addSenderAccountSchema):
+def add_sender_account(db : Session ,credentials : addSenderAccountSchema):
         existing_data = db.query(SenderAccount).filter(credentials.email == SenderAccount.email).first()
 
         if existing_data:
@@ -25,9 +25,48 @@ def AddSenderAccount(db : Session ,credentials : addSenderAccountSchema):
                 hourly_limit = credentials.hourly_limit,
         )
         db.add(add_account)
-        db.commit()
+        try: 
+            db.commit()
+        except:
+            db.rollback()
+            raise
         db.refresh(add_account)
         return{
                 "message" : "Account Added successfully",
                 "account" : add_account
         }
+
+
+
+def update_sender_account(id, db , credentials):
+    sender_account = db.query(SenderAccount).filter(SenderAccount.id == id).first()
+    if not sender_account:
+        raise HTTPException(
+              status_code=status.HTTP_400_BAD_REQUEST,
+              detail="Sender Account not found"
+        ) 
+      
+    existing_email = db.query(SenderAccount).filter(SenderAccount.email == credentials.email, SenderAccount.id != id).first()
+    if existing_email:
+        raise HTTPException(
+              status_code=status.HTTP_400_BAD_REQUEST,
+              detail="Email is already being used by other sender account"
+        )
+    
+    sender_account.email = credentials.email
+    sender_account.password = credentials.password
+    sender_account.display_name = credentials.display_name
+    sender_account.provider = credentials.provider
+    sender_account.username = credentials.username
+    sender_account.smtp_host = credentials.smtp_host
+    sender_account.smtp_port = credentials.smtp_port
+    sender_account.daily_limit = credentials.daily_limit
+    sender_account.hourly_limit = credentials.hourly_limit
+
+    db.commit()
+    db.refresh(SenderAccount)
+
+    return{
+         "message" : "Account Updated Successfully",
+         "account" : sender_account
+    }

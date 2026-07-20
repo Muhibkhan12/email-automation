@@ -1,6 +1,5 @@
 from fastapi import HTTPException, status, Depends
 
-
 from sqlalchemy.orm import Session
 # from datetime import datetime
 
@@ -90,4 +89,3 @@ def GetCurrentUser(token: str = Depends(oauth2_scheme), db: Session = Depends(ge
 
 def ForgetPassword(db: Session, credetntial : ForgetSchema):
     pass
-
