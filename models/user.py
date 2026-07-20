@@ -1,7 +1,7 @@
 from sqlalchemy import String,DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, UTC
-
+from models.upload_file import UploadFile
 from database import Base
 
 
@@ -20,3 +20,9 @@ class User(Base):
         default=lambda : datetime.now(UTC),
         onupdate=lambda : datetime.now(UTC)
     )
+
+    uploads: Mapped[list["UploadFile"]] = relationship(
+    "Upload",
+    back_populates="user",
+    cascade="all, delete-orphan"
+        )
