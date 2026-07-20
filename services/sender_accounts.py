@@ -1,7 +1,7 @@
 from fastapi import HTTPException,status
 
 from sqlalchemy.orm import Session
-from security import hash_password
+from services.security import hash_password
 from schema.sender_account import addSenderAccountSchema, updateSenderAccout
 from models.sender_account import SenderAccount
 
@@ -86,3 +86,17 @@ def delete_sender_account(id : int, db : Session):
     return{
          "message" : "Account Deleted Successfully"
     }
+
+def get_account(id : int, db):
+     data = db.query(SenderAccount).filter(SenderAccount.id == id).first()
+
+     if not data:
+          raise HTTPException(
+               status_code=status.HTTP_404_NOT_FOUND,
+               detail="Account doesn't exist"
+          )
+     return {
+          "message":"User Exist",
+          "account" : data
+     }
+     
