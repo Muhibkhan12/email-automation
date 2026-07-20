@@ -70,3 +70,19 @@ def update_sender_account(id, db , credentials):
          "message" : "Account Updated Successfully",
          "account" : sender_account
     }
+
+
+def delete_sender_account(id : int, db : Session):
+    existing_account = db.query(SenderAccount).filter(SenderAccount.id == id).first()
+    if not existing_account:
+         raise HTTPException(
+              status_code=status.HTTP_404_NOT_FOUND,
+              detail="Account doesn't exist"
+         )
+    
+    db.delete(existing_account)
+    db.commit()
+
+    return{
+         "message" : "Account Deleted Successfully"
+    }
