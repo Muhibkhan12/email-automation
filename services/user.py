@@ -13,9 +13,6 @@ from models.user import User
 
 
 def RegisterUser(db: Session, credential : RegisterSchema):
-    print(type(credential.password))
-    print(credential.password)
-    print(len(credential.password))
     existing_user = db.query(User).filter(User.email == credential.email).first()
 
     if existing_user:
