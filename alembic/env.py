@@ -20,6 +20,7 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 from database import Base
 from models.user import User
+from models.sender_account import SenderAccount
 from config import settings
 
 config.set_main_option(
