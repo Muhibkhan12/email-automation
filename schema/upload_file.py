@@ -4,10 +4,10 @@ from enum import Enum
 
 
 class UploadStatus(str, Enum):
-    UPLOADED : "UPLOADED"
-    PROCESSING : "PROCESSING"
-    COMPLETED : "COMPLETED"
-    FAILED : "FAILED"
+    UPLOADED = "UPLOADED"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
 
 class UploadFileSchema(BaseModel):
     user_id: int
@@ -23,9 +23,9 @@ class UploadedFileUpdateSchema(BaseModel):
     original_filename: str | None = None
     stored_filename: str | None = None
     file_path: str | None = None
-    total_records: int  | None = None
+    total_records: int | None = None
     processed_records: int | None = None
-    status : UploadStatus.UPLOADED = None | None
+    status: UploadStatus | None = None
 
 class DeleteFileSchema(BaseModel):
     id : int

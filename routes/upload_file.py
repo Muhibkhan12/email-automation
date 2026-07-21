@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from schema.upload_file import UploadedFileUpdateSchema, UploadFileSchema
 from models.upload_file import UploadFile
-from services.upload_file import add_upload_file, update_uploaded_file
+from services.upload_file import add_upload_file, update_upload_file, delete_upload_file
 
 router = APIRouter(
     prefix="/uploaded_file",
@@ -16,5 +16,9 @@ def add_uploadFile(credentials : UploadFileSchema, db : Session = Depends(get_db
     return add_upload_file(db, credentials)
 
 @router.post("/update/{id}")
-def update_UploadedFile(id : int,credentials : UploadFileSchema, db : Session = Depends(get_db)):
+def update_UploadedFile(id : int,credentials : UploadedFileUpdateSchema, db : Session = Depends(get_db)):
     return update_uploaded_file(id, db, credentials)
+
+@router.post("/delele/{id}")
+def delete_UploadedFile(id : int, db : Session = Depends(get_db)):
+    return delete_upload_file(id,db)
