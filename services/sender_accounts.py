@@ -14,6 +14,7 @@ def add_sender_account(db : Session ,credentials : addSenderAccountSchema):
                         detail="Account Already Exist"
                 )
         add_account = SenderAccount(
+               user_id = credentials.user_id,
                 email = credentials.email,
                 password = hash_password(credentials.password),
                 display_name = credentials.display_name,
@@ -64,7 +65,7 @@ def update_sender_account(id, db , credentials):
     sender_account.hourly_limit = credentials.hourly_limit
 
     db.commit()
-    db.refresh(SenderAccount)
+    db.refresh(sender_account)
 
     return{
          "message" : "Account Updated Successfully",

@@ -1,9 +1,13 @@
-from sqlalchemy import String,Column, Integer, Boolean, ForeignKey, DateTime
+from sqlalchemy import String,Column, Integer, Boolean, ForeignKey, DateTime, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+import enum
 
 from datetime import datetime, UTC
 from database import Base
 
+class AccountStatus(enum.Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
 
 class SenderAccount(Base):
     __tablename__ = "sender_account"
@@ -54,9 +58,9 @@ class SenderAccount(Base):
         Integer,
         default=0
     )
-    status : Mapped[bool] = mapped_column(
-        Boolean,
-        default="Inactive"
+    status: Mapped[AccountStatus] = mapped_column(
+        Enum(AccountStatus),
+        default=AccountStatus.INACTIVE
     )
     created_at : Mapped[datetime] = mapped_column(
         DateTime,

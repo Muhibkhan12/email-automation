@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr
 
 
 class addSenderAccountSchema(BaseModel):
+    user_id: int
     email : EmailStr
     password : str
     display_name : str
