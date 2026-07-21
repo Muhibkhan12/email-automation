@@ -18,7 +18,7 @@ class UploadFileSchema(BaseModel):
     processed_records: int = 0
     status : UploadStatus = UploadStatus.UPLOADED
 
-class UploadedFileUpdateSchema():
+class UploadedFileUpdateSchema(BaseModel):
     user_id: int | None = None
     original_filename: str | None = None
     stored_filename: str | None = None
@@ -26,3 +26,6 @@ class UploadedFileUpdateSchema():
     total_records: int  | None = None
     processed_records: int | None = None
     status : UploadStatus.UPLOADED = None | None
+
+class DeleteFileSchema(BaseModel):
+    id : int

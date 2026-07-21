@@ -27,11 +27,22 @@ def add_upload_file(db : Session, credentials):
         "data": data
     }
 
-def update_uploaded_file(db  : Session, credentials):
-    data = findData()
+def update_uploaded_file(db : Session, id, credentials):
+    data = findData(id, db)
 
     if not data:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=""
+            detail="File doesn't Exist"
         )
+    
+    for key, val in credentials.model_dump(exclude_unset=True).items():
+        setattr(data, key, val)
+
+    db.commit()
+    db.refresh(data)
+
+    return {
+        "message" : "Updated Successully",
+        "data" : data
+    }

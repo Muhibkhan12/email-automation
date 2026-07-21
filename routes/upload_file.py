@@ -15,6 +15,6 @@ router = APIRouter(
 def add_uploadFile(credentials : UploadFileSchema, db : Session = Depends(get_db)):
     return add_upload_file(db, credentials)
 
-@router.post("/update")
-def update_UploadedFile(credentials : UploadFileSchema, db : Session = Depends(get_db)):
-    return update_uploaded_file(db, credentials)
+@router.post("/update/{id}")
+def update_UploadedFile(id : int,credentials : UploadFileSchema, db : Session = Depends(get_db)):
+    return update_uploaded_file(id, db, credentials)
