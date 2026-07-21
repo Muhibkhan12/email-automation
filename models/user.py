@@ -22,7 +22,7 @@ class User(Base):
     )
 
     uploads: Mapped[list["UploadFile"]] = relationship(
-    "Upload",
+    "UploadFile",   
     back_populates="user",
     cascade="all, delete-orphan"
-        )
+)

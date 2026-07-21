@@ -1,6 +1,7 @@
 import enum
 
 from datetime import datetime, UTC
+from models.user import User
 
 from sqlalchemy import (
     ForeignKey,
@@ -79,7 +80,7 @@ class UploadFile(Base):
     )
 
 
-    user = relationship(
+    user: Mapped["User"] = relationship(
         "User",
         back_populates="uploads"
     )

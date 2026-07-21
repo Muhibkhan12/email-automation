@@ -44,7 +44,7 @@ def add_upload_file(
 def update_upload_file(
     db: Session,
     upload_file_id: int,
-    credentials: UploadFileUpdateSchema
+    credentials: UploadedFileUpdateSchema
 ):
     """Update an existing upload file."""
 

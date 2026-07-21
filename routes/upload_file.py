@@ -15,10 +15,10 @@ router = APIRouter(
 def add_uploadFile(credentials : UploadFileSchema, db : Session = Depends(get_db)):
     return add_upload_file(db, credentials)
 
-@router.post("/update/{id}")
+@router.patch("/update/{id}")
 def update_UploadedFile(id : int,credentials : UploadedFileUpdateSchema, db : Session = Depends(get_db)):
-    return update_uploaded_file(id, db, credentials)
+    return update_upload_file( db,id, credentials)
 
-@router.post("/delele/{id}")
+@router.delete("/delete/{id}")
 def delete_UploadedFile(id : int, db : Session = Depends(get_db)):
-    return delete_upload_file(id,db)
+    return delete_upload_file(db, id)
