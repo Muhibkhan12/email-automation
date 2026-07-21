@@ -1,7 +1,6 @@
 from sqlalchemy import String,DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, UTC
-from models.upload_file import UploadFile
 from database import Base
 
 
