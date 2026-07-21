@@ -12,3 +12,26 @@ def findData(id:int, db : Session):
             detail="Data doesn't exist"
         )
     return data
+
+
+
+def add_upload_file(db : Session, credentials):
+    data = UploadFile(**credentials.model_dump())
+
+    db.add(data)
+    db.commit()
+    db.refresh(data)
+
+    return{
+        "message" : "File Uploaded successfully",
+        "data": data
+    }
+
+def update_uploaded_file(db  : Session, credentials):
+    data = findData()
+
+    if not data:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=""
+        )
