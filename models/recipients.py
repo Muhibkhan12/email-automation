@@ -8,7 +8,7 @@ from database import Base
 class Recipients(Base):
     __tablename__ = "recipients"
 
-    id : Mapped[int] = mapped_column(Integer, primary_key=True ,Index=True)
+    id : Mapped[int] = mapped_column(Integer, primary_key=True ,index=True)
     user_id : Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     upload_id : Mapped[int] = mapped_column(Integer, ForeignKey("uploads.id"), nullable=False)
     name : Mapped[str] = mapped_column(String(255), nullable=False)

@@ -25,7 +25,6 @@ def get_recipients_by_id(id : int, db : Session):
         "recipient" : recipient
     }
     
-
 def add_recipients_data(db : Session, credentials : AddRecipientsSchema):
     upload_recipient = Recipients(**credentials.model_dump())
 
@@ -43,5 +42,23 @@ def add_recipients_data(db : Session, credentials : AddRecipientsSchema):
         "data" : upload_recipient
     }
 
-def updated_recipients_data(db : Session, credentials : UpdateRecipientsSchema):
-    pass
+def updated_recipients_data(id : int,db : Session, credentials : UpdateRecipientsSchema):
+
+    data = get_recipients_by_id(id, db )
+    update_data = credentials.model_dump(exclude_unset=True)
+    for key, val in update_data.items():
+        setattr(data, key, val)
+
+    db.commit()
+    db.refresh(data)
+
+    return{
+        "message" : "Recipient updated Successfully",
+        "data" : data
+    }
+
+def delete_recipient_data(id : int, db : Session):
+    data = get_recipients_by_id(id,db)
+
+    db.delete(data)
+    db.commit()
