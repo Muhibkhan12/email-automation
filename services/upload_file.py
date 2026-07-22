@@ -22,7 +22,6 @@ def add_upload_file(
     db: Session,
     credentials: UploadFileSchema
 ):
-    """Create a new upload file."""
 
     upload_file = UploadFile(**credentials.model_dump())
 

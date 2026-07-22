@@ -15,6 +15,33 @@ class Recipients(Base):
 
     email : Mapped[str] = mapped_column(String(255), nullable=False)
 
+    company: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True
+    )
+
+    phone: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True
+    )
+
+    is_valid_email: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(UTC)
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC)
+    )
+
+
     user: Mapped["User"] = relationship(
         "User",
         back_populates="recipients"
