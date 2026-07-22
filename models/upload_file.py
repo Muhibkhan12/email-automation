@@ -83,3 +83,8 @@ class UploadFile(Base):
         "User",
         back_populates="uploads"
     )
+
+    recipients = relationship(
+        "Recipients",
+        back_populates="upload"
+    )

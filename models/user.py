@@ -21,7 +21,11 @@ class User(Base):
     )
 
     uploads: Mapped[list["UploadFile"]] = relationship(
-    "UploadFile",   
-    back_populates="user",
-    cascade="all, delete-orphan"
-)
+        "UploadFile",   
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    recipients : Mapped[list["Recipient"]] = relationship(
+        "Recipient",
+        back_populates="user"
+    )
