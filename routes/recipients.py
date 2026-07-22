@@ -8,13 +8,16 @@ import services.recipients as recipient_service
 
 
 router = APIRouter(
-    prefix="/recipients",
+    prefix="/recipient",
     tags="recipients"
 )
 
 @router.get("/all")
 def get_all_recipients(db: Session = Depends(get_db),response_model=list[RecipientsResponse]):
     return recipient_service.get_all_recipients(db)
+@router.get("/{id}")
+def get_data_by_id(id : int = id, db : Session = Depends(get_db)):
+    return recipient_service.get_recipients_by_id(id, db)
 
 
 @router.post("/add")

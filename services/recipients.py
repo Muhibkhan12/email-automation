@@ -6,7 +6,25 @@ from models.recipients import Recipients
 from schema.recipients import AddRecipientsSchema, UpdateRecipientsSchema
 
 def get_all_recipients(db :  Session):
-    pass
+    data = db.query(Recipients).all()
+    return{
+        "message" : "Recipients fetched successfully",
+        "count" : len(data),
+        "data": data 
+    }
+
+def get_recipients_by_id(id : int, db : Session):
+    recipient = db.query(Recipients).filter(Recipients.id == id).first()
+    if not recipient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Recipient Doesn't exist"
+        )
+    return{
+        "message" : "Recipient Found Successfully",
+        "recipient" : recipient
+    }
+    
 
 def add_recipients_data(db : Session, credentials : AddRecipientsSchema):
     upload_recipient = Recipients(**credentials.model_dump())
