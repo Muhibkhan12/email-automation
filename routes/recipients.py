@@ -32,7 +32,7 @@ def update_recipients(
     ):
     return recipient_service.updated_recipients_data(db, id, credenitials)
 
-@router.delete("{id}")
+@router.delete("/{id}")
 def delete_recipient(id : int, db : Session = Depends(get_db)):
     return recipient_service.delete_recipient_data(id, db)
     
