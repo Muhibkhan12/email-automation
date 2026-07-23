@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from models.html_templates import HTMLTemplate
-from schema.html_templates import UpdateHtmlTemplateSchema
+from schema.html_templates import AddHTMLSchema,UpdateHtmlTemplateSchema
 
 def get_all_templates(db : Session):
     data = db.query(HTMLTemplate).all()
@@ -23,7 +23,7 @@ def get_template_by_id(db : Session, id : int):
         )
     return data
 
-def upload_html_template(db, credentials):
+def upload_html_template(db : Session, credentials: AddHTMLSchema):
     template = HTMLTemplate(**credentials.model_dump())
 
     db.add(template)
@@ -34,25 +34,41 @@ def upload_html_template(db, credentials):
         db.rollback()
         raise
 
+    return {
+        "message" : "Template Uploaded Successfully",
+        "template" : template
+    }
+
+
+
 def edit_html_template(db : Session, id : int, credentials : UpdateHtmlTemplateSchema):
     template = get_template_by_id(db,id)
 
     for key, val in credentials.model_dump(exclude_unset=True).items():
         setattr(template, key, val)
 
-        try:
-            db.commit()
-            db.refresh(template)
-        except Exception:
-            db.rollback()
+    try:
+        db.commit()
+        db.refresh(template)
+    except Exception:
+        db.rollback()
         raise
 
+    return{
+        "message" : "Template Updated Successfully",
+        "template" : template
+    }
 
-def delete_html_template(db, id):
+
+def delete_html_template(db : Session, id : int):
     template = get_template_by_id(db,id)
     try:
         db.delete(template)
         db.commit()
     except Exception:
         db.rollback()
-    raise
+        raise
+
+    return{
+        "message" : "Template Deleted Successfully"
+    }
