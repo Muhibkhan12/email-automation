@@ -25,7 +25,8 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
-    recipients : Mapped[list["Recipient"]] = relationship(
-        "Recipient",
-        back_populates="user"
+    recipients: Mapped[list["Recipients"]] = relationship(
+        "Recipients",
+        back_populates="user",
+        cascade="all, delete-orphan"
     )

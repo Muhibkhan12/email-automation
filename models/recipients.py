@@ -46,7 +46,7 @@ class Recipients(Base):
         "User",
         back_populates="recipients"
     )
-    uploads : Mapped["UploadFile"] = relationship(
+    upload: Mapped["UploadFile"] = relationship(
         "UploadFile",
         back_populates="recipients"
     )
