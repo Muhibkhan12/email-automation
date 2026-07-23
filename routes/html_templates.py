@@ -16,7 +16,7 @@ def get_html_template(db : Session = Depends(get_db)):
 
 @router.get("/{id}")
 def get_template_using_id(id : int, db : Session = Depends(get_db)):
-    return get_template_by_id 
+    return get_template_by_id(db, id)
 
 @router.post("/add")
 def add_html_template(credentials : AddHTMLSchema ,db : Session = Depends(get_db)):
@@ -27,5 +27,5 @@ def update_html_template(id : int,credentials : UpdateHtmlTemplateSchema, db : S
     return edit_html_template(db,id,credentials)
 
 @router.delete("/delete/{id}")
-def delete_html_template(id : int, db:Session = Depends(get_db)):
-    return delete_html_template(id)
+def delete_html_temp(id : int, db:Session = Depends(get_db)):
+    return delete_html_template(db, id)

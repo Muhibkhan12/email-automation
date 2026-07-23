@@ -7,7 +7,6 @@ from database import Base
 
 class Recipients(Base):
     __tablename__ = "recipients"
-
     id : Mapped[int] = mapped_column(Integer, primary_key=True ,index=True)
     user_id : Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     upload_id : Mapped[int] = mapped_column(Integer, ForeignKey("uploads.id"), nullable=False)
@@ -40,7 +39,6 @@ class Recipients(Base):
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC)
     )
-
 
     user: Mapped["User"] = relationship(
         "User",
