@@ -21,6 +21,9 @@ if config.config_file_name is not None:
 from database import Base
 from models.user import User
 from models.sender_account import SenderAccount
+from models.upload_file import UploadFile
+from models.recipients import Recipients
+from models.html_templates import HTMLTemplate
 from config import settings
 
 config.set_main_option(
