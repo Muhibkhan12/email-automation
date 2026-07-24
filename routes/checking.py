@@ -37,15 +37,16 @@ def create_post(post: AddSchema):
     return response.json()
 
 @router.delete("/{post_id}")
-def deleting_post(post_id : int):
+def deleting_post(post_id: int):
     url = f"https://jsonplaceholder.typicode.com/posts/{post_id}"
     response = requests.delete(url)
 
-    if response.status_code != 201:
+    if response.status_code != 200:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Can't delete the post"
         )
+
     return {
-        "message" : "Post deleted Successfully"
+        "message": "Post deleted successfully"
     }
