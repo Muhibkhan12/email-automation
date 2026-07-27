@@ -13,3 +13,7 @@ celery.conf.update(
     timezone="Asia/Karachi",
     enable_utc=True,
 )
+
+celery.conf.imports = (
+    "workers.extract_email",
+)

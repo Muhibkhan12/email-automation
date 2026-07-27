@@ -1,7 +1,9 @@
 from workers.celery_app import celery
 
-@task.celery()
-def say_hello():
+@celery.task()
+def say_hello(name):
     print(f"Hello {name}")
 
-    return{ f"message: {name}"}
+    return {
+        "message": name
+    }
