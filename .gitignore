@@ -8,9 +8,9 @@ frontend/node_modules/
 **/.env.local
 backend/.env
 frontend/.env
+requirement.txt
 
 # Ignore build files
 **/dist/
 frontend/dist/
 **/.vercel
-requirement.txt

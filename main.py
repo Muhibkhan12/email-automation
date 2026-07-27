@@ -5,6 +5,7 @@ from routes.upload_file import router as upload_file_router
 from routes.recipients import router as recipients_router
 from routes.html_templates import router as html_templates_router
 
+
 app = FastAPI(
     title="Email Automation",
     description="Backend API",
@@ -15,3 +16,4 @@ app.include_router(sender_account_router)
 app.include_router(upload_file_router)
 app.include_router(recipients_router)
 app.include_router(html_templates_router)
+
