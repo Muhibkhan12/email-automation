@@ -39,8 +39,6 @@ def upload_html_template(db : Session, credentials: AddHTMLSchema):
         "template" : template
     }
 
-
-
 def edit_html_template(db : Session, id : int, credentials : UpdateHtmlTemplateSchema):
     template = get_template_by_id(db,id)
 
@@ -58,7 +56,6 @@ def edit_html_template(db : Session, id : int, credentials : UpdateHtmlTemplateS
         "message" : "Template Updated Successfully",
         "template" : template
     }
-
 
 def delete_html_template(db : Session, id : int):
     template = get_template_by_id(db,id)

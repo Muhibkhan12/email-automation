@@ -10,7 +10,6 @@ class HTMLTemplate(Base):
 
     id : Mapped[int] = mapped_column(Integer, primary_key=True,index=True)
     name : Mapped[str] = mapped_column(String(255), nullable=False)
-    subject : Mapped[str] = mapped_column(Text, nullable=False)
     html_content : Mapped[str] = mapped_column(Text,nullable=False)
     description: Mapped[str | None] = mapped_column(String(255),nullable=True)
     is_active : Mapped[bool] = mapped_column(Boolean, default=True)
