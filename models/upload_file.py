@@ -32,8 +32,8 @@ class UploadFile(Base):
         index=True
     )
 
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id"),
+    campaign_id: Mapped[int] = mapped_column(
+        ForeignKey("campaigns.id"),
         nullable=False
     )
 
@@ -79,12 +79,12 @@ class UploadFile(Base):
     )
 
 
-    user: Mapped["User"] = relationship(
-        "User",
+    campaign: Mapped["Campaign"] = relationship(
+        "Campaign",
         back_populates="uploads"
     )
 
     recipients = relationship(
-        "Recipients",
+        "CampaignRecipient",
         back_populates="upload"
     )

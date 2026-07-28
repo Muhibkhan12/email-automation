@@ -10,12 +10,11 @@ class AccountStatus(enum.Enum):
     INACTIVE = "inactive"
 
 class SenderAccount(Base):
-    __tablename__ = "sender_account"
+    __tablename__ = "sender_accounts"
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id : Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     email : Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    password : Mapped[str] = mapped_column(String(255), nullable=False)
 
     display_name : Mapped[str | None] = mapped_column(
         String(255),
@@ -32,6 +31,7 @@ class SenderAccount(Base):
         nullable=False
     )
 
+    # FIX: was duplicated (defined twice in the original file) — kept a single definition
     password : Mapped[str] = mapped_column(
         String(255),
         nullable=False
@@ -73,3 +73,4 @@ class SenderAccount(Base):
     )
 
     campaigns = relationship("Campaign", back_populates="sender_account")
+    email_logs = relationship("EmailLog", back_populates="sender_account")

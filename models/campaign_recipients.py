@@ -1,14 +1,23 @@
-from sqlalchemy import String, Integer, ForeignKey, DateTime, Boolean
+import enum
+
+from sqlalchemy import String, Integer, ForeignKey, DateTime, Boolean, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, UTC
 from database import Base
 
 
+class RecipientStatus(enum.Enum):
+    PENDING = "Pending"
+    QUEUED = "Queued"
+    SENDING = "Sending"
+    SENT = "Sent"
+    FAILED = "Failed"
 
-class Recipients(Base):
-    __tablename__ = "recipients"
+
+class CampaignRecipient(Base):
+    __tablename__ = "campaign_recipients"
     id : Mapped[int] = mapped_column(Integer, primary_key=True ,index=True)
-    user_id : Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    campaign_id : Mapped[int] = mapped_column(Integer, ForeignKey("campaigns.id"), nullable=False)
     upload_id : Mapped[int] = mapped_column(Integer, ForeignKey("uploads.id"), nullable=False)
     name : Mapped[str] = mapped_column(String(255), nullable=False)
 
@@ -29,6 +38,11 @@ class Recipients(Base):
         default=True
     )
 
+    status: Mapped[RecipientStatus] = mapped_column(
+        Enum(RecipientStatus),
+        default=RecipientStatus.PENDING
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: datetime.now(UTC)
@@ -40,8 +54,8 @@ class Recipients(Base):
         onupdate=lambda: datetime.now(UTC)
     )
 
-    user: Mapped["User"] = relationship(
-        "User",
+    campaign: Mapped["Campaign"] = relationship(
+        "Campaign",
         back_populates="recipients"
     )
     upload: Mapped["UploadFile"] = relationship(
@@ -49,4 +63,8 @@ class Recipients(Base):
         back_populates="recipients"
     )
 
-    campaign = relationship("Campaign", back_populates="recipients")
+    email_logs = relationship(
+        "EmailLog",
+        back_populates="recipient",
+        cascade="all, delete-orphan"
+    )

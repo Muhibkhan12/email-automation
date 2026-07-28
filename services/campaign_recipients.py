@@ -2,11 +2,11 @@ from fastapi import HTTPException, status
 
 from sqlalchemy.orm import Session
 
-from models.recipients import Recipients
-from schema.recipients import AddRecipientsSchema, UpdateRecipientsSchema
+from models.campaign_recipients import CampaignRecipient
+from schema.campaign_recipients import AddRecipientsSchema, UpdateRecipientsSchema
 
 def get_all_recipients(db :  Session):
-    data = db.query(Recipients).all()
+    data = db.query(CampaignRecipient).all()
     return{
         "message" : "Recipients fetched successfully",
         "count" : len(data),
@@ -14,7 +14,7 @@ def get_all_recipients(db :  Session):
     }
 
 def get_recipients_by_id(id : int, db : Session):
-    recipient = db.query(Recipients).filter(Recipients.id == id).first()
+    recipient = db.query(CampaignRecipient).filter(CampaignRecipient.id == id).first()
     if not recipient:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -26,7 +26,7 @@ def get_recipients_by_id(id : int, db : Session):
     }
     
 def add_recipients_data(db : Session, credentials : AddRecipientsSchema):
-    upload_recipient = Recipients(**credentials.model_dump())
+    upload_recipient = CampaignRecipient(**credentials.model_dump())
 
 
     db.add(upload_recipient)
@@ -44,7 +44,7 @@ def add_recipients_data(db : Session, credentials : AddRecipientsSchema):
 
 def updated_recipients_data(id : int,db : Session, credentials : UpdateRecipientsSchema):
 
-    data = get_recipients_by_id(id, db )
+    data = get_recipients_by_id(id, db )["recipient"]
     update_data = credentials.model_dump(exclude_unset=True)
     for key, val in update_data.items():
         setattr(data, key, val)
@@ -58,7 +58,11 @@ def updated_recipients_data(id : int,db : Session, credentials : UpdateRecipient
     }
 
 def delete_recipient_data(id : int, db : Session):
-    data = get_recipients_by_id(id,db)
+    data = get_recipients_by_id(id,db)["recipient"]
 
     db.delete(data)
     db.commit()
+
+    return{
+        "message" : "Recipient Deleted Successfully"
+    }

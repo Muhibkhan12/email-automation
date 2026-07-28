@@ -17,6 +17,12 @@ class Campaign(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
 
+    # FIX: was missing — required because User.campaigns uses back_populates="user"
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False
+    )
+
     campaign_name: Mapped[str] = mapped_column(
         String(255),
         nullable=False
@@ -55,10 +61,30 @@ class Campaign(Base):
     )
 
     # Relationships
-    template = relationship("HtmlTemplate", back_populates="campaigns")
+    # FIX: "HtmlTemplate" -> "HTMLTemplate" (must match actual class name in models/html_templates.py)
+    template = relationship("HTMLTemplate", back_populates="campaigns")
+
+    # FIX: was missing — required by User.campaigns back_populates="user"
+    user = relationship("User", back_populates="campaigns")
+
     sender_account = relationship("SenderAccount", back_populates="campaigns")
+
     recipients = relationship(
         "CampaignRecipient",
+        back_populates="campaign",
+        cascade="all, delete-orphan"
+    )
+
+    # FIX: was missing — required by UploadFile.campaign back_populates="uploads"
+    uploads = relationship(
+        "UploadFile",
+        back_populates="campaign",
+        cascade="all, delete-orphan"
+    )
+
+    # FIX: was missing — required by EmailLog.campaign back_populates="email_logs"
+    email_logs = relationship(
+        "EmailLog",
         back_populates="campaign",
         cascade="all, delete-orphan"
     )

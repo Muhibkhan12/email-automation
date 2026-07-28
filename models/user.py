@@ -20,13 +20,8 @@ class User(Base):
         onupdate=lambda : datetime.now(UTC)
     )
 
-    uploads: Mapped[list["UploadFile"]] = relationship(
-        "UploadFile",   
-        back_populates="user",
-        cascade="all, delete-orphan"
-    )
-    recipients: Mapped[list["Recipients"]] = relationship(
-        "Recipients",
+    campaigns: Mapped[list["Campaign"]] = relationship(
+        "Campaign",
         back_populates="user",
         cascade="all, delete-orphan"
     )

@@ -16,4 +16,4 @@ class HTMLTemplate(Base):
     created_at : Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
     updated_at : Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda : datetime.now(UTC))
 
-    campaigns = relationship("Campaign", back_populates="html_templates")
+    campaigns = relationship("Campaign", back_populates="template")
