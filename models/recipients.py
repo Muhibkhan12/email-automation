@@ -48,3 +48,5 @@ class Recipients(Base):
         "UploadFile",
         back_populates="recipients"
     )
+
+    campaign = relationship("Campaign", back_populates="recipients")

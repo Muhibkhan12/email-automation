@@ -71,3 +71,5 @@ class SenderAccount(Base):
         default=datetime.now(UTC),
         onupdate=datetime.now(UTC)
     )
+
+    campaigns = relationship("Campaign", back_populates="sender_account")
