@@ -13,7 +13,6 @@ class RecipientStatus(str, Enum):
 class AddRecipientsSchema(BaseModel):
     campaign_id : int
     upload_id : int
-
     name : str
     email : str
     company : str
