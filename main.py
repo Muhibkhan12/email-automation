@@ -7,7 +7,6 @@ from routes.campaign_recipients import router as recipients_router
 from routes.html_templates import router as html_templates_router
 from routes.email_logs import router as email_logs_router
 from routes.worker import router as worker_router
-from routes.check import router as check_router
 
 
 app = FastAPI(
@@ -24,4 +23,3 @@ app.include_router(recipients_router)
 app.include_router(html_templates_router)
 app.include_router(email_logs_router)
 app.include_router(worker_router)
-app.include_router(check_router)
