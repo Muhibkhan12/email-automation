@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from schema.upload_file import UploadedFileUpdateSchema, UploadFileSchema
-from models.upload_file import UploadFile
+from models.upload_file import Upload
 from services.upload_file import add_upload_file, update_upload_file, delete_upload_file
 
 router = APIRouter(

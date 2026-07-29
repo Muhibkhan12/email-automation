@@ -1,13 +1,12 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from models.upload_file import UploadFile
+from models.upload_file import Upload
 from schema.upload_file import UploadFileSchema, UploadedFileUpdateSchema
 
+def get_upload_file_or_404(db: Session, upload_file_id: int) -> Upload:
 
-def get_upload_file_or_404(db: Session, upload_file_id: int) -> UploadFile:
-
-    upload_file = db.get(UploadFile, upload_file_id)
+    upload_file = db.get(Upload, upload_file_id)
 
     if upload_file is None:
         raise HTTPException(
@@ -17,13 +16,12 @@ def get_upload_file_or_404(db: Session, upload_file_id: int) -> UploadFile:
 
     return upload_file
 
-
 def add_upload_file(
     db: Session,
     credentials: UploadFileSchema
 ):
 
-    upload_file = UploadFile(**credentials.model_dump())
+    upload_file = Upload(**credentials.model_dump())
 
     db.add(upload_file)
 

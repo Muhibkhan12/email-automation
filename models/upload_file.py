@@ -22,7 +22,7 @@ class UploadStatus(enum.Enum):
     FAILED = "failed"
 
 
-class UploadFile(Base):
+class Upload(Base):
 
     __tablename__ = "uploads"
 
