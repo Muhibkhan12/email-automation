@@ -77,7 +77,7 @@ class Campaign(Base):
 
     # FIX: was missing — required by UploadFile.campaign back_populates="uploads"
     uploads = relationship(
-        "UploadFile",
+        "Upload",
         back_populates="campaign",
         cascade="all, delete-orphan"
     )

@@ -2,82 +2,70 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from models.upload_file import Upload
-from schema.upload_file import UploadFileSchema, UploadedFileUpdateSchema
+from schema.upload_file import UploadFileSchema
 
-def get_upload_file_or_404(db: Session, upload_file_id: int) -> Upload:
-
-    upload_file = db.get(Upload, upload_file_id)
-
-    if upload_file is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Upload file not found."
-        )
-
-    return upload_file
 
 def add_upload_file(
     db: Session,
     credentials: UploadFileSchema
 ):
 
-    upload_file = Upload(**credentials.model_dump())
+    upload = Upload(
+        **credentials.model_dump()
+    )
 
-    db.add(upload_file)
+    db.add(upload)
 
     try:
         db.commit()
-        db.refresh(upload_file)
+        db.refresh(upload)
+
     except Exception:
         db.rollback()
         raise
 
-    return {
-        "message": "Upload file created successfully.",
-        "data": upload_file
-    }
+    return upload
 
 
-def update_upload_file(
+def get_upload_by_campaign(
     db: Session,
-    upload_file_id: int,
-    credentials: UploadedFileUpdateSchema
+    campaign_id: int
 ):
-    """Update an existing upload file."""
 
-    upload_file = get_upload_file_or_404(db, upload_file_id)
+    upload = (
+        db.query(Upload)
+        .filter(Upload.campaign_id == campaign_id)
+        .first()
+    )
 
-    for field, value in credentials.model_dump(exclude_unset=True).items():
-        setattr(upload_file, field, value)
+    if upload is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No uploaded file found for this campaign."
+        )
 
-    try:
-        db.commit()
-        db.refresh(upload_file)
-    except Exception:
-        db.rollback()
-        raise
-
-    return {
-        "message": "Upload file updated successfully.",
-        "data": upload_file
-    }
+    return upload
 
 
 def delete_upload_file(
     db: Session,
     upload_file_id: int
 ):
-    """Delete an upload file."""
 
-    upload_file = get_upload_file_or_404(db, upload_file_id)
+    upload = db.get(
+        Upload,
+        upload_file_id
+    )
 
-    try:
-        db.delete(upload_file)
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
+    if upload is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Upload not found."
+        )
+
+    db.delete(upload)
+    db.commit()
 
     return {
-        "message": "Upload file deleted successfully."
+        "message": "Upload deleted successfully."
     }

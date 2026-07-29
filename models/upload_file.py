@@ -79,12 +79,12 @@ class Upload(Base):
     )
 
 
-    campaign: Mapped["Campaign"] = relationship(
+    campaign = relationship(
         "Campaign",
         back_populates="uploads"
     )
 
-    recipients = relationship(
+    recipients: Mapped[list["CampaignRecipient"]] = relationship(
         "CampaignRecipient",
         back_populates="upload"
     )

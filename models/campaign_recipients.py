@@ -58,8 +58,8 @@ class CampaignRecipient(Base):
         "Campaign",
         back_populates="recipients"
     )
-    upload: Mapped["UploadFile"] = relationship(
-        "UploadFile",
+    upload: Mapped["Upload"] = relationship(
+        "Upload",
         back_populates="recipients"
     )
 
