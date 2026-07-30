@@ -1,4 +1,5 @@
 from celery import Celery
+from kombu import Queue
 
 celery = Celery(
     "email-automation",
@@ -12,6 +13,12 @@ celery.conf.update(
     accept_content=["json"],
     timezone="Asia/Karachi",
     enable_utc=True,
+)
+
+celery.conf.task_queue = (
+    Queue("extract_emails_queue"),
+    Queue("email_sender_queue"),
+    Queue("dead_letter_queue"),
 )
 
 celery.conf.imports = (

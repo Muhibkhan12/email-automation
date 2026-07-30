@@ -1,4 +1,4 @@
-from celery_app import celery
+from workers.celery_app import celery
 
 @celery.task()
 def sending_emails():
