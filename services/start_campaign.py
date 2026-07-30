@@ -1,9 +1,7 @@
 from fastapi import HTTPException, status
 import pandas as pd
-
-from services.validate_file import validate_file
-from services.upload_file import delete_upload_file, get_upload_by_campaign
-from services.campaigns import update_campaign, get_campaign_by_id
+from services.upload_file import  get_upload_by_campaign
+from services.campaigns import  get_campaign_by_id
 from schema.campaigns import CampaignStatus
 from schema.upload_file import UploadStatus
 from schema.campaign_recipients import AddRecipientsSchema
@@ -46,6 +44,3 @@ def start_campaign(db : Session, campaing_id :  int):
         "message" : "Campaign is ready",
         "total_recipient" : len(df)
     }
-    
-
-
