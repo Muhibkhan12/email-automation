@@ -1,4 +1,4 @@
-from sqlalchemy import Column,String,Integer,DateTime,Enum as SqlEnum, ForeignKey
+from sqlalchemy import String,DateTime,Enum as SqlEnum, ForeignKey
 from enum import Enum
 from sqlalchemy.orm import Mapped,mapped_column, relationship
 from datetime import datetime, UTC
@@ -67,24 +67,28 @@ class Campaign(Base):
     # FIX: was missing — required by User.campaigns back_populates="user"
     user = relationship("User", back_populates="campaigns")
 
-    sender_account = relationship("SenderAccount", back_populates="campaigns")
-
     recipients = relationship(
         "CampaignRecipient",
-        back_populates="campaign",
+        back_populates="campaigns",
         cascade="all, delete-orphan"
     )
 
     # FIX: was missing — required by UploadFile.campaign back_populates="uploads"
     uploads = relationship(
         "Upload",
-        back_populates="campaign",
+        back_populates="campaigns",
         cascade="all, delete-orphan"
     )
 
     # FIX: was missing — required by EmailLog.campaign back_populates="email_logs"
     email_logs = relationship(
         "EmailLog",
-        back_populates="campaign",
+        back_populates="campaigns",
         cascade="all, delete-orphan"
+    )
+
+    sender_account = relationship(
+        "SenderAccount",
+        back_populates="campaigns",
+        cascade="all delete-orphan"
     )
