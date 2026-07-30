@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from workers.extract_email import say_hello
+from workers.extract_email import extract_emails
 
 
 router = APIRouter(
@@ -9,8 +9,4 @@ router = APIRouter(
 
 @router.get("/")
 def home():
-    say_hello.delay("Muhib")
-
-    return {
-        "Message" : "Task Send Successfully",
-    }
+    pass

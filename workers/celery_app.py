@@ -16,4 +16,5 @@ celery.conf.update(
 
 celery.conf.imports = (
     "workers.extract_email",
+    "workers.sending_emails",
 )
