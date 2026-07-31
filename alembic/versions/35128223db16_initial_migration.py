@@ -28,6 +28,7 @@ def upgrade() -> None:
         sa.Column('username', sa.String(length=255), nullable=False),
         sa.Column('email', sa.String(length=255), nullable=False),
         sa.Column('password', sa.String(length=255), nullable=False),
+        sa.Column("role",sa.Enum("ADMIN", "EMPLOYEE", name="userrole"), nullable=False, server_default="EMPLOYEE"),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
         sa.PrimaryKeyConstraint('id'),
@@ -62,7 +63,7 @@ def upgrade() -> None:
         sa.Column('daily_limit', sa.Integer(), nullable=False, server_default="100"),
         sa.Column('hourly_limit', sa.Integer(), nullable=False, server_default="20"),
         sa.Column('emails_sent_today', sa.Integer(), nullable=False, server_default="0"),
-        sa.Column('status', sa.Enum('ACTIVE', 'INACTIVE', name='accountstatus', server_default="ACTIVE"), nullable=False),
+        sa.Column('status', sa.Enum('ACTIVE', 'INACTIVE', name='accountstatus', ), server_default="ACTIVE", nullable=False),
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.Column('updated_at', sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint('id'),
@@ -82,7 +83,7 @@ def upgrade() -> None:
         sa.Column(
             'status',
             sa.Enum('DRAFT', 'READY', 'RUNNING', 'PAUSED', 'COMPLETED', 'CANCELLED', name='campaignstatus'),
-            nullable=False,
+            nullable=False, server_default="DRAFT"
         ),
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.Column('updated_at', sa.DateTime(), nullable=False),
@@ -107,6 +108,7 @@ def upgrade() -> None:
             'status',
             sa.Enum('UPLOADED', 'PROCESSING', 'COMPLETED', 'FAILED', name='uploadstatus'),
             nullable=False,
+            server_default="UPLOADED"
         ),
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.Column('updated_at', sa.DateTime(), nullable=False),
@@ -130,6 +132,7 @@ def upgrade() -> None:
             'status',
             sa.Enum('PENDING', 'QUEUED', 'SENDING', 'SENT', 'FAILED', name='recipientstatus'),
             nullable=False,
+            server_default="PENDING"
         ),
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.Column('updated_at', sa.DateTime(), nullable=False),
@@ -150,6 +153,7 @@ def upgrade() -> None:
             'status',
             sa.Enum('PENDING', 'SENT', 'FAILED', name='emaillogstatus'),
             nullable=False,
+            server_default="PENDING"
         ),
         sa.Column('error_message', sa.Text(), nullable=True),
         sa.Column('sent_at', sa.DateTime(), nullable=True),
