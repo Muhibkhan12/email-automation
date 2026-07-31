@@ -19,6 +19,11 @@ class User(Base):
         default=lambda : datetime.now(UTC),
         onupdate=lambda : datetime.now(UTC)
     )
+    templates = relationship(
+        "HTMLTemplate",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
 
     campaigns: Mapped[list["Campaign"]] = relationship(
         "Campaign",

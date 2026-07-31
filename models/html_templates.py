@@ -17,3 +17,7 @@ class HTMLTemplate(Base):
     updated_at : Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda : datetime.now(UTC))
 
     campaigns = relationship("Campaign", back_populates="template")
+    user = relationship(
+        "User",
+        back_populates="templates"
+    )

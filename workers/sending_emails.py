@@ -4,31 +4,7 @@ from models.campaign_recipients import CampaignRecipient
 from models.campaigns import Campaign, CampaignStatus
 from models.html_templates import HTMLTemplate
 
-# recipient_id receive
-#         │
-#         ▼
-# Get recipient
-#         │
-#         ▼
-# Get campaign
-#         │
-#         ▼
-# Get template
-#         │
-#         ▼
-# Get sender account
-#         │
-#         ▼
-# Render HTML
-#         │
-#         ▼
-# Send Email (SMTP)
-#         │
-#         ▼
-# Save EmailLog
-#         │
-#         ▼
-# recipient.status = SENT / FAILED
+
 
 @celery.task(queue="email_sender_queue")
 def sending_emails(recipient_id : int):

@@ -1,4 +1,4 @@
-from sqlalchemy import String,Integer, ForeignKey, DateTime, Enum
+from sqlalchemy import String,Integer, ForeignKey, DateTime, Enum, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 
@@ -23,29 +23,23 @@ class SenderAccount(Base):
 
     provider : Mapped[str] = mapped_column(
         String(50),
-        default="gmail"
     )
-
-    username : Mapped[str] = mapped_column(
-        String(255),
-        nullable=False
+    access_token: Mapped[str] = mapped_column(
+        Text(),
+        nullable=False,
     )
-
-    # FIX: was duplicated (defined twice in the original file) — kept a single definition
-    password : Mapped[str] = mapped_column(
-        String(255),
-        nullable=False
+    refresh_token : Mapped[str] = mapped_column(
+        Text(),
+        nullable=False,
     )
-
-    smtp_host : Mapped[str] = mapped_column(
-        String(255),
-        nullable=False
+    token_expires_at : Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True
     )
-    smtp_port : Mapped[str] = mapped_column(
-        String(255),
-        nullable=False
+    emails_sent_today : Mapped[int] = mapped_column(
+        Integer(),
+        nullable=False,
     )
-
     daily_limit : Mapped[int] = mapped_column(
         Integer,
         default=500

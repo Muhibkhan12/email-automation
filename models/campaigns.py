@@ -64,9 +64,10 @@ class Campaign(Base):
     # FIX: "HtmlTemplate" -> "HTMLTemplate" (must match actual class name in models/html_templates.py)
     template = relationship("HTMLTemplate", back_populates="campaigns")
 
-    # FIX: was missing — required by User.campaigns back_populates="user"
-    user = relationship("User", back_populates="campaigns")
-
+    user = relationship(
+        "User",
+        back_populates="sender_accounts"
+    )
     recipients = relationship(
         "CampaignRecipient",
         back_populates="campaigns",
