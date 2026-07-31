@@ -90,5 +90,5 @@ class Campaign(Base):
     sender_account = relationship(
         "SenderAccount",
         back_populates="campaigns",
-        cascade="all delete-orphan"
+        cascade="all, delete-orphan"
     )
