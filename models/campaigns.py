@@ -51,12 +51,12 @@ class Campaign(Base):
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=datetime.utcnow
+        default=lambda: datetime.now(UTC)
     )
 
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        default=datetime.utcnow,
+        default=lambda: datetime.now(UTC),
         onupdate=datetime.utcnow
     )
 
@@ -66,30 +66,27 @@ class Campaign(Base):
 
     user = relationship(
         "User",
-        back_populates="sender_accounts"
+        back_populates="campaigns"
     )
     recipients = relationship(
         "CampaignRecipient",
-        back_populates="campaigns",
+        back_populates="campaign",
         cascade="all, delete-orphan"
     )
 
-    # FIX: was missing — required by UploadFile.campaign back_populates="uploads"
     uploads = relationship(
         "Upload",
-        back_populates="campaigns",
+        back_populates="campaign",
         cascade="all, delete-orphan"
     )
 
     # FIX: was missing — required by EmailLog.campaign back_populates="email_logs"
     email_logs = relationship(
         "EmailLog",
-        back_populates="campaigns",
+        back_populates="campaign",
         cascade="all, delete-orphan"
     )
-
     sender_account = relationship(
         "SenderAccount",
-        back_populates="campaigns",
-        cascade="all, delete-orphan"
+        back_populates="campaigns"
     )

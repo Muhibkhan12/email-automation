@@ -9,6 +9,10 @@ class AccountStatus(enum.Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
 
+class Provider(enum.Enum):
+    OUTLOOK = "OUTLOOK"
+    GMAIL = "GMAIL"
+
 class SenderAccount(Base):
     __tablename__ = "sender_accounts"
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -20,17 +24,17 @@ class SenderAccount(Base):
         String(255),
         nullable=True
     )
-
-    provider : Mapped[str] = mapped_column(
-        String(50),
+    provider: Mapped[Provider] = mapped_column(
+        Enum(Provider),
+        nullable=False
     )
     access_token: Mapped[str] = mapped_column(
         Text(),
-        nullable=False,
+        nullable=True,
     )
     refresh_token : Mapped[str] = mapped_column(
         Text(),
-        nullable=False,
+        nullable=True,
     )
     token_expires_at : Mapped[datetime | None] = mapped_column(
         DateTime,
@@ -39,31 +43,36 @@ class SenderAccount(Base):
     emails_sent_today : Mapped[int] = mapped_column(
         Integer(),
         nullable=False,
+        default=0
     )
     daily_limit : Mapped[int] = mapped_column(
         Integer,
-        default=500
+        default=100
     )
     hourly_limit : Mapped[int] = mapped_column(
         Integer,
-        default=50
+        default=20
     )
-    email_sent_hour : Mapped[int] = mapped_column(
+    emails_sent_hour : Mapped[int] = mapped_column(
         Integer,
         default=0
     )
     status: Mapped[AccountStatus] = mapped_column(
         Enum(AccountStatus),
-        default=AccountStatus.INACTIVE
+        default=AccountStatus.ACTIVE
     )
     created_at : Mapped[datetime] = mapped_column(
         DateTime,
-        default=datetime.now(UTC)
+        default=lambda: datetime.now(UTC)
     )
     updated_at : Mapped[datetime] = mapped_column(
         DateTime,
-        default=datetime.now(UTC),
+        default=lambda: datetime.now(UTC),
         onupdate=datetime.now(UTC)
+    )
+    user = relationship(
+        "User",
+        back_populates="sender_accounts"
     )
 
     campaigns = relationship("Campaign", back_populates="sender_account")
