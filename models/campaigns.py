@@ -57,7 +57,7 @@ class Campaign(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: datetime.now(UTC),
-        onupdate=datetime.utcnow
+        onupdate=lambda: datetime.now(UTC)
     )
 
     # Relationships

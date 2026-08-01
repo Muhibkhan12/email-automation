@@ -51,29 +51,44 @@ class Upload(Base):
         String(255),
         nullable=False
     )
+    file_size: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False
+    )
+    mime_type: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False
+    )
+    error_message: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True
+    )
 
     total_records: Mapped[int] = mapped_column(
         Integer,
-        default=0
+        default=0,
+        nullable=False
     )
 
     processed_records: Mapped[int] = mapped_column(
         Integer,
-        default=0
+        default=0,
+        nullable=False
     )
 
     status: Mapped[UploadStatus] = mapped_column(
         Enum(UploadStatus),
-        default=UploadStatus.UPLOADED
+        default=UploadStatus.UPLOADED,
+        nullable=False,
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         default=lambda: datetime.now(UTC)
     )
 
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime,
+        DateTime(timezone=True),
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC)
     )
