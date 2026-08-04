@@ -22,3 +22,7 @@ class OAuthService:
         )
 
         return auth_url
+
+    async def outlook_callback():
+        code : str
+
