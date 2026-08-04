@@ -5,7 +5,6 @@ class OAuthService:
 
     @staticmethod
     def generate_auth_url():
-
         params = {
             "client_id" : settings.MS_CLIENT_ID,
             "response_type" : "code",
@@ -16,7 +15,7 @@ class OAuthService:
             "state" : "123456",
         }
         auth_url = (
-            f"https://login.microsoftonline.com"
+            f"https://login.microsoftonline.com/"
             f"{settings.MS_TENANT_ID}"
             f"/oauth2/v2.0/authorize?"
             f"{urlencode(params)}"

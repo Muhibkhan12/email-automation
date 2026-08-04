@@ -9,9 +9,9 @@ class Settings(BaseSettings):
     SECRET_KEY : str
     ALGORITHM : str = "HS256"
     JWT_TOKEN_EXPIRY : int = 30
-    MS_CLIENT_ID : int
+    MS_CLIENT_ID : str
     MS_CLIENT_SECRET : str
-    MS_TENANT_ID : int
+    MS_TENANT_ID : str
     MS_REDIRECT_URI : str
 
 
