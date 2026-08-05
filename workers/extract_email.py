@@ -12,7 +12,7 @@ from models.campaign_recipients import CampaignRecipient
 from schema.campaigns import CampaignStatus
 from schema.upload_file import UploadStatus
 
-from workers.sending_emails import sending_emails
+from workers.sending_emails import send_email_task
 
 
 @celery.task(queue="extract_emails_queue")
@@ -77,7 +77,7 @@ def extract_emails(upload_id : int):
                   db.refresh(recipient)
 
             for recipient in recipients:
-                  sending_emails.apply_async(
+                  send_email_task.apply_async(
                         args=[recipient.id],
                         queue="email_sending_queue"
                   )
