@@ -1,5 +1,5 @@
-from fastapi import APIRouter, status
-from fastapi.responses import RedirectResponse 
+from fastapi import APIRouter, status, HTTPException
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from services.oauth_service import OAuthService
@@ -21,3 +21,15 @@ def connect_outlook():
     #     url=auth_url,
     #     status_code=status.HTTP_302_FOUND
     # )
+
+@router.get('/callback')
+async def outlook_callback(code : str):
+    try:
+        token = await OAuthService.exchange_code_for_token(code)
+
+        return token
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
