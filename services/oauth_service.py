@@ -1,20 +1,22 @@
 import httpx
 from urllib.parse import urlencode
+
 from config import settings
+
 
 class OAuthService:
 
     @staticmethod
     def generate_auth_url():
         params = {
-            "client_id" : settings.MS_CLIENT_ID,
-            "response_type" : "code",
-            "redirect_uri" : settings.MS_REDIRECT_URI,
-
-            "scope" : "offline_access Mail.Send User.read",
-            "response_mode" : "query",
-            "state" : "123456",
+            "client_id": settings.MS_CLIENT_ID,
+            "response_type": "code",
+            "redirect_uri": settings.MS_REDIRECT_URI,
+            "scope": "offline_access Mail.Send User.Read",
+            "response_mode": "query",
+            "state": "123456",
         }
+
         auth_url = (
             f"https://login.microsoftonline.com/"
             f"{settings.MS_TENANT_ID}"
@@ -39,6 +41,48 @@ class OAuthService:
             "code": code,
             "redirect_uri": settings.MS_REDIRECT_URI,
             "grant_type": "authorization_code",
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(token_url, data=data)
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        return response.json()
+
+    @staticmethod
+    async def get_user_profile(access_token: str):
+
+        url = "https://graph.microsoft.com/v1.0/me"
+
+        headers = {
+            "Authorization": f"Bearer {access_token}"
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers)
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        return response.json()
+
+    @staticmethod
+    async def refresh_access_token(refresh_token: str):
+
+        token_url = (
+            f"https://login.microsoftonline.com/"
+            f"{settings.MS_TENANT_ID}"
+            f"/oauth2/v2.0/token"
+        )
+
+        data = {
+            "client_id": settings.MS_CLIENT_ID,
+            "client_secret": settings.MS_CLIENT_SECRET,
+            "refresh_token": refresh_token,
+            "grant_type": "refresh_token",
+            "redirect_uri": settings.MS_REDIRECT_URI,
         }
 
         async with httpx.AsyncClient() as client:
