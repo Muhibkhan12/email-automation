@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from schema.html_templates import (AddHTMLSchema, UpdateHtmlTemplateSchema, DeleteHtmlTemplateSchema)
-from services.html_templates import (upload_html_template, delete_html_template, edit_html_template, get_template_by_id, get_all_templates)
-from database import get_db
+from backend.schema.html_templates import (AddHTMLSchema, UpdateHtmlTemplateSchema, DeleteHtmlTemplateSchema)
+from backend.services.html_templates import (upload_html_template, delete_html_template, edit_html_template, get_template_by_id, get_all_templates)
+from backend.database import get_db
 
 router = APIRouter(
     prefix="/html_templates",

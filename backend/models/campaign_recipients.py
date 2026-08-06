@@ -3,7 +3,7 @@ import enum
 from sqlalchemy import String, Integer, ForeignKey, DateTime, Boolean, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, UTC
-from database import Base
+from backend.database import Base
 
 
 class RecipientStatus(enum.Enum):

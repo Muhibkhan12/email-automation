@@ -3,7 +3,7 @@ import enum
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, UTC
-from database import Base
+from backend.database import Base
 
 
 class UserRole(enum.Enum):

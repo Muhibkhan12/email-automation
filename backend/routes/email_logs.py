@@ -3,9 +3,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from database import get_db
-from schema.email_logs import AddEmailLogSchema, UpdateEmailLogSchema
-import services.email_logs as email_log_service
+from backend.database import get_db
+from backend.schema.email_logs import AddEmailLogSchema, UpdateEmailLogSchema
+import backend.services.email_logs as email_log_service
 
 router = APIRouter(
     prefix="/email-logs",

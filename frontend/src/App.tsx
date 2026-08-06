@@ -4,7 +4,7 @@ import {
   UploadCloud, FileCode, Mail, ScrollText, Activity, Loader, AlertTriangle,
   BarChart3, PieChart, FileBarChart, Bell, User, Settings, ChevronDown,
   ChevronRight, Search, MailOpen, MousePointerClick, ArrowUpRight,
-  ArrowDownRight, CircleDot,
+  ArrowDownRight, CircleDot, Menu, X,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -149,7 +149,7 @@ const dotColor = (status) => (
 function StatCard({ icon: Icon, label, value, delta, positive, accent }) {
   return (
     <div
-      className="flex-1 min-w-[190px] rounded-xl p-5"
+      className="flex-1 min-w-[160px] rounded-xl p-4 sm:p-5"
       style={{ background: C.surface, border: `1px solid ${C.border}` }}
     >
       <div className="flex items-center justify-between mb-4">
@@ -170,7 +170,7 @@ function StatCard({ icon: Icon, label, value, delta, positive, accent }) {
           {delta}
         </span>
       </div>
-      <p style={{ fontFamily: C.mono, color: C.text }} className="text-2xl font-semibold tracking-tight">
+      <p style={{ fontFamily: C.mono, color: C.text }} className="text-xl sm:text-2xl font-semibold tracking-tight">
         {value}
       </p>
       <p style={{ color: C.textSoft }} className="text-sm mt-1">{label}</p>
@@ -211,18 +211,105 @@ function NavRow({ item, depth, active, expanded, onToggle, onSelect }) {
 export default function App() {
   const [active, setActive] = useState('dashboard');
   const [expanded, setExpanded] = useState({ campaigns: true });
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const toggleSection = (id) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
     const item = NAV.find((n) => n.id === id);
-    if (!item.children) setActive(id);
+    if (!item.children) {
+      setActive(id);
+      setMobileNavOpen(false);
+    }
+  };
+
+  const selectItem = (id) => {
+    setActive(id);
+    setMobileNavOpen(false);
   };
 
   const { label: pageLabel, parent: pageParent } = findLabel(active);
 
+  const SidebarContent = (
+    <>
+      <div
+        className="flex items-center justify-between gap-2.5 px-5 shrink-0"
+        style={{ height: 60, borderBottom: '1px solid #1E2330' }}
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+            style={{ background: C.primary }}
+          >
+            <Send size={15} color="#fff" />
+          </div>
+          <div className="leading-tight min-w-0">
+            <p style={{ fontFamily: C.display, color: '#fff', fontSize: 14.5, fontWeight: 700, letterSpacing: '-0.01em' }}>
+              MailForge
+            </p>
+            <p style={{ color: '#6E7383', fontSize: 10.5, fontFamily: C.mono }}>Email Automation</p>
+          </div>
+        </div>
+        <button
+          className="lg:hidden shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+          style={{ color: '#9AA0AF' }}
+          onClick={() => setMobileNavOpen(false)}
+          aria-label="Close menu"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      <nav className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-0.5">
+        {NAV.map((item) => (
+          <div key={item.id}>
+            <NavRow
+              item={item}
+              depth={0}
+              active={active}
+              expanded={!!expanded[item.id]}
+              onToggle={toggleSection}
+              onSelect={selectItem}
+            />
+            {item.children && expanded[item.id] && (
+              <div className="flex flex-col gap-0.5 mt-0.5 mb-1">
+                {item.children.map((child) => (
+                  <NavRow
+                    key={child.id}
+                    item={child}
+                    depth={1}
+                    active={active}
+                    expanded={false}
+                    onToggle={() => {}}
+                    onSelect={selectItem}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </nav>
+
+      <div className="px-4 py-4 shrink-0" style={{ borderTop: '1px solid #1E2330' }}>
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+            style={{ background: C.primary, color: '#fff', fontFamily: C.display }}
+          >
+            AR
+          </div>
+          <div className="leading-tight min-w-0">
+            <p className="truncate" style={{ color: '#fff', fontSize: 12.5, fontWeight: 500 }}>Ayesha Khan</p>
+            <p className="truncate" style={{ color: '#6E7383', fontSize: 11 }}>Workspace Admin</p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div
-      className="h-screen w-full flex overflow-hidden"
+      className="h-screen w-full flex overflow-hidden relative"
       style={{ background: C.bg, fontFamily: C.body }}
     >
       <style>{`
@@ -234,88 +321,60 @@ export default function App() {
         .pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
       `}</style>
 
-      {/* Sidebar */}
+      {/* Mobile backdrop */}
+      {mobileNavOpen && (
+        <div
+          className="fixed inset-0 z-30 lg:hidden"
+          style={{ background: 'rgba(10,12,18,0.5)' }}
+          onClick={() => setMobileNavOpen(false)}
+        />
+      )}
+
+      {/* Sidebar — static column on lg+, slide-in drawer below lg */}
       <aside
-        className="h-full flex flex-col shrink-0"
-        style={{ width: 258, background: C.sidebar, borderRight: `1px solid #1E2330` }}
+        className="h-full flex flex-col shrink-0 fixed lg:static top-0 left-0 z-40 transition-transform duration-200 ease-out"
+        style={{
+          width: 258,
+          background: C.sidebar,
+          borderRight: '1px solid #1E2330',
+          transform: mobileNavOpen ? 'translateX(0)' : 'translateX(-100%)',
+        }}
       >
-        <div className="flex items-center gap-2.5 px-5" style={{ height: 60, borderBottom: '1px solid #1E2330' }}>
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: C.primary }}
-          >
-            <Send size={15} color="#fff" />
-          </div>
-          <div className="leading-tight">
-            <p style={{ fontFamily: C.display, color: '#fff', fontSize: 14.5, fontWeight: 700, letterSpacing: '-0.01em' }}>
-              MailForge
-            </p>
-            <p style={{ color: '#6E7383', fontSize: 10.5, fontFamily: C.mono }}>Email Automation</p>
-          </div>
-        </div>
-
-        <nav className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-0.5">
-          {NAV.map((item) => (
-            <div key={item.id}>
-              <NavRow
-                item={item}
-                depth={0}
-                active={active}
-                expanded={!!expanded[item.id]}
-                onToggle={toggleSection}
-                onSelect={setActive}
-              />
-              {item.children && expanded[item.id] && (
-                <div className="flex flex-col gap-0.5 mt-0.5 mb-1">
-                  {item.children.map((child) => (
-                    <NavRow
-                      key={child.id}
-                      item={child}
-                      depth={1}
-                      active={active}
-                      expanded={false}
-                      onToggle={() => {}}
-                      onSelect={setActive}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </nav>
-
-        <div className="px-4 py-4" style={{ borderTop: '1px solid #1E2330' }}>
-          <div className="flex items-center gap-2.5">
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
-              style={{ background: C.primary, color: '#fff', fontFamily: C.display }}
-            >
-              AR
-            </div>
-            <div className="leading-tight min-w-0">
-              <p className="truncate" style={{ color: '#fff', fontSize: 12.5, fontWeight: 500 }}>Ayesha Raza</p>
-              <p className="truncate" style={{ color: '#6E7383', fontSize: 11 }}>Workspace Admin</p>
-            </div>
-          </div>
-        </div>
+        {SidebarContent}
       </aside>
+      {/* Reserve space on large screens without duplicating the fixed transform logic */}
+      <style>{`
+        @media (min-width: 1024px) {
+          aside { transform: none !important; position: static !important; }
+        }
+      `}</style>
 
       {/* Main */}
-      <main className="flex-1 h-full overflow-y-auto">
+      <main className="flex-1 h-full overflow-y-auto min-w-0">
         {/* Top bar */}
         <div
-          className="sticky top-0 z-10 flex items-center justify-between px-8"
+          className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 lg:px-8 gap-3"
           style={{ height: 60, background: C.bg + 'F2', backdropFilter: 'blur(6px)', borderBottom: `1px solid ${C.border}` }}
         >
-          <div className="leading-tight">
-            <p style={{ fontFamily: C.mono, color: C.textFaint, fontSize: 11 }}>
-              {pageParent ? `${pageParent} /` : 'Menu /'}
-            </p>
-            <p style={{ fontFamily: C.display, color: C.text, fontSize: 15.5, fontWeight: 600 }}>
-              {pageLabel}
-            </p>
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              className="lg:hidden shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+              style={{ background: C.surface, border: `1px solid ${C.border}` }}
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="Open menu"
+            >
+              <Menu size={16} color={C.textSoft} />
+            </button>
+            <div className="leading-tight min-w-0">
+              <p style={{ fontFamily: C.mono, color: C.textFaint, fontSize: 11 }} className="truncate">
+                {pageParent ? `${pageParent} /` : 'Menu /'}
+              </p>
+              <p style={{ fontFamily: C.display, color: C.text, fontSize: 15.5, fontWeight: 600 }} className="truncate">
+                {pageLabel}
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <div
               className="hidden md:flex items-center gap-2 px-3 rounded-lg"
               style={{ background: C.surface, border: `1px solid ${C.border}`, height: 36, width: 240 }}
@@ -328,7 +387,15 @@ export default function App() {
               />
             </div>
             <button
-              className="relative w-9 h-9 rounded-lg flex items-center justify-center"
+              className="md:hidden w-9 h-9 rounded-lg flex items-center justify-center"
+              style={{ background: C.surface, border: `1px solid ${C.border}` }}
+              onClick={() => setSearchOpen((s) => !s)}
+              aria-label="Toggle search"
+            >
+              <Search size={16} color={C.textSoft} />
+            </button>
+            <button
+              className="relative w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
               style={{ background: C.surface, border: `1px solid ${C.border}` }}
             >
               <Bell size={16} color={C.textSoft} />
@@ -340,11 +407,29 @@ export default function App() {
           </div>
         </div>
 
+        {/* Mobile search row */}
+        {searchOpen && (
+          <div className="md:hidden px-4 sm:px-6 pt-3">
+            <div
+              className="flex items-center gap-2 px-3 rounded-lg"
+              style={{ background: C.surface, border: `1px solid ${C.border}`, height: 36 }}
+            >
+              <Search size={14} color={C.textFaint} />
+              <input
+                placeholder="Search campaigns, contacts…"
+                className="bg-transparent outline-none text-sm w-full"
+                style={{ color: C.text }}
+                autoFocus
+              />
+            </div>
+          </div>
+        )}
+
         {/* Content */}
         {active === 'dashboard' ? (
-          <div className="px-8 py-7 flex flex-col gap-6 max-w-[1180px]">
+          <div className="px-4 sm:px-6 lg:px-8 py-5 sm:py-7 flex flex-col gap-5 sm:gap-6 max-w-[1180px]">
             <div>
-              <h1 style={{ fontFamily: C.display, color: C.text, fontSize: 24, fontWeight: 700, letterSpacing: '-0.01em' }}>
+              <h1 style={{ fontFamily: C.display, color: C.text, fontSize: 22, fontWeight: 700, letterSpacing: '-0.01em' }} className="sm:text-[24px]">
                 Good afternoon, Ayesha
               </h1>
               <p style={{ color: C.textSoft, fontSize: 13.5 }} className="mt-1">
@@ -353,7 +438,7 @@ export default function App() {
             </div>
 
             {/* Stat cards */}
-            <div className="flex flex-wrap gap-4">
+            <div className="grid grid-cols-2 lg:flex lg:flex-wrap gap-3 sm:gap-4">
               <StatCard icon={Send} label="Emails sent (30d)" value="128,402" delta="12.4%" positive accent={C.primary} />
               <StatCard icon={MailOpen} label="Open rate" value="42.6%" delta="3.1%" positive accent={C.success} />
               <StatCard icon={MousePointerClick} label="Click rate" value="8.9%" delta="1.2%" positive={false} accent={C.warning} />
@@ -371,21 +456,21 @@ export default function App() {
                 {pulseEvents.map((e, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <span className="w-2 h-2 rounded-full pulse-dot shrink-0" style={{ background: dotColor(e.status) }} />
-                    <span style={{ fontFamily: C.mono, fontSize: 12, color: C.textSoft }}>{e.text}</span>
+                    <span style={{ fontFamily: C.mono, fontSize: 12, color: C.textSoft }} className="truncate">{e.text}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Chart */}
-            <div className="rounded-xl p-5" style={{ background: C.surface, border: `1px solid ${C.border}` }}>
-              <div className="flex items-center justify-between mb-4">
+            <div className="rounded-xl p-4 sm:p-5" style={{ background: C.surface, border: `1px solid ${C.border}` }}>
+              <div className="flex items-center justify-between mb-4 gap-2">
                 <p style={{ fontFamily: C.display, color: C.text, fontSize: 13.5, fontWeight: 600 }}>
                   Emails delivered — last 14 days
                 </p>
-                <span style={{ fontFamily: C.mono, color: C.textFaint, fontSize: 11 }}>daily volume</span>
+                <span style={{ fontFamily: C.mono, color: C.textFaint, fontSize: 11 }} className="hidden sm:inline shrink-0">daily volume</span>
               </div>
-              <div style={{ height: 220 }}>
+              <div style={{ height: 200 }} className="sm:h-[220px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={deliveryData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                     <defs>
@@ -395,7 +480,7 @@ export default function App() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid stroke={C.border} vertical={false} />
-                    <XAxis dataKey="day" tick={{ fontSize: 10.5, fill: C.textFaint, fontFamily: C.mono }} axisLine={false} tickLine={false} interval={1} />
+                    <XAxis dataKey="day" tick={{ fontSize: 10.5, fill: C.textFaint, fontFamily: C.mono }} axisLine={false} tickLine={false} interval={2} />
                     <YAxis tick={{ fontSize: 10.5, fill: C.textFaint, fontFamily: C.mono }} axisLine={false} tickLine={false} />
                     <Tooltip
                       contentStyle={{ borderRadius: 8, border: `1px solid ${C.border}`, fontFamily: C.mono, fontSize: 12 }}
@@ -408,48 +493,50 @@ export default function App() {
 
             {/* Recent campaigns */}
             <div className="rounded-xl overflow-hidden" style={{ background: C.surface, border: `1px solid ${C.border}` }}>
-              <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${C.border}` }}>
+              <div className="flex items-center justify-between px-4 sm:px-5 py-4" style={{ borderBottom: `1px solid ${C.border}` }}>
                 <p style={{ fontFamily: C.display, color: C.text, fontSize: 13.5, fontWeight: 600 }}>Recent campaigns</p>
                 <button style={{ color: C.primary, fontSize: 12.5, fontWeight: 500 }}>View all</button>
               </div>
-              <table className="w-full text-left" style={{ fontSize: 13 }}>
-                <thead>
-                  <tr style={{ color: C.textFaint, fontSize: 11 }}>
-                    <th className="font-medium px-5 py-2.5">Campaign</th>
-                    <th className="font-medium px-5 py-2.5">Status</th>
-                    <th className="font-medium px-5 py-2.5">Recipients</th>
-                    <th className="font-medium px-5 py-2.5">Open rate</th>
-                    <th className="font-medium px-5 py-2.5">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {campaigns.map((c, i) => {
-                    const s = statusStyle(c.status);
-                    return (
-                      <tr key={i} style={{ borderTop: `1px solid ${C.border}` }}>
-                        <td className="px-5 py-3" style={{ color: C.text, fontWeight: 500 }}>{c.name}</td>
-                        <td className="px-5 py-3">
-                          <span
-                            className="px-2 py-0.5 rounded-full text-xs font-medium"
-                            style={{ background: s.bg, color: s.fg }}
-                          >
-                            {c.status}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3" style={{ fontFamily: C.mono, color: C.textSoft }}>
-                          {c.recipients.toLocaleString()}
-                        </td>
-                        <td className="px-5 py-3" style={{ fontFamily: C.mono, color: C.textSoft }}>{c.open}</td>
-                        <td className="px-5 py-3" style={{ color: C.textFaint }}>{c.date}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left" style={{ fontSize: 13, minWidth: 560 }}>
+                  <thead>
+                    <tr style={{ color: C.textFaint, fontSize: 11 }}>
+                      <th className="font-medium px-4 sm:px-5 py-2.5 whitespace-nowrap">Campaign</th>
+                      <th className="font-medium px-4 sm:px-5 py-2.5 whitespace-nowrap">Status</th>
+                      <th className="font-medium px-4 sm:px-5 py-2.5 whitespace-nowrap">Recipients</th>
+                      <th className="font-medium px-4 sm:px-5 py-2.5 whitespace-nowrap">Open rate</th>
+                      <th className="font-medium px-4 sm:px-5 py-2.5 whitespace-nowrap">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {campaigns.map((c, i) => {
+                      const s = statusStyle(c.status);
+                      return (
+                        <tr key={i} style={{ borderTop: `1px solid ${C.border}` }}>
+                          <td className="px-4 sm:px-5 py-3 whitespace-nowrap" style={{ color: C.text, fontWeight: 500 }}>{c.name}</td>
+                          <td className="px-4 sm:px-5 py-3 whitespace-nowrap">
+                            <span
+                              className="px-2 py-0.5 rounded-full text-xs font-medium"
+                              style={{ background: s.bg, color: s.fg }}
+                            >
+                              {c.status}
+                            </span>
+                          </td>
+                          <td className="px-4 sm:px-5 py-3 whitespace-nowrap" style={{ fontFamily: C.mono, color: C.textSoft }}>
+                            {c.recipients.toLocaleString()}
+                          </td>
+                          <td className="px-4 sm:px-5 py-3 whitespace-nowrap" style={{ fontFamily: C.mono, color: C.textSoft }}>{c.open}</td>
+                          <td className="px-4 sm:px-5 py-3 whitespace-nowrap" style={{ color: C.textFaint }}>{c.date}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="px-8 py-16 flex flex-col items-center justify-center text-center" style={{ minHeight: '60vh' }}>
+          <div className="px-6 py-16 flex flex-col items-center justify-center text-center" style={{ minHeight: '60vh' }}>
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
               style={{ background: C.primarySoft }}

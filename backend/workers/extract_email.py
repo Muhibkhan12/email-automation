@@ -1,18 +1,18 @@
 import pandas as pd
 from fastapi import HTTPException, status
 
-from workers.celery_app import celery
-from models.upload_file import Upload
+from backend.workers.celery_app import celery
+from backend.models.upload_file import Upload
 
-from database import SessionLocal
+from backend.database import SessionLocal
 
-from models.campaigns import Campaign
-from models.campaign_recipients import CampaignRecipient
+from backend.models.campaigns import Campaign
+from backend.models.campaign_recipients import CampaignRecipient
 
-from schema.campaigns import CampaignStatus
-from schema.upload_file import UploadStatus
+from backend.schema.campaigns import CampaignStatus
+from backend.schema.upload_file import UploadStatus
 
-from workers.sending_emails import send_email_task
+from backend.workers.sending_emails import send_email_task
 
 
 @celery.task(queue="extract_emails_queue")

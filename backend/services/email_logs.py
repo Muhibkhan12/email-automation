@@ -1,8 +1,8 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from models.email_logs import EmailLog
-from schema.email_logs import AddEmailLogSchema, UpdateEmailLogSchema
+from backend.models.email_logs import EmailLog
+from backend.schema.email_logs import AddEmailLogSchema, UpdateEmailLogSchema
 
 
 def get_all_email_logs(db: Session):

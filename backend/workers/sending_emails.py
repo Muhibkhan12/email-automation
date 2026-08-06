@@ -2,17 +2,17 @@ from datetime import datetime, UTC, timedelta
 
 from sqlalchemy.orm import Session
 
-from models.campaigns import Campaign, CampaignStatus
-from models.campaign_recipients import CampaignRecipient, RecipientStatus
-from models.sender_account import SenderAccount
-from models.html_templates import HTMLTemplate
-from models.email_logs import EmailLog, EmailLogStatus
+from backend.models.campaigns import Campaign, CampaignStatus
+from backend.models.campaign_recipients import CampaignRecipient, RecipientStatus
+from backend.models.sender_account import SenderAccount
+from backend.models.html_templates import HTMLTemplate
+from backend.models.email_logs import EmailLog, EmailLogStatus
 
-from database import SessionLocal
-from workers.celery_app import celery
+from backend.database import SessionLocal
+from backend.workers.celery_app import celery
 
-from services.oauth_service import OAuthService
-from services.graph_service import GraphService
+from backend.services.oauth_service import OAuthService
+from backend.services.graph_service import GraphService
 
 
 @celery.task(

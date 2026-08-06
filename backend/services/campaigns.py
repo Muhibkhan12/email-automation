@@ -1,8 +1,8 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from models.campaigns import Campaign
-from schema.campaigns import AddCampaignSchema, UpdateCampaignSchema
+from backend.models.campaigns import Campaign
+from backend.schema.campaigns import AddCampaignSchema, UpdateCampaignSchema
 
 
 def get_all_campaigns(db: Session):

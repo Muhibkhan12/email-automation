@@ -1,9 +1,9 @@
 from fastapi import HTTPException,status
 
 from sqlalchemy.orm import Session
-from services.security import hash_password
-from schema.sender_account import addSenderAccountSchema, updateSenderAccout
-from models.sender_account import SenderAccount
+from backend.services.security import hash_password
+from backend.schema.sender_account import addSenderAccountSchema, updateSenderAccout
+from backend.models.sender_account import SenderAccount
 
 def add_sender_account(db : Session ,credentials : addSenderAccountSchema):
         existing_data = db.query(SenderAccount).filter(credentials.email == SenderAccount.email).first()

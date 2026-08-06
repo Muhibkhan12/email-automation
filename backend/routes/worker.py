@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from workers.extract_email import extract_emails
+from backend.workers.extract_email import extract_emails
 
 
 router = APIRouter(

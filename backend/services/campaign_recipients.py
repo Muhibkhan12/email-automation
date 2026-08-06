@@ -2,8 +2,8 @@ from fastapi import HTTPException, status
 
 from sqlalchemy.orm import Session
 
-from models.campaign_recipients import CampaignRecipient
-from schema.campaign_recipients import AddRecipientsSchema, UpdateRecipientsSchema
+from backend.models.campaign_recipients import CampaignRecipient
+from backend.schema.campaign_recipients import AddRecipientsSchema, UpdateRecipientsSchema
 
 def get_all_recipients(db :  Session):
     data = db.query(CampaignRecipient).all()

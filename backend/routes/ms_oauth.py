@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import RedirectResponse
 
-from services.oauth_service import OAuthService
+from backend.services.oauth_service import OAuthService
 
 router = APIRouter(
     prefix="/api/oauth/outlook",

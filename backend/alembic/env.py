@@ -18,15 +18,15 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-from database import Base
-from models.user import User
-from models.sender_account import SenderAccount
-from models.upload_file import UploadFile
-from models.campaigns import Campaign
-from models.campaign_recipients import CampaignRecipient
-from models.email_logs import EmailLog
-from models.html_templates import HTMLTemplate
-from config import settings
+from backend.database import Base
+from backend.models.user import User
+from backend.models.sender_account import SenderAccount
+from backend.models.upload_file import UploadFile
+from backend.models.campaigns import Campaign
+from backend.models.campaign_recipients import CampaignRecipient
+from backend.models.email_logs import EmailLog
+from backend.models.html_templates import HTMLTemplate
+from backend.config import settings
 
 config.set_main_option(
     "sqlalchemy.url",
