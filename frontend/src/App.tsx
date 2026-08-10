@@ -1,13 +1,10 @@
-import AppRouter from "./routes/AppRouter";
-import Navbar from "./pages/Navbar";
+import React from 'react'
+import Dashboard from './pages/Dashboard'
 
 const App = () => {
   return (
-    <>
-      <Navbar />
-      <AppRouter />
-    </>
-  );
-};
+    <Dashboard/>
+  )
+}
 
-export default App;
+export default App

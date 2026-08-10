@@ -1,12 +1,13 @@
-import React from 'react';
+import React from 'react'
+import Sidebar from './Sidebar'
 
 const Dashboard = () => {
   return (
-    <div className="px-8 py-7">
-      {/* dashboard page content */}
-      <h1>Dashboard</h1>
-    </div>
-  );
-};
+    <>
+        <Sidebar/>
+        <div>Dashboard</div>
+    </>
+  )
+}
 
-export default Dashboard;
+export default Dashboard

@@ -1,16 +1,15 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom';
-import Sidebar from '../pages/Sidebar';
+import React from 'react'
+import { createBrowserRouter } from 'react-router-dom'
+import Dashboard from '../pages/Dashboard'
+import Sidebar from '../pages/Sidebar'
+import { Route, Routes } from 'react-router-dom'
 
-const Layout = () => {
+const AppRouter = () => {
   return (
-    <div className="h-screen w-full flex overflow-hidden">
-      <Sidebar />
-      <main className="flex-1 h-full overflow-y-auto">
-        <Outlet />
-      </main>
-    </div>
-  );
-};
+    <Routes>
+        <Route path='/dashboard' element={<Dashboard/>} />
+    </Routes>
+  )
+}
 
-export default Layout;
+export default AppRouter
