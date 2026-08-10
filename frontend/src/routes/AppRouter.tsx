@@ -1,15 +1,15 @@
 import { Routes, Route } from "react-router-dom";
 import Dashboard from "../pages/Dashboard";
-import EmailLogs from "../pages/EmailLogs";
+import EmailLogsPage from "../pages/EmailLogs";
+
 
 const AppRouter = () => {
   return (
-
     <Routes>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/emaillogs" element={<EmailLogs />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/emaillogs" element={<EmailLogsPage />} />
     </Routes>
-  )
-}
+  );
+};
 
-export default AppRouter
+export default AppRouter;
