@@ -6,6 +6,11 @@ import Templates from "../pages/Templates";
 import Settings from "../pages/Settings";
 import Profile from "../pages/Profile";
 import SenderAccount from "../pages/SenderAccount";
+import QueueMonitor from "../pages/QueueMonitor";
+import Campaign from "../pages/Campaign";
+import Upload from "../pages/Upload";
+import Recipients from "../pages/Recipients";
+import Analytics from "../pages/Analytics";
 
 const AppRouter = () => {
   return (
@@ -17,6 +22,11 @@ const AppRouter = () => {
         <Route path="/settings" element={<Settings/>}/>
         <Route path="/profile" element={<Profile/>}/>
         <Route path="/sender-account" element={<SenderAccount/>} />
+        <Route path="/queuemonitor" element={<QueueMonitor/>}/>
+        <Route path="/campaign" element={<Campaign/>}/>
+        <Route path="/upload" element={<Upload/>} />
+        <Route path="/analytics" element={<Analytics/>}/>
+        <Route path="/recipients" element={<Recipients/>}/>
     </Routes>
   )
 }
