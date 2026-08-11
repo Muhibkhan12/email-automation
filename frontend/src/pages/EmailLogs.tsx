@@ -1,8 +1,12 @@
 import React from 'react'
+import Sidebar from './Sidebar'
 
 const EmailLogs = () => {
   return (
-    <div>EmailLogs</div>
+    <>
+      <Sidebar/>
+      <div>EmailLogs</div>
+    </>
   )
 }
 

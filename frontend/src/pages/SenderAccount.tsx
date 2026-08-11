@@ -1,8 +1,11 @@
-import React from 'react'
+import Sidebar from './Sidebar'
 
 const SenderAccount = () => {
   return (
-    <div>SenderAccount</div>
+    <div>
+        <Sidebar/>
+        <div>SenderAccount</div>
+    </div>
   )
 }
 

@@ -1,8 +1,11 @@
-import React from 'react'
+import Sidebar from './Sidebar'
 
 const Templates = () => {
   return (
-    <div>Templates</div>
+    <div>
+      <Sidebar/>
+      <div>Templates</div>
+    </div>
   )
 }
 
