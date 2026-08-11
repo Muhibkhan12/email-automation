@@ -1,18 +1,97 @@
-import React from 'react'
-import Sidebar from './Sidebar'
+import React from "react";
+import Sidebar from "./Sidebar";
+
+interface StatCard {
+  title: string;
+  value: string;
+  change: string;
+  description: string;
+}
+
+interface Campaign {
+  name: string;
+  recipients: number;
+  openRate: string;
+}
+
+interface Sender {
+  email: string;
+  sent: number;
+  status: "Excellent" | "Good" | "Average";
+}
+
+const stats: StatCard[] = [
+  {
+    title: "Emails Sent",
+    value: "48,250",
+    change: "+12.5%",
+    description: "Compared to previous period",
+  },
+  {
+    title: "Delivery Rate",
+    value: "98.4%",
+    change: "+1.2%",
+    description: "Successfully delivered",
+  },
+  {
+    title: "Open Rate",
+    value: "42.7%",
+    change: "+4.6%",
+    description: "Recipients who opened emails",
+  },
+  {
+    title: "Click Rate",
+    value: "8.9%",
+    change: "+2.1%",
+    description: "Recipients who clicked a link",
+  },
+];
+
+const campaigns: Campaign[] = [
+  {
+    name: "Summer Promotion",
+    recipients: 2450,
+    openRate: "56.4%",
+  },
+  {
+    name: "Product Launch",
+    recipients: 5200,
+    openRate: "51.2%",
+  },
+  {
+    name: "August Newsletter",
+    recipients: 1800,
+    openRate: "47.8%",
+  },
+];
+
+const senders: Sender[] = [
+  {
+    email: "marketing@company.com",
+    sent: 18420,
+    status: "Excellent",
+  },
+  {
+    email: "sales@company.com",
+    sent: 15830,
+    status: "Good",
+  },
+  {
+    email: "hello@company.com",
+    sent: 13920,
+    status: "Average",
+  },
+];
 
 const Analytics = () => {
   return (
     <div className="flex min-h-screen bg-gray-100">
-
-      {/* Sidebar */}
       <Sidebar />
 
-      {/* Main Content */}
       <main className="flex-1 p-8">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
               Analytics
@@ -23,7 +102,7 @@ const Analytics = () => {
             </p>
           </div>
 
-          <select className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 outline-none focus:border-black">
+          <select className="rounded-lg border border-gray-300 bg-white px-4 py-2.5">
             <option>Last 7 days</option>
             <option>Last 30 days</option>
             <option>Last 90 days</option>
@@ -31,177 +110,71 @@ const Analytics = () => {
           </select>
         </div>
 
-
-        {/* Overview Cards */}
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4 mb-8">
-
-          {/* Emails Sent */}
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-gray-500">
-              Emails Sent
-            </p>
-
-            <div className="mt-3 flex items-end justify-between">
-              <h2 className="text-3xl font-bold text-gray-900">
-                48,250
-              </h2>
-
-              <span className="text-sm font-medium text-green-600">
-                +12.5%
-              </span>
-            </div>
-
-            <p className="mt-2 text-xs text-gray-400">
-              Compared to previous period
-            </p>
-          </div>
-
-
-          {/* Delivery Rate */}
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-gray-500">
-              Delivery Rate
-            </p>
-
-            <div className="mt-3 flex items-end justify-between">
-              <h2 className="text-3xl font-bold text-gray-900">
-                98.4%
-              </h2>
-
-              <span className="text-sm font-medium text-green-600">
-                +1.2%
-              </span>
-            </div>
-
-            <p className="mt-2 text-xs text-gray-400">
-              Successfully delivered
-            </p>
-          </div>
-
-
-          {/* Open Rate */}
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-gray-500">
-              Open Rate
-            </p>
-
-            <div className="mt-3 flex items-end justify-between">
-              <h2 className="text-3xl font-bold text-gray-900">
-                42.7%
-              </h2>
-
-              <span className="text-sm font-medium text-green-600">
-                +4.6%
-              </span>
-            </div>
-
-            <p className="mt-2 text-xs text-gray-400">
-              Recipients who opened emails
-            </p>
-          </div>
-
-
-          {/* Click Rate */}
-          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-gray-500">
-              Click Rate
-            </p>
-
-            <div className="mt-3 flex items-end justify-between">
-              <h2 className="text-3xl font-bold text-gray-900">
-                8.9%
-              </h2>
-
-              <span className="text-sm font-medium text-green-600">
-                +2.1%
-              </span>
-            </div>
-
-            <p className="mt-2 text-xs text-gray-400">
-              Recipients who clicked a link
-            </p>
-          </div>
-
-        </div>
-
-
-        {/* Chart Section */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-8">
-
-          {/* Email Activity */}
-          <div className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Email Activity
-              </h2>
-
+        {/* Stats */}
+        <div className="mb-8 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat) => (
+            <div
+              key={stat.title}
+              className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+            >
               <p className="text-sm text-gray-500">
-                Emails sent and opened over the selected period.
+                {stat.title}
+              </p>
+
+              <div className="mt-3 flex items-end justify-between">
+                <h2 className="text-3xl font-bold text-gray-900">
+                  {stat.value}
+                </h2>
+
+                <span className="text-sm font-medium text-green-600">
+                  {stat.change}
+                </span>
+              </div>
+
+              <p className="mt-2 text-xs text-gray-400">
+                {stat.description}
               </p>
             </div>
+          ))}
+        </div>
 
+        {/* Main Analytics */}
+        <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
 
-            {/* Fake Chart */}
-            <div className="flex h-64 items-end gap-4 border-b border-gray-200 px-4">
+          {/* Activity */}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm lg:col-span-2">
+            <h2 className="text-lg font-semibold">
+              Email Activity
+            </h2>
 
-              <div className="flex h-full flex-1 items-end gap-2">
-                <div className="w-full rounded-t-md bg-gray-900" style={{ height: '35%' }}></div>
-                <div className="w-full rounded-t-md bg-gray-300" style={{ height: '20%' }}></div>
-              </div>
+            <p className="mt-1 text-sm text-gray-500">
+              Emails sent and opened over time.
+            </p>
 
-              <div className="flex h-full flex-1 items-end gap-2">
-                <div className="w-full rounded-t-md bg-gray-900" style={{ height: '48%' }}></div>
-                <div className="w-full rounded-t-md bg-gray-300" style={{ height: '30%' }}></div>
-              </div>
-
-              <div className="flex h-full flex-1 items-end gap-2">
-                <div className="w-full rounded-t-md bg-gray-900" style={{ height: '65%' }}></div>
-                <div className="w-full rounded-t-md bg-gray-300" style={{ height: '42%' }}></div>
-              </div>
-
-              <div className="flex h-full flex-1 items-end gap-2">
-                <div className="w-full rounded-t-md bg-gray-900" style={{ height: '52%' }}></div>
-                <div className="w-full rounded-t-md bg-gray-300" style={{ height: '38%' }}></div>
-              </div>
-
-              <div className="flex h-full flex-1 items-end gap-2">
-                <div className="w-full rounded-t-md bg-gray-900" style={{ height: '78%' }}></div>
-                <div className="w-full rounded-t-md bg-gray-300" style={{ height: '55%' }}></div>
-              </div>
-
-              <div className="flex h-full flex-1 items-end gap-2">
-                <div className="w-full rounded-t-md bg-gray-900" style={{ height: '90%' }}></div>
-                <div className="w-full rounded-t-md bg-gray-300" style={{ height: '65%' }}></div>
-              </div>
-
-              <div className="flex h-full flex-1 items-end gap-2">
-                <div className="w-full rounded-t-md bg-gray-900" style={{ height: '72%' }}></div>
-                <div className="w-full rounded-t-md bg-gray-300" style={{ height: '50%' }}></div>
-              </div>
-
+            {/* Chart placeholder */}
+            <div className="mt-8 flex h-64 items-end gap-4 border-b border-gray-200">
+              {[35, 48, 65, 52, 78, 90, 72].map((height, index) => (
+                <div
+                  key={index}
+                  className="flex h-full flex-1 items-end"
+                >
+                  <div
+                    className="w-full rounded-t-lg bg-gray-900"
+                    style={{ height: `${height}%` }}
+                  />
+                </div>
+              ))}
             </div>
 
-
-            <div className="mt-4 flex justify-center gap-6 text-xs text-gray-500">
-              <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-gray-900"></span>
-                Sent
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-gray-300"></span>
-                Opened
-              </div>
+            <div className="mt-4 flex justify-center gap-6 text-sm text-gray-500">
+              <span>● Sent</span>
+              <span>● Opened</span>
             </div>
-
           </div>
-
 
           {/* Engagement */}
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold">
               Engagement
             </h2>
 
@@ -209,233 +182,162 @@ const Analytics = () => {
               Overall recipient engagement.
             </p>
 
-
             <div className="mt-8 space-y-6">
 
-              <div>
-                <div className="mb-2 flex justify-between text-sm">
-                  <span className="text-gray-600">
-                    Open Rate
-                  </span>
+              <Metric
+                label="Open Rate"
+                value="42.7%"
+                width="43%"
+              />
 
-                  <span className="font-medium text-gray-900">
-                    42.7%
-                  </span>
-                </div>
+              <Metric
+                label="Click Rate"
+                value="8.9%"
+                width="9%"
+              />
 
-                <div className="h-2 rounded-full bg-gray-200">
-                  <div className="h-2 w-[43%] rounded-full bg-gray-900"></div>
-                </div>
-              </div>
+              <Metric
+                label="Bounce Rate"
+                value="1.6%"
+                width="2%"
+              />
 
-
-              <div>
-                <div className="mb-2 flex justify-between text-sm">
-                  <span className="text-gray-600">
-                    Click Rate
-                  </span>
-
-                  <span className="font-medium text-gray-900">
-                    8.9%
-                  </span>
-                </div>
-
-                <div className="h-2 rounded-full bg-gray-200">
-                  <div className="h-2 w-[9%] rounded-full bg-gray-900"></div>
-                </div>
-              </div>
-
-
-              <div>
-                <div className="mb-2 flex justify-between text-sm">
-                  <span className="text-gray-600">
-                    Bounce Rate
-                  </span>
-
-                  <span className="font-medium text-gray-900">
-                    1.6%
-                  </span>
-                </div>
-
-                <div className="h-2 rounded-full bg-gray-200">
-                  <div className="h-2 w-[2%] rounded-full bg-red-500"></div>
-                </div>
-              </div>
-
-
-              <div>
-                <div className="mb-2 flex justify-between text-sm">
-                  <span className="text-gray-600">
-                    Unsubscribe Rate
-                  </span>
-
-                  <span className="font-medium text-gray-900">
-                    0.4%
-                  </span>
-                </div>
-
-                <div className="h-2 rounded-full bg-gray-200">
-                  <div className="h-2 w-[1%] rounded-full bg-red-500"></div>
-                </div>
-              </div>
+              <Metric
+                label="Unsubscribe Rate"
+                value="0.4%"
+                width="1%"
+              />
 
             </div>
-
           </div>
-
         </div>
 
-
-        {/* Bottom Section */}
+        {/* Bottom */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
-          {/* Top Campaigns */}
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-
-            <div className="border-b border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900">
+          {/* Campaigns */}
+          <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="border-b p-6">
+              <h2 className="text-lg font-semibold">
                 Top Campaigns
               </h2>
 
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="text-sm text-gray-500">
                 Campaigns with the highest engagement.
               </p>
             </div>
 
+            <div>
+              {campaigns.map((campaign) => (
+                <div
+                  key={campaign.name}
+                  className="flex items-center justify-between border-b p-5 last:border-0"
+                >
+                  <div>
+                    <p className="font-medium">
+                      {campaign.name}
+                    </p>
 
-            <div className="divide-y divide-gray-100">
+                    <p className="text-sm text-gray-500">
+                      {campaign.recipients.toLocaleString()} recipients
+                    </p>
+                  </div>
 
-              <div className="flex items-center justify-between p-5">
-                <div>
-                  <p className="font-medium text-gray-900">
-                    Summer Promotion
-                  </p>
-
-                  <p className="text-sm text-gray-500">
-                    2,450 recipients
-                  </p>
+                  <span className="font-semibold">
+                    {campaign.openRate}
+                  </span>
                 </div>
-
-                <span className="font-semibold text-gray-900">
-                  56.4%
-                </span>
-              </div>
-
-
-              <div className="flex items-center justify-between p-5">
-                <div>
-                  <p className="font-medium text-gray-900">
-                    Product Launch
-                  </p>
-
-                  <p className="text-sm text-gray-500">
-                    5,200 recipients
-                  </p>
-                </div>
-
-                <span className="font-semibold text-gray-900">
-                  51.2%
-                </span>
-              </div>
-
-
-              <div className="flex items-center justify-between p-5">
-                <div>
-                  <p className="font-medium text-gray-900">
-                    August Newsletter
-                  </p>
-
-                  <p className="text-sm text-gray-500">
-                    1,800 recipients
-                  </p>
-                </div>
-
-                <span className="font-semibold text-gray-900">
-                  47.8%
-                </span>
-              </div>
-
+              ))}
             </div>
+          </section>
 
-          </div>
-
-
-          {/* Sender Performance */}
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-
-            <div className="border-b border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900">
+          {/* Senders */}
+          <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="border-b p-6">
+              <h2 className="text-lg font-semibold">
                 Sender Performance
               </h2>
 
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="text-sm text-gray-500">
                 Performance of your sender accounts.
               </p>
             </div>
 
+            <div>
+              {senders.map((sender) => (
+                <div
+                  key={sender.email}
+                  className="flex items-center justify-between border-b p-5 last:border-0"
+                >
+                  <div>
+                    <p className="font-medium">
+                      {sender.email}
+                    </p>
 
-            <div className="divide-y divide-gray-100">
+                    <p className="text-sm text-gray-500">
+                      {sender.sent.toLocaleString()} emails sent
+                    </p>
+                  </div>
 
-              <div className="flex items-center justify-between p-5">
-                <div>
-                  <p className="font-medium text-gray-900">
-                    marketing@company.com
-                  </p>
-
-                  <p className="text-sm text-gray-500">
-                    18,420 emails sent
-                  </p>
+                  <StatusBadge status={sender.status} />
                 </div>
-
-                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
-                  Excellent
-                </span>
-              </div>
-
-
-              <div className="flex items-center justify-between p-5">
-                <div>
-                  <p className="font-medium text-gray-900">
-                    sales@company.com
-                  </p>
-
-                  <p className="text-sm text-gray-500">
-                    15,830 emails sent
-                  </p>
-                </div>
-
-                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
-                  Good
-                </span>
-              </div>
-
-
-              <div className="flex items-center justify-between p-5">
-                <div>
-                  <p className="font-medium text-gray-900">
-                    hello@company.com
-                  </p>
-
-                  <p className="text-sm text-gray-500">
-                    13,920 emails sent
-                  </p>
-                </div>
-
-                <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-700">
-                  Average
-                </span>
-              </div>
-
+              ))}
             </div>
-
-          </div>
+          </section>
 
         </div>
-
       </main>
-
     </div>
-  )
+  );
+};
+
+interface MetricProps {
+  label: string;
+  value: string;
+  width: string;
 }
 
-export default Analytics
+const Metric = ({ label, value, width }: MetricProps) => {
+  return (
+    <div>
+      <div className="mb-2 flex justify-between">
+        <span className="text-sm text-gray-600">
+          {label}
+        </span>
+
+        <span className="text-sm font-medium">
+          {value}
+        </span>
+      </div>
+
+      <div className="h-2 rounded-full bg-gray-200">
+        <div
+          className="h-2 rounded-full bg-gray-900"
+          style={{ width }}
+        />
+      </div>
+    </div>
+  );
+};
+
+interface StatusBadgeProps {
+  status: Sender["status"];
+}
+
+const StatusBadge = ({ status }: StatusBadgeProps) => {
+  const styles: Record<Sender["status"], string> = {
+    Excellent: "bg-green-100 text-green-700",
+    Good: "bg-blue-100 text-blue-700",
+    Average: "bg-yellow-100 text-yellow-700",
+  };
+
+  return (
+    <span
+      className={`rounded-full px-3 py-1 text-xs font-medium ${styles[status]}`}
+    >
+      {status}
+    </span>
+  );
+};
+
+export default Analytics;
