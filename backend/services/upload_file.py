@@ -1,8 +1,8 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from backend.models.upload_file import Upload
-from backend.schema.upload_file import UploadFileSchema
+from models.upload_file import Upload
+from schema.upload_file import UploadFileSchema
 
 
 def add_upload_file(
