@@ -3,7 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 
 from datetime import datetime, UTC
-from backend.database import Base
+from database import Base
 
 class AccountStatus(enum.Enum):
     ACTIVE = "active"

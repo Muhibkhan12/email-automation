@@ -3,7 +3,7 @@ import enum
 from sqlalchemy import Integer, ForeignKey, DateTime, Enum, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, UTC
-from backend.database import Base
+from database import Base
 
 
 class EmailLogStatus(enum.Enum):
