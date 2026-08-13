@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from backend.schema.sender_account import addSenderAccountSchema, updateSenderAccout
-from backend.database import get_db
-from backend.services.sender_accounts import  add_sender_account, update_sender_account, delete_sender_account, get_account
+from schema.sender_account import addSenderAccountSchema, updateSenderAccout
+from database import get_db
+from services.sender_accounts import  add_sender_account, update_sender_account, delete_sender_account, get_account
 
 router = APIRouter(
     prefix="/sender-accounts",
