@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from backend.schema.user import (RegisterSchema, LoginSchema, ForgetSchema, GetCurrentUserSchema)
+from backend.schema.user import (RegisterSchema, LoginSchema, ForgetSchema)
 from backend.database import get_db
 from backend.models.user import User
 from backend.services.auth import oauth2_scheme
