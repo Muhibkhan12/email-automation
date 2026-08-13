@@ -1,7 +1,7 @@
 import httpx
 from urllib.parse import urlencode
 
-from backend.config import settings
+from config import settings
 
 
 class OAuthService:
