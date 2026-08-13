@@ -3,7 +3,7 @@ from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta, timezone
 
-from backend.config import settings
+from config import settings
 
 oauth2_scheme = OAuth2PasswordBearer(
      tokenUrl= "/auth/login"
