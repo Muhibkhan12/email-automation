@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from backend.services.start_campaign import start_campaign
+from services.start_campaign import start_campaign
 
-from backend.database import get_db
+from database import get_db
 
 router = APIRouter(
     prefix="/campaigns",
