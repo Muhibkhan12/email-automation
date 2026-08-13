@@ -7,16 +7,16 @@ from fastapi import (
 
 from sqlalchemy.orm import Session
 
-from backend.database import get_db
+from database import get_db
 
-from backend.schema.upload_file import UploadFileSchema
+from schema.upload_file import UploadFileSchema
 
-from backend.services.validate_file import (
+from services.validate_file import (
     validate_file,
     save_file_to_storage
 )
 
-from backend.services.upload_file import (
+from services.upload_file import (
     add_upload_file
 )
 
