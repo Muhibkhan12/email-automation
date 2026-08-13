@@ -1,8 +1,8 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from backend.models.html_templates import HTMLTemplate
-from backend.schema.html_templates import AddHTMLSchema,UpdateHtmlTemplateSchema
+from models.html_templates import HTMLTemplate
+from schema.html_templates import AddHTMLSchema,UpdateHtmlTemplateSchema
 
 def get_all_templates(db : Session):
     data = db.query(HTMLTemplate).all()
