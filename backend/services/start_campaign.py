@@ -2,10 +2,10 @@ import pandas as pd
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from backend.schema.campaigns import CampaignStatus
-from backend.services.upload_file import  get_upload_by_campaign
-from backend.services.campaigns import  get_campaign_by_id
-from backend.workers.extract_email import extract_emails
+from schema.campaigns import CampaignStatus
+from services.upload_file import  get_upload_by_campaign
+from services.campaigns import  get_campaign_by_id
+from workers.extract_email import extract_emails
 
 
 
