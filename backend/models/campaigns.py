@@ -2,7 +2,7 @@ from sqlalchemy import String,DateTime,Enum as SqlEnum, ForeignKey
 from enum import Enum
 from sqlalchemy.orm import Mapped,mapped_column, relationship
 from datetime import datetime, UTC
-from backend.database import Base
+from database import Base
 
 class CampaignStatus(str, Enum):
     DRAFT = "Draft"
