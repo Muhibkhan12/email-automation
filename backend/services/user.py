@@ -3,11 +3,11 @@ from fastapi import HTTPException, status, Depends
 from sqlalchemy.orm import Session
 # from datetime import datetime
 
-from backend.services.auth import create_access_token, create_refresh_token, oauth2_scheme, verify_access_token
-from backend.services.security import verify_password, hash_password
-from backend.database import get_db
-from backend.schema.user import (LoginSchema, RegisterSchema, ForgetSchema)
-from backend.models.user import User
+from services.auth import create_access_token, create_refresh_token, oauth2_scheme, verify_access_token
+from services.security import verify_password, hash_password
+from database import get_db
+from schema.user import (LoginSchema, RegisterSchema, ForgetSchema)
+from models.user import User
 
 
 
