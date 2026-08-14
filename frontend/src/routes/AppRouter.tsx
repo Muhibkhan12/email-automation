@@ -13,6 +13,7 @@ import Recipients from "../pages/User/Recipients";
 import Analytics from "../pages/User/Analytics";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
+import AdminDashboard from "../pages/Admin/AdminDashboard";
 
 const AppRouter = () => {
   return (
@@ -31,6 +32,7 @@ const AppRouter = () => {
         <Route path="/recipients" element={<Recipients/>}/>
         <Route path="/login"  element={<Login/>}/>
         <Route path="/register"  element={<Register/>}/>
+        <Route path="/admin-dashboard"  element={<AdminDashboard/>} />
     </Routes>
   )
 }
