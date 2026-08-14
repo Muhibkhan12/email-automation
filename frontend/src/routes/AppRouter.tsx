@@ -1,16 +1,18 @@
 import { Routes, Route } from "react-router-dom";
-import Dashboard from "../pages/Dashboard";
-import Notifications from "../pages/Notifications";
-import EmailLogs from "../pages/EmailLogs";
-import Templates from "../pages/Templates";
-import Settings from "../pages/Settings";
-import Profile from "../pages/Profile";
-import SenderAccount from "../pages/SenderAccount";
-import QueueMonitor from "../pages/QueueMonitor";
-import Campaign from "../pages/Campaign";
-import Upload from "../pages/Upload";
-import Recipients from "../pages/Recipients";
-import Analytics from "../pages/Analytics";
+import Dashboard from "../pages/User/Dashboard";
+import Notifications from "../pages/User/Notifications";
+import EmailLogs from "../pages/User/EmailLogs";
+import Templates from "../pages/User/Templates";
+import Settings from "../pages/User/Settings";
+import Profile from "../pages/User/Profile";
+import SenderAccount from "../pages/User/SenderAccount";
+import QueueMonitor from "../pages/User/QueueMonitor";
+import Campaign from "../pages/User/Campaign";
+import Upload from "../pages/User/Upload";
+import Recipients from "../pages/User/Recipients";
+import Analytics from "../pages/User/Analytics";
+import Login from "../pages/Login";
+import Register from "../pages/Register";
 
 const AppRouter = () => {
   return (
@@ -27,6 +29,8 @@ const AppRouter = () => {
         <Route path="/upload" element={<Upload/>} />
         <Route path="/analytics" element={<Analytics/>}/>
         <Route path="/recipients" element={<Recipients/>}/>
+        <Route path="/login"  element={<Login/>}/>
+        <Route path="/register"  element={<Register/>}/>
     </Routes>
   )
 }

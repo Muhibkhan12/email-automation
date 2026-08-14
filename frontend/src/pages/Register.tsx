@@ -1,13 +1,21 @@
 import React, { useEffect, useState } from 'react'
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, Flame } from 'lucide-react'
+import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Loader2, Flame, Check } from 'lucide-react'
 
 const STAGES = ['Queued', 'Sending', 'Delivered'] as const
 
-const Login = () => {
+const PASSWORD_RULES = [
+  { label: '8+ characters', test: (v: string) => v.length >= 8 },
+  { label: '1 number', test: (v: string) => /\d/.test(v) },
+  { label: '1 uppercase letter', test: (v: string) => /[A-Z]/.test(v) },
+]
+
+const Register = () => {
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
+  const [agreed, setAgreed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [delivered, setDelivered] = useState(1842)
@@ -20,18 +28,32 @@ const Login = () => {
     return () => clearInterval(id)
   }, [])
 
+  const passwordValid = PASSWORD_RULES.every((rule) => rule.test(password))
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
-    if (!email || !password) {
-      setError('Enter your email and password to continue.')
+    if (!name || !email || !password || !confirmPassword) {
+      setError('Fill in every field to continue.')
+      return
+    }
+    if (!passwordValid) {
+      setError('Password does not meet the requirements below.')
+      return
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+    if (!agreed) {
+      setError('Accept the terms to create your account.')
       return
     }
 
     setLoading(true)
     try {
-      // TODO: replace with real auth call
+      // TODO: replace with real signup call
       await new Promise((resolve) => setTimeout(resolve, 900))
     } catch {
       setError('Something went wrong. Try again.')
@@ -79,7 +101,7 @@ const Login = () => {
         <div className="space-y-10">
           <div>
             <h1 className="font-display text-3xl font-semibold leading-tight text-[#E8E6E1] max-w-xs">
-              Every campaign, tracked from queue to inbox.
+              Set up your workspace and start shipping campaigns.
             </h1>
           </div>
 
@@ -119,14 +141,35 @@ const Login = () => {
 
           <div className="mb-8">
             <h2 className="font-display text-2xl font-semibold text-[#E8E6E1]">
-              Sign in
+              Create your account
             </h2>
             <p className="text-sm text-[#8B8D94] mt-1.5">
-              Welcome back — pick up where you left off.
+              Takes about a minute — no card required.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-5">
+            <div>
+              <label
+                htmlFor="name"
+                className="block text-xs font-medium text-[#8B8D94] mb-1.5"
+              >
+                Full name
+              </label>
+              <div className="relative">
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5B5D64]" />
+                <input
+                  id="name"
+                  type="text"
+                  autoComplete="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Jane Cooper"
+                  className="w-full bg-[#171A21] border border-[#2A2E37] rounded-lg pl-10 pr-3.5 py-2.5 text-sm text-[#E8E6E1] placeholder-[#5B5D64] outline-none transition-colors focus:border-[#FF6A39] focus:ring-1 focus:ring-[#FF6A39]/40"
+                />
+              </div>
+            </div>
+
             <div>
               <label
                 htmlFor="email"
@@ -149,26 +192,18 @@ const Login = () => {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label
-                  htmlFor="password"
-                  className="block text-xs font-medium text-[#8B8D94]"
-                >
-                  Password
-                </label>
-                <a
-                  href="#"
-                  className="text-xs text-[#FF6A39] hover:underline underline-offset-2"
-                >
-                  Forgot password?
-                </a>
-              </div>
+              <label
+                htmlFor="password"
+                className="block text-xs font-medium text-[#8B8D94] mb-1.5"
+              >
+                Password
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5B5D64]" />
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
@@ -187,16 +222,65 @@ const Login = () => {
                   )}
                 </button>
               </div>
+
+              {password.length > 0 && (
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                  {PASSWORD_RULES.map((rule) => {
+                    const passed = rule.test(password)
+                    return (
+                      <span
+                        key={rule.label}
+                        className={`flex items-center gap-1 text-[11px] font-mono-ui ${
+                          passed ? 'text-[#7FD98A]' : 'text-[#5B5D64]'
+                        }`}
+                      >
+                        <Check className="w-3 h-3" strokeWidth={2.5} />
+                        {rule.label}
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
-            <label className="flex items-center gap-2 cursor-pointer select-none">
+            <div>
+              <label
+                htmlFor="confirmPassword"
+                className="block text-xs font-medium text-[#8B8D94] mb-1.5"
+              >
+                Confirm password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5B5D64]" />
+                <input
+                  id="confirmPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-[#171A21] border border-[#2A2E37] rounded-lg pl-10 pr-3.5 py-2.5 text-sm text-[#E8E6E1] placeholder-[#5B5D64] outline-none transition-colors focus:border-[#FF6A39] focus:ring-1 focus:ring-[#FF6A39]/40"
+                />
+              </div>
+            </div>
+
+            <label className="flex items-start gap-2 cursor-pointer select-none">
               <input
                 type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-3.5 h-3.5 rounded border-[#2A2E37] bg-[#171A21] accent-[#FF6A39]"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="w-3.5 h-3.5 mt-0.5 rounded border-[#2A2E37] bg-[#171A21] accent-[#FF6A39]"
               />
-              <span className="text-xs text-[#8B8D94]">Remember me</span>
+              <span className="text-xs text-[#8B8D94]">
+                I agree to the{' '}
+                <a href="#" className="text-[#FF6A39] hover:underline underline-offset-2">
+                  Terms of Service
+                </a>{' '}
+                and{' '}
+                <a href="#" className="text-[#FF6A39] hover:underline underline-offset-2">
+                  Privacy Policy
+                </a>
+              </span>
             </label>
 
             {error && (
@@ -216,11 +300,11 @@ const Login = () => {
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Signing in…
+                  Creating account…
                 </>
               ) : (
                 <>
-                  Sign in
+                  Create account
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -228,7 +312,10 @@ const Login = () => {
           </form>
 
           <p className="text-xs text-[#5B5D64] mt-8 text-center">
-            Don't have an account? Contact your workspace admin.
+            Already have an account?{' '}
+            <a href="#" className="text-[#FF6A39] hover:underline underline-offset-2">
+              Sign in
+            </a>
           </p>
         </div>
       </div>
@@ -236,4 +323,4 @@ const Login = () => {
   )
 }
 
-export default Login
+export default Register

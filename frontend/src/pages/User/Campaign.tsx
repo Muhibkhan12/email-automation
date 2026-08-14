@@ -8,7 +8,7 @@ import {
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
 /* ---------------------------------------------------------------------- */
-/*  Design tokens — MailForge system (matches Analytics.tsx)              */
+/*  Design tokens — MailForge system (iron / ember)                       */
 /* ---------------------------------------------------------------------- */
 
 const FONT = {
@@ -18,19 +18,21 @@ const FONT = {
 };
 
 const COLOR = {
-  primary: "#2F6FED",
-  primarySoft: "#EAF0FE",
-  success: "#1FA971",
-  successSoft: "#E6F7EF",
-  warning: "#E8A23D",
-  warningSoft: "#FDF3E4",
-  danger: "#E5484D",
-  dangerSoft: "#FDECEC",
-  dark: "#11141B",
-  bg: "#F4F5F8",
-  border: "#E7E8EC",
-  textMuted: "#8A8F9C",
-  textBody: "#4B4F5A",
+  primary: "#FF6A39",
+  primarySoft: "rgba(255,106,57,0.12)",
+  success: "#7FD98A",
+  successSoft: "rgba(127,217,138,0.12)",
+  warning: "#FFC24B",
+  warningSoft: "rgba(255,194,75,0.12)",
+  danger: "#FF5C6C",
+  dangerSoft: "rgba(255,92,108,0.12)",
+  dark: "#E8E6E1",
+  bg: "#0E1013",
+  surface: "#171A21",
+  surfaceHover: "#1B1E24",
+  border: "#2A2E37",
+  textMuted: "#8B8D94",
+  textBody: "#C7C9CE",
 };
 
 /* ---------------------------------------------------------------------- */
@@ -66,7 +68,7 @@ interface StatCard {
 /* ---------------------------------------------------------------------- */
 
 const stats: StatCard[] = [
-  { title: "Total campaigns", value: "24", delta: "+3 this month", trend: "up", icon: Megaphone, accent: COLOR.dark, accentSoft: COLOR.bg, spark: [4, 6, 5, 8, 7, 9, 10] },
+  { title: "Total campaigns", value: "24", delta: "+3 this month", trend: "up", icon: Megaphone, accent: COLOR.dark, accentSoft: COLOR.surfaceHover, spark: [4, 6, 5, 8, 7, 9, 10] },
   { title: "Running", value: "3", delta: "+1 vs last week", trend: "up", icon: PlayCircle, accent: COLOR.primary, accentSoft: COLOR.primarySoft, spark: [1, 2, 1, 2, 3, 2, 3] },
   { title: "Completed", value: "18", delta: "+12.4%", trend: "up", icon: CheckCircle2, accent: COLOR.success, accentSoft: COLOR.successSoft, spark: [10, 11, 13, 12, 15, 16, 18] },
   { title: "Failed", value: "3", delta: "-1 vs last week", trend: "down", icon: XCircle, accent: COLOR.danger, accentSoft: COLOR.dangerSoft, spark: [5, 4, 4, 3, 4, 3, 3] },
@@ -84,10 +86,10 @@ const campaigns: Campaign[] = [
 const FILTERS: Array<Status | "All"> = ["All", "Running", "Scheduled", "Completed", "Failed"];
 
 const STATUS_STYLE: Record<Status, { bg: string; text: string; dot: string; icon: React.ElementType }> = {
-  Completed: { bg: COLOR.successSoft, text: "#0F6E56", dot: COLOR.success, icon: CheckCircle2 },
-  Running: { bg: COLOR.primarySoft, text: "#185FA5", dot: COLOR.primary, icon: PlayCircle },
-  Failed: { bg: COLOR.dangerSoft, text: "#993C1D", dot: COLOR.danger, icon: XCircle },
-  Scheduled: { bg: COLOR.warningSoft, text: "#9A5B0E", dot: COLOR.warning, icon: Clock },
+  Completed: { bg: COLOR.successSoft, text: COLOR.success, dot: COLOR.success, icon: CheckCircle2 },
+  Running: { bg: COLOR.primarySoft, text: COLOR.primary, dot: COLOR.primary, icon: PlayCircle },
+  Failed: { bg: COLOR.dangerSoft, text: COLOR.danger, dot: COLOR.danger, icon: XCircle },
+  Scheduled: { bg: COLOR.warningSoft, text: COLOR.warning, dot: COLOR.warning, icon: Clock },
 };
 
 /* ---------------------------------------------------------------------- */
@@ -117,15 +119,18 @@ const ActionMenu = ({ campaignName }: { campaignName: string }) => {
     <div ref={ref} className="relative inline-block text-left">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="mf-btn inline-flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-gray-100"
+        className="mf-btn inline-flex h-8 w-8 items-center justify-center rounded-lg transition"
+        style={{ background: "transparent" }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = COLOR.surfaceHover)}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
         aria-label={`Actions for ${campaignName}`}
       >
         <MoreHorizontal size={16} style={{ color: COLOR.textMuted }} />
       </button>
       {open && (
         <div
-          className="absolute right-0 z-10 mt-1 w-44 rounded-lg bg-white py-1 shadow-lg"
-          style={{ border: `1px solid ${COLOR.border}` }}
+          className="absolute right-0 z-10 mt-1 w-44 rounded-lg py-1 shadow-lg"
+          style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}
         >
           {actions.map((a) => {
             const Icon = a.icon;
@@ -133,7 +138,7 @@ const ActionMenu = ({ campaignName }: { campaignName: string }) => {
               <button
                 key={a.label}
                 onClick={() => setOpen(false)}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] hover:bg-gray-50"
+                className="mf-menu-item flex w-full items-center gap-2 px-3 py-2 text-left text-[13px]"
                 style={{ color: a.danger ? COLOR.danger : COLOR.textBody }}
               >
                 <Icon size={13} />
@@ -199,8 +204,16 @@ const Campaign = () => {
           outline-offset: 2px;
         }
         .mf-row { transition: background-color 0.15s ease; }
-        .mf-row:hover { background-color: ${COLOR.bg}; }
+        .mf-row:hover { background-color: ${COLOR.surfaceHover}; }
         .mf-progress-fill { transition: width 0.4s ease; }
+        .mf-menu-item:hover { background-color: ${COLOR.surfaceHover}; }
+        .mf-card:hover { border-color: #3A3F4A; }
+        input[type="checkbox"] {
+          accent-color: ${COLOR.primary};
+          background-color: ${COLOR.surface};
+          border-color: ${COLOR.border};
+        }
+        .mf-input::placeholder { color: ${COLOR.textMuted}; }
       `}</style>
 
       <Sidebar />
@@ -221,8 +234,8 @@ const Campaign = () => {
           </div>
 
           <button
-            className="mf-btn flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-            style={{ background: COLOR.primary }}
+            className="mf-btn flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition hover:opacity-90"
+            style={{ background: COLOR.primary, color: COLOR.bg }}
           >
             <Plus size={16} />
             Create campaign
@@ -237,8 +250,8 @@ const Campaign = () => {
             return (
               <div
                 key={stat.title}
-                className="relative overflow-hidden rounded-xl bg-white p-5 transition-shadow hover:shadow-md"
-                style={{ border: `1px solid ${COLOR.border}` }}
+                className="mf-card relative overflow-hidden rounded-xl p-5 transition-colors"
+                style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}
               >
                 <div className="flex items-start justify-between">
                   <div
@@ -277,7 +290,7 @@ const Campaign = () => {
         </div>
 
         {/* Campaign list */}
-        <div className="rounded-xl bg-white" style={{ border: `1px solid ${COLOR.border}` }}>
+        <div className="rounded-xl" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
           {/* Toolbar */}
           <div
             className="flex flex-wrap items-center justify-between gap-4 p-5"
@@ -320,7 +333,7 @@ const Campaign = () => {
                       className="mf-chip rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
                       style={{
                         background: active ? COLOR.primary : "transparent",
-                        color: active ? "#FFFFFF" : COLOR.textBody,
+                        color: active ? COLOR.bg : COLOR.textBody,
                       }}
                     >
                       {f}
@@ -337,13 +350,13 @@ const Campaign = () => {
               className="flex items-center justify-between px-6 py-3"
               style={{ background: COLOR.primarySoft, borderBottom: `1px solid ${COLOR.border}` }}
             >
-              <span style={{ fontFamily: FONT.mono, color: "#185FA5" }} className="text-[12.5px] font-medium">
+              <span style={{ fontFamily: FONT.mono, color: COLOR.primary }} className="text-[12.5px] font-medium">
                 {selected.size} selected
               </span>
               <div className="flex items-center gap-2">
                 <button
-                  className="flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium hover:bg-gray-50"
-                  style={{ border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
+                  className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium hover:opacity-90"
+                  style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
                 >
                   <Pause size={12} />
                   Pause
@@ -365,7 +378,7 @@ const Campaign = () => {
               <thead className="text-xs uppercase tracking-wide" style={{ color: COLOR.textMuted }}>
                 <tr>
                   <th className="px-6 py-4 font-medium w-10">
-                    <input type="checkbox" checked={allSelected} onChange={toggleAll} className="rounded border-gray-300" />
+                    <input type="checkbox" checked={allSelected} onChange={toggleAll} className="rounded" />
                   </th>
                   <th className="px-3 py-4 font-medium">Campaign</th>
                   <th
@@ -408,7 +421,7 @@ const Campaign = () => {
                           type="checkbox"
                           checked={selected.has(c.id)}
                           onChange={() => toggleOne(c.id)}
-                          className="rounded border-gray-300"
+                          className="rounded"
                         />
                       </td>
                       <td className="px-3 py-5">
