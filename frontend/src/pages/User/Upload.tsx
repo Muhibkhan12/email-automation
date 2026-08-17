@@ -103,7 +103,7 @@ const Upload = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100" style={{ fontFamily: FONT.body }}>
+    <div className="flex min-h-screen bg-[#0B0E12]" style={{ fontFamily: FONT.body }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -112,13 +112,16 @@ const Upload = () => {
 
       <Sidebar />
 
-      <main className="flex-1 p-8 max-w-[1100px]">
+      <main className="flex-1 p-8 max-w-[1100px] bg-[#12151B]">
         {/* Header */}
         <div className="mb-7">
-          <h1 style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }} className="text-3xl font-bold text-gray-900">
+          <h1 
+            style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }} 
+            className="text-3xl font-bold text-[#E8E6E1]"
+          >
             Upload File
           </h1>
-          <p className="mt-1 text-gray-500">Import recipients from a CSV or Excel file.</p>
+          <p className="mt-1 text-[#9BA0A8]">Import recipients from a CSV or Excel file.</p>
         </div>
 
         {/* Dropzone */}
@@ -129,8 +132,8 @@ const Upload = () => {
           onClick={() => inputRef.current?.click()}
           className="mb-6 flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-12 text-center cursor-pointer transition-colors"
           style={{
-            borderColor: isDragging ? "#0284c7" : "#d1d5db",
-            background: isDragging ? "#f0f9ff" : "#ffffff",
+            borderColor: isDragging ? "#FF6A39" : "#2A2E37",
+            background: isDragging ? "rgba(255,106,57,0.05)" : "#12151B",
           }}
         >
           <input
@@ -141,81 +144,81 @@ const Upload = () => {
             className="hidden"
             onChange={(e) => addFiles(e.target.files)}
           />
-          <div className="w-14 h-14 rounded-2xl bg-sky-50 flex items-center justify-center mb-4">
-            <UploadCloud size={24} className="text-sky-600" />
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4" style={{ background: "rgba(255,106,57,0.12)" }}>
+            <UploadCloud size={24} className="text-[#FF6A39]" />
           </div>
-          <p style={{ fontFamily: FONT.display }} className="text-base font-semibold text-gray-900">
+          <p style={{ fontFamily: FONT.display }} className="text-base font-semibold text-[#E8E6E1]">
             Drag and drop your file here
           </p>
-          <p className="text-sm text-gray-500 mt-1">
-            or <span className="text-sky-600 font-medium">browse</span> from your computer
+          <p className="text-sm text-[#9BA0A8] mt-1">
+            or <span className="text-[#FF6A39] font-medium">browse</span> from your computer
           </p>
-          <p style={{ fontFamily: FONT.mono }} className="text-[11px] text-gray-400 mt-4">
+          <p style={{ fontFamily: FONT.mono }} className="text-[11px] text-[#6B727C] mt-4">
             Supports .csv, .xlsx, .xls — up to 25 MB
           </p>
         </div>
 
         {/* Format tip */}
-        <div className="mb-6 flex items-start gap-3 rounded-xl border border-sky-100 bg-sky-50 px-4 py-3">
-          <Info size={16} className="text-sky-600 shrink-0 mt-0.5" />
-          <p className="text-[13px] text-sky-800">
-            Your file needs an <span style={{ fontFamily: FONT.mono }} className="font-medium">email</span> column at minimum.
-            Optional columns: <span style={{ fontFamily: FONT.mono }}>name</span>, <span style={{ fontFamily: FONT.mono }}>tags</span> (comma-separated).
+        <div className="mb-6 flex items-start gap-3 rounded-xl border px-4 py-3" style={{ borderColor: "rgba(255,106,57,0.2)", background: "rgba(255,106,57,0.05)" }}>
+          <Info size={16} className="text-[#FF6A39] shrink-0 mt-0.5" />
+          <p className="text-[13px] text-[#C7C9CE]">
+            Your file needs an <span style={{ fontFamily: FONT.mono }} className="font-medium text-[#FF6A39]">email</span> column at minimum.
+            Optional columns: <span style={{ fontFamily: FONT.mono }} className="text-[#E8E6E1]">name</span>, <span style={{ fontFamily: FONT.mono }} className="text-[#E8E6E1]">tags</span> (comma-separated).
             {" "}
-            <button className="font-medium underline underline-offset-2">Download sample template</button>
+            <button className="font-medium underline underline-offset-2 text-[#FF6A39] hover:text-[#e85a2c]">Download sample template</button>
           </p>
         </div>
 
         {/* Active uploads */}
         {files.length > 0 && (
-          <div className="mb-6 rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h2 style={{ fontFamily: FONT.display }} className="text-sm font-semibold text-gray-800">
+          <div className="mb-6 rounded-xl border border-[#2A2E37] bg-[#12151B] shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#2A2E37]">
+              <h2 style={{ fontFamily: FONT.display }} className="text-sm font-semibold text-[#E8E6E1]">
                 Uploading {files.length} {files.length === 1 ? "file" : "files"}
               </h2>
             </div>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-[#2A2E37]">
               {files.map((f) => (
                 <div key={f.id} className="flex items-center gap-3 px-5 py-4">
-                  <div className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
-                    <FileSpreadsheet size={16} className="text-gray-500" />
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(255,106,57,0.08)" }}>
+                    <FileSpreadsheet size={16} className="text-[#FF6A39]" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-[13.5px] font-medium text-gray-800 truncate">{f.name}</p>
-                      <span style={{ fontFamily: FONT.mono }} className="text-[11px] text-gray-400 shrink-0 ml-2">
+                      <p className="text-[13.5px] font-medium text-[#E8E6E1] truncate">{f.name}</p>
+                      <span style={{ fontFamily: FONT.mono }} className="text-[11px] text-[#6B727C] shrink-0 ml-2">
                         {f.size}
                       </span>
                     </div>
 
                     {f.status === "uploading" && (
-                      <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: "#2A2E37" }}>
                         <div
-                          className="h-full bg-sky-500 rounded-full transition-all"
-                          style={{ width: `${f.progress}%` }}
+                          className="h-full rounded-full transition-all"
+                          style={{ width: `${f.progress}%`, background: "#FF6A39" }}
                         />
                       </div>
                     )}
                     {f.status === "processing" && (
-                      <p className="flex items-center gap-1.5 text-[12px] text-amber-600">
+                      <p className="flex items-center gap-1.5 text-[12px]" style={{ color: "#FBBF24" }}>
                         <Loader2 size={12} className="spin" />
                         Validating rows…
                       </p>
                     )}
                     {f.status === "success" && (
-                      <p style={{ fontFamily: FONT.mono }} className="flex items-center gap-1.5 text-[12px] text-emerald-600">
+                      <p style={{ fontFamily: FONT.mono }} className="flex items-center gap-1.5 text-[12px]" style={{ color: "#34D399" }}>
                         <CheckCircle2 size={13} />
                         {f.rows?.toLocaleString()} recipients imported
                       </p>
                     )}
                     {f.status === "error" && (
-                      <p className="flex items-center gap-1.5 text-[12px] text-red-600">
+                      <p className="flex items-center gap-1.5 text-[12px]" style={{ color: "#F87171" }}>
                         <XCircle size={13} />
                         {f.errorMsg}
                       </p>
                     )}
                   </div>
-                  <button onClick={() => removeFile(f.id)} className="text-gray-300 hover:text-gray-500 shrink-0">
+                  <button onClick={() => removeFile(f.id)} className="text-[#6B727C] hover:text-[#E8E6E1] shrink-0">
                     <X size={16} />
                   </button>
                 </div>
@@ -225,19 +228,19 @@ const Upload = () => {
         )}
 
         {/* Recent uploads */}
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <h2 style={{ fontFamily: FONT.display }} className="text-sm font-semibold text-gray-800">
+        <div className="rounded-xl border border-[#2A2E37] bg-[#12151B] shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#2A2E37]">
+            <h2 style={{ fontFamily: FONT.display }} className="text-sm font-semibold text-[#E8E6E1]">
               Recent uploads
             </h2>
-            <button className="flex items-center gap-1 text-[12.5px] font-medium text-sky-600 hover:text-sky-700">
+            <button className="flex items-center gap-1 text-[12.5px] font-medium text-[#FF6A39] hover:text-[#e85a2c]">
               View all history
               <ChevronRight size={13} />
             </button>
           </div>
           <table className="w-full text-left">
             <thead>
-              <tr className="text-[11px] uppercase tracking-wider text-gray-400">
+              <tr className="text-[11px] uppercase tracking-wider text-[#6B727C]">
                 <th className="px-5 py-2.5 font-medium">File</th>
                 <th className="px-3 py-2.5 font-medium">Rows</th>
                 <th className="px-3 py-2.5 font-medium">Added</th>
@@ -248,33 +251,35 @@ const Upload = () => {
             </thead>
             <tbody>
               {recentUploads.map((u) => (
-                <tr key={u.id} className="border-t border-gray-100 hover:bg-gray-50/60 transition-colors">
+                <tr key={u.id} className="border-t border-[#2A2E37] hover:bg-[#1B1E24] transition-colors">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2.5">
-                      <FileSpreadsheet size={15} className="text-gray-400" />
-                      <span className="text-[13.5px] font-medium text-gray-800">{u.name}</span>
+                      <FileSpreadsheet size={15} className="text-[#6B727C]" />
+                      <span className="text-[13.5px] font-medium text-[#E8E6E1]">{u.name}</span>
                     </div>
                   </td>
-                  <td style={{ fontFamily: FONT.mono }} className="px-3 py-3 text-[13px] text-gray-600">
+                  <td style={{ fontFamily: FONT.mono }} className="px-3 py-3 text-[13px] text-[#9BA0A8]">
                     {u.rows.toLocaleString()}
                   </td>
-                  <td style={{ fontFamily: FONT.mono }} className="px-3 py-3 text-[13px] text-emerald-600">
+                  <td style={{ fontFamily: FONT.mono }} className="px-3 py-3 text-[13px]" style={{ color: "#34D399" }}>
                     {u.addedCount.toLocaleString()}
                   </td>
-                  <td style={{ fontFamily: FONT.mono }} className="px-3 py-3 text-[13px] text-gray-400">
+                  <td style={{ fontFamily: FONT.mono }} className="px-3 py-3 text-[13px] text-[#6B727C]">
                     {u.skippedCount.toLocaleString()}
                   </td>
                   <td className="px-3 py-3">
                     <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-medium ${
-                        u.status === "Completed" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
-                      }`}
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-medium"
+                      style={{
+                        backgroundColor: u.status === "Completed" ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
+                        color: u.status === "Completed" ? "#34D399" : "#F87171"
+                      }}
                     >
                       {u.status === "Completed" ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
                       {u.status}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-[12.5px] text-gray-400 text-right whitespace-nowrap">
+                  <td className="px-5 py-3 text-[12.5px] text-[#6B727C] text-right whitespace-nowrap">
                     {u.uploadedAt}
                   </td>
                 </tr>
