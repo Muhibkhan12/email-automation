@@ -27,20 +27,34 @@ const FONT = {
   mono: "'JetBrains Mono', monospace",
 }
 
+const COLOR = {
+  primary: '#FF6A39',
+  primarySoft: 'rgba(255,106,57,0.12)',
+  success: '#7FD98A',
+  successSoft: 'rgba(127,217,138,0.12)',
+  warning: '#FFC24B',
+  warningSoft: 'rgba(255,194,75,0.12)',
+  danger: '#FF5C6C',
+  dangerSoft: 'rgba(255,92,108,0.12)',
+  neutral: '#8B8D94',
+  neutralSoft: '#1B1E24',
+  dark: '#E8E6E1',
+  bg: '#0E1013',
+  surface: '#171A21',
+  surfaceHover: '#1B1E24',
+  border: '#2A2E37',
+  borderHover: '#3A3F4A',
+  textMuted: '#8B8D94',
+  textBody: '#C7C9CE',
+}
+
 // ---- Mock data -----------------------------------------------------
 const stats = [
-  { label: 'Emails Sent Today', value: '12,480', delta: '+8.2%', trend: 'up', icon: Send, tint: 'sky' },
-  { label: 'Delivery Rate', value: '98.4%', delta: '+0.6%', trend: 'up', icon: CheckCircle2, tint: 'emerald' },
-  { label: 'Active Recipients', value: '34,920', delta: '+412', trend: 'up', icon: Users, tint: 'violet' },
-  { label: 'Bounced / Failed', value: '186', delta: '-3.1%', trend: 'down', icon: XCircle, tint: 'red' },
+  { label: 'Emails Sent Today', value: '12,480', delta: '+8.2%', trend: 'up', icon: Send, accent: COLOR.primary, accentSoft: COLOR.primarySoft },
+  { label: 'Delivery Rate', value: '98.4%', delta: '+0.6%', trend: 'up', icon: CheckCircle2, accent: COLOR.success, accentSoft: COLOR.successSoft },
+  { label: 'Active Recipients', value: '34,920', delta: '+412', trend: 'up', icon: Users, accent: COLOR.warning, accentSoft: COLOR.warningSoft },
+  { label: 'Bounced / Failed', value: '186', delta: '-3.1%', trend: 'down', icon: XCircle, accent: COLOR.danger, accentSoft: COLOR.dangerSoft },
 ]
-
-const tintClasses: Record<string, { bg: string; fg: string }> = {
-  sky: { bg: 'bg-sky-50', fg: 'text-sky-600' },
-  emerald: { bg: 'bg-emerald-50', fg: 'text-emerald-600' },
-  violet: { bg: 'bg-violet-50', fg: 'text-violet-600' },
-  red: { bg: 'bg-red-50', fg: 'text-red-600' },
-}
 
 const recentCampaigns = [
   { name: 'August Product Update', status: 'Sent', recipients: '8,240', opened: '61%', sentAt: 'Today, 9:02 AM' },
@@ -50,16 +64,16 @@ const recentCampaigns = [
   { name: 'Beta Access Invite', status: 'Failed', recipients: '600', opened: '—', sentAt: 'Aug 8, 3:45 PM' },
 ]
 
-const statusStyle: Record<string, string> = {
-  Sent: 'bg-emerald-50 text-emerald-700',
-  Queued: 'bg-amber-50 text-amber-700',
-  Failed: 'bg-red-50 text-red-700',
+const statusStyle: Record<string, { bg: string; fg: string }> = {
+  Sent: { bg: COLOR.successSoft, fg: COLOR.success },
+  Queued: { bg: COLOR.warningSoft, fg: COLOR.warning },
+  Failed: { bg: COLOR.dangerSoft, fg: COLOR.danger },
 }
 
 const queueActivity = [
-  { label: 'Processed', value: '9,340', icon: CheckCircle2, tone: 'text-emerald-600' },
-  { label: 'In queue', value: '212', icon: Clock, tone: 'text-amber-600' },
-  { label: 'Errors', value: '14', icon: AlertCircle, tone: 'text-red-600' },
+  { label: 'Processed', value: '9,340', icon: CheckCircle2, tone: COLOR.success },
+  { label: 'In queue', value: '212', icon: Clock, tone: COLOR.warning },
+  { label: 'Errors', value: '14', icon: AlertCircle, tone: COLOR.danger },
 ]
 
 const deliveryTrend = [
@@ -71,10 +85,10 @@ const deliveryTrend = [
 ]
 
 const engagement = [
-  { name: 'Opened', value: 48, color: '#0284c7' },
-  { name: 'Clicked', value: 19, color: '#7c3aed' },
-  { name: 'Bounced', value: 4, color: '#dc2626' },
-  { name: 'Unopened', value: 29, color: '#e2e8f0' },
+  { name: 'Opened', value: 48, color: COLOR.primary },
+  { name: 'Clicked', value: 19, color: COLOR.warning },
+  { name: 'Bounced', value: 4, color: COLOR.danger },
+  { name: 'Unopened', value: 29, color: COLOR.borderHover },
 ]
 
 const pulseEvents = [
@@ -93,39 +107,48 @@ const senderAccounts = [
 ]
 
 const accountStatusMeta = {
-  Active: { icon: ShieldCheck, fg: 'text-emerald-600', bg: 'bg-emerald-50' },
-  Warning: { icon: ShieldAlert, fg: 'text-amber-600', bg: 'bg-amber-50' },
-  Disabled: { icon: ShieldX, fg: 'text-slate-400', bg: 'bg-slate-100' },
+  Active: { icon: ShieldCheck, fg: COLOR.success, bg: COLOR.successSoft },
+  Warning: { icon: ShieldAlert, fg: COLOR.warning, bg: COLOR.warningSoft },
+  Disabled: { icon: ShieldX, fg: COLOR.textMuted, bg: COLOR.neutralSoft },
 }
 
-const pulseDotColor = { success: '#059669', pending: '#d97706', failed: '#dc2626' }
+const pulseDotColor = { success: COLOR.success, pending: COLOR.warning, failed: COLOR.danger }
 
 // ---- Component -----------------------------------------------------
 const Dashboard = () => {
   const engagementTotal = useMemo(() => engagement.reduce((s, e) => s + e.value, 0), [])
 
   return (
-    <div className="h-screen w-full flex overflow-hidden" style={{ fontFamily: FONT.body }}>
+    <div className="h-screen w-full flex overflow-hidden" style={{ fontFamily: FONT.body, background: COLOR.bg }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        .mf-card { transition: border-color 0.15s ease; }
+        .mf-card:hover { border-color: ${COLOR.borderHover}; }
+        .mf-row:hover { background-color: ${COLOR.surfaceHover}; }
+        .mf-link:hover { color: #FF7F52; }
+        .pulse-dot { animation: pulse-fade 1.8s ease-in-out infinite; }
+        @keyframes pulse-fade { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
       `}</style>
 
       <Sidebar />
 
-      <main className="flex-1 overflow-y-auto bg-slate-50">
+      <main className="flex-1 overflow-y-auto" style={{ background: COLOR.bg }}>
         <div className="px-8 py-7 max-w-[1320px]">
           {/* Header */}
           <div className="flex items-center justify-between mb-7">
             <div>
               <h1
-                style={{ fontFamily: FONT.display, letterSpacing: '-0.01em' }}
-                className="text-[24px] font-semibold text-slate-900"
+                style={{ fontFamily: FONT.display, letterSpacing: '-0.01em', color: COLOR.dark }}
+                className="text-[24px] font-semibold"
               >
                 Dashboard
               </h1>
-              <p className="text-sm text-slate-500 mt-0.5">Overview of your campaigns and delivery health</p>
+              <p className="text-sm mt-0.5" style={{ color: COLOR.textMuted }}>Overview of your campaigns and delivery health</p>
             </div>
-            <button className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors shadow-sm shadow-sky-200">
+            <button
+              className="flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-lg transition-colors hover:opacity-90"
+              style={{ background: COLOR.primary, color: COLOR.bg }}
+            >
               <Mail size={16} />
               New Campaign
             </button>
@@ -133,65 +156,62 @@ const Dashboard = () => {
 
           {/* Stat cards */}
           <div className="grid grid-cols-4 gap-4 mb-5">
-            {stats.map(({ label, value, delta, trend, icon: Icon, tint }) => {
-              const t = tintClasses[tint]
-              return (
-                <div
-                  key={label}
-                  className="bg-white border border-slate-200 rounded-xl p-5 hover:border-sky-200 transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`w-9 h-9 rounded-lg ${t.bg} flex items-center justify-center`}>
-                      <Icon size={17} className={t.fg} />
-                    </div>
-                    <span
-                      className={`flex items-center gap-0.5 text-[12px] font-medium ${
-                        trend === 'up' ? 'text-emerald-600' : 'text-red-500'
-                      }`}
-                    >
-                      {trend === 'up' ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-                      {delta}
-                    </span>
+            {stats.map(({ label, value, delta, trend, icon: Icon, accent, accentSoft }) => (
+              <div
+                key={label}
+                className="mf-card rounded-xl p-5"
+                style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: accentSoft }}>
+                    <Icon size={17} style={{ color: accent }} />
                   </div>
-                  <p style={{ fontFamily: FONT.mono }} className="text-2xl font-semibold text-slate-900 tracking-tight">
-                    {value}
-                  </p>
-                  <p className="text-[13px] text-slate-500 mt-1">{label}</p>
+                  <span
+                    className="flex items-center gap-0.5 text-[12px] font-medium"
+                    style={{ color: trend === 'up' ? COLOR.success : COLOR.danger }}
+                  >
+                    {trend === 'up' ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+                    {delta}
+                  </span>
                 </div>
-              )
-            })}
+                <p style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="text-2xl font-semibold tracking-tight">
+                  {value}
+                </p>
+                <p className="text-[13px] mt-1" style={{ color: COLOR.textMuted }}>{label}</p>
+              </div>
+            ))}
           </div>
 
           {/* Delivery trend + engagement breakdown */}
           <div className="grid grid-cols-3 gap-5 mb-5">
-            <div className="col-span-2 bg-white border border-slate-200 rounded-xl p-5">
+            <div className="col-span-2 mf-card rounded-xl p-5" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
               <div className="flex items-center justify-between mb-4">
-                <h2 style={{ fontFamily: FONT.display }} className="text-[14px] font-semibold text-slate-800">
+                <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[14px] font-semibold">
                   Delivery trend — last 13 days
                 </h2>
-                <span style={{ fontFamily: FONT.mono }} className="text-[11px] text-slate-400">daily volume</span>
+                <span style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[11px]">daily volume</span>
               </div>
               <div style={{ height: 200 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={deliveryTrend} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="fillSent" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#0284c7" stopOpacity={0.25} />
-                        <stop offset="100%" stopColor="#0284c7" stopOpacity={0} />
+                        <stop offset="0%" stopColor={COLOR.primary} stopOpacity={0.3} />
+                        <stop offset="100%" stopColor={COLOR.primary} stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid stroke="#eef1f5" vertical={false} />
-                    <XAxis dataKey="day" tick={{ fontSize: 10.5, fill: '#94a3b8', fontFamily: FONT.mono }} axisLine={false} tickLine={false} interval={1} />
-                    <YAxis tick={{ fontSize: 10.5, fill: '#94a3b8', fontFamily: FONT.mono }} axisLine={false} tickLine={false} />
-                    <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #eef1f5', fontFamily: FONT.mono, fontSize: 12 }} />
-                    <Area type="monotone" dataKey="sent" stroke="#0284c7" strokeWidth={2} fill="url(#fillSent)" />
+                    <CartesianGrid stroke={COLOR.border} vertical={false} />
+                    <XAxis dataKey="day" tick={{ fontSize: 10.5, fill: COLOR.textMuted, fontFamily: FONT.mono }} axisLine={false} tickLine={false} interval={1} />
+                    <YAxis tick={{ fontSize: 10.5, fill: COLOR.textMuted, fontFamily: FONT.mono }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ borderRadius: 8, border: `1px solid ${COLOR.border}`, background: COLOR.surface, fontFamily: FONT.mono, fontSize: 12, color: COLOR.dark }} />
+                    <Area type="monotone" dataKey="sent" stroke={COLOR.primary} strokeWidth={2} fill="url(#fillSent)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-xl p-5">
-              <h2 style={{ fontFamily: FONT.display }} className="text-[14px] font-semibold text-slate-800 mb-4">
+            <div className="mf-card rounded-xl p-5" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[14px] font-semibold mb-4">
                 Engagement breakdown
               </h2>
               <div className="flex items-center gap-4">
@@ -209,11 +229,11 @@ const Dashboard = () => {
                 <div className="flex-1 space-y-2">
                   {engagement.map((e) => (
                     <div key={e.name} className="flex items-center justify-between text-[12.5px]">
-                      <span className="flex items-center gap-1.5 text-slate-600">
+                      <span className="flex items-center gap-1.5" style={{ color: COLOR.textBody }}>
                         <span className="w-2 h-2 rounded-full" style={{ background: e.color }} />
                         {e.name}
                       </span>
-                      <span style={{ fontFamily: FONT.mono }} className="font-medium text-slate-800">
+                      <span style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="font-medium">
                         {Math.round((e.value / engagementTotal) * 100)}%
                       </span>
                     </div>
@@ -225,18 +245,18 @@ const Dashboard = () => {
 
           {/* Recent campaigns + Queue monitor */}
           <div className="grid grid-cols-3 gap-5 mb-5">
-            <div className="col-span-2 bg-white border border-slate-200 rounded-xl overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-                <h2 style={{ fontFamily: FONT.display }} className="text-[14px] font-semibold text-slate-800">
+            <div className="col-span-2 mf-card rounded-xl overflow-hidden" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+              <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
+                <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[14px] font-semibold">
                   Recent Campaigns
                 </h2>
-                <button className="text-[12.5px] font-medium text-sky-600 hover:text-sky-700">
+                <button className="mf-link text-[12.5px] font-medium transition-colors" style={{ color: COLOR.primary }}>
                   View all
                 </button>
               </div>
               <table className="w-full text-left">
                 <thead>
-                  <tr className="text-[11px] uppercase tracking-wider text-slate-400">
+                  <tr className="text-[11px] uppercase tracking-wider" style={{ color: COLOR.textMuted }}>
                     <th className="px-5 py-2.5 font-medium">Campaign</th>
                     <th className="px-3 py-2.5 font-medium">Status</th>
                     <th className="px-3 py-2.5 font-medium">Recipients</th>
@@ -246,16 +266,19 @@ const Dashboard = () => {
                 </thead>
                 <tbody>
                   {recentCampaigns.map((c) => (
-                    <tr key={c.name} className="border-t border-slate-100 hover:bg-slate-50/60 transition-colors">
-                      <td className="px-5 py-3 text-[13.5px] font-medium text-slate-800">{c.name}</td>
+                    <tr key={c.name} className="mf-row transition-colors" style={{ borderTop: `1px solid ${COLOR.border}` }}>
+                      <td className="px-5 py-3 text-[13.5px] font-medium" style={{ color: COLOR.dark }}>{c.name}</td>
                       <td className="px-3 py-3">
-                        <span className={`text-[11.5px] font-medium px-2 py-1 rounded-md ${statusStyle[c.status]}`}>
+                        <span
+                          className="text-[11.5px] font-medium px-2 py-1 rounded-md"
+                          style={{ background: statusStyle[c.status].bg, color: statusStyle[c.status].fg }}
+                        >
                           {c.status}
                         </span>
                       </td>
-                      <td style={{ fontFamily: FONT.mono }} className="px-3 py-3 text-[13px] text-slate-600">{c.recipients}</td>
-                      <td style={{ fontFamily: FONT.mono }} className="px-3 py-3 text-[13px] text-slate-600">{c.opened}</td>
-                      <td className="px-5 py-3 text-[12.5px] text-slate-400 text-right whitespace-nowrap">
+                      <td style={{ fontFamily: FONT.mono, color: COLOR.textBody }} className="px-3 py-3 text-[13px]">{c.recipients}</td>
+                      <td style={{ fontFamily: FONT.mono, color: COLOR.textBody }} className="px-3 py-3 text-[13px]">{c.opened}</td>
+                      <td className="px-5 py-3 text-[12.5px] text-right whitespace-nowrap" style={{ color: COLOR.textMuted }}>
                         {c.sentAt}
                       </td>
                     </tr>
@@ -264,32 +287,33 @@ const Dashboard = () => {
               </table>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-xl p-5">
-              <h2 style={{ fontFamily: FONT.display }} className="text-[14px] font-semibold text-slate-800 mb-4">
+            <div className="mf-card rounded-xl p-5" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[14px] font-semibold mb-4">
                 Queue Monitor
               </h2>
               <div className="space-y-3">
                 {queueActivity.map(({ label, value, icon: Icon, tone }) => (
                   <div
                     key={label}
-                    className="flex items-center justify-between px-3.5 py-3 rounded-lg bg-slate-50"
+                    className="flex items-center justify-between px-3.5 py-3 rounded-lg"
+                    style={{ background: COLOR.bg }}
                   >
                     <div className="flex items-center gap-2.5">
-                      <Icon size={16} className={tone} />
-                      <span className="text-[13px] text-slate-600">{label}</span>
+                      <Icon size={16} style={{ color: tone }} />
+                      <span className="text-[13px]" style={{ color: COLOR.textBody }}>{label}</span>
                     </div>
-                    <span style={{ fontFamily: FONT.mono }} className="text-[13.5px] font-semibold text-slate-800">{value}</span>
+                    <span style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="text-[13.5px] font-semibold">{value}</span>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-5 pt-4 border-t border-slate-100">
-                <div className="flex items-center justify-between text-[12.5px] text-slate-500 mb-1.5">
+              <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${COLOR.border}` }}>
+                <div className="flex items-center justify-between text-[12.5px] mb-1.5" style={{ color: COLOR.textMuted }}>
                   <span>Queue load</span>
-                  <span style={{ fontFamily: FONT.mono }} className="font-medium text-slate-700">72%</span>
+                  <span style={{ fontFamily: FONT.mono, color: COLOR.textBody }} className="font-medium">72%</span>
                 </div>
-                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full w-[72%] bg-sky-500 rounded-full" />
+                <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: COLOR.bg }}>
+                  <div className="h-full w-[72%] rounded-full" style={{ background: COLOR.primary }} />
                 </div>
               </div>
             </div>
@@ -297,11 +321,11 @@ const Dashboard = () => {
 
           {/* Mail pulse + Sender account health */}
           <div className="grid grid-cols-3 gap-5">
-            <div className="col-span-2 bg-white border border-slate-200 rounded-xl p-5">
+            <div className="col-span-2 mf-card rounded-xl p-5" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
               <div className="flex items-center gap-2 mb-4">
-                <CircleDot size={14} className="text-sky-600" />
-                <h2 style={{ fontFamily: FONT.display }} className="text-[14px] font-semibold text-slate-800">Mail pulse</h2>
-                <span style={{ fontFamily: FONT.mono }} className="text-[11px] text-slate-400">live</span>
+                <CircleDot size={14} style={{ color: COLOR.primary }} />
+                <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[14px] font-semibold">Mail pulse</h2>
+                <span style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[11px]">live</span>
               </div>
               <div className="space-y-2.5">
                 {pulseEvents.map((e, i) => (
@@ -310,14 +334,14 @@ const Dashboard = () => {
                       className="w-2 h-2 rounded-full pulse-dot shrink-0"
                       style={{ background: pulseDotColor[e.status] }}
                     />
-                    <span style={{ fontFamily: FONT.mono }} className="text-[12px] text-slate-600">{e.text}</span>
+                    <span style={{ fontFamily: FONT.mono, color: COLOR.textBody }} className="text-[12px]">{e.text}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-xl p-5">
-              <h2 style={{ fontFamily: FONT.display }} className="text-[14px] font-semibold text-slate-800 mb-4">
+            <div className="mf-card rounded-xl p-5" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[14px] font-semibold mb-4">
                 Sender account health
               </h2>
               <div className="space-y-2.5">
@@ -327,12 +351,12 @@ const Dashboard = () => {
                   return (
                     <div key={a.name} className="flex items-center justify-between">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className={`w-7 h-7 rounded-md ${meta.bg} flex items-center justify-center shrink-0`}>
-                          <Icon size={13} className={meta.fg} />
+                        <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0" style={{ background: meta.bg }}>
+                          <Icon size={13} style={{ color: meta.fg }} />
                         </div>
-                        <span className="text-[12.5px] text-slate-700 truncate">{a.name}</span>
+                        <span className="text-[12.5px] truncate" style={{ color: COLOR.textBody }}>{a.name}</span>
                       </div>
-                      <span style={{ fontFamily: FONT.mono }} className="text-[11.5px] text-slate-400 shrink-0 ml-2">
+                      <span style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[11.5px] shrink-0 ml-2">
                         {a.load}
                       </span>
                     </div>

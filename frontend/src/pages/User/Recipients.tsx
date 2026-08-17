@@ -60,6 +60,7 @@ const Recipients = () => {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"All" | RecipientStatus>("All");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
@@ -91,28 +92,36 @@ const Recipients = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100" style={{ fontFamily: FONT.body }}>
+    <div className="flex min-h-screen bg-[#0B0E12]" style={{ fontFamily: FONT.body }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
       `}</style>
 
       <Sidebar />
 
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-8 bg-[#12151B]">
         {/* Header */}
         <div className="mb-7 flex items-center justify-between">
           <div>
-            <h1 style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }} className="text-3xl font-bold text-gray-900">
+            <h1 
+              style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }} 
+              className="text-3xl font-bold text-[#E8E6E1]"
+            >
               Recipients
             </h1>
-            <p className="mt-1 text-gray-500">Manage everyone who receives your campaigns.</p>
+            <p className="mt-1 text-[#9BA0A8]">Manage everyone who receives your campaigns.</p>
           </div>
           <div className="flex items-center gap-2.5">
-            <button className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+            <button 
+              className="flex items-center gap-2 rounded-lg border border-[#2A2E37] bg-[#12151B] px-4 py-2.5 text-sm font-medium text-[#C7C9CE] transition-colors hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
+            >
               <UploadCloud size={16} />
               Import CSV
             </button>
-            <button className="flex items-center gap-2 rounded-lg bg-sky-600 hover:bg-sky-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm shadow-sky-200 transition-colors">
+            <button 
+              className="flex items-center gap-2 rounded-lg bg-[#FF6A39] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#e85a2c]"
+              style={{ boxShadow: "0 4px 12px rgba(255,106,57,0.25)" }}
+            >
               <UserPlus size={16} />
               Add Recipient
             </button>
@@ -124,15 +133,30 @@ const Recipients = () => {
           {summary.map((s) => {
             const t = tintClasses[s.tint];
             const Icon = s.icon;
+            const isEmber = s.tint === "sky"; 
             return (
-              <div key={s.label} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                <div className={`w-9 h-9 rounded-lg ${t.bg} flex items-center justify-center mb-3`}>
-                  <Icon size={17} className={t.fg} />
+              <div 
+                key={s.label} 
+                className="rounded-xl border border-[#2A2E37] bg-[#12151B] p-5 shadow-sm"
+              >
+                <div 
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${
+                    isEmber ? "bg-ember-soft" : t.bg
+                  }`}
+                  style={{ backgroundColor: isEmber ? "rgba(255,106,57,0.12)" : undefined }}
+                >
+                  <Icon 
+                    size={17} 
+                    className={isEmber ? "text-[#FF6A39]" : t.fg}
+                  />
                 </div>
-                <p style={{ fontFamily: FONT.mono }} className="text-2xl font-semibold text-gray-900 tracking-tight">
+                <p 
+                  style={{ fontFamily: FONT.mono }} 
+                  className="text-2xl font-semibold tracking-tight text-[#E8E6E1]"
+                >
                   {s.value}
                 </p>
-                <p className="text-[13px] text-gray-500 mt-1">{s.label}</p>
+                <p className="text-[13px] mt-1 text-[#9BA0A8]">{s.label}</p>
               </div>
             );
           })}
@@ -140,13 +164,13 @@ const Recipients = () => {
 
         {/* Toolbar */}
         <div className="mb-4 flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 h-10 flex-1 min-w-[240px]">
-            <Search size={15} className="text-gray-400" />
+          <div className="flex items-center gap-2 rounded-lg border border-[#2A2E37] bg-[#12151B] px-3 h-10 flex-1 min-w-[240px]">
+            <Search size={15} className="text-[#6B727C]" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name, email, or tag…"
-              className="w-full bg-transparent text-sm outline-none text-gray-800"
+              className="w-full bg-transparent text-sm outline-none text-[#E8E6E1] placeholder:text-[#6B727C]"
             />
           </div>
           <div className="flex items-center gap-1.5">
@@ -154,19 +178,20 @@ const Recipients = () => {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className="rounded-lg px-3 py-2 text-xs font-medium transition-colors border"
-                style={{
-                  background: filter === f ? "#0284c7" : "#fff",
-                  color: filter === f ? "#fff" : "#475569",
-                  borderColor: filter === f ? "#0284c7" : "#e2e8f0",
-                }}
+                className={`rounded-lg px-3 py-2 text-xs font-medium transition-colors border ${
+                  filter === f 
+                    ? "bg-[#FF6A39] text-white border-[#FF6A39]" 
+                    : "bg-[#12151B] text-[#C7C9CE] border-[#2A2E37] hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
+                }`}
               >
                 {f}
               </button>
             ))}
           </div>
           {selected.size > 0 && (
-            <button className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-100 transition-colors">
+            <button 
+              className="flex items-center gap-1.5 rounded-lg border border-ember-soft/30 bg-ember-soft/10 px-3 py-2 text-xs font-medium text-[#FF6A39] transition-colors hover:bg-ember-soft/20"
+            >
               <Trash2 size={13} />
               Remove {selected.size} selected
             </button>
@@ -174,21 +199,26 @@ const Recipients = () => {
         </div>
 
         {/* Table */}
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <h2 style={{ fontFamily: FONT.display }} className="text-sm font-semibold text-gray-800">
+        <div className="rounded-xl border border-[#2A2E37] bg-[#12151B] shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#2A2E37]">
+            <h2 style={{ fontFamily: FONT.display }} className="text-sm font-semibold text-[#E8E6E1]">
               {filtered.length} {filtered.length === 1 ? "recipient" : "recipients"}
             </h2>
-            <span style={{ fontFamily: FONT.mono }} className="text-[11px] text-gray-400">
+            <span style={{ fontFamily: FONT.mono }} className="text-[11px] text-[#6B727C]">
               synced live
             </span>
           </div>
 
           <table className="w-full text-left">
             <thead>
-              <tr className="text-[11px] uppercase tracking-wider text-gray-400">
+              <tr className="text-[11px] uppercase tracking-wider text-[#6B727C]">
                 <th className="px-5 py-2.5 font-medium w-10">
-                  <input type="checkbox" checked={allSelected} onChange={toggleAll} className="rounded border-gray-300" />
+                  <input 
+                    type="checkbox" 
+                    checked={allSelected} 
+                    onChange={toggleAll} 
+                    className="rounded border-[#2A2E37] bg-[#12151B] accent-[#FF6A39]"
+                  />
                 </th>
                 <th className="px-3 py-2.5 font-medium">Name</th>
                 <th className="px-3 py-2.5 font-medium">Tags</th>
@@ -201,7 +231,7 @@ const Recipients = () => {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-sm text-gray-400">
+                  <td colSpan={7} className="px-5 py-12 text-center text-sm text-[#6B727C]">
                     No recipients match your search.
                   </td>
                 </tr>
@@ -209,26 +239,47 @@ const Recipients = () => {
                 filtered.map((r) => {
                   const meta = STATUS_META[r.status];
                   const StatusIcon = meta.icon;
+                  const isHovered = hoveredRowId === r.id;
+                  
+                  // Map status colors to dark theme
+                  const statusColors = {
+                    Subscribed: { bg: "rgba(16,185,129,0.15)", fg: "#34D399" },
+                    Unsubscribed: { bg: "rgba(107,114,128,0.15)", fg: "#9CA3AF" },
+                    Bounced: { bg: "rgba(239,68,68,0.15)", fg: "#F87171" },
+                  };
+                  
                   return (
-                    <tr key={r.id} className="border-t border-gray-100 hover:bg-gray-50/60 transition-colors">
+                    <tr 
+                      key={r.id} 
+                      className={`border-t border-[#2A2E37] transition-colors ${
+                        isHovered ? "bg-[#1B1E24]" : ""
+                      }`}
+                      onMouseEnter={() => setHoveredRowId(r.id)}
+                      onMouseLeave={() => setHoveredRowId(null)}
+                    >
                       <td className="px-5 py-3">
                         <input
                           type="checkbox"
                           checked={selected.has(r.id)}
                           onChange={() => toggleOne(r.id)}
-                          className="rounded border-gray-300"
+                          className="rounded border-[#2A2E37] bg-[#12151B] accent-[#FF6A39]"
                         />
                       </td>
                       <td className="px-3 py-3">
-                        <p className="text-[13.5px] font-medium text-gray-800">{r.name}</p>
-                        <p className="text-[12px] text-gray-500">{r.email}</p>
+                        <p className={`text-[13.5px] font-medium ${
+                          isHovered ? "text-[#E8E6E1]" : "text-[#D1D5DB]"
+                        }`}>
+                          {r.name}
+                        </p>
+                        <p className="text-[12px] text-[#6B727C]">{r.email}</p>
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex flex-wrap gap-1.5">
                           {r.tags.map((tag) => (
                             <span
                               key={tag}
-                              className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-700"
+                              className="inline-flex items-center gap-1 rounded-full bg-ember-soft/20 px-2 py-0.5 text-[11px] font-medium text-[#FF6A39]"
+                              style={{ backgroundColor: "rgba(255,106,57,0.12)" }}
                             >
                               <TagIcon size={9} />
                               {tag}
@@ -237,17 +288,27 @@ const Recipients = () => {
                         </div>
                       </td>
                       <td className="px-3 py-3">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-medium ${meta.bg} ${meta.fg}`}>
+                        <span 
+                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-medium"
+                          style={{ 
+                            backgroundColor: statusColors[r.status].bg,
+                            color: statusColors[r.status].fg,
+                          }}
+                        >
                           <StatusIcon size={11} />
                           {r.status}
                         </span>
                       </td>
-                      <td style={{ fontFamily: FONT.mono }} className="px-3 py-3 text-[13px] text-gray-600">
+                      <td style={{ fontFamily: FONT.mono }} className="px-3 py-3 text-[13px] text-[#9BA0A8]">
                         {r.opens}
                       </td>
-                      <td className="px-3 py-3 text-[12.5px] text-gray-400 whitespace-nowrap">{r.addedOn}</td>
+                      <td className="px-3 py-3 text-[12.5px] text-[#6B727C] whitespace-nowrap">{r.addedOn}</td>
                       <td className="px-5 py-3 text-right">
-                        <button className="text-gray-400 hover:text-gray-600">
+                        <button 
+                          className={`transition-colors ${
+                            isHovered ? "text-[#E8E6E1]" : "text-[#6B727C]"
+                          } hover:text-[#E8E6E1]`}
+                        >
                           <MoreVertical size={15} />
                         </button>
                       </td>
@@ -259,14 +320,18 @@ const Recipients = () => {
           </table>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100">
-            <span className="text-xs text-gray-400">Showing {filtered.length} of 34,920</span>
+          <div className="flex items-center justify-between px-5 py-3 border-t border-[#2A2E37]">
+            <span className="text-xs text-[#6B727C]">Showing {filtered.length} of 34,920</span>
             <div className="flex items-center gap-1.5">
-              <button className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center text-gray-400 hover:bg-gray-50">
+              <button 
+                className="w-7 h-7 rounded-lg border border-[#2A2E37] bg-[#12151B] flex items-center justify-center text-[#6B727C] transition-colors hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
+              >
                 <ChevronLeft size={14} />
               </button>
-              <span style={{ fontFamily: FONT.mono }} className="px-2 text-xs text-gray-600">1 / 4,366</span>
-              <button className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-gray-50">
+              <span style={{ fontFamily: FONT.mono }} className="px-2 text-xs text-[#C7C9CE]">1 / 4,366</span>
+              <button 
+                className="w-7 h-7 rounded-lg border border-[#2A2E37] bg-[#12151B] flex items-center justify-center text-[#C7C9CE] transition-colors hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
+              >
                 <ChevronRight size={14} />
               </button>
             </div>

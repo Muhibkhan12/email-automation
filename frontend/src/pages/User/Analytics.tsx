@@ -21,7 +21,7 @@ import {
 } from "recharts";
 
 /* ---------------------------------------------------------------------- */
-/*  Design tokens — MailForge system                                      */
+/*  Design tokens — MailForge system (iron / ember)                       */
 /* ---------------------------------------------------------------------- */
 
 const FONT = {
@@ -31,19 +31,21 @@ const FONT = {
 };
 
 const COLOR = {
-  primary: "#2F6FED",
-  primarySoft: "#EAF0FE",
-  success: "#1FA971",
-  successSoft: "#E6F7EF",
-  warning: "#E8A23D",
-  warningSoft: "#FDF3E4",
-  danger: "#E5484D",
-  dangerSoft: "#FDECEC",
-  dark: "#11141B",
-  bg: "#F4F5F8",
-  border: "#E7E8EC",
-  textMuted: "#8A8F9C",
-  textBody: "#4B4F5A",
+  primary: "#FF6A39",
+  primarySoft: "rgba(255,106,57,0.12)",
+  success: "#7FD98A",
+  successSoft: "rgba(127,217,138,0.12)",
+  warning: "#FFC24B",
+  warningSoft: "rgba(255,194,75,0.12)",
+  danger: "#FF5C6C",
+  dangerSoft: "rgba(255,92,108,0.12)",
+  dark: "#E8E6E1",
+  bg: "#0E1013",
+  surface: "#171A21",
+  border: "#2A2E37",
+  borderHover: "#3A3F4A",
+  textMuted: "#8B8D94",
+  textBody: "#C7C9CE",
 };
 
 /* ---------------------------------------------------------------------- */
@@ -181,6 +183,9 @@ const Analytics = () => {
           outline-offset: 2px;
         }
 
+        .mf-card { transition: border-color 0.15s ease; }
+        .mf-card:hover { border-color: ${COLOR.borderHover}; }
+
         .mf-flow-track { position: relative; height: 2px; background: ${COLOR.border}; }
         .mf-flow-dot {
           position: absolute;
@@ -189,6 +194,7 @@ const Analytics = () => {
           height: 8px;
           border-radius: 9999px;
           background: ${COLOR.primary};
+          box-shadow: 0 0 8px 1px rgba(255,106,57,0.5);
           animation: mfFlow 2.6s linear infinite;
         }
         @keyframes mfFlow {
@@ -221,7 +227,7 @@ const Analytics = () => {
 
           <div
             className="flex items-center gap-1 rounded-xl p-1"
-            style={{ background: "#FFFFFF", border: `1px solid ${COLOR.border}` }}
+            style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}
           >
             {RANGES.map((r) => {
               const active = r === range;
@@ -233,7 +239,7 @@ const Analytics = () => {
                   style={{
                     fontFamily: FONT.body,
                     background: active ? COLOR.primary : "transparent",
-                    color: active ? "#FFFFFF" : COLOR.textBody,
+                    color: active ? COLOR.bg : COLOR.textBody,
                   }}
                 >
                   {r}
@@ -250,8 +256,8 @@ const Analytics = () => {
             return (
               <div
                 key={stat.title}
-                className="rounded-xl bg-white p-5 transition-shadow hover:shadow-md"
-                style={{ border: `1px solid ${COLOR.border}` }}
+                className="mf-card rounded-xl p-5"
+                style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}
               >
                 <div className="flex items-center justify-between">
                   <div
@@ -264,7 +270,7 @@ const Analytics = () => {
                     className="flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold"
                     style={{
                       fontFamily: FONT.mono,
-                      color: stat.trend === "up" ? "#0F6E56" : "#993C1D",
+                      color: stat.trend === "up" ? COLOR.success : COLOR.danger,
                       background: stat.trend === "up" ? COLOR.successSoft : COLOR.dangerSoft,
                     }}
                   >
@@ -291,7 +297,7 @@ const Analytics = () => {
         </div>
 
         {/* Signature: delivery pipeline */}
-        <div className="mb-8 rounded-xl bg-white p-6" style={{ border: `1px solid ${COLOR.border}` }}>
+        <div className="mf-card mb-8 rounded-xl p-6" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-lg font-semibold">
@@ -336,7 +342,7 @@ const Analytics = () => {
                       {stage.label}
                     </p>
                     <p
-                      style={{ fontFamily: FONT.mono, color: dropFromPrev ? "#993C1D" : COLOR.textMuted }}
+                      style={{ fontFamily: FONT.mono, color: dropFromPrev ? COLOR.danger : COLOR.textMuted }}
                       className="mt-1 text-[11px]"
                     >
                       {dropFromPrev === null ? `${pctOfSent}% of sent` : `-${dropFromPrev}% drop-off`}
@@ -359,7 +365,7 @@ const Analytics = () => {
         {/* Main analytics */}
         <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Activity */}
-          <div className="rounded-xl bg-white p-6 lg:col-span-2" style={{ border: `1px solid ${COLOR.border}` }}>
+          <div className="mf-card rounded-xl p-6 lg:col-span-2" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
             <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-lg font-semibold">
               Email activity
             </h2>
@@ -372,7 +378,7 @@ const Analytics = () => {
                 <AreaChart data={activity} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="fillSentA" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={COLOR.dark} stopOpacity={0.16} />
+                      <stop offset="0%" stopColor={COLOR.dark} stopOpacity={0.18} />
                       <stop offset="100%" stopColor={COLOR.dark} stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="fillOpenedA" x1="0" y1="0" x2="0" y2="1">
@@ -396,8 +402,10 @@ const Analytics = () => {
                     contentStyle={{
                       borderRadius: 8,
                       border: `1px solid ${COLOR.border}`,
+                      background: COLOR.surface,
                       fontFamily: FONT.mono,
                       fontSize: 12,
+                      color: COLOR.dark,
                     }}
                   />
                   <Legend
@@ -423,7 +431,7 @@ const Analytics = () => {
           </div>
 
           {/* Engagement */}
-          <div className="rounded-xl bg-white p-6" style={{ border: `1px solid ${COLOR.border}` }}>
+          <div className="mf-card rounded-xl p-6" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
             <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-lg font-semibold">
               Engagement
             </h2>
@@ -443,7 +451,7 @@ const Analytics = () => {
         {/* Bottom */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Campaigns */}
-          <section className="rounded-xl bg-white" style={{ border: `1px solid ${COLOR.border}` }}>
+          <section className="mf-card rounded-xl" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
             <div className="p-6" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
               <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-lg font-semibold">
                 Top campaigns
@@ -477,7 +485,7 @@ const Analytics = () => {
           </section>
 
           {/* Senders */}
-          <section className="rounded-xl bg-white" style={{ border: `1px solid ${COLOR.border}` }}>
+          <section className="mf-card rounded-xl" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
             <div className="p-6" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
               <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-lg font-semibold">
                 Sender performance
@@ -546,9 +554,9 @@ interface StatusBadgeProps {
 
 const StatusBadge = ({ status }: StatusBadgeProps) => {
   const styles: Record<Sender["status"], { bg: string; text: string }> = {
-    Excellent: { bg: COLOR.successSoft, text: "#0F6E56" },
-    Good: { bg: COLOR.primarySoft, text: "#185FA5" },
-    Average: { bg: COLOR.warningSoft, text: "#854F0B" },
+    Excellent: { bg: COLOR.successSoft, text: COLOR.success },
+    Good: { bg: COLOR.primarySoft, text: COLOR.primary },
+    Average: { bg: COLOR.warningSoft, text: COLOR.warning },
   };
   const s = styles[status];
 
