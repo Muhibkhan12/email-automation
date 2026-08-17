@@ -11,30 +11,10 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-/* ---------------------------------------------------------------------- */
-/*  Design tokens — MailForge system (matches other pages)                */
-/* ---------------------------------------------------------------------- */
-
 const FONT = {
   display: "'Space Grotesk', sans-serif",
   body: "'Inter', sans-serif",
   mono: "'JetBrains Mono', monospace",
-};
-
-const COLOR = {
-  primary: "#2F6FED",
-  primarySoft: "#EAF0FE",
-  success: "#1FA971",
-  successSoft: "#E6F7EF",
-  warning: "#E8A23D",
-  warningSoft: "#FDF3E4",
-  danger: "#E5484D",
-  dangerSoft: "#FDECEC",
-  dark: "#11141B",
-  bg: "#F4F5F8",
-  border: "#E7E8EC",
-  textMuted: "#8A8F9C",
-  textBody: "#4B4F5A",
 };
 
 type SectionKey = "general" | "email" | "notifications" | "api" | "danger";
@@ -63,8 +43,8 @@ const Toggle = ({ checked, onChange, label }: ToggleProps) => (
     aria-checked={checked}
     aria-label={label}
     onClick={onChange}
-    className="mf-focus relative h-6 w-11 shrink-0 rounded-full transition-colors"
-    style={{ background: checked ? COLOR.primary : COLOR.border }}
+    className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
+    style={{ background: checked ? "#FF6A39" : "#2A2E37" }}
   >
     <span
       className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
@@ -81,12 +61,12 @@ interface FieldProps {
 
 const Field = ({ label, hint, children }: FieldProps) => (
   <div>
-    <label className="mb-2 block text-sm font-medium" style={{ color: COLOR.textBody }}>
+    <label className="mb-2 block text-sm font-medium text-[#C7C9CE]">
       {label}
     </label>
     {children}
     {hint && (
-      <p className="mt-1.5 text-xs" style={{ color: COLOR.textMuted }}>
+      <p className="mt-1.5 text-xs text-[#6B727C]">
         {hint}
       </p>
     )}
@@ -94,9 +74,9 @@ const Field = ({ label, hint, children }: FieldProps) => (
 );
 
 const inputStyle: React.CSSProperties = {
-  border: `1px solid ${COLOR.border}`,
-  background: "#FFFFFF",
-  color: COLOR.dark,
+  border: "1px solid #2A2E37",
+  background: "#0B0E12",
+  color: "#E8E6E1",
   fontFamily: FONT.body,
 };
 
@@ -110,23 +90,29 @@ interface CardProps {
 
 const Card = ({ title, description, children, footer, danger }: CardProps) => (
   <section
-    className="rounded-xl bg-white"
-    style={{ border: `1px solid ${danger ? COLOR.danger + "40" : COLOR.border}` }}
+    className="rounded-xl"
+    style={{ 
+      border: `1px solid ${danger ? "rgba(248,113,113,0.3)" : "#2A2E37"}`,
+      background: "#12151B"
+    }}
   >
-    <div className="px-6 py-5" style={{ borderBottom: `1px solid ${danger ? COLOR.danger + "30" : COLOR.border}` }}>
+    <div className="px-6 py-5" style={{ borderBottom: `1px solid ${danger ? "rgba(248,113,113,0.2)" : "#2A2E37"}` }}>
       <h2
-        style={{ fontFamily: FONT.display, color: danger ? "#7A2A17" : COLOR.dark }}
+        style={{ 
+          fontFamily: FONT.display, 
+          color: danger ? "#F87171" : "#E8E6E1" 
+        }}
         className="font-semibold"
       >
         {title}
       </h2>
-      <p className="mt-1 text-sm" style={{ color: danger ? "#99432B" : COLOR.textMuted }}>
+      <p className="mt-1 text-sm" style={{ color: danger ? "#FCA5A5" : "#9BA0A8" }}>
         {description}
       </p>
     </div>
     <div className="p-6">{children}</div>
     {footer && (
-      <div className="flex justify-end px-6 py-4" style={{ borderTop: `1px solid ${danger ? COLOR.danger + "30" : COLOR.border}` }}>
+      <div className="flex justify-end px-6 py-4" style={{ borderTop: `1px solid ${danger ? "rgba(248,113,113,0.2)" : "#2A2E37"}` }}>
         {footer}
       </div>
     )}
@@ -165,18 +151,12 @@ const Settings = () => {
   };
 
   return (
-    <div className="flex min-h-screen" style={{ background: COLOR.bg, fontFamily: FONT.body }}>
+    <div className="flex min-h-screen bg-[#0B0E12]" style={{ fontFamily: FONT.body }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
-        .mf-focus:focus-visible,
-        .mf-tab:focus-visible,
-        .mf-btn:focus-visible {
-          outline: 2px solid ${COLOR.primary};
-          outline-offset: 2px;
-        }
         .mf-input:focus {
-          border-color: ${COLOR.primary} !important;
+          border-color: #FF6A39 !important;
+          box-shadow: 0 0 0 3px rgba(255,106,57,0.1) !important;
         }
         input.mf-input, select.mf-input {
           width: 100%;
@@ -184,22 +164,22 @@ const Settings = () => {
           padding: 0.65rem 0.9rem;
           font-size: 0.875rem;
           outline: none;
-          transition: border-color 0.15s ease;
+          transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
       `}</style>
 
       <Sidebar />
 
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-8 bg-[#12151B]">
         {/* Header */}
         <div className="mb-8">
           <h1
-            style={{ fontFamily: FONT.display, letterSpacing: "-0.01em", color: COLOR.dark }}
-            className="text-3xl font-bold"
+            style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }}
+            className="text-3xl font-bold text-[#E8E6E1]"
           >
             Settings
           </h1>
-          <p className="mt-1 text-sm" style={{ color: COLOR.textMuted }}>
+          <p className="mt-1 text-sm text-[#9BA0A8]">
             Configure your workspace, sending defaults and integrations.
           </p>
         </div>
@@ -215,10 +195,22 @@ const Settings = () => {
                 <button
                   key={s.key}
                   onClick={() => setActive(s.key)}
-                  className="mf-tab flex shrink-0 items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors lg:shrink"
+                  className="flex shrink-0 items-center gap-2.5 rounded-lg px-3.5 py-2.5 text-sm font-medium transition-colors lg:shrink"
                   style={{
-                    background: isActive ? (isDanger ? COLOR.dangerSoft : COLOR.primarySoft) : "transparent",
-                    color: isActive ? (isDanger ? COLOR.danger : COLOR.primary) : COLOR.textBody,
+                    background: isActive ? (isDanger ? "rgba(248,113,113,0.12)" : "rgba(255,106,57,0.12)") : "transparent",
+                    color: isActive ? (isDanger ? "#F87171" : "#FF6A39") : "#9BA0A8",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = "#1B1E24";
+                      e.currentTarget.style.color = "#E8E6E1";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "#9BA0A8";
+                    }
                   }}
                 >
                   <Icon size={15} />
@@ -236,8 +228,8 @@ const Settings = () => {
                 description="Basic information about your workspace."
                 footer={
                   <button
-                    className="mf-btn rounded-lg px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-                    style={{ background: COLOR.primary }}
+                    className="rounded-lg px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+                    style={{ background: "#FF6A39" }}
                   >
                     Save changes
                   </button>
@@ -283,8 +275,8 @@ const Settings = () => {
                 description="Defaults applied across every campaign and automation."
                 footer={
                   <button
-                    className="mf-btn rounded-lg px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-                    style={{ background: COLOR.primary }}
+                    className="rounded-lg px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+                    style={{ background: "#FF6A39" }}
                   >
                     Save changes
                   </button>
@@ -309,7 +301,7 @@ const Settings = () => {
                   </Field>
                 </div>
 
-                <div className="mt-6 space-y-1" style={{ borderTop: `1px solid ${COLOR.border}` }}>
+                <div className="mt-6 space-y-1" style={{ borderTop: "1px solid #2A2E37" }}>
                   <ToggleRow
                     className="pt-5"
                     title="Track opens"
@@ -377,28 +369,45 @@ const Settings = () => {
                   <div className="flex items-center gap-2">
                     <div
                       className="flex-1 truncate rounded-lg px-4 py-2.5 text-sm"
-                      style={{ fontFamily: FONT.mono, background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
+                      style={{ 
+                        fontFamily: FONT.mono, 
+                        background: "#0B0E12", 
+                        border: "1px solid #2A2E37", 
+                        color: "#C7C9CE" 
+                      }}
                     >
                       {apiKey}
                     </div>
                     <button
                       onClick={copyKey}
-                      className="mf-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition"
-                      style={{ border: `1px solid ${COLOR.border}`, background: "#FFFFFF" }}
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors"
+                      style={{ border: "1px solid #2A2E37", background: "#12151B" }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#1B1E24";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "#12151B";
+                      }}
                       aria-label="Copy API key"
                     >
                       {copied ? (
-                        <Check size={15} style={{ color: COLOR.success }} />
+                        <Check size={15} style={{ color: "#34D399" }} />
                       ) : (
-                        <Copy size={15} style={{ color: COLOR.textMuted }} />
+                        <Copy size={15} style={{ color: "#6B727C" }} />
                       )}
                     </button>
                     <button
-                      className="mf-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition"
-                      style={{ border: `1px solid ${COLOR.border}`, background: "#FFFFFF" }}
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors"
+                      style={{ border: "1px solid #2A2E37", background: "#12151B" }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#1B1E24";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "#12151B";
+                      }}
                       aria-label="Regenerate API key"
                     >
-                      <RefreshCw size={15} style={{ color: COLOR.textMuted }} />
+                      <RefreshCw size={15} style={{ color: "#6B727C" }} />
                     </button>
                   </div>
                 </Field>
@@ -464,13 +473,13 @@ interface ToggleRowProps {
 const ToggleRow = ({ title, description, checked, onChange, last, className = "" }: ToggleRowProps) => (
   <div
     className={`flex items-center justify-between gap-4 py-4 ${className}`}
-    style={{ borderBottom: last ? "none" : `1px solid ${COLOR.border}` }}
+    style={{ borderBottom: last ? "none" : "1px solid #2A2E37" }}
   >
     <div>
-      <p className="text-sm font-medium" style={{ color: COLOR.dark }}>
+      <p className="text-sm font-medium text-[#E8E6E1]">
         {title}
       </p>
-      <p className="mt-0.5 text-xs" style={{ color: COLOR.textMuted }}>
+      <p className="mt-0.5 text-xs text-[#6B727C]">
         {description}
       </p>
     </div>
@@ -488,19 +497,29 @@ interface DangerRowProps {
 const DangerRow = ({ title, description, action, last }: DangerRowProps) => (
   <div
     className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
-    style={{ borderBottom: last ? "none" : `1px solid ${COLOR.border}` }}
+    style={{ borderBottom: last ? "none" : "1px solid #2A2E37" }}
   >
     <div>
-      <p className="text-sm font-medium" style={{ color: COLOR.dark }}>
+      <p className="text-sm font-medium text-[#E8E6E1]">
         {title}
       </p>
-      <p className="mt-0.5 text-xs" style={{ color: COLOR.textMuted }}>
+      <p className="mt-0.5 text-xs text-[#6B727C]">
         {description}
       </p>
     </div>
     <button
-      className="mf-btn shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition hover:bg-white"
-      style={{ border: `1px solid ${COLOR.danger}55`, color: COLOR.danger, background: "#FFFFFF" }}
+      className="shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+      style={{ 
+        border: "1px solid rgba(248,113,113,0.3)", 
+        color: "#F87171", 
+        background: "transparent"
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "rgba(248,113,113,0.1)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "transparent";
+      }}
     >
       {action}
     </button>
