@@ -14,6 +14,12 @@ import {
   Copy,
 } from "lucide-react";
 
+const FONT = {
+  display: "'Space Grotesk', sans-serif",
+  body: "'Inter', sans-serif",
+  mono: "'JetBrains Mono', monospace",
+};
+
 interface Queue {
   name: string;
   pending: number;
@@ -104,35 +110,56 @@ const QueueMonitor = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-[#0B0E12]" style={{ fontFamily: FONT.body }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
+        .ping { animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite; }
+      `}</style>
+
       <Sidebar />
 
-      <main className="flex-1 p-6 md:p-8">
+      <main className="flex-1 p-6 md:p-8 bg-[#12151B]">
         {/* Header */}
         <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+              <h1 className="text-2xl font-semibold tracking-tight text-[#E8E6E1]">
                 Queue Monitor
               </h1>
-              <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+              <span className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium" style={{ background: "rgba(52,211,153,0.15)", color: "#34D399" }}>
                 <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 ping" />
                   <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                 </span>
                 System Healthy
               </span>
             </div>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-[#9BA0A8]">
               Monitor email queues, workers and background jobs in real time.
             </p>
           </div>
 
           <button
             onClick={handleRefresh}
-            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium shadow-sm transition-colors"
+            style={{ 
+              borderColor: "#2A2E37", 
+              background: "#12151B", 
+              color: "#C7C9CE" 
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#1B1E24";
+              e.currentTarget.style.color = "#E8E6E1";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#12151B";
+              e.currentTarget.style.color = "#C7C9CE";
+            }}
           >
-            <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} />
+            <RefreshCw size={15} className={refreshing ? "spin" : ""} />
             Refresh
           </button>
         </div>
@@ -144,14 +171,14 @@ const QueueMonitor = () => {
             value="148"
             description="Waiting to be processed"
             icon={Inbox}
-            accent="text-slate-900 bg-slate-100"
+            accent="text-[#9BA0A8] bg-[#1B1E24]"
           />
           <StatCard
             title="Processing"
             value="11"
             description="Currently being processed"
             icon={Loader2}
-            accent="text-blue-600 bg-blue-50"
+            accent="text-blue-400 bg-blue-500/10"
             spin
           />
           <StatCard
@@ -159,27 +186,27 @@ const QueueMonitor = () => {
             value="12,842"
             description="Successfully processed"
             icon={CheckCircle2}
-            accent="text-emerald-600 bg-emerald-50"
+            accent="text-emerald-400 bg-emerald-500/10"
           />
           <StatCard
             title="Failed Jobs"
             value="4"
             description="Require attention"
             icon={XCircle}
-            accent="text-rose-600 bg-rose-50"
+            accent="text-rose-400 bg-rose-500/10"
           />
         </div>
 
         {/* Workers */}
-        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-6 rounded-xl border p-6 shadow-sm" style={{ borderColor: "#2A2E37", background: "#12151B" }}>
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold text-slate-900">Workers</h2>
-              <p className="text-xs text-slate-500">
+              <h2 className="text-sm font-semibold text-[#E8E6E1]">Workers</h2>
+              <p className="text-xs text-[#6B727C]">
                 Background workers processing your queues.
               </p>
             </div>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-[#6B727C]">
               {workers.filter((w) => w.online).length} of {workers.length} online
             </span>
           </div>
@@ -188,27 +215,28 @@ const QueueMonitor = () => {
             {workers.map((worker) => (
               <div
                 key={worker.name}
-                className="rounded-lg border border-slate-200 bg-slate-50/60 p-4 transition hover:border-slate-300"
+                className="rounded-lg border p-4 transition hover:border-[#3A3E47]"
+                style={{ borderColor: "#2A2E37", background: "#0B0E12" }}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-md bg-white shadow-sm">
-                      <Cpu size={13} className="text-slate-500" />
+                    <span className="flex h-7 w-7 items-center justify-center rounded-md shadow-sm" style={{ background: "#1B1E24" }}>
+                      <Cpu size={13} className="text-[#9BA0A8]" />
                     </span>
-                    <p className="text-sm font-medium text-slate-900">{worker.name}</p>
+                    <p className="text-sm font-medium text-[#E8E6E1]">{worker.name}</p>
                   </div>
                   <span className="relative flex h-2.5 w-2.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 ping" />
                     <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
                   </span>
                 </div>
 
                 <div className="mt-4">
                   <div className="mb-1.5 flex items-center justify-between text-xs">
-                    <span className="text-slate-500">Load</span>
-                    <span className="font-medium text-slate-700">{worker.load}%</span>
+                    <span className="text-[#6B727C]">Load</span>
+                    <span className="font-medium text-[#E8E6E1]">{worker.load}%</span>
                   </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                  <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ background: "#2A2E37" }}>
                     <div
                       className={`h-full rounded-full transition-all ${
                         worker.load > 80
@@ -223,8 +251,8 @@ const QueueMonitor = () => {
                 </div>
 
                 <div className="mt-3 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Jobs processed</span>
-                  <span className="font-medium text-slate-900">
+                  <span className="text-[#6B727C]">Jobs processed</span>
+                  <span className="font-medium text-[#E8E6E1]">
                     {worker.jobsProcessed.toLocaleString()}
                   </span>
                 </div>
@@ -234,10 +262,10 @@ const QueueMonitor = () => {
         </div>
 
         {/* Queues */}
-        <div className="mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 p-6">
-            <h2 className="text-sm font-semibold text-slate-900">Queues</h2>
-            <p className="mt-1 text-xs text-slate-500">
+        <div className="mb-6 overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: "#2A2E37", background: "#12151B" }}>
+          <div className="border-b p-6" style={{ borderColor: "#2A2E37" }}>
+            <h2 className="text-sm font-semibold text-[#E8E6E1]">Queues</h2>
+            <p className="mt-1 text-xs text-[#6B727C]">
               Current status of your email processing queues.
             </p>
           </div>
@@ -245,7 +273,7 @@ const QueueMonitor = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/60 text-xs uppercase tracking-wide text-slate-500">
+                <tr className="border-b text-xs uppercase tracking-wide" style={{ borderColor: "#2A2E37", color: "#6B727C", background: "#0B0E12" }}>
                   <th className="px-6 py-3.5 font-medium">Queue</th>
                   <th className="px-6 py-3.5 font-medium">Pending</th>
                   <th className="px-6 py-3.5 font-medium">Processing</th>
@@ -255,29 +283,38 @@ const QueueMonitor = () => {
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y" style={{ borderColor: "#2A2E37" }}>
                 {queues.map((queue) => (
-                  <tr key={queue.name} className="transition hover:bg-slate-50/80">
+                  <tr 
+                    key={queue.name} 
+                    className="transition hover:bg-[#1B1E24]"
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#1B1E24";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
                     <td className="px-6 py-4">
-                      <span className="rounded-md bg-slate-100 px-2 py-1 font-mono text-xs text-slate-700">
+                      <span className="rounded-md px-2 py-1 font-mono text-xs" style={{ background: "#1B1E24", color: "#C7C9CE" }}>
                         {queue.name}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium text-slate-900">
+                    <td className="px-6 py-4 text-sm font-medium text-[#E8E6E1]">
                       {queue.pending}
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium text-blue-600">
+                    <td className="px-6 py-4 text-sm font-medium text-blue-400">
                       {queue.processing}
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium text-rose-600">
+                    <td className="px-6 py-4 text-sm font-medium text-rose-400">
                       {queue.failed}
                     </td>
                     <td className="px-6 py-4">
                       <span
                         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
                           queue.status === "Running"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-slate-100 text-slate-600"
+                            ? "bg-emerald-500/10 text-emerald-400"
+                            : "bg-slate-500/10 text-slate-400"
                         }`}
                       >
                         <span
@@ -292,7 +329,20 @@ const QueueMonitor = () => {
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => toggleQueue(queue.name)}
-                          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
+                          className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
+                          style={{ 
+                            borderColor: "#2A2E37", 
+                            color: "#C7C9CE",
+                            background: "transparent"
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#1B1E24";
+                            e.currentTarget.style.color = "#E8E6E1";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                            e.currentTarget.style.color = "#C7C9CE";
+                          }}
                         >
                           {queue.status === "Running" ? (
                             <>
@@ -304,7 +354,7 @@ const QueueMonitor = () => {
                             </>
                           )}
                         </button>
-                        <button className="text-xs font-medium text-slate-500 hover:text-slate-900">
+                        <button className="text-xs font-medium text-[#6B727C] hover:text-[#E8E6E1]">
                           Manage
                         </button>
                       </div>
@@ -317,15 +367,15 @@ const QueueMonitor = () => {
         </div>
 
         {/* Recent Jobs */}
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 p-6">
+        <div className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: "#2A2E37", background: "#12151B" }}>
+          <div className="flex items-center justify-between border-b p-6" style={{ borderColor: "#2A2E37" }}>
             <div>
-              <h2 className="text-sm font-semibold text-slate-900">Recent Jobs</h2>
-              <p className="mt-1 text-xs text-slate-500">
+              <h2 className="text-sm font-semibold text-[#E8E6E1]">Recent Jobs</h2>
+              <p className="mt-1 text-xs text-[#6B727C]">
                 Latest email jobs processed by your workers.
               </p>
             </div>
-            <button className="text-xs font-medium text-slate-500 hover:text-slate-900">
+            <button className="text-xs font-medium text-[#6B727C] hover:text-[#E8E6E1]">
               View all
             </button>
           </div>
@@ -333,7 +383,7 @@ const QueueMonitor = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/60 text-xs uppercase tracking-wide text-slate-500">
+                <tr className="border-b text-xs uppercase tracking-wide" style={{ borderColor: "#2A2E37", color: "#6B727C", background: "#0B0E12" }}>
                   <th className="px-6 py-3.5 font-medium">Job</th>
                   <th className="px-6 py-3.5 font-medium">Campaign</th>
                   <th className="px-6 py-3.5 font-medium">Recipient</th>
@@ -343,27 +393,36 @@ const QueueMonitor = () => {
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y" style={{ borderColor: "#2A2E37" }}>
                 {jobs.map((job) => (
-                  <tr key={job.id} className="transition hover:bg-slate-50/80">
+                  <tr 
+                    key={job.id} 
+                    className="transition hover:bg-[#1B1E24]"
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#1B1E24";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
                     <td className="px-6 py-4">
                       <button
                         onClick={() => navigator.clipboard?.writeText(job.id)}
-                        className="flex items-center gap-1 font-mono text-xs text-slate-500 hover:text-slate-800"
+                        className="flex items-center gap-1 font-mono text-xs text-[#6B727C] hover:text-[#E8E6E1]"
                       >
                         {job.id}
                         <Copy size={10} />
                       </button>
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium text-slate-900">
+                    <td className="px-6 py-4 text-sm font-medium text-[#E8E6E1]">
                       {job.campaign}
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{job.recipient}</td>
-                    <td className="px-6 py-4 text-sm text-slate-500">{job.sender}</td>
+                    <td className="px-6 py-4 text-sm text-[#9BA0A8]">{job.recipient}</td>
+                    <td className="px-6 py-4 text-sm text-[#9BA0A8]">{job.sender}</td>
                     <td className="px-6 py-4">
                       <JobStatus status={job.status} />
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-400">{job.time}</td>
+                    <td className="px-6 py-4 text-sm text-[#6B727C]">{job.time}</td>
                   </tr>
                 ))}
               </tbody>
@@ -389,16 +448,21 @@ interface StatCardProps {
 }
 
 const StatCard = ({ title, value, description, icon: Icon, accent, spin }: StatCardProps) => {
+  const isEmber = title === "Pending Jobs";
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
+    <div className="rounded-xl border p-5 shadow-sm transition hover:shadow-md" style={{ borderColor: "#2A2E37", background: "#12151B" }}>
       <div className="flex items-start justify-between">
-        <p className="text-sm text-slate-500">{title}</p>
-        <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${accent}`}>
-          <Icon size={16} className={spin ? "animate-spin" : ""} />
+        <p className="text-sm text-[#9BA0A8]">{title}</p>
+        <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+          isEmber ? "bg-ember-soft" : ""
+        } ${!isEmber ? accent : ""}`}
+        style={{ background: isEmber ? "rgba(255,106,57,0.12)" : undefined }}
+        >
+          <Icon size={16} className={isEmber ? "text-[#FF6A39]" : ""} style={{ color: isEmber ? "#FF6A39" : undefined }} />
         </span>
       </div>
-      <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">{value}</h2>
-      <p className="mt-1.5 text-xs text-slate-400">{description}</p>
+      <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#E8E6E1]">{value}</h2>
+      <p className="mt-1.5 text-xs text-[#6B727C]">{description}</p>
     </div>
   );
 };
@@ -413,10 +477,10 @@ const jobStatusConfig: Record<
   JobStatusType,
   { className: string; icon: React.ComponentType<{ size?: number; className?: string }>; spin?: boolean }
 > = {
-  Processing: { className: "bg-blue-50 text-blue-700", icon: Loader2, spin: true },
-  Pending: { className: "bg-amber-50 text-amber-700", icon: Clock },
-  Failed: { className: "bg-rose-50 text-rose-700", icon: XCircle },
-  Completed: { className: "bg-emerald-50 text-emerald-700", icon: CheckCircle2 },
+  Processing: { className: "bg-blue-500/10 text-blue-400", icon: Loader2, spin: true },
+  Pending: { className: "bg-amber-500/10 text-amber-400", icon: Clock },
+  Failed: { className: "bg-rose-500/10 text-rose-400", icon: XCircle },
+  Completed: { className: "bg-emerald-500/10 text-emerald-400", icon: CheckCircle2 },
 };
 
 const JobStatus = ({ status }: { status: JobStatusType }) => {
@@ -426,7 +490,7 @@ const JobStatus = ({ status }: { status: JobStatusType }) => {
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${className}`}
     >
-      <Icon size={12} className={spin ? "animate-spin" : ""} />
+      <Icon size={12} className={spin ? "spin" : ""} />
       {status}
     </span>
   );
