@@ -642,7 +642,7 @@ const StatCard = ({ title, value, description, icon: Icon, accent }: StatCardPro
         } ${!isEmber ? accent : ""}`}
         style={{ background: isEmber ? "rgba(255,106,57,0.12)" : undefined }}
         >
-          <Icon size={14} className={isEmber ? "text-[#FF6A39]" : ""} style={{ color: isEmber ? "#FF6A39" : undefined }} />
+          <Icon size={14} className={isEmber ? "text-[#FF6A39]" : ""}  />
         </span>
       </div>
       <h2 className="mf-stat-value mt-2 md:mt-3 text-xl md:text-2xl font-semibold tracking-tight" style={{ color: "#E8E6E1" }}>{value}</h2>
