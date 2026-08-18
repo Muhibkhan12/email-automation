@@ -209,7 +209,6 @@ const Templates = () => {
             <h1
               style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }}
               className="text-2xl md:text-3xl font-bold" 
-              style={{ color: "#E8E6E1" }}
             >
               HTML templates
             </h1>
@@ -245,9 +244,9 @@ const Templates = () => {
                   <Icon size={14} style={{ color: isEmber ? "#FF6A39" : "#9BA0A8" }} />
                 </div>
                 <h2
-                  className="mf-stat-value"
+
                   style={{ fontFamily: FONT.mono, color: "#E8E6E1", fontSize: "clamp(1.1rem, 2vw, 1.5rem)" }}
-                  className="mt-2 md:mt-4 truncate font-semibold tracking-tight"
+                  className="mf-stat-value mt-2 md:mt-4 truncate font-semibold tracking-tight"
                 >
                   {stat.value}
                 </h2>
@@ -381,7 +380,7 @@ const Templates = () => {
                     <p className="mf-template-name text-sm md:text-base font-medium truncate" style={{ color: "#E8E6E1" }}>
                       {t.name}
                     </p>
-                    <p className="mf-meta-text" style={{ fontFamily: FONT.mono, color: "#6B727C", fontSize: "clamp(0.6rem, 1vw, 0.75rem)" }} className="mt-0.5">
+                    <p className="mf-meta-text mt-0.5" style={{ fontFamily: FONT.mono, color: "#6B727C", fontSize: "clamp(0.6rem, 1vw, 0.75rem)" }} >
                       Updated {t.updatedOn}
                     </p>
                   </div>

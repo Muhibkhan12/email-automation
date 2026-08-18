@@ -252,8 +252,7 @@ const Upload = () => {
           <div className="mf-header mb-4 md:mb-7">
             <h1 
               style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }} 
-              className="text-2xl md:text-3xl font-bold" 
-              style={{ color: "#E8E6E1" }}
+              className="text-2xl md:text-3xl font-bold bg-[#E856E1]" 
             >
               Upload File
             </h1>
@@ -283,13 +282,13 @@ const Upload = () => {
             <div className="mf-dropzone-icon w-10 h-10 md:w-14 md:h-14 rounded-2xl flex items-center justify-center mb-3 md:mb-4" style={{ background: "rgba(255,106,57,0.12)" }}>
               <UploadCloud size={20} className="text-[#FF6A39]" />
             </div>
-            <p className="mf-dropzone-title" style={{ fontFamily: FONT.display, color: "#E8E6E1", fontSize: "clamp(0.85rem, 2vw, 1rem)" }} className="font-semibold">
+            <p className="mf-dropzone-title font-semibold" style={{ fontFamily: FONT.display, color: "#E8E6E1", fontSize: "clamp(0.85rem, 2vw, 1rem)" }} >
               Drag and drop your file here
             </p>
             <p className="mf-dropzone-subtitle text-xs md:text-sm mt-1" style={{ color: "#9BA0A8" }}>
               or <span className="text-[#FF6A39] font-medium">browse</span> from your computer
             </p>
-            <p className="mf-dropzone-hint" style={{ fontFamily: FONT.mono, color: "#6B727C", fontSize: "clamp(0.55rem, 1vw, 0.75rem)" }} className="mt-2 md:mt-4">
+            <p className="mf-dropzone-hint mt-2 md:mt-4" style={{ fontFamily: FONT.mono, color: "#6B727C", fontSize: "clamp(0.55rem, 1vw, 0.75rem)" }}>
               Supports .csv, .xlsx, .xls — up to 25 MB
             </p>
           </div>
@@ -309,7 +308,7 @@ const Upload = () => {
           {files.length > 0 && (
             <div className="mf-upload-list mb-4 md:mb-6 rounded-xl border border-[#2A2E37] bg-[#12151B] shadow-sm overflow-hidden">
               <div className="px-3 md:px-5 py-3 md:py-4 border-b border-[#2A2E37]">
-                <h2 style={{ fontFamily: FONT.display }} className="text-xs md:text-sm font-semibold" style={{ color: "#E8E6E1" }}>
+                <h2 style={{ fontFamily: FONT.display }} className="text-xs md:text-sm font-semibold bg-[#E8E6E1]">
                   Uploading {files.length} {files.length === 1 ? "file" : "files"}
                 </h2>
               </div>
@@ -323,7 +322,7 @@ const Upload = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center justify-between gap-1">
                           <p className="mf-upload-name text-[11px] md:text-[13.5px] font-medium truncate" style={{ color: "#E8E6E1" }}>{f.name}</p>
-                          <span className="mf-upload-size" style={{ fontFamily: FONT.mono, color: "#6B727C", fontSize: "clamp(0.55rem, 1vw, 0.75rem)" }} className="shrink-0 ml-1 md:ml-2">
+                          <span className="mf-upload-size shrink-0 ml-1 md:ml-2" style={{ fontFamily: FONT.mono, color: "#6B727C", fontSize: "clamp(0.55rem, 1vw, 0.75rem)" }}>
                             {f.size}
                           </span>
                         </div>
@@ -343,7 +342,7 @@ const Upload = () => {
                           </p>
                         )}
                         {f.status === "success" && (
-                          <p className="mf-upload-status" style={{ fontFamily: FONT.mono, color: "#34D399", fontSize: "clamp(0.55rem, 1vw, 0.75rem)" }} className="flex items-center gap-1.5">
+                          <p className="mf-upload-status flex items-center gap-1.5" style={{ fontFamily: FONT.mono, color: "#34D399", fontSize: "clamp(0.55rem, 1vw, 0.75rem)" }}>
                             <CheckCircle2 size={11} />
                             {f.rows?.toLocaleString()} recipients imported
                           </p>
@@ -368,7 +367,7 @@ const Upload = () => {
           {/* Recent uploads */}
           <div className="rounded-xl border border-[#2A2E37] bg-[#12151B] shadow-sm overflow-hidden">
             <div className="mf-recent-header flex flex-wrap items-center justify-between px-3 md:px-5 py-3 md:py-4 border-b border-[#2A2E37] gap-2">
-              <h2 style={{ fontFamily: FONT.display }} className="text-xs md:text-sm font-semibold" style={{ color: "#E8E6E1" }}>
+              <h2 style={{ fontFamily: FONT.display }} className="text-xs md:text-sm font-semibold bg-#E8E6E1">
                 Recent uploads
               </h2>
               <button className="mf-view-all flex items-center gap-0.5 md:gap-1 text-[10px] md:text-[12.5px] font-medium text-[#FF6A39] hover:text-[#e85a2c]">

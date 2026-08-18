@@ -298,7 +298,6 @@ const Settings = () => {
           <h1
             style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }}
             className="text-2xl md:text-3xl font-bold" 
-            style={{ color: "#E8E6E1" }}
           >
             Settings
           </h1>

@@ -230,7 +230,6 @@ const Campaign = () => {
         .mf-main-content::-webkit-scrollbar-thumb:hover {
           background: ${COLOR.borderHover};
         }
-
         /* Mobile responsiveness */
         @media (max-width: 1024px) {
           .mf-stats-grid {
