@@ -206,27 +206,105 @@ const Analytics = () => {
         @media (prefers-reduced-motion: reduce) {
           .mf-flow-dot { animation: none; left: 46%; opacity: 0.7; }
         }
+
+        /* Custom scrollbar for the main content */
+        .mf-main-content::-webkit-scrollbar {
+          width: 6px;
+        }
+        .mf-main-content::-webkit-scrollbar-track {
+          background: ${COLOR.bg};
+        }
+        .mf-main-content::-webkit-scrollbar-thumb {
+          background: ${COLOR.border};
+          border-radius: 3px;
+        }
+        .mf-main-content::-webkit-scrollbar-thumb:hover {
+          background: ${COLOR.borderHover};
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 1024px) {
+          .mf-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .mf-stats-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .mf-pipeline-container {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 1rem !important;
+          }
+          .mf-pipeline-item {
+            width: 100% !important;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+          }
+          .mf-pipeline-connector {
+            display: none !important;
+          }
+          .mf-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .mf-range-selector {
+            width: 100% !important;
+            justify-content: center !important;
+            flex-wrap: wrap !important;
+          }
+          .mf-range-btn {
+            font-size: 0.75rem !important;
+            padding: 0.5rem 0.75rem !important;
+          }
+          .mf-bottom-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .mf-activity-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .mf-pipeline-stage {
+            width: 100% !important;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .mf-range-selector {
+            gap: 0.25rem !important;
+          }
+          .mf-range-btn {
+            padding: 0.4rem 0.6rem !important;
+            font-size: 0.7rem !important;
+          }
+        }
       `}</style>
 
-      <Sidebar />
+      {/* Sidebar - sticky on all screen sizes */}
+      <div className="sticky top-0 h-screen flex-shrink-0">
+        <Sidebar />
+      </div>
 
-      <main className="flex-1 p-8">
+      {/* Main content with scrolling */}
+      <main className="mf-main-content flex-1 overflow-y-auto p-4 md:p-6 lg:p-8" style={{ height: "100vh" }}>
         {/* Header */}
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div className="mf-header mb-6 md:mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1
               style={{ fontFamily: FONT.display, letterSpacing: "-0.01em", color: COLOR.dark }}
-              className="text-3xl font-bold"
+              className="text-2xl md:text-3xl font-bold"
             >
               Analytics
             </h1>
-            <p className="mt-1 text-sm" style={{ color: COLOR.textMuted }}>
+            <p className="mt-1 text-xs md:text-sm" style={{ color: COLOR.textMuted }}>
               Track deliverability and engagement across every send.
             </p>
           </div>
 
           <div
-            className="flex items-center gap-1 rounded-xl p-1"
+            className="mf-range-selector flex flex-wrap items-center gap-1 rounded-xl p-1"
             style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}
           >
             {RANGES.map((r) => {
@@ -235,7 +313,7 @@ const Analytics = () => {
                 <button
                   key={r}
                   onClick={() => setRange(r)}
-                  className="mf-range-btn rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+                  className="mf-range-btn rounded-lg px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium transition-colors whitespace-nowrap"
                   style={{
                     fontFamily: FONT.body,
                     background: active ? COLOR.primary : "transparent",
@@ -250,24 +328,24 @@ const Analytics = () => {
         </div>
 
         {/* Stats */}
-        <div className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mf-stats-grid mb-6 grid grid-cols-1 gap-4 md:gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (
               <div
                 key={stat.title}
-                className="mf-card rounded-xl p-5"
+                className="mf-card rounded-xl p-4 md:p-5"
                 style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}
               >
                 <div className="flex items-center justify-between">
                   <div
-                    className="flex h-9 w-9 items-center justify-center rounded-lg"
+                    className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-lg"
                     style={{ background: stat.accentSoft }}
                   >
-                    <Icon size={16} style={{ color: stat.accent }} />
+                    <Icon size={14} style={{ color: stat.accent }} />
                   </div>
                   <span
-                    className="flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold"
+                    className="flex items-center gap-0.5 rounded-full px-1.5 md:px-2 py-0.5 text-[10px] md:text-xs font-semibold"
                     style={{
                       fontFamily: FONT.mono,
                       color: stat.trend === "up" ? COLOR.success : COLOR.danger,
@@ -281,14 +359,14 @@ const Analytics = () => {
 
                 <h2
                   style={{ fontFamily: FONT.mono, color: COLOR.dark }}
-                  className="mt-4 text-2xl font-semibold tracking-tight"
+                  className="mt-3 md:mt-4 text-xl md:text-2xl font-semibold tracking-tight"
                 >
                   {stat.value}
                 </h2>
-                <p className="mt-1 text-sm" style={{ color: COLOR.textBody }}>
+                <p className="mt-1 text-xs md:text-sm" style={{ color: COLOR.textBody }}>
                   {stat.title}
                 </p>
-                <p className="mt-2 text-xs" style={{ color: COLOR.textMuted }}>
+                <p className="mt-1.5 md:mt-2 text-[10px] md:text-xs" style={{ color: COLOR.textMuted }}>
                   {stat.description}
                 </p>
               </div>
@@ -297,18 +375,18 @@ const Analytics = () => {
         </div>
 
         {/* Signature: delivery pipeline */}
-        <div className="mf-card mb-8 rounded-xl p-6" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-          <div className="mb-6 flex items-center justify-between">
+        <div className="mf-card mb-6 md:mb-8 rounded-xl p-4 md:p-6" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+          <div className="mb-4 md:mb-6 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-lg font-semibold">
+              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-base md:text-lg font-semibold">
                 Delivery pipeline
               </h2>
-              <p className="mt-1 text-sm" style={{ color: COLOR.textMuted }}>
+              <p className="mt-1 text-xs md:text-sm" style={{ color: COLOR.textMuted }}>
                 Where this period's sends are right now, stage by stage.
               </p>
             </div>
             <span
-              className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+              className="flex items-center gap-1.5 rounded-full px-2 md:px-3 py-1 text-[10px] md:text-xs font-medium whitespace-nowrap"
               style={{ fontFamily: FONT.mono, color: COLOR.primary, background: COLOR.primarySoft }}
             >
               <Clock3 size={12} />
@@ -316,7 +394,7 @@ const Analytics = () => {
             </span>
           </div>
 
-          <div className="flex items-start">
+          <div className="mf-pipeline-container flex flex-wrap items-start gap-4 md:gap-2">
             {pipeline.map((stage, i) => {
               const Icon = stage.icon;
               const pctOfSent = i === 0 ? 100 : Math.round((stage.value / pipeline[0].value) * 100);
@@ -325,32 +403,32 @@ const Analytics = () => {
 
               return (
                 <React.Fragment key={stage.label}>
-                  <div className="flex w-28 shrink-0 flex-col items-center text-center sm:w-36">
+                  <div className="mf-pipeline-stage flex-1 min-w-[80px] md:min-w-[100px] flex flex-col items-center text-center">
                     <div
-                      className="flex h-12 w-12 items-center justify-center rounded-full"
+                      className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full"
                       style={{ background: COLOR.primarySoft, border: `1px solid ${COLOR.primary}30` }}
                     >
-                      <Icon size={18} style={{ color: COLOR.primary }} />
+                      <Icon size={16} style={{ color: COLOR.primary }} />
                     </div>
                     <p
                       style={{ fontFamily: FONT.mono, color: COLOR.dark }}
-                      className="mt-3 text-lg font-semibold"
+                      className="mt-2 md:mt-3 text-base md:text-lg font-semibold"
                     >
                       {stage.value.toLocaleString()}
                     </p>
-                    <p className="text-xs" style={{ color: COLOR.textBody }}>
+                    <p className="text-[10px] md:text-xs" style={{ color: COLOR.textBody }}>
                       {stage.label}
                     </p>
                     <p
                       style={{ fontFamily: FONT.mono, color: dropFromPrev ? COLOR.danger : COLOR.textMuted }}
-                      className="mt-1 text-[11px]"
+                      className="mt-0.5 md:mt-1 text-[9px] md:text-[11px]"
                     >
                       {dropFromPrev === null ? `${pctOfSent}% of sent` : `-${dropFromPrev}% drop-off`}
                     </p>
                   </div>
 
                   {i < pipeline.length - 1 && (
-                    <div className="mf-flow-track mt-6 flex-1">
+                    <div className="mf-pipeline-connector mf-flow-track flex-1 min-w-[20px] mt-6 md:mt-8">
                       <span className="mf-flow-dot" style={{ animationDelay: "0s" }} />
                       <span className="mf-flow-dot" style={{ animationDelay: "0.9s" }} />
                       <span className="mf-flow-dot" style={{ animationDelay: "1.8s" }} />
@@ -363,17 +441,17 @@ const Analytics = () => {
         </div>
 
         {/* Main analytics */}
-        <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="mf-activity-grid mb-6 md:mb-8 grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-3">
           {/* Activity */}
-          <div className="mf-card rounded-xl p-6 lg:col-span-2" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-            <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-lg font-semibold">
+          <div className="mf-card rounded-xl p-4 md:p-6 lg:col-span-2" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+            <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-base md:text-lg font-semibold">
               Email activity
             </h2>
-            <p className="mt-1 text-sm" style={{ color: COLOR.textMuted }}>
+            <p className="mt-1 text-xs md:text-sm" style={{ color: COLOR.textMuted }}>
               Emails sent and opened over time.
             </p>
 
-            <div style={{ height: 260 }} className="mt-6">
+            <div style={{ height: 220 }} className="mt-4 md:mt-6">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={activity} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                   <defs>
@@ -389,12 +467,12 @@ const Analytics = () => {
                   <CartesianGrid stroke={COLOR.border} vertical={false} />
                   <XAxis
                     dataKey="day"
-                    tick={{ fontSize: 11, fill: COLOR.textMuted, fontFamily: FONT.mono }}
+                    tick={{ fontSize: 10, fill: COLOR.textMuted, fontFamily: FONT.mono }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fontSize: 11, fill: COLOR.textMuted, fontFamily: FONT.mono }}
+                    tick={{ fontSize: 10, fill: COLOR.textMuted, fontFamily: FONT.mono }}
                     axisLine={false}
                     tickLine={false}
                   />
@@ -411,9 +489,9 @@ const Analytics = () => {
                   <Legend
                     verticalAlign="top"
                     align="right"
-                    height={30}
+                    height={25}
                     formatter={(v) => (
-                      <span style={{ fontFamily: FONT.body, fontSize: 12.5, color: COLOR.textBody }}>{v}</span>
+                      <span style={{ fontFamily: FONT.body, fontSize: 11, color: COLOR.textBody }}>{v}</span>
                     )}
                   />
                   <Area type="monotone" dataKey="sent" name="Sent" stroke={COLOR.dark} strokeWidth={2} fill="url(#fillSentA)" />
@@ -431,15 +509,15 @@ const Analytics = () => {
           </div>
 
           {/* Engagement */}
-          <div className="mf-card rounded-xl p-6" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-            <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-lg font-semibold">
+          <div className="mf-card rounded-xl p-4 md:p-6" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+            <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-base md:text-lg font-semibold">
               Engagement
             </h2>
-            <p className="mt-1 text-sm" style={{ color: COLOR.textMuted }}>
+            <p className="mt-1 text-xs md:text-sm" style={{ color: COLOR.textMuted }}>
               Overall recipient engagement.
             </p>
 
-            <div className="mt-8 space-y-6">
+            <div className="mt-6 md:mt-8 space-y-4 md:space-y-6">
               <Metric label="Open rate" value="42.7%" width="43%" color={COLOR.primary} />
               <Metric label="Click rate" value="8.9%" width="9%" color={COLOR.success} />
               <Metric label="Bounce rate" value="1.6%" width="2%" color={COLOR.warning} />
@@ -449,14 +527,14 @@ const Analytics = () => {
         </div>
 
         {/* Bottom */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="mf-bottom-grid grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-2">
           {/* Campaigns */}
           <section className="mf-card rounded-xl" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-            <div className="p-6" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
-              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-lg font-semibold">
+            <div className="p-4 md:p-6" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
+              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-base md:text-lg font-semibold">
                 Top campaigns
               </h2>
-              <p className="text-sm" style={{ color: COLOR.textMuted }}>
+              <p className="text-xs md:text-sm" style={{ color: COLOR.textMuted }}>
                 Campaigns with the highest engagement.
               </p>
             </div>
@@ -465,18 +543,18 @@ const Analytics = () => {
               {campaigns.map((campaign, i) => (
                 <div
                   key={campaign.name}
-                  className="flex items-center justify-between p-5"
+                  className="flex items-center justify-between p-4 md:p-5"
                   style={{ borderBottom: i < campaigns.length - 1 ? `1px solid ${COLOR.border}` : "none" }}
                 >
-                  <div>
-                    <p className="font-medium" style={{ color: COLOR.dark }}>
+                  <div className="min-w-0 flex-1 mr-2">
+                    <p className="text-sm md:text-base font-medium truncate" style={{ color: COLOR.dark }}>
                       {campaign.name}
                     </p>
-                    <p style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-sm">
+                    <p style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-xs md:text-sm">
                       {campaign.recipients.toLocaleString()} recipients
                     </p>
                   </div>
-                  <span style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="font-semibold">
+                  <span style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="font-semibold text-sm md:text-base whitespace-nowrap">
                     {campaign.openRate}
                   </span>
                 </div>
@@ -486,11 +564,11 @@ const Analytics = () => {
 
           {/* Senders */}
           <section className="mf-card rounded-xl" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-            <div className="p-6" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
-              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-lg font-semibold">
+            <div className="p-4 md:p-6" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
+              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-base md:text-lg font-semibold">
                 Sender performance
               </h2>
-              <p className="text-sm" style={{ color: COLOR.textMuted }}>
+              <p className="text-xs md:text-sm" style={{ color: COLOR.textMuted }}>
                 Performance of your sender accounts.
               </p>
             </div>
@@ -499,14 +577,14 @@ const Analytics = () => {
               {senders.map((sender, i) => (
                 <div
                   key={sender.email}
-                  className="flex items-center justify-between p-5"
+                  className="flex items-center justify-between p-4 md:p-5"
                   style={{ borderBottom: i < senders.length - 1 ? `1px solid ${COLOR.border}` : "none" }}
                 >
-                  <div>
-                    <p className="font-medium" style={{ color: COLOR.dark }}>
+                  <div className="min-w-0 flex-1 mr-2">
+                    <p className="text-sm md:text-base font-medium truncate" style={{ color: COLOR.dark }}>
                       {sender.email}
                     </p>
-                    <p style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-sm">
+                    <p style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-xs md:text-sm">
                       {sender.sent.toLocaleString()} emails sent
                     </p>
                   </div>
@@ -534,16 +612,16 @@ interface MetricProps {
 
 const Metric = ({ label, value, width, color }: MetricProps) => (
   <div>
-    <div className="mb-2 flex justify-between">
-      <span className="text-sm" style={{ color: COLOR.textBody }}>
+    <div className="mb-1.5 md:mb-2 flex justify-between">
+      <span className="text-xs md:text-sm" style={{ color: COLOR.textBody }}>
         {label}
       </span>
-      <span style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="text-sm font-medium">
+      <span style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="text-xs md:text-sm font-medium">
         {value}
       </span>
     </div>
-    <div className="h-2 rounded-full" style={{ background: COLOR.bg }}>
-      <div className="h-2 rounded-full" style={{ width, background: color }} />
+    <div className="h-1.5 md:h-2 rounded-full" style={{ background: COLOR.bg }}>
+      <div className="h-1.5 md:h-2 rounded-full transition-all" style={{ width, background: color }} />
     </div>
   </div>
 );
@@ -562,7 +640,7 @@ const StatusBadge = ({ status }: StatusBadgeProps) => {
 
   return (
     <span
-      className="rounded-full px-3 py-1 text-xs font-medium"
+      className="rounded-full px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs font-medium whitespace-nowrap"
       style={{ background: s.bg, color: s.text }}
     >
       {status}
