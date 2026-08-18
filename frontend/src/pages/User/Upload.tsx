@@ -252,7 +252,7 @@ const Upload = () => {
           <div className="mf-header mb-4 md:mb-7">
             <h1 
               style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }} 
-              className="text-2xl md:text-3xl font-bold bg-[#E856E1]" 
+              className="text-2xl md:text-3xl font-bold text-[#E8E6E1]" 
             >
               Upload File
             </h1>
@@ -367,7 +367,7 @@ const Upload = () => {
           {/* Recent uploads */}
           <div className="rounded-xl border border-[#2A2E37] bg-[#12151B] shadow-sm overflow-hidden">
             <div className="mf-recent-header flex flex-wrap items-center justify-between px-3 md:px-5 py-3 md:py-4 border-b border-[#2A2E37] gap-2">
-              <h2 style={{ fontFamily: FONT.display }} className="text-xs md:text-sm font-semibold bg-#E8E6E1">
+              <h2 style={{ fontFamily: FONT.display }} className="text-xs md:text-sm font-semibold text-[#E8E6E1]">
                 Recent uploads
               </h2>
               <button className="mf-view-all flex items-center gap-0.5 md:gap-1 text-[10px] md:text-[12.5px] font-medium text-[#FF6A39] hover:text-[#e85a2c]">
