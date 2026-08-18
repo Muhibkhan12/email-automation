@@ -92,44 +92,171 @@ const Recipients = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#0B0E12]" style={{ fontFamily: FONT.body }}>
+    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        /* Custom scrollbar for the main content */
+        .mf-main-content::-webkit-scrollbar {
+          width: 6px;
+        }
+        .mf-main-content::-webkit-scrollbar-track {
+          background: #0B0E12;
+        }
+        .mf-main-content::-webkit-scrollbar-thumb {
+          background: #2A2E37;
+          border-radius: 3px;
+        }
+        .mf-main-content::-webkit-scrollbar-thumb:hover {
+          background: #3A3F4A;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 1024px) {
+          .mf-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .mf-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 1rem !important;
+          }
+          .mf-header-actions {
+            flex-direction: column !important;
+            width: 100% !important;
+          }
+          .mf-header-btn {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+          .mf-toolbar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+          .mf-search-container {
+            width: 100% !important;
+          }
+          .mf-search-input {
+            width: 100% !important;
+          }
+          .mf-filters {
+            flex-wrap: wrap !important;
+            justify-content: flex-start !important;
+          }
+          .mf-filter-btn {
+            font-size: 0.7rem !important;
+            padding: 0.4rem 0.6rem !important;
+          }
+          .mf-table-wrapper {
+            overflow-x: auto !important;
+          }
+          .mf-stat-card {
+            padding: 0.75rem !important;
+          }
+          .mf-stat-value {
+            font-size: 1.25rem !important;
+          }
+          .mf-stat-label {
+            font-size: 0.7rem !important;
+          }
+          .mf-pagination {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.75rem !important;
+            text-align: center !important;
+          }
+          .mf-pagination-controls {
+            justify-content: center !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .mf-stats-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.75rem !important;
+          }
+          .mf-main-content {
+            padding: 0.75rem !important;
+          }
+          .mf-table-cell {
+            padding: 0.5rem 0.4rem !important;
+          }
+          .mf-table-cell-padded {
+            padding: 0.5rem 0.75rem !important;
+          }
+          .mf-name-text {
+            font-size: 0.75rem !important;
+          }
+          .mf-email-text {
+            font-size: 0.65rem !important;
+          }
+          .mf-tag-text {
+            font-size: 0.55rem !important;
+            padding: 0.1rem 0.3rem !important;
+          }
+          .mf-status-badge {
+            font-size: 0.6rem !important;
+            padding: 0.15rem 0.4rem !important;
+          }
+          .mf-opens-text {
+            font-size: 0.65rem !important;
+          }
+          .mf-added-text {
+            font-size: 0.6rem !important;
+          }
+          .mf-pagination-text {
+            font-size: 0.6rem !important;
+          }
+          .mf-bulk-action {
+            width: 100% !important;
+            justify-content: center !important;
+            font-size: 0.65rem !important;
+          }
+        }
       `}</style>
 
-      <Sidebar />
+      {/* Sidebar - sticky on all screen sizes */}
+      <div className="sticky top-0 h-screen flex-shrink-0">
+        <Sidebar />
+      </div>
 
-      <main className="flex-1 p-8 bg-[#12151B]">
+      {/* Main content with scrolling */}
+      <main className="mf-main-content flex-1 overflow-y-auto p-3 md:p-6 lg:p-8" style={{ background: "#12151B", height: "100vh" }}>
         {/* Header */}
-        <div className="mb-7 flex items-center justify-between">
+        <div className="mf-header mb-5 md:mb-7 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 
               style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }} 
-              className="text-3xl font-bold text-[#E8E6E1]"
+              className="text-2xl md:text-3xl font-bold" 
+              style={{ color: "#E8E6E1" }}
             >
               Recipients
             </h1>
-            <p className="mt-1 text-[#9BA0A8]">Manage everyone who receives your campaigns.</p>
+            <p className="mt-1 text-xs md:text-sm" style={{ color: "#9BA0A8" }}>Manage everyone who receives your campaigns.</p>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="mf-header-actions flex flex-wrap items-center gap-2 md:gap-2.5">
             <button 
-              className="flex items-center gap-2 rounded-lg border border-[#2A2E37] bg-[#12151B] px-4 py-2.5 text-sm font-medium text-[#C7C9CE] transition-colors hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
+              className="mf-header-btn flex items-center justify-center gap-1.5 md:gap-2 rounded-lg border border-[#2A2E37] bg-[#12151B] px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium transition-colors hover:bg-[#1B1E24] hover:text-[#E8E6E1]" 
+              style={{ color: "#C7C9CE" }}
             >
-              <UploadCloud size={16} />
+              <UploadCloud size={14} />
               Import CSV
             </button>
             <button 
-              className="flex items-center gap-2 rounded-lg bg-[#FF6A39] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#e85a2c]"
-              style={{ boxShadow: "0 4px 12px rgba(255,106,57,0.25)" }}
+              className="mf-header-btn flex items-center justify-center gap-1.5 md:gap-2 rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#e85a2c]"
+              style={{ background: "#FF6A39", boxShadow: "0 4px 12px rgba(255,106,57,0.25)" }}
             >
-              <UserPlus size={16} />
+              <UserPlus size={14} />
               Add Recipient
             </button>
           </div>
         </div>
 
         {/* Summary cards */}
-        <div className="mb-6 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mf-stats-grid mb-4 md:mb-6 grid grid-cols-1 gap-3 md:gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {summary.map((s) => {
             const t = tintClasses[s.tint];
             const Icon = s.icon;
@@ -137,52 +264,67 @@ const Recipients = () => {
             return (
               <div 
                 key={s.label} 
-                className="rounded-xl border border-[#2A2E37] bg-[#12151B] p-5 shadow-sm"
+                className="mf-stat-card rounded-xl border border-[#2A2E37] bg-[#12151B] p-3 md:p-5 shadow-sm"
               >
                 <div 
-                  className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${
+                  className={`w-7 h-7 md:w-9 md:h-9 rounded-lg flex items-center justify-center mb-2 md:mb-3 ${
                     isEmber ? "bg-ember-soft" : t.bg
                   }`}
                   style={{ backgroundColor: isEmber ? "rgba(255,106,57,0.12)" : undefined }}
                 >
                   <Icon 
-                    size={17} 
+                    size={14} 
                     className={isEmber ? "text-[#FF6A39]" : t.fg}
                   />
                 </div>
                 <p 
-                  style={{ fontFamily: FONT.mono }} 
-                  className="text-2xl font-semibold tracking-tight text-[#E8E6E1]"
+                  className="mf-stat-value"
+                  style={{ fontFamily: FONT.mono, color: "#E8E6E1", fontSize: "clamp(1.1rem, 2vw, 1.5rem)" }}
+                  className="font-semibold tracking-tight"
                 >
                   {s.value}
                 </p>
-                <p className="text-[13px] mt-1 text-[#9BA0A8]">{s.label}</p>
+                <p className="mf-stat-label text-[10px] md:text-[13px] mt-0.5 md:mt-1" style={{ color: "#9BA0A8" }}>{s.label}</p>
               </div>
             );
           })}
         </div>
 
         {/* Toolbar */}
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 rounded-lg border border-[#2A2E37] bg-[#12151B] px-3 h-10 flex-1 min-w-[240px]">
-            <Search size={15} className="text-[#6B727C]" />
+        <div className="mf-toolbar mb-3 md:mb-4 flex flex-wrap items-center gap-3">
+          <div className="mf-search-container flex items-center gap-2 rounded-lg border border-[#2A2E37] bg-[#12151B] px-2 md:px-3 py-1.5 md:py-2 flex-1 min-w-[180px]">
+            <Search size={14} className="text-[#6B727C]" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name, email, or tag…"
-              className="w-full bg-transparent text-sm outline-none text-[#E8E6E1] placeholder:text-[#6B727C]"
+              className="mf-search-input w-full bg-transparent text-xs md:text-sm outline-none" 
+              style={{ color: "#E8E6E1" }}
             />
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="mf-filters flex flex-wrap items-center gap-1.5">
             {FILTERS.map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`rounded-lg px-3 py-2 text-xs font-medium transition-colors border ${
-                  filter === f 
-                    ? "bg-[#FF6A39] text-white border-[#FF6A39]" 
-                    : "bg-[#12151B] text-[#C7C9CE] border-[#2A2E37] hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
-                }`}
+                className="mf-filter-btn rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-medium transition-colors border"
+                style={{
+                  background: filter === f ? "#FF6A39" : "#12151B",
+                  color: filter === f ? "#FFFFFF" : "#C7C9CE",
+                  borderColor: filter === f ? "#FF6A39" : "#2A2E37",
+                }}
+                onMouseEnter={(e) => {
+                  if (filter !== f) {
+                    e.currentTarget.style.background = "#1B1E24";
+                    e.currentTarget.style.color = "#E8E6E1";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (filter !== f) {
+                    e.currentTarget.style.background = "#12151B";
+                    e.currentTarget.style.color = "#C7C9CE";
+                  }
+                }}
               >
                 {f}
               </button>
@@ -190,9 +332,14 @@ const Recipients = () => {
           </div>
           {selected.size > 0 && (
             <button 
-              className="flex items-center gap-1.5 rounded-lg border border-ember-soft/30 bg-ember-soft/10 px-3 py-2 text-xs font-medium text-[#FF6A39] transition-colors hover:bg-ember-soft/20"
+              className="mf-bulk-action flex items-center gap-1.5 rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-medium transition-colors hover:bg-ember-soft/20"
+              style={{ 
+                background: "rgba(255,106,57,0.08)",
+                color: "#FF6A39",
+                border: "1px solid rgba(255,106,57,0.2)"
+              }}
             >
-              <Trash2 size={13} />
+              <Trash2 size={12} />
               Remove {selected.size} selected
             </button>
           )}
@@ -200,139 +347,146 @@ const Recipients = () => {
 
         {/* Table */}
         <div className="rounded-xl border border-[#2A2E37] bg-[#12151B] shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#2A2E37]">
-            <h2 style={{ fontFamily: FONT.display }} className="text-sm font-semibold text-[#E8E6E1]">
+          <div className="flex flex-wrap items-center justify-between px-3 md:px-5 py-3 md:py-4 border-b border-[#2A2E37] gap-2">
+            <h2 style={{ fontFamily: FONT.display }} className="text-xs md:text-sm font-semibold" style={{ color: "#E8E6E1" }}>
               {filtered.length} {filtered.length === 1 ? "recipient" : "recipients"}
             </h2>
-            <span style={{ fontFamily: FONT.mono }} className="text-[11px] text-[#6B727C]">
+            <span style={{ fontFamily: FONT.mono }} className="text-[9px] md:text-[11px]" style={{ color: "#6B727C" }}>
               synced live
             </span>
           </div>
 
-          <table className="w-full text-left">
-            <thead>
-              <tr className="text-[11px] uppercase tracking-wider text-[#6B727C]">
-                <th className="px-5 py-2.5 font-medium w-10">
-                  <input 
-                    type="checkbox" 
-                    checked={allSelected} 
-                    onChange={toggleAll} 
-                    className="rounded border-[#2A2E37] bg-[#12151B] accent-[#FF6A39]"
-                  />
-                </th>
-                <th className="px-3 py-2.5 font-medium">Name</th>
-                <th className="px-3 py-2.5 font-medium">Tags</th>
-                <th className="px-3 py-2.5 font-medium">Status</th>
-                <th className="px-3 py-2.5 font-medium">Opens</th>
-                <th className="px-3 py-2.5 font-medium">Added</th>
-                <th className="px-5 py-2.5 font-medium w-10" />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-sm text-[#6B727C]">
-                    No recipients match your search.
-                  </td>
+          <div className="mf-table-wrapper overflow-x-auto">
+            <table className="w-full text-left" style={{ minWidth: "700px" }}>
+              <thead>
+                <tr className="text-[9px] md:text-[11px] uppercase tracking-wider" style={{ color: "#6B727C" }}>
+                  <th className="mf-table-cell-padded px-3 md:px-5 py-2 md:py-2.5 font-medium w-10">
+                    <input 
+                      type="checkbox" 
+                      checked={allSelected} 
+                      onChange={toggleAll} 
+                      className="rounded border-[#2A2E37] bg-[#12151B] accent-[#FF6A39]"
+                    />
+                  </th>
+                  <th className="mf-table-cell px-2 md:px-3 py-2 md:py-2.5 font-medium">Name</th>
+                  <th className="mf-table-cell px-2 md:px-3 py-2 md:py-2.5 font-medium">Tags</th>
+                  <th className="mf-table-cell px-2 md:px-3 py-2 md:py-2.5 font-medium">Status</th>
+                  <th className="mf-table-cell px-2 md:px-3 py-2 md:py-2.5 font-medium">Opens</th>
+                  <th className="mf-table-cell px-2 md:px-3 py-2 md:py-2.5 font-medium">Added</th>
+                  <th className="mf-table-cell-padded px-3 md:px-5 py-2 md:py-2.5 font-medium w-10" />
                 </tr>
-              ) : (
-                filtered.map((r) => {
-                  const meta = STATUS_META[r.status];
-                  const StatusIcon = meta.icon;
-                  const isHovered = hoveredRowId === r.id;
-                  
-                  // Map status colors to dark theme
-                  const statusColors = {
-                    Subscribed: { bg: "rgba(16,185,129,0.15)", fg: "#34D399" },
-                    Unsubscribed: { bg: "rgba(107,114,128,0.15)", fg: "#9CA3AF" },
-                    Bounced: { bg: "rgba(239,68,68,0.15)", fg: "#F87171" },
-                  };
-                  
-                  return (
-                    <tr 
-                      key={r.id} 
-                      className={`border-t border-[#2A2E37] transition-colors ${
-                        isHovered ? "bg-[#1B1E24]" : ""
-                      }`}
-                      onMouseEnter={() => setHoveredRowId(r.id)}
-                      onMouseLeave={() => setHoveredRowId(null)}
-                    >
-                      <td className="px-5 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selected.has(r.id)}
-                          onChange={() => toggleOne(r.id)}
-                          className="rounded border-[#2A2E37] bg-[#12151B] accent-[#FF6A39]"
-                        />
-                      </td>
-                      <td className="px-3 py-3">
-                        <p className={`text-[13.5px] font-medium ${
-                          isHovered ? "text-[#E8E6E1]" : "text-[#D1D5DB]"
-                        }`}>
-                          {r.name}
-                        </p>
-                        <p className="text-[12px] text-[#6B727C]">{r.email}</p>
-                      </td>
-                      <td className="px-3 py-3">
-                        <div className="flex flex-wrap gap-1.5">
-                          {r.tags.map((tag) => (
-                            <span
-                              key={tag}
-                              className="inline-flex items-center gap-1 rounded-full bg-ember-soft/20 px-2 py-0.5 text-[11px] font-medium text-[#FF6A39]"
-                              style={{ backgroundColor: "rgba(255,106,57,0.12)" }}
-                            >
-                              <TagIcon size={9} />
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-3 py-3">
-                        <span 
-                          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-medium"
-                          style={{ 
-                            backgroundColor: statusColors[r.status].bg,
-                            color: statusColors[r.status].fg,
-                          }}
-                        >
-                          <StatusIcon size={11} />
-                          {r.status}
-                        </span>
-                      </td>
-                      <td style={{ fontFamily: FONT.mono }} className="px-3 py-3 text-[13px] text-[#9BA0A8]">
-                        {r.opens}
-                      </td>
-                      <td className="px-3 py-3 text-[12.5px] text-[#6B727C] whitespace-nowrap">{r.addedOn}</td>
-                      <td className="px-5 py-3 text-right">
-                        <button 
-                          className={`transition-colors ${
-                            isHovered ? "text-[#E8E6E1]" : "text-[#6B727C]"
-                          } hover:text-[#E8E6E1]`}
-                        >
-                          <MoreVertical size={15} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-3 md:px-5 py-8 md:py-12 text-center text-xs md:text-sm" style={{ color: "#6B727C" }}>
+                      No recipients match your search.
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((r) => {
+                    const meta = STATUS_META[r.status];
+                    const StatusIcon = meta.icon;
+                    const isHovered = hoveredRowId === r.id;
+                    
+                    // Map status colors to dark theme
+                    const statusColors = {
+                      Subscribed: { bg: "rgba(16,185,129,0.15)", fg: "#34D399" },
+                      Unsubscribed: { bg: "rgba(107,114,128,0.15)", fg: "#9CA3AF" },
+                      Bounced: { bg: "rgba(239,68,68,0.15)", fg: "#F87171" },
+                    };
+                    
+                    return (
+                      <tr 
+                        key={r.id} 
+                        className={`border-t border-[#2A2E37] transition-colors ${
+                          isHovered ? "bg-[#1B1E24]" : ""
+                        }`}
+                        onMouseEnter={() => setHoveredRowId(r.id)}
+                        onMouseLeave={() => setHoveredRowId(null)}
+                      >
+                        <td className="mf-table-cell-padded px-3 md:px-5 py-2 md:py-3">
+                          <input
+                            type="checkbox"
+                            checked={selected.has(r.id)}
+                            onChange={() => toggleOne(r.id)}
+                            className="rounded border-[#2A2E37] bg-[#12151B] accent-[#FF6A39]"
+                          />
+                        </td>
+                        <td className="mf-table-cell px-2 md:px-3 py-2 md:py-3">
+                          <p className="mf-name-text text-[11px] md:text-[13.5px] font-medium" style={{ color: isHovered ? "#E8E6E1" : "#D1D5DB" }}>
+                            {r.name}
+                          </p>
+                          <p className="mf-email-text text-[9px] md:text-[12px]" style={{ color: "#6B727C" }}>{r.email}</p>
+                        </td>
+                        <td className="mf-table-cell px-2 md:px-3 py-2 md:py-3">
+                          <div className="flex flex-wrap gap-1 md:gap-1.5">
+                            {r.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="mf-tag-text inline-flex items-center gap-0.5 md:gap-1 rounded-full px-1 md:px-2 py-0.5 text-[8px] md:text-[11px] font-medium"
+                                style={{ 
+                                  backgroundColor: "rgba(255,106,57,0.12)",
+                                  color: "#FF6A39"
+                                }}
+                              >
+                                <TagIcon size={8} />
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="mf-table-cell px-2 md:px-3 py-2 md:py-3">
+                          <span 
+                            className="mf-status-badge inline-flex items-center gap-0.5 md:gap-1 rounded-full px-1.5 md:px-2 py-0.5 text-[8px] md:text-[11.5px] font-medium whitespace-nowrap"
+                            style={{ 
+                              backgroundColor: statusColors[r.status].bg,
+                              color: statusColors[r.status].fg,
+                            }}
+                          >
+                            <StatusIcon size={9} />
+                            {r.status}
+                          </span>
+                        </td>
+                        <td className="mf-opens-text px-2 md:px-3 py-2 md:py-3 text-[10px] md:text-[13px]" style={{ fontFamily: FONT.mono, color: "#9BA0A8" }}>
+                          {r.opens}
+                        </td>
+                        <td className="mf-added-text px-2 md:px-3 py-2 md:py-3 text-[9px] md:text-[12.5px] whitespace-nowrap" style={{ color: "#6B727C" }}>{r.addedOn}</td>
+                        <td className="mf-table-cell-padded px-3 md:px-5 py-2 md:py-3 text-right">
+                          <button 
+                            className={`transition-colors ${
+                              isHovered ? "text-[#E8E6E1]" : "text-[#6B727C]"
+                            } hover:text-[#E8E6E1]`}
+                          >
+                            <MoreVertical size={13} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between px-5 py-3 border-t border-[#2A2E37]">
-            <span className="text-xs text-[#6B727C]">Showing {filtered.length} of 34,920</span>
-            <div className="flex items-center gap-1.5">
+          <div className="mf-pagination flex flex-wrap items-center justify-between px-3 md:px-5 py-2 md:py-3 border-t border-[#2A2E37] gap-2">
+            <span className="mf-pagination-text text-[9px] md:text-xs" style={{ color: "#6B727C" }}>Showing {filtered.length} of 34,920</span>
+            <div className="mf-pagination-controls flex items-center gap-1 md:gap-1.5">
               <button 
-                className="w-7 h-7 rounded-lg border border-[#2A2E37] bg-[#12151B] flex items-center justify-center text-[#6B727C] transition-colors hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
+                className="w-6 h-6 md:w-7 md:h-7 rounded-lg border border-[#2A2E37] bg-[#12151B] flex items-center justify-center transition-colors hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
+                style={{ color: "#6B727C" }}
               >
-                <ChevronLeft size={14} />
+                <ChevronLeft size={12} />
               </button>
-              <span style={{ fontFamily: FONT.mono }} className="px-2 text-xs text-[#C7C9CE]">1 / 4,366</span>
+              <span className="mf-pagination-text" style={{ fontFamily: FONT.mono, color: "#C7C9CE", fontSize: "clamp(0.6rem, 1vw, 0.75rem)" }} className="px-1 md:px-2">
+                1 / 4,366
+              </span>
               <button 
-                className="w-7 h-7 rounded-lg border border-[#2A2E37] bg-[#12151B] flex items-center justify-center text-[#C7C9CE] transition-colors hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
+                className="w-6 h-6 md:w-7 md:h-7 rounded-lg border border-[#2A2E37] bg-[#12151B] flex items-center justify-center transition-colors hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
+                style={{ color: "#C7C9CE" }}
               >
-                <ChevronRight size={14} />
+                <ChevronRight size={12} />
               </button>
             </div>
           </div>
