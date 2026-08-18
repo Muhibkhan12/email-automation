@@ -145,38 +145,142 @@ const Notifications = () => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, unread: false } : n)));
 
   return (
-    <div className="flex min-h-screen bg-[#0B0E12]" style={{ fontFamily: FONT.body }}>
+    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        
         .mf-item { transition: background-color 0.15s ease; }
         .mf-item:hover { background-color: #1B1E24; }
         .mf-item:hover .mf-item-action { opacity: 1; }
         .mf-item-action { opacity: 0; transition: opacity 0.15s ease; }
+
+        /* Custom scrollbar for the main content */
+        .mf-main-content::-webkit-scrollbar {
+          width: 6px;
+        }
+        .mf-main-content::-webkit-scrollbar-track {
+          background: #0B0E12;
+        }
+        .mf-main-content::-webkit-scrollbar-thumb {
+          background: #2A2E37;
+          border-radius: 3px;
+        }
+        .mf-main-content::-webkit-scrollbar-thumb:hover {
+          background: #3A3F4A;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+          .mf-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 1rem !important;
+          }
+          .mf-mark-read-btn {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+          .mf-filters {
+            flex-wrap: wrap !important;
+            justify-content: flex-start !important;
+          }
+          .mf-filter-btn {
+            font-size: 0.7rem !important;
+            padding: 0.4rem 0.6rem !important;
+          }
+          .mf-notification-item {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            padding: 0.75rem !important;
+          }
+          .mf-notification-icon {
+            width: 2rem !important;
+            height: 2rem !important;
+          }
+          .mf-notification-icon svg {
+            width: 0.8rem !important;
+            height: 0.8rem !important;
+          }
+          .mf-notification-content {
+            flex: 1 !important;
+          }
+          .mf-notification-title {
+            font-size: 0.8rem !important;
+          }
+          .mf-notification-desc {
+            font-size: 0.7rem !important;
+          }
+          .mf-notification-time {
+            font-size: 0.6rem !important;
+          }
+          .mf-notification-dot {
+            width: 0.5rem !important;
+            height: 0.5rem !important;
+          }
+          .mf-main-content {
+            padding: 0.75rem !important;
+          }
+          .mf-group-header {
+            padding: 0.4rem 0.75rem !important;
+            font-size: 0.6rem !important;
+          }
+          .mf-item-action {
+            opacity: 1 !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .mf-header h1 {
+            font-size: 1.5rem !important;
+          }
+          .mf-filter-btn {
+            font-size: 0.6rem !important;
+            padding: 0.3rem 0.5rem !important;
+          }
+          .mf-notification-item {
+            padding: 0.5rem !important;
+            gap: 0.5rem !important;
+          }
+          .mf-notification-title {
+            font-size: 0.7rem !important;
+          }
+          .mf-notification-desc {
+            font-size: 0.6rem !important;
+          }
+          .mf-notification-time {
+            font-size: 0.55rem !important;
+          }
+        }
       `}</style>
 
-      <Sidebar />
+      {/* Sidebar - sticky on all screen sizes */}
+      <div className="sticky top-0 h-screen flex-shrink-0">
+        <Sidebar />
+      </div>
 
-      <main className="flex-1 p-8 bg-[#12151B]">
+      {/* Main content with scrolling */}
+      <main className="mf-main-content flex-1 overflow-y-auto p-3 md:p-6 lg:p-8" style={{ background: "#12151B", height: "100vh" }}>
         {/* Header */}
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div className="mf-header mb-5 md:mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2 md:gap-2.5">
               <h1
                 style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }}
-                className="text-3xl font-bold text-[#E8E6E1]"
+                className="text-2xl md:text-3xl font-bold" 
+                style={{ color: "#E8E6E1" }}
               >
                 Notifications
               </h1>
               {unreadCount > 0 && (
                 <span
-                  className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                  className="rounded-full px-2 md:px-2.5 py-0.5 text-[10px] md:text-xs font-semibold whitespace-nowrap"
                   style={{ fontFamily: FONT.mono, background: "rgba(255,106,57,0.12)", color: "#FF6A39" }}
                 >
                   {unreadCount} new
                 </span>
               )}
             </div>
-            <p className="mt-1 text-sm text-[#9BA0A8]">
+            <p className="mt-0.5 md:mt-1 text-xs md:text-sm" style={{ color: "#9BA0A8" }}>
               Campaign results, delivery issues and account activity.
             </p>
           </div>
@@ -184,7 +288,7 @@ const Notifications = () => {
           <button
             onClick={markAllRead}
             disabled={unreadCount === 0}
-            className="flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
+            className="mf-mark-read-btn flex items-center justify-center gap-1.5 rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50"
             style={{ 
               border: "1px solid #2A2E37", 
               color: "#C7C9CE", 
@@ -201,24 +305,23 @@ const Notifications = () => {
               e.currentTarget.style.color = "#C7C9CE";
             }}
           >
-            <CheckCheck size={15} />
+            <CheckCheck size={14} />
             Mark all as read
           </button>
         </div>
 
         {/* Filter pills */}
         <div
-          className="mb-6 inline-flex items-center gap-1 rounded-xl p-1"
+          className="mf-filters mb-4 md:mb-6 inline-flex flex-wrap items-center gap-1 rounded-xl p-1"
           style={{ background: "#12151B", border: "1px solid #2A2E37" }}
         >
           {FILTERS.map((f) => {
             const active = f === filter;
-            const isEmber = f === "Unread";
             return (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className="rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors"
+                className="mf-filter-btn rounded-lg px-2 md:px-3.5 py-1 md:py-1.5 text-[10px] md:text-sm font-medium transition-colors whitespace-nowrap"
                 style={{
                   background: active ? "#FF6A39" : "transparent",
                   color: active ? "#FFFFFF" : "#C7C9CE",
@@ -246,7 +349,7 @@ const Notifications = () => {
         {/* List */}
         <div className="rounded-xl" style={{ border: "1px solid #2A2E37", background: "#12151B" }}>
           {grouped.length === 0 && (
-            <div className="p-12 text-center text-[#6B727C]">
+            <div className="p-8 md:p-12 text-center text-xs md:text-sm" style={{ color: "#6B727C" }}>
               You're all caught up.
             </div>
           )}
@@ -254,7 +357,7 @@ const Notifications = () => {
           {grouped.map((g, gi) => (
             <div key={g.group}>
               <div
-                className="px-6 py-3 text-xs font-semibold uppercase tracking-wide"
+                className="mf-group-header px-4 md:px-6 py-2 md:py-3 text-[9px] md:text-xs font-semibold uppercase tracking-wide"
                 style={{
                   color: "#6B727C",
                   background: "#0B0E12",
@@ -272,35 +375,35 @@ const Notifications = () => {
                 return (
                   <div
                     key={n.id}
-                    className="mf-item flex items-start gap-4 px-6 py-4"
+                    className="mf-notification-item mf-item flex items-start gap-3 md:gap-4 px-4 md:px-6 py-3 md:py-4"
                     style={{ 
                       borderBottom: i < g.items.length - 1 ? "1px solid #2A2E37" : "none",
                       background: isUnread ? "rgba(255,106,57,0.03)" : "transparent"
                     }}
                   >
                     <div
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                      className="mf-notification-icon flex h-7 w-7 md:h-9 md:w-9 shrink-0 items-center justify-center rounded-lg"
                       style={{ background: style.soft }}
                     >
-                      <Icon size={16} style={{ color: style.accent }} />
+                      <Icon size={13} style={{ color: style.accent }} />
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="text-sm font-medium text-[#E8E6E1]">
+                    <div className="mf-notification-content min-w-0 flex-1">
+                      <div className="flex flex-wrap items-start justify-between gap-1 md:gap-3">
+                        <p className="mf-notification-title text-xs md:text-sm font-medium" style={{ color: "#E8E6E1" }}>
                           {n.title}
                           {isUnread && (
-                            <span className="ml-2 inline-block h-2 w-2 rounded-full" style={{ background: "#FF6A39" }} />
+                            <span className="mf-notification-dot ml-1.5 md:ml-2 inline-block h-1.5 w-1.5 md:h-2 md:w-2 rounded-full" style={{ background: "#FF6A39" }} />
                           )}
                         </p>
                         <span
-                          className="shrink-0 text-xs"
+                          className="mf-notification-time shrink-0 text-[9px] md:text-xs"
                           style={{ fontFamily: FONT.mono, color: "#6B727C" }}
                         >
                           {n.time}
                         </span>
                       </div>
-                      <p className="mt-1 text-sm text-[#9BA0A8]">
+                      <p className="mf-notification-desc mt-0.5 md:mt-1 text-[10px] md:text-sm" style={{ color: "#9BA0A8" }}>
                         {n.description}
                       </p>
                     </div>
@@ -308,13 +411,13 @@ const Notifications = () => {
                     {n.unread ? (
                       <button
                         onClick={() => markRead(n.id)}
-                        className="mf-item-action mt-1.5 h-2 w-2 shrink-0 rounded-full"
+                        className="mf-item-action mf-notification-dot mt-1 h-1.5 w-1.5 md:h-2 md:w-2 shrink-0 rounded-full"
                         style={{ background: "#FF6A39" }}
                         aria-label="Mark as read"
                         title="Mark as read"
                       />
                     ) : (
-                      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: "transparent" }} />
+                      <span className="mf-notification-dot mt-1 h-1.5 w-1.5 md:h-2 md:w-2 shrink-0 rounded-full" style={{ background: "transparent" }} />
                     )}
                   </div>
                 );
