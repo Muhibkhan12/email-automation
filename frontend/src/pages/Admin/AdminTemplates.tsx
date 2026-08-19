@@ -18,6 +18,13 @@ import {
   LayoutTemplate,
   Undo2,
   Inbox,
+  Sparkles,
+  TrendingUp,
+  Clock as ClockIcon,
+  Tag,
+  ChevronRight,
+  Palette,
+  Zap,
 } from "lucide-react";
 
 type Category = "Welcome" | "Promotional" | "Newsletter" | "Transactional";
@@ -34,6 +41,13 @@ interface Template {
 }
 
 const categories: Category[] = ["Welcome", "Promotional", "Newsletter", "Transactional"];
+
+const categoryColors: Record<Category, { bg: string; text: string; border: string; icon: any }> = {
+  Welcome: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", icon: Sparkles },
+  Promotional: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200", icon: TrendingUp },
+  Newsletter: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", icon: Tag },
+  Transactional: { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200", icon: ClockIcon },
+};
 
 const variables = [
   "{{first_name}}",
@@ -174,10 +188,8 @@ const EmailTemplatesAdmin = () => {
 
   const saved = templates.find((t) => t.id === selectedId) ?? null;
 
-  // Load a fresh working copy whenever the selection changes.
   useEffect(() => {
     setDraft(saved ? { ...saved } : null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
   const isDirty = !!(saved && draft && JSON.stringify(saved) !== JSON.stringify(draft));
@@ -225,7 +237,6 @@ const EmailTemplatesAdmin = () => {
     if (saved) setDraft({ ...saved });
   };
 
-  // Cmd/Ctrl+S saves the current draft instead of triggering the browser's save dialog.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
@@ -235,7 +246,6 @@ const EmailTemplatesAdmin = () => {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft, isDirty]);
 
   const handleDuplicate = () => {
@@ -276,68 +286,122 @@ const EmailTemplatesAdmin = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
+    <div className="flex min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-50/80">
+      <style>{`
+        .main-content::-webkit-scrollbar {
+          width: 6px;
+        }
+        .main-content::-webkit-scrollbar-track {
+          background: #f1f5f9;
+        }
+        .main-content::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 3px;
+        }
+        .main-content::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+        .template-list::-webkit-scrollbar {
+          width: 4px;
+        }
+        .template-list::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .template-list::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 3px;
+        }
+        .template-list::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+        .glow {
+          box-shadow: 0 0 40px rgba(15, 23, 42, 0.05);
+        }
+        .preview-frame {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .status-dot {
+          animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
 
-      <main className="flex-1 p-6 md:p-8">
+      <div className="sticky top-0 h-screen flex-shrink-0">
+        <Sidebar />
+      </div>
+
+      <main className="main-content flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-gradient-to-br from-slate-50 via-white to-slate-50/80 h-screen">
         {/* Header */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Content</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
-              Email Templates
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Build and manage the HTML templates used across your campaigns.
-            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 text-white shadow-lg">
+                <LayoutTemplate size={18} />
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
+                  Email Templates
+                </h1>
+                <p className="text-sm text-slate-500">
+                  Build and manage beautiful HTML templates for your campaigns
+                </p>
+              </div>
+            </div>
           </div>
 
           <button
             onClick={() => setShowNewModal(true)}
-            className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+            className="group flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-slate-900/20 transition-all hover:shadow-xl hover:shadow-slate-900/30 hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto"
           >
-            <Plus size={15} />
+            <Plus size={16} className="transition-transform group-hover:rotate-90" />
             New Template
           </button>
         </div>
 
-        {/* Overview */}
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Stats */}
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="Total Templates"
             value={String(templates.length)}
             description="Across all categories"
             icon={LayoutTemplate}
-            accent="text-slate-900 bg-slate-100"
+            gradient="from-slate-600 to-slate-800"
+            iconBg="bg-slate-100"
           />
           <StatCard
             title="Published"
             value={String(templates.filter((t) => t.status === "Published").length)}
             description="Live and in use"
             icon={CheckCircle2}
-            accent="text-emerald-600 bg-emerald-50"
+            gradient="from-emerald-500 to-emerald-600"
+            iconBg="bg-emerald-50"
           />
           <StatCard
             title="Drafts"
             value={String(templates.filter((t) => t.status === "Draft").length)}
             description="Not yet published"
             icon={Clock}
-            accent="text-amber-600 bg-amber-50"
+            gradient="from-amber-500 to-amber-600"
+            iconBg="bg-amber-50"
           />
           <StatCard
             title="Categories"
             value={String(categories.length)}
             description="Welcome, Promo, News, Txn"
-            icon={FileCode}
-            accent="text-violet-600 bg-violet-50"
+            icon={Palette}
+            gradient="from-violet-500 to-violet-600"
+            iconBg="bg-violet-50"
           />
         </div>
 
         {/* Editor layout */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_1fr]">
           {/* Template list */}
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-100 p-4">
+          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur-sm shadow-lg glow">
+            <div className="border-b border-slate-200/80 p-4">
               <div className="relative mb-3">
                 <Search
                   size={14}
@@ -348,7 +412,7 @@ const EmailTemplatesAdmin = () => {
                   placeholder="Search templates…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-8 pr-3 text-sm outline-none transition focus:border-slate-400 focus:bg-white"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/80 py-2.5 pl-9 pr-3 text-sm outline-none transition focus:border-slate-300 focus:bg-white focus:ring-2 focus:ring-slate-100"
                 />
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -368,32 +432,36 @@ const EmailTemplatesAdmin = () => {
               </div>
             </div>
 
-            <div className="max-h-[560px] divide-y divide-slate-100 overflow-y-auto">
+            <div className="template-list max-h-[400px] md:max-h-[560px] divide-y divide-slate-100/80 overflow-y-auto">
               {filtered.map((t) => {
                 const isSelected = t.id === selectedId;
                 const showsDirty = isSelected && isDirty;
+                const catColor = categoryColors[t.category];
+                const StatusIcon = t.status === "Published" ? CheckCircle2 : Clock;
+                
                 return (
                   <button
                     key={t.id}
                     onClick={() => setSelectedId(t.id)}
-                    className={`block w-full px-4 py-3.5 text-left transition ${
-                      isSelected ? "bg-slate-100" : "hover:bg-slate-50"
+                    className={`group block w-full px-4 py-3.5 text-left transition-all ${
+                      isSelected
+                        ? "bg-gradient-to-r from-slate-100 to-slate-50/50"
+                        : "hover:bg-slate-50/80"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <p className="truncate text-sm font-medium text-slate-900">
                         {t.name}
-                        {showsDirty && <span className="ml-1 text-slate-400">•</span>}
+                        {showsDirty && <span className="ml-1.5 text-slate-400">•</span>}
                       </p>
-                      <span
-                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                          t.status === "Published" ? "bg-emerald-500" : "bg-amber-500"
-                        }`}
+                      <StatusIcon
+                        size={14}
+                        className={t.status === "Published" ? "text-emerald-500" : "text-amber-500"}
                       />
                     </div>
                     <p className="mt-1 truncate text-xs text-slate-500">{t.subject}</p>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                    <div className="mt-2.5 flex flex-wrap items-center justify-between gap-1.5">
+                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium ${catColor.bg} ${catColor.text}`}>
                         {t.category}
                       </span>
                       <span className="text-[10px] text-slate-400">{t.updatedAt}</span>
@@ -403,28 +471,31 @@ const EmailTemplatesAdmin = () => {
               })}
 
               {filtered.length === 0 && (
-                <div className="p-8 text-center text-sm text-slate-500">No templates found.</div>
+                <div className="p-8 text-center text-sm text-slate-500">
+                  <Inbox size={32} className="mx-auto mb-3 text-slate-300" />
+                  No templates found
+                </div>
               )}
             </div>
           </div>
 
           {/* Editor */}
           {draft ? (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur-sm shadow-lg glow">
               {/* Editor header */}
-              <div className="flex flex-col gap-4 border-b border-slate-100 p-5">
+              <div className="flex flex-col gap-4 border-b border-slate-200/80 p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <input
                     value={draft.name}
                     onChange={(e) => updateDraft({ name: e.target.value })}
-                    className="w-full rounded-lg border border-transparent px-2 py-1 text-lg font-semibold text-slate-900 outline-none transition hover:border-slate-200 focus:border-slate-300 focus:bg-slate-50 sm:w-auto sm:flex-1"
+                    className="w-full rounded-xl border border-transparent px-3 py-1.5 text-lg font-semibold text-slate-900 outline-none transition hover:border-slate-200 focus:border-slate-300 focus:bg-slate-50/80 focus:ring-2 focus:ring-slate-100 sm:w-auto sm:flex-1"
                   />
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <select
                       value={draft.category}
                       onChange={(e) => updateDraft({ category: e.target.value as Category })}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 outline-none"
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 outline-none transition focus:border-slate-300 focus:ring-2 focus:ring-slate-100"
                     >
                       {categories.map((c) => (
                         <option key={c}>{c}</option>
@@ -435,12 +506,13 @@ const EmailTemplatesAdmin = () => {
                       onClick={() =>
                         updateDraft({ status: draft.status === "Published" ? "Draft" : "Published" })
                       }
-                      className={`rounded-lg px-3 py-2 text-xs font-medium transition ${
+                      className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition ${
                         draft.status === "Published"
                           ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                           : "bg-amber-50 text-amber-700 hover:bg-amber-100"
                       }`}
                     >
+                      <span className={`h-1.5 w-1.5 rounded-full ${draft.status === "Published" ? "bg-emerald-500" : "bg-amber-500"}`} />
                       {draft.status}
                     </button>
                   </div>
@@ -450,54 +522,56 @@ const EmailTemplatesAdmin = () => {
                   value={draft.subject}
                   onChange={(e) => updateDraft({ subject: e.target.value })}
                   placeholder="Subject line"
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 outline-none transition focus:border-slate-400 focus:bg-white"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-600 outline-none transition focus:border-slate-300 focus:bg-white focus:ring-2 focus:ring-slate-100"
                 />
 
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-col md:flex-row flex-wrap items-start md:items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="mr-1 flex items-center gap-1 text-[11px] font-medium text-slate-400">
-                      <Braces size={12} /> Insert:
+                    <span className="mr-1 flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                      <Braces size={14} /> Insert variable:
                     </span>
                     {variables.map((v) => (
                       <button
                         key={v}
                         onClick={() => insertVariable(v)}
-                        className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
+                        className="rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 font-mono text-[11px] text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 hover:shadow-sm"
                       >
                         {v}
                       </button>
                     ))}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
                     {isDirty && (
                       <button
                         onClick={handleDiscard}
-                        className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-500 transition hover:bg-slate-100"
+                        className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100"
                       >
-                        <Undo2 size={13} /> Discard
+                        <Undo2 size={14} /> Discard
                       </button>
                     )}
                     <button
                       onClick={handleDuplicate}
-                      className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
+                      className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
                     >
-                      <Copy size={13} /> Duplicate
+                      <Copy size={14} /> Duplicate
                     </button>
                     <button
                       onClick={handleDelete}
-                      className="flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                      className="flex items-center gap-1.5 rounded-xl border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
                     >
-                      <Trash2 size={13} />
+                      <Trash2 size={14} />
                     </button>
                     <button
                       onClick={handleSave}
                       disabled={!isDirty}
-                      className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-medium text-white transition ${
-                        isDirty ? "bg-slate-900 hover:bg-slate-800" : "cursor-not-allowed bg-slate-300"
+                      className={`flex items-center gap-1.5 rounded-xl px-4 py-1.5 text-xs font-medium text-white transition ${
+                        isDirty
+                          ? "bg-gradient-to-r from-slate-900 to-slate-800 hover:shadow-lg hover:shadow-slate-900/20"
+                          : "cursor-not-allowed bg-slate-300"
                       }`}
                     >
-                      <Save size={13} /> {savedFlash ? "Saved" : isDirty ? "Save" : "Saved"}
+                      <Save size={14} /> {savedFlash ? "Saved ✓" : isDirty ? "Save" : "Saved"}
                     </button>
                   </div>
                 </div>
@@ -506,57 +580,58 @@ const EmailTemplatesAdmin = () => {
               {/* Code + Preview split */}
               <div className="grid grid-cols-1 lg:grid-cols-2">
                 {/* Code */}
-                <div className="border-b border-slate-100 lg:border-b-0 lg:border-r">
-                  <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
-                    <Code2 size={13} className="text-slate-400" />
+                <div className="border-b border-slate-200/80 lg:border-b-0 lg:border-r">
+                  <div className="flex items-center gap-2 border-b border-slate-200/80 bg-slate-50/80 px-4 py-2.5">
+                    <Code2 size={14} className="text-slate-400" />
                     <span className="text-xs font-medium text-slate-500">HTML</span>
+                    <span className="ml-auto text-[10px] text-slate-400">Line {draft.html.split('\n').length}</span>
                   </div>
                   <textarea
                     ref={textareaRef}
                     value={draft.html}
                     onChange={(e) => updateDraft({ html: e.target.value })}
                     spellCheck={false}
-                    className="h-[480px] w-full resize-none bg-slate-900 p-4 font-mono text-[12.5px] leading-relaxed text-slate-100 outline-none"
+                    className="h-[300px] md:h-[480px] w-full resize-none bg-slate-900 p-4 font-mono text-[13px] leading-relaxed text-slate-100 outline-none selection:bg-slate-700"
                   />
                 </div>
 
                 {/* Preview */}
                 <div>
-                  <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 bg-slate-50/80 px-4 py-2.5">
                     <div className="flex items-center gap-2">
-                      <Eye size={13} className="text-slate-400" />
+                      <Eye size={14} className="text-slate-400" />
                       <span className="text-xs font-medium text-slate-500">Preview</span>
                     </div>
-                    <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-0.5">
+                    <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-0.5 shadow-sm">
                       <button
                         onClick={() => setDevice("desktop")}
-                        className={`rounded-md p-1.5 transition ${
+                        className={`rounded-lg p-1.5 transition ${
                           device === "desktop"
-                            ? "bg-slate-900 text-white"
+                            ? "bg-slate-900 text-white shadow-sm"
                             : "text-slate-400 hover:text-slate-700"
                         }`}
                       >
-                        <Monitor size={13} />
+                        <Monitor size={14} />
                       </button>
                       <button
                         onClick={() => setDevice("mobile")}
-                        className={`rounded-md p-1.5 transition ${
+                        className={`rounded-lg p-1.5 transition ${
                           device === "mobile"
-                            ? "bg-slate-900 text-white"
+                            ? "bg-slate-900 text-white shadow-sm"
                             : "text-slate-400 hover:text-slate-700"
                         }`}
                       >
-                        <Smartphone size={13} />
+                        <Smartphone size={14} />
                       </button>
                     </div>
                   </div>
-                  <div className="flex h-[480px] items-start justify-center overflow-auto bg-slate-100 p-4">
+                  <div className="flex h-[300px] md:h-[480px] items-start justify-center overflow-auto bg-gradient-to-br from-slate-100 to-slate-200/50 p-4">
                     <iframe
                       title="Template preview"
                       srcDoc={draft.html}
                       sandbox=""
-                      className={`h-full rounded-lg border border-slate-200 bg-white shadow-sm transition-all ${
-                        device === "mobile" ? "w-[375px]" : "w-full"
+                      className={`preview-frame h-full rounded-xl border border-slate-200/80 bg-white shadow-lg ${
+                        device === "mobile" ? "w-[320px] md:w-[375px]" : "w-full"
                       }`}
                     />
                   </div>
@@ -564,17 +639,19 @@ const EmailTemplatesAdmin = () => {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white p-16 text-center">
-              <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-slate-100">
-                <Inbox size={18} className="text-slate-400" />
-              </span>
-              <h3 className="text-sm font-medium text-slate-900">No templates yet</h3>
-              <p className="mt-1 text-sm text-slate-500">Create your first template to get started.</p>
+            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300/60 bg-white/60 backdrop-blur-sm p-16 text-center shadow-lg glow">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-slate-100 to-slate-200">
+                <Zap size={28} className="text-slate-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900">No template selected</h3>
+              <p className="mt-2 text-sm text-slate-500 max-w-sm">
+                Choose a template from the list or create a new one to get started with your email campaigns.
+              </p>
               <button
                 onClick={() => setShowNewModal(true)}
-                className="mt-4 flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+                className="mt-6 flex items-center gap-2 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-slate-900/20 transition hover:shadow-xl hover:shadow-slate-900/30 hover:scale-[1.02]"
               >
-                <Plus size={15} /> New Template
+                <Plus size={16} /> Create New Template
               </button>
             </div>
           )}
@@ -589,7 +666,7 @@ const EmailTemplatesAdmin = () => {
 };
 
 /* ========================================================= */
-/* Stat Card */
+/* Stat Card - Modernized */
 /* ========================================================= */
 
 interface StatCardProps {
@@ -597,24 +674,28 @@ interface StatCardProps {
   value: string;
   description: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
-  accent: string;
+  gradient: string;
+  iconBg: string;
 }
 
-const StatCard = ({ title, value, description, icon: Icon, accent }: StatCardProps) => (
-  <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
-    <div className="flex items-start justify-between">
-      <p className="text-sm text-slate-500">{title}</p>
-      <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${accent}`}>
-        <Icon size={16} />
-      </span>
+const StatCard = ({ title, value, description, icon: Icon, gradient, iconBg }: StatCardProps) => (
+  <div className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur-sm p-5 shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5 glow">
+    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-slate-50/50 opacity-0 transition-opacity group-hover:opacity-100" />
+    <div className="relative flex items-start justify-between">
+      <div>
+        <p className="text-sm font-medium text-slate-500">{title}</p>
+        <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{value}</p>
+        <p className="mt-1.5 text-xs text-slate-400">{description}</p>
+      </div>
+      <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} shadow-lg`}>
+        <Icon size={18} className="text-white" />
+      </div>
     </div>
-    <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">{value}</h2>
-    <p className="mt-1.5 text-xs text-slate-400">{description}</p>
   </div>
 );
 
 /* ========================================================= */
-/* Filter Chip */
+/* Filter Chip - Modernized */
 /* ========================================================= */
 
 const FilterChip = ({
@@ -628,8 +709,10 @@ const FilterChip = ({
 }) => (
   <button
     onClick={onClick}
-    className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
-      active ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+    className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
+      active
+        ? "bg-slate-900 text-white shadow-md shadow-slate-900/20"
+        : "bg-slate-100/80 text-slate-600 hover:bg-slate-200/80"
     }`}
   >
     {label}
@@ -637,7 +720,7 @@ const FilterChip = ({
 );
 
 /* ========================================================= */
-/* New Template Modal */
+/* New Template Modal - Modernized */
 /* ========================================================= */
 
 const NewTemplateModal = ({
@@ -653,76 +736,85 @@ const NewTemplateModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
+      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between border-b border-slate-100 p-6">
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-slate-900 to-slate-700 text-white shadow-lg">
               <LayoutTemplate size={16} />
-            </span>
+            </div>
             <div>
               <h2 className="text-base font-semibold text-slate-900">New Template</h2>
-              <p className="text-xs text-slate-500">Start from a category-matched boilerplate.</p>
+              <p className="text-xs text-slate-500">Start from a category-matched boilerplate</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
 
         <div className="space-y-5 p-6">
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Template Name</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              Template Name <span className="text-slate-400">*</span>
+            </label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Cart Abandonment — Reminder"
-              className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
             />
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Subject Line</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+              Subject Line <span className="text-slate-400">*</span>
+            </label>
             <input
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. You left something behind"
-              className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+              className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
             />
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Category</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Category</label>
             <div className="grid grid-cols-2 gap-2">
-              {categories.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setCategory(c)}
-                  className={`rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition ${
-                    category === c
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
+              {categories.map((c) => {
+                const colors = categoryColors[c];
+                const Icon = colors.icon;
+                return (
+                  <button
+                    key={c}
+                    onClick={() => setCategory(c)}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition ${
+                      category === c
+                        ? `${colors.border} ${colors.bg} ${colors.text} shadow-sm`
+                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Icon size={14} />
+                    {c}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-slate-100 p-6">
+        <div className="flex flex-col sm:flex-row justify-end gap-2 border-t border-slate-100 p-6">
           <button
             onClick={onClose}
-            className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
           >
             Cancel
           </button>
           <button
             onClick={() => onCreate(name, subject, category)}
-            className="rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+            className="rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 px-6 py-2.5 text-sm font-medium text-white shadow-lg shadow-slate-900/20 transition hover:shadow-xl hover:shadow-slate-900/30 hover:scale-[1.02]"
           >
             Create Template
           </button>
