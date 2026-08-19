@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Sidebar from "../User/Sidebar";
 import {
   Plus,
@@ -16,6 +16,8 @@ import {
   FileCode,
   Braces,
   LayoutTemplate,
+  Undo2,
+  Inbox,
 } from "lucide-react";
 
 type Category = "Welcome" | "Promotional" | "Newsletter" | "Transactional";
@@ -154,9 +156,14 @@ const initialTemplates: Template[] = [
   },
 ];
 
+const nextId = (list: Template[]) => (list.length ? Math.max(...list.map((t) => t.id)) + 1 : 1);
+
 const EmailTemplatesAdmin = () => {
   const [templates, setTemplates] = useState<Template[]>(initialTemplates);
-  const [selectedId, setSelectedId] = useState<number>(initialTemplates[0].id);
+  const [selectedId, setSelectedId] = useState<number | null>(initialTemplates[0]?.id ?? null);
+  const [draft, setDraft] = useState<Template | null>(
+    initialTemplates.length ? { ...initialTemplates[0] } : null
+  );
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<Category | "All">("All");
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
@@ -165,7 +172,15 @@ const EmailTemplatesAdmin = () => {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const selected = templates.find((t) => t.id === selectedId)!;
+  const saved = templates.find((t) => t.id === selectedId) ?? null;
+
+  // Load a fresh working copy whenever the selection changes.
+  useEffect(() => {
+    setDraft(saved ? { ...saved } : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
+
+  const isDirty = !!(saved && draft && JSON.stringify(saved) !== JSON.stringify(draft));
 
   const filtered = templates.filter((t) => {
     const matchesSearch =
@@ -175,20 +190,21 @@ const EmailTemplatesAdmin = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const updateSelected = (patch: Partial<Template>) => {
-    setTemplates((prev) => prev.map((t) => (t.id === selectedId ? { ...t, ...patch } : t)));
+  const updateDraft = (patch: Partial<Template>) => {
+    setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
   };
 
   const insertVariable = (variable: string) => {
+    if (!draft) return;
     const el = textareaRef.current;
     if (!el) {
-      updateSelected({ html: selected.html + variable });
+      updateDraft({ html: draft.html + variable });
       return;
     }
-    const start = el.selectionStart ?? selected.html.length;
-    const end = el.selectionEnd ?? selected.html.length;
-    const newHtml = selected.html.slice(0, start) + variable + selected.html.slice(end);
-    updateSelected({ html: newHtml });
+    const start = el.selectionStart ?? draft.html.length;
+    const end = el.selectionEnd ?? draft.html.length;
+    const newHtml = draft.html.slice(0, start) + variable + draft.html.slice(end);
+    updateDraft({ html: newHtml });
     requestAnimationFrame(() => {
       el.focus();
       const pos = start + variable.length;
@@ -197,17 +213,38 @@ const EmailTemplatesAdmin = () => {
   };
 
   const handleSave = () => {
-    updateSelected({ updatedAt: "Just now" });
+    if (!draft || !isDirty) return;
+    const withTimestamp = { ...draft, updatedAt: "Just now" };
+    setTemplates((prev) => prev.map((t) => (t.id === draft.id ? withTimestamp : t)));
+    setDraft(withTimestamp);
     setSavedFlash(true);
     setTimeout(() => setSavedFlash(false), 1500);
   };
 
+  const handleDiscard = () => {
+    if (saved) setDraft({ ...saved });
+  };
+
+  // Cmd/Ctrl+S saves the current draft instead of triggering the browser's save dialog.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft, isDirty]);
+
   const handleDuplicate = () => {
-    const newId = Math.max(...templates.map((t) => t.id)) + 1;
+    if (!draft) return;
+    const newId = nextId(templates);
     const copy: Template = {
-      ...selected,
+      ...draft,
       id: newId,
-      name: `${selected.name} (Copy)`,
+      name: `${draft.name} (Copy)`,
       status: "Draft",
       updatedAt: "Just now",
     };
@@ -216,17 +253,18 @@ const EmailTemplatesAdmin = () => {
   };
 
   const handleDelete = () => {
+    if (selectedId === null) return;
     const remaining = templates.filter((t) => t.id !== selectedId);
     setTemplates(remaining);
-    if (remaining.length > 0) setSelectedId(remaining[0].id);
+    setSelectedId(remaining.length > 0 ? remaining[0].id : null);
   };
 
   const handleCreate = (name: string, subject: string, category: Category) => {
-    const newId = Math.max(...templates.map((t) => t.id)) + 1;
+    const newId = nextId(templates);
     const created: Template = {
       id: newId,
-      name: name || "Untitled Template",
-      subject: subject || "New email subject",
+      name: name.trim() || "Untitled Template",
+      subject: subject.trim() || "New email subject",
       category,
       status: "Draft",
       updatedAt: "Just now",
@@ -245,9 +283,7 @@ const EmailTemplatesAdmin = () => {
         {/* Header */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              Content
-            </p>
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Content</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
               Email Templates
             </h1>
@@ -333,31 +369,38 @@ const EmailTemplatesAdmin = () => {
             </div>
 
             <div className="max-h-[560px] divide-y divide-slate-100 overflow-y-auto">
-              {filtered.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setSelectedId(t.id)}
-                  className={`block w-full px-4 py-3.5 text-left transition ${
-                    t.id === selectedId ? "bg-slate-100" : "hover:bg-slate-50"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-sm font-medium text-slate-900">{t.name}</p>
-                    <span
-                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                        t.status === "Published" ? "bg-emerald-500" : "bg-amber-500"
-                      }`}
-                    />
-                  </div>
-                  <p className="mt-1 truncate text-xs text-slate-500">{t.subject}</p>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
-                      {t.category}
-                    </span>
-                    <span className="text-[10px] text-slate-400">{t.updatedAt}</span>
-                  </div>
-                </button>
-              ))}
+              {filtered.map((t) => {
+                const isSelected = t.id === selectedId;
+                const showsDirty = isSelected && isDirty;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setSelectedId(t.id)}
+                    className={`block w-full px-4 py-3.5 text-left transition ${
+                      isSelected ? "bg-slate-100" : "hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-sm font-medium text-slate-900">
+                        {t.name}
+                        {showsDirty && <span className="ml-1 text-slate-400">•</span>}
+                      </p>
+                      <span
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                          t.status === "Published" ? "bg-emerald-500" : "bg-amber-500"
+                        }`}
+                      />
+                    </div>
+                    <p className="mt-1 truncate text-xs text-slate-500">{t.subject}</p>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
+                        {t.category}
+                      </span>
+                      <span className="text-[10px] text-slate-400">{t.updatedAt}</span>
+                    </div>
+                  </button>
+                );
+              })}
 
               {filtered.length === 0 && (
                 <div className="p-8 text-center text-sm text-slate-500">No templates found.</div>
@@ -366,146 +409,175 @@ const EmailTemplatesAdmin = () => {
           </div>
 
           {/* Editor */}
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            {/* Editor header */}
-            <div className="flex flex-col gap-4 border-b border-slate-100 p-5">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <input
-                  value={selected.name}
-                  onChange={(e) => updateSelected({ name: e.target.value })}
-                  className="w-full rounded-lg border border-transparent px-2 py-1 text-lg font-semibold text-slate-900 outline-none transition hover:border-slate-200 focus:border-slate-300 focus:bg-slate-50 sm:w-auto sm:flex-1"
-                />
+          {draft ? (
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              {/* Editor header */}
+              <div className="flex flex-col gap-4 border-b border-slate-100 p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <input
+                    value={draft.name}
+                    onChange={(e) => updateDraft({ name: e.target.value })}
+                    className="w-full rounded-lg border border-transparent px-2 py-1 text-lg font-semibold text-slate-900 outline-none transition hover:border-slate-200 focus:border-slate-300 focus:bg-slate-50 sm:w-auto sm:flex-1"
+                  />
 
-                <div className="flex items-center gap-2">
-                  <select
-                    value={selected.category}
-                    onChange={(e) => updateSelected({ category: e.target.value as Category })}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 outline-none"
-                  >
-                    {categories.map((c) => (
-                      <option key={c}>{c}</option>
-                    ))}
-                  </select>
-
-                  <button
-                    onClick={() =>
-                      updateSelected({
-                        status: selected.status === "Published" ? "Draft" : "Published",
-                      })
-                    }
-                    className={`rounded-lg px-3 py-2 text-xs font-medium transition ${
-                      selected.status === "Published"
-                        ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                        : "bg-amber-50 text-amber-700 hover:bg-amber-100"
-                    }`}
-                  >
-                    {selected.status}
-                  </button>
-                </div>
-              </div>
-
-              <input
-                value={selected.subject}
-                onChange={(e) => updateSelected({ subject: e.target.value })}
-                placeholder="Subject line"
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 outline-none transition focus:border-slate-400 focus:bg-white"
-              />
-
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="mr-1 flex items-center gap-1 text-[11px] font-medium text-slate-400">
-                    <Braces size={12} /> Insert:
-                  </span>
-                  {variables.map((v) => (
-                    <button
-                      key={v}
-                      onClick={() => insertVariable(v)}
-                      className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleDuplicate}
-                    className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
-                  >
-                    <Copy size={13} /> Duplicate
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    className="flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-800"
-                  >
-                    <Save size={13} /> {savedFlash ? "Saved" : "Save"}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Code + Preview split */}
-            <div className="grid grid-cols-1 lg:grid-cols-2">
-              {/* Code */}
-              <div className="border-b border-slate-100 lg:border-b-0 lg:border-r">
-                <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
-                  <Code2 size={13} className="text-slate-400" />
-                  <span className="text-xs font-medium text-slate-500">HTML</span>
-                </div>
-                <textarea
-                  ref={textareaRef}
-                  value={selected.html}
-                  onChange={(e) => updateSelected({ html: e.target.value })}
-                  spellCheck={false}
-                  className="h-[480px] w-full resize-none bg-slate-900 p-4 font-mono text-[12.5px] leading-relaxed text-slate-100 outline-none"
-                />
-              </div>
-
-              {/* Preview */}
-              <div>
-                <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-2.5">
                   <div className="flex items-center gap-2">
-                    <Eye size={13} className="text-slate-400" />
-                    <span className="text-xs font-medium text-slate-500">Preview</span>
-                  </div>
-                  <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-0.5">
+                    <select
+                      value={draft.category}
+                      onChange={(e) => updateDraft({ category: e.target.value as Category })}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 outline-none"
+                    >
+                      {categories.map((c) => (
+                        <option key={c}>{c}</option>
+                      ))}
+                    </select>
+
                     <button
-                      onClick={() => setDevice("desktop")}
-                      className={`rounded-md p-1.5 transition ${
-                        device === "desktop" ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-700"
+                      onClick={() =>
+                        updateDraft({ status: draft.status === "Published" ? "Draft" : "Published" })
+                      }
+                      className={`rounded-lg px-3 py-2 text-xs font-medium transition ${
+                        draft.status === "Published"
+                          ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                          : "bg-amber-50 text-amber-700 hover:bg-amber-100"
                       }`}
                     >
-                      <Monitor size={13} />
-                    </button>
-                    <button
-                      onClick={() => setDevice("mobile")}
-                      className={`rounded-md p-1.5 transition ${
-                        device === "mobile" ? "bg-slate-900 text-white" : "text-slate-400 hover:text-slate-700"
-                      }`}
-                    >
-                      <Smartphone size={13} />
+                      {draft.status}
                     </button>
                   </div>
                 </div>
-                <div className="flex h-[480px] items-start justify-center overflow-auto bg-slate-100 p-4">
-                  <iframe
-                    title="Template preview"
-                    srcDoc={selected.html}
-                    sandbox=""
-                    className={`h-full rounded-lg border border-slate-200 bg-white shadow-sm transition-all ${
-                      device === "mobile" ? "w-[375px]" : "w-full"
-                    }`}
+
+                <input
+                  value={draft.subject}
+                  onChange={(e) => updateDraft({ subject: e.target.value })}
+                  placeholder="Subject line"
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 outline-none transition focus:border-slate-400 focus:bg-white"
+                />
+
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="mr-1 flex items-center gap-1 text-[11px] font-medium text-slate-400">
+                      <Braces size={12} /> Insert:
+                    </span>
+                    {variables.map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => insertVariable(v)}
+                        className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {isDirty && (
+                      <button
+                        onClick={handleDiscard}
+                        className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-500 transition hover:bg-slate-100"
+                      >
+                        <Undo2 size={13} /> Discard
+                      </button>
+                    )}
+                    <button
+                      onClick={handleDuplicate}
+                      className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
+                    >
+                      <Copy size={13} /> Duplicate
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={!isDirty}
+                      className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-medium text-white transition ${
+                        isDirty ? "bg-slate-900 hover:bg-slate-800" : "cursor-not-allowed bg-slate-300"
+                      }`}
+                    >
+                      <Save size={13} /> {savedFlash ? "Saved" : isDirty ? "Save" : "Saved"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Code + Preview split */}
+              <div className="grid grid-cols-1 lg:grid-cols-2">
+                {/* Code */}
+                <div className="border-b border-slate-100 lg:border-b-0 lg:border-r">
+                  <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
+                    <Code2 size={13} className="text-slate-400" />
+                    <span className="text-xs font-medium text-slate-500">HTML</span>
+                  </div>
+                  <textarea
+                    ref={textareaRef}
+                    value={draft.html}
+                    onChange={(e) => updateDraft({ html: e.target.value })}
+                    spellCheck={false}
+                    className="h-[480px] w-full resize-none bg-slate-900 p-4 font-mono text-[12.5px] leading-relaxed text-slate-100 outline-none"
                   />
                 </div>
+
+                {/* Preview */}
+                <div>
+                  <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <Eye size={13} className="text-slate-400" />
+                      <span className="text-xs font-medium text-slate-500">Preview</span>
+                    </div>
+                    <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-0.5">
+                      <button
+                        onClick={() => setDevice("desktop")}
+                        className={`rounded-md p-1.5 transition ${
+                          device === "desktop"
+                            ? "bg-slate-900 text-white"
+                            : "text-slate-400 hover:text-slate-700"
+                        }`}
+                      >
+                        <Monitor size={13} />
+                      </button>
+                      <button
+                        onClick={() => setDevice("mobile")}
+                        className={`rounded-md p-1.5 transition ${
+                          device === "mobile"
+                            ? "bg-slate-900 text-white"
+                            : "text-slate-400 hover:text-slate-700"
+                        }`}
+                      >
+                        <Smartphone size={13} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex h-[480px] items-start justify-center overflow-auto bg-slate-100 p-4">
+                    <iframe
+                      title="Template preview"
+                      srcDoc={draft.html}
+                      sandbox=""
+                      className={`h-full rounded-lg border border-slate-200 bg-white shadow-sm transition-all ${
+                        device === "mobile" ? "w-[375px]" : "w-full"
+                      }`}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white p-16 text-center">
+              <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-slate-100">
+                <Inbox size={18} className="text-slate-400" />
+              </span>
+              <h3 className="text-sm font-medium text-slate-900">No templates yet</h3>
+              <p className="mt-1 text-sm text-slate-500">Create your first template to get started.</p>
+              <button
+                onClick={() => setShowNewModal(true)}
+                className="mt-4 flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+              >
+                <Plus size={15} /> New Template
+              </button>
+            </div>
+          )}
         </div>
 
         {showNewModal && (
