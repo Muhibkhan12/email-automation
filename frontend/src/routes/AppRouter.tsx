@@ -14,6 +14,7 @@ import Analytics from "../pages/User/Analytics";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
+import EmailTemplatesAdmin from "../pages/Admin/AdminTemplates";
 
 const AppRouter = () => {
   return (
@@ -33,6 +34,10 @@ const AppRouter = () => {
         <Route path="/login"  element={<Login/>}/>
         <Route path="/register"  element={<Register/>}/>
         <Route path="/admin-dashboard"  element={<AdminDashboard/>} />
+
+        {/* admin routes */}
+
+        <Route path="/admin/email-templates" element={<EmailTemplatesAdmin/>}/>
     </Routes>
   )
 }
