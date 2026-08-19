@@ -18,7 +18,39 @@ import {
   LayoutTemplate,
   Undo2,
   Inbox,
+  Check,
 } from "lucide-react";
+
+/* ---------------------------------------------------------------------- */
+/*  Design tokens — MailForge system (iron / ember)                       */
+/* ---------------------------------------------------------------------- */
+
+const FONT = {
+  display: "'Space Grotesk', sans-serif",
+  body: "'Inter', sans-serif",
+  mono: "'JetBrains Mono', monospace",
+};
+
+const COLOR = {
+  primary: "#FF6A39",
+  primarySoft: "rgba(255,106,57,0.12)",
+  success: "#7FD98A",
+  successSoft: "rgba(127,217,138,0.12)",
+  warning: "#FFC24B",
+  warningSoft: "rgba(255,194,75,0.12)",
+  danger: "#FF5C6C",
+  dangerSoft: "rgba(255,92,108,0.12)",
+  neutral: "#8B8D94",
+  neutralSoft: "rgba(139,141,148,0.12)",
+  dark: "#E8E6E1",
+  bg: "#0E1013",
+  surface: "#171A21",
+  surfaceHover: "#1B1E24",
+  border: "#2A2E37",
+  borderHover: "#3A3F4A",
+  textMuted: "#8B8D94",
+  textBody: "#C7C9CE",
+};
 
 type Category = "Welcome" | "Promotional" | "Newsletter" | "Transactional";
 type Status = "Published" | "Draft";
@@ -272,35 +304,32 @@ const EmailTemplatesAdmin = () => {
   };
 
   return (
-    <div className="flex min-h-screen overflow-hidden bg-slate-50">
+    <div className="flex min-h-screen overflow-hidden" style={{ background: COLOR.bg, fontFamily: FONT.body }}>
       <style>{`
-        /* Custom scrollbar for sidebar and main content */
-        .main-content::-webkit-scrollbar {
-          width: 6px;
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        .main-content::-webkit-scrollbar { width: 6px; }
+        .main-content::-webkit-scrollbar-track { background: transparent; }
+        .main-content::-webkit-scrollbar-thumb { background: ${COLOR.border}; border-radius: 3px; }
+        .main-content::-webkit-scrollbar-thumb:hover { background: ${COLOR.borderHover}; }
+
+        .template-list::-webkit-scrollbar { width: 4px; }
+        .template-list::-webkit-scrollbar-track { background: transparent; }
+        .template-list::-webkit-scrollbar-thumb { background: ${COLOR.border}; border-radius: 3px; }
+        .template-list::-webkit-scrollbar-thumb:hover { background: ${COLOR.borderHover}; }
+
+        .mf-card { transition: border-color 0.15s ease; }
+        .mf-card:hover { border-color: ${COLOR.borderHover}; }
+        .mf-row-btn { transition: background-color 0.12s ease; }
+        .mf-row-btn:hover { background-color: ${COLOR.surfaceHover}; }
+        .mf-icon-btn { transition: background-color 0.12s ease, color 0.12s ease; }
+        .mf-icon-btn:hover { background-color: ${COLOR.surfaceHover}; }
+        .mf-input::placeholder { color: ${COLOR.textMuted}; }
+        .mf-input:focus, .mf-title-input:focus, .mf-select:focus {
+          border-color: ${COLOR.primary} !important;
+          box-shadow: 0 0 0 3px ${COLOR.primarySoft};
         }
-        .main-content::-webkit-scrollbar-track {
-          background: #f1f5f9;
-        }
-        .main-content::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
-          border-radius: 3px;
-        }
-        .main-content::-webkit-scrollbar-thumb:hover {
-          background: #94a3b8;
-        }
-        .template-list::-webkit-scrollbar {
-          width: 4px;
-        }
-        .template-list::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .template-list::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
-          border-radius: 3px;
-        }
-        .template-list::-webkit-scrollbar-thumb:hover {
-          background: #94a3b8;
-        }
+        .mf-var-pill:hover { border-color: ${COLOR.primary}; color: ${COLOR.primary}; }
       `}</style>
 
       {/* Sidebar - sticky */}
@@ -309,22 +338,31 @@ const EmailTemplatesAdmin = () => {
       </div>
 
       {/* Main content */}
-      <main className="main-content flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-slate-50 h-screen">
+      <main className="main-content flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 h-screen" style={{ background: COLOR.bg }}>
         {/* Header */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Content</p>
-            <h1 className="mt-1 text-xl md:text-2xl font-semibold tracking-tight text-slate-900">
+            <p
+              style={{ fontFamily: FONT.mono, color: COLOR.textMuted }}
+              className="text-[11px] font-medium uppercase tracking-wider"
+            >
+              Content
+            </p>
+            <h1
+              style={{ fontFamily: FONT.display, color: COLOR.dark, letterSpacing: "-0.01em" }}
+              className="mt-1 text-xl md:text-2xl font-semibold"
+            >
               Email Templates
             </h1>
-            <p className="mt-1 text-xs md:text-sm text-slate-500">
+            <p className="mt-1 text-xs md:text-sm" style={{ color: COLOR.textMuted }}>
               Build and manage the HTML templates used across your campaigns.
             </p>
           </div>
 
           <button
             onClick={() => setShowNewModal(true)}
-            className="flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium text-white shadow-sm hover:bg-slate-800 transition w-full sm:w-auto"
+            className="flex items-center justify-center gap-2 rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium transition hover:opacity-90 w-full sm:w-auto"
+            style={{ background: COLOR.primary, color: COLOR.bg }}
           >
             <Plus size={15} />
             New Template
@@ -338,55 +376,57 @@ const EmailTemplatesAdmin = () => {
             value={String(templates.length)}
             description="Across all categories"
             icon={LayoutTemplate}
-            accent="text-slate-900 bg-slate-100"
+            accent={COLOR.neutral}
+            accentSoft={COLOR.neutralSoft}
           />
           <StatCard
             title="Published"
             value={String(templates.filter((t) => t.status === "Published").length)}
             description="Live and in use"
             icon={CheckCircle2}
-            accent="text-emerald-600 bg-emerald-50"
+            accent={COLOR.success}
+            accentSoft={COLOR.successSoft}
           />
           <StatCard
             title="Drafts"
             value={String(templates.filter((t) => t.status === "Draft").length)}
             description="Not yet published"
             icon={Clock}
-            accent="text-amber-600 bg-amber-50"
+            accent={COLOR.warning}
+            accentSoft={COLOR.warningSoft}
           />
           <StatCard
             title="Categories"
             value={String(categories.length)}
             description="Welcome, Promo, News, Txn"
             icon={FileCode}
-            accent="text-violet-600 bg-violet-50"
+            accent={COLOR.primary}
+            accentSoft={COLOR.primarySoft}
           />
         </div>
 
         {/* Editor layout */}
         <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-[280px_1fr]">
           {/* Template list */}
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-100 p-3 md:p-4">
+          <div className="mf-card overflow-hidden rounded-xl" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+            <div className="p-3 md:p-4" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
               <div className="relative mb-3">
                 <Search
                   size={14}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
+                  style={{ color: COLOR.textMuted }}
                 />
                 <input
                   type="text"
                   placeholder="Search templates…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-8 pr-3 text-xs md:text-sm outline-none transition focus:border-slate-400 focus:bg-white"
+                  className="mf-input w-full rounded-lg py-2 pl-8 pr-3 text-xs md:text-sm outline-none transition"
+                  style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
                 />
               </div>
               <div className="flex flex-wrap gap-1">
-                <FilterChip
-                  label="All"
-                  active={categoryFilter === "All"}
-                  onClick={() => setCategoryFilter("All")}
-                />
+                <FilterChip label="All" active={categoryFilter === "All"} onClick={() => setCategoryFilter("All")} />
                 {categories.map((c) => (
                   <FilterChip
                     key={c}
@@ -398,7 +438,7 @@ const EmailTemplatesAdmin = () => {
               </div>
             </div>
 
-            <div className="template-list max-h-[400px] md:max-h-[560px] divide-y divide-slate-100 overflow-y-auto">
+            <div className="template-list max-h-[400px] md:max-h-[560px] overflow-y-auto">
               {filtered.map((t) => {
                 const isSelected = t.id === selectedId;
                 const showsDirty = isSelected && isDirty;
@@ -406,55 +446,74 @@ const EmailTemplatesAdmin = () => {
                   <button
                     key={t.id}
                     onClick={() => setSelectedId(t.id)}
-                    className={`block w-full px-3 md:px-4 py-3 md:py-3.5 text-left transition ${
-                      isSelected ? "bg-slate-100" : "hover:bg-slate-50"
-                    }`}
+                    className="mf-row-btn relative block w-full px-3 md:px-4 py-3 md:py-3.5 text-left transition"
+                    style={{
+                      background: isSelected ? COLOR.primarySoft : "transparent",
+                      borderBottom: `1px solid ${COLOR.border}`,
+                    }}
                   >
+                    <span
+                      className="absolute left-0 top-0 h-full w-[3px] rounded-r-full transition-opacity"
+                      style={{ background: COLOR.primary, opacity: isSelected ? 1 : 0 }}
+                    />
                     <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-xs md:text-sm font-medium text-slate-900">
+                      <p
+                        className="truncate text-xs md:text-sm font-medium"
+                        style={{ color: isSelected ? COLOR.primary : COLOR.dark }}
+                      >
                         {t.name}
-                        {showsDirty && <span className="ml-1 text-slate-400">•</span>}
+                        {showsDirty && <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ background: COLOR.warning }} />}
                       </p>
                       <span
-                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                          t.status === "Published" ? "bg-emerald-500" : "bg-amber-500"
-                        }`}
+                        className="h-1.5 w-1.5 shrink-0 rounded-full"
+                        style={{ background: t.status === "Published" ? COLOR.success : COLOR.warning }}
                       />
                     </div>
-                    <p className="mt-1 truncate text-[10px] md:text-xs text-slate-500">{t.subject}</p>
+                    <p className="mt-1 truncate text-[10px] md:text-xs" style={{ color: COLOR.textMuted }}>
+                      {t.subject}
+                    </p>
                     <div className="mt-2 flex flex-wrap items-center justify-between gap-1">
-                      <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[9px] md:text-[10px] font-medium text-slate-600">
+                      <span
+                        style={{ fontFamily: FONT.mono, background: COLOR.bg, color: COLOR.textBody, border: `1px solid ${COLOR.border}` }}
+                        className="rounded-md px-1.5 py-0.5 text-[9px] md:text-[10px] font-medium"
+                      >
                         {t.category}
                       </span>
-                      <span className="text-[9px] md:text-[10px] text-slate-400">{t.updatedAt}</span>
+                      <span style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[9px] md:text-[10px]">
+                        {t.updatedAt}
+                      </span>
                     </div>
                   </button>
                 );
               })}
 
               {filtered.length === 0 && (
-                <div className="p-6 md:p-8 text-center text-xs md:text-sm text-slate-500">No templates found.</div>
+                <div className="p-6 md:p-8 text-center text-xs md:text-sm" style={{ color: COLOR.textMuted }}>
+                  No templates found.
+                </div>
               )}
             </div>
           </div>
 
           {/* Editor */}
           {draft ? (
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="mf-card overflow-hidden rounded-xl" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
               {/* Editor header */}
-              <div className="flex flex-col gap-3 md:gap-4 border-b border-slate-100 p-4 md:p-5">
+              <div className="flex flex-col gap-3 md:gap-4 p-4 md:p-5" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <input
                     value={draft.name}
                     onChange={(e) => updateDraft({ name: e.target.value })}
-                    className="w-full rounded-lg border border-transparent px-2 py-1 text-base md:text-lg font-semibold text-slate-900 outline-none transition hover:border-slate-200 focus:border-slate-300 focus:bg-slate-50 sm:w-auto sm:flex-1"
+                    className="mf-title-input w-full rounded-lg border border-transparent px-2 py-1 text-base md:text-lg font-semibold outline-none transition sm:w-auto sm:flex-1"
+                    style={{ fontFamily: FONT.display, color: COLOR.dark }}
                   />
 
                   <div className="flex flex-wrap items-center gap-2">
                     <select
                       value={draft.category}
                       onChange={(e) => updateDraft({ category: e.target.value as Category })}
-                      className="rounded-lg border border-slate-200 bg-white px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-medium text-slate-600 outline-none"
+                      className="mf-select rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-medium outline-none transition"
+                      style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
                     >
                       {categories.map((c) => (
                         <option key={c}>{c}</option>
@@ -465,11 +524,11 @@ const EmailTemplatesAdmin = () => {
                       onClick={() =>
                         updateDraft({ status: draft.status === "Published" ? "Draft" : "Published" })
                       }
-                      className={`rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-medium transition ${
-                        draft.status === "Published"
-                          ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                          : "bg-amber-50 text-amber-700 hover:bg-amber-100"
-                      }`}
+                      className="rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-medium transition hover:opacity-90"
+                      style={{
+                        background: draft.status === "Published" ? COLOR.successSoft : COLOR.warningSoft,
+                        color: draft.status === "Published" ? COLOR.success : COLOR.warning,
+                      }}
                     >
                       {draft.status}
                     </button>
@@ -480,19 +539,24 @@ const EmailTemplatesAdmin = () => {
                   value={draft.subject}
                   onChange={(e) => updateDraft({ subject: e.target.value })}
                   placeholder="Subject line"
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs md:text-sm text-slate-600 outline-none transition focus:border-slate-400 focus:bg-white"
+                  className="mf-input w-full rounded-lg px-3 py-2 text-xs md:text-sm outline-none transition"
+                  style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
                 />
 
                 <div className="flex flex-col md:flex-row flex-wrap items-start md:items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-1">
-                    <span className="mr-1 flex items-center gap-1 text-[10px] md:text-[11px] font-medium text-slate-400">
+                    <span
+                      className="mr-1 flex items-center gap-1 text-[10px] md:text-[11px] font-medium"
+                      style={{ color: COLOR.textMuted }}
+                    >
                       <Braces size={12} /> Insert:
                     </span>
                     {variables.map((v) => (
                       <button
                         key={v}
                         onClick={() => insertVariable(v)}
-                        className="rounded-md border border-slate-200 bg-slate-50 px-1.5 md:px-2 py-0.5 md:py-1 font-mono text-[9px] md:text-[11px] text-slate-600 transition hover:border-slate-300 hover:bg-slate-100"
+                        className="mf-var-pill rounded-md px-1.5 md:px-2 py-0.5 md:py-1 text-[9px] md:text-[11px] transition"
+                        style={{ fontFamily: FONT.mono, background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
                       >
                         {v}
                       </button>
@@ -503,31 +567,46 @@ const EmailTemplatesAdmin = () => {
                     {isDirty && (
                       <button
                         onClick={handleDiscard}
-                        className="flex items-center gap-1 rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-medium text-slate-500 transition hover:bg-slate-100"
+                        className="mf-icon-btn flex items-center gap-1 rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-medium transition"
+                        style={{ color: COLOR.textMuted }}
                       >
                         <Undo2 size={12} /> Discard
                       </button>
                     )}
                     <button
                       onClick={handleDuplicate}
-                      className="flex items-center gap-1 rounded-lg border border-slate-200 px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-medium text-slate-600 transition hover:bg-slate-50"
+                      className="flex items-center gap-1 rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-medium transition hover:opacity-90"
+                      style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
                     >
                       <Copy size={12} /> Duplicate
                     </button>
                     <button
                       onClick={handleDelete}
-                      className="flex items-center gap-1 rounded-lg border border-rose-200 px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                      className="flex items-center gap-1 rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-medium transition hover:opacity-90"
+                      style={{ background: COLOR.dangerSoft, border: `1px solid transparent`, color: COLOR.danger }}
                     >
                       <Trash2 size={12} />
                     </button>
                     <button
                       onClick={handleSave}
                       disabled={!isDirty}
-                      className={`flex items-center gap-1 rounded-lg px-3 md:px-4 py-1.5 md:py-2 text-[10px] md:text-xs font-medium text-white transition ${
-                        isDirty ? "bg-slate-900 hover:bg-slate-800" : "cursor-not-allowed bg-slate-300"
-                      }`}
+                      className="flex items-center gap-1 rounded-lg px-3 md:px-4 py-1.5 md:py-2 text-[10px] md:text-xs font-medium transition"
+                      style={{
+                        background: isDirty ? COLOR.primary : COLOR.border,
+                        color: isDirty ? COLOR.bg : COLOR.textMuted,
+                        cursor: isDirty ? "pointer" : "not-allowed",
+                      }}
                     >
-                      <Save size={12} /> {savedFlash ? "Saved" : isDirty ? "Save" : "Saved"}
+                      {savedFlash ? <Check size={12} /> : <Save size={12} />}
+                      {savedFlash ? "Saved" : isDirty ? "Save" : "Saved"}
+                      {isDirty && !savedFlash && (
+                        <span
+                          style={{ fontFamily: FONT.mono, color: COLOR.bg, opacity: 0.7 }}
+                          className="ml-0.5 hidden text-[9px] sm:inline"
+                        >
+                          ⌘S
+                        </span>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -536,73 +615,85 @@ const EmailTemplatesAdmin = () => {
               {/* Code + Preview split */}
               <div className="grid grid-cols-1 lg:grid-cols-2">
                 {/* Code */}
-                <div className="border-b border-slate-100 lg:border-b-0 lg:border-r">
-                  <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 md:px-4 py-2 md:py-2.5">
-                    <Code2 size={13} className="text-slate-400" />
-                    <span className="text-[10px] md:text-xs font-medium text-slate-500">HTML</span>
+                <div style={{ borderBottom: `1px solid ${COLOR.border}` }} className="lg:border-b-0" >
+                  <div
+                    className="flex items-center gap-2 px-3 md:px-4 py-2 md:py-2.5"
+                    style={{ background: COLOR.bg, borderBottom: `1px solid ${COLOR.border}`, borderRight: `1px solid ${COLOR.border}` }}
+                  >
+                    <Code2 size={13} style={{ color: COLOR.textMuted }} />
+                    <span style={{ color: COLOR.textMuted }} className="text-[10px] md:text-xs font-medium">HTML</span>
                   </div>
                   <textarea
                     ref={textareaRef}
                     value={draft.html}
                     onChange={(e) => updateDraft({ html: e.target.value })}
                     spellCheck={false}
-                    className="h-[300px] md:h-[480px] w-full resize-none bg-slate-900 p-3 md:p-4 font-mono text-[11px] md:text-[12.5px] leading-relaxed text-slate-100 outline-none"
+                    className="h-[300px] md:h-[480px] w-full resize-none p-3 md:p-4 text-[11px] md:text-[12.5px] leading-relaxed outline-none"
+                    style={{ fontFamily: FONT.mono, background: COLOR.bg, color: COLOR.textBody, borderRight: `1px solid ${COLOR.border}` }}
                   />
                 </div>
 
                 {/* Preview */}
                 <div>
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-3 md:px-4 py-2 md:py-2.5">
+                  <div
+                    className="flex flex-wrap items-center justify-between gap-2 px-3 md:px-4 py-2 md:py-2.5"
+                    style={{ background: COLOR.bg, borderBottom: `1px solid ${COLOR.border}` }}
+                  >
                     <div className="flex items-center gap-2">
-                      <Eye size={13} className="text-slate-400" />
-                      <span className="text-[10px] md:text-xs font-medium text-slate-500">Preview</span>
+                      <Eye size={13} style={{ color: COLOR.textMuted }} />
+                      <span style={{ color: COLOR.textMuted }} className="text-[10px] md:text-xs font-medium">Preview</span>
                     </div>
-                    <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-0.5">
+                    <div className="flex items-center gap-1 rounded-lg p-0.5" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
                       <button
                         onClick={() => setDevice("desktop")}
-                        className={`rounded-md p-1.5 transition ${
-                          device === "desktop"
-                            ? "bg-slate-900 text-white"
-                            : "text-slate-400 hover:text-slate-700"
-                        }`}
+                        className="rounded-md p-1.5 transition"
+                        style={{
+                          background: device === "desktop" ? COLOR.primary : "transparent",
+                          color: device === "desktop" ? COLOR.bg : COLOR.textMuted,
+                        }}
                       >
                         <Monitor size={13} />
                       </button>
                       <button
                         onClick={() => setDevice("mobile")}
-                        className={`rounded-md p-1.5 transition ${
-                          device === "mobile"
-                            ? "bg-slate-900 text-white"
-                            : "text-slate-400 hover:text-slate-700"
-                        }`}
+                        className="rounded-md p-1.5 transition"
+                        style={{
+                          background: device === "mobile" ? COLOR.primary : "transparent",
+                          color: device === "mobile" ? COLOR.bg : COLOR.textMuted,
+                        }}
                       >
                         <Smartphone size={13} />
                       </button>
                     </div>
                   </div>
-                  <div className="flex h-[300px] md:h-[480px] items-start justify-center overflow-auto bg-slate-100 p-3 md:p-4">
+                  <div className="flex h-[300px] md:h-[480px] items-start justify-center overflow-auto p-3 md:p-4" style={{ background: COLOR.bg }}>
                     <iframe
                       title="Template preview"
                       srcDoc={draft.html}
                       sandbox=""
-                      className={`h-full rounded-lg border border-slate-200 bg-white shadow-sm transition-all ${
+                      className={`h-full rounded-lg bg-white shadow-lg transition-all ${
                         device === "mobile" ? "w-[320px] md:w-[375px]" : "w-full"
                       }`}
+                      style={{ border: `1px solid ${COLOR.border}` }}
                     />
                   </div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white p-12 md:p-16 text-center">
-              <span className="mb-3 flex h-10 w-10 md:h-11 md:w-11 items-center justify-center rounded-full bg-slate-100">
-                <Inbox size={16} className="text-slate-400" />
+            <div
+              className="flex flex-col items-center justify-center rounded-xl border border-dashed p-12 md:p-16 text-center"
+              style={{ background: COLOR.surface, borderColor: COLOR.border }}
+            >
+              <span className="mb-3 flex h-10 w-10 md:h-11 md:w-11 items-center justify-center rounded-full" style={{ background: COLOR.primarySoft }}>
+                <Inbox size={16} style={{ color: COLOR.primary }} />
               </span>
-              <h3 className="text-xs md:text-sm font-medium text-slate-900">No templates yet</h3>
-              <p className="mt-1 text-xs md:text-sm text-slate-500">Create your first template to get started.</p>
+              <h3 className="text-xs md:text-sm font-medium" style={{ color: COLOR.dark }}>No templates yet</h3>
+              <p className="mt-1 text-xs md:text-sm" style={{ color: COLOR.textMuted }}>Create your first template to get started.</p>
               <button
                 onClick={() => setShowNewModal(true)}
-                className="mt-4 flex items-center gap-2 rounded-lg bg-slate-900 px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium text-white hover:bg-slate-800 transition"
+                className="mt-4 flex items-center gap-2 rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium transition hover:opacity-90"
+                style={{ background: COLOR.primary, color: COLOR.bg }}
               >
                 <Plus size={15} /> New Template
               </button>
@@ -626,20 +717,26 @@ interface StatCardProps {
   title: string;
   value: string;
   description: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>;
   accent: string;
+  accentSoft: string;
 }
 
-const StatCard = ({ title, value, description, icon: Icon, accent }: StatCardProps) => (
-  <div className="rounded-xl border border-slate-200 bg-white p-4 md:p-5 shadow-sm hover:shadow-md transition">
+const StatCard = ({ title, value, description, icon: Icon, accent, accentSoft }: StatCardProps) => (
+  <div
+    className="mf-card rounded-xl p-4 md:p-5 transition"
+    style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}
+  >
     <div className="flex items-start justify-between">
-      <p className="text-[10px] md:text-sm text-slate-500">{title}</p>
-      <span className={`flex h-6 w-6 md:h-8 md:w-8 items-center justify-center rounded-lg ${accent}`}>
-        <Icon size={13} />
+      <p className="text-[10px] md:text-sm" style={{ color: COLOR.textMuted }}>{title}</p>
+      <span className="flex h-6 w-6 md:h-8 md:w-8 items-center justify-center rounded-lg" style={{ background: accentSoft }}>
+        <Icon size={13} style={{ color: accent }} />
       </span>
     </div>
-    <h2 className="mt-2 md:mt-3 text-xl md:text-2xl font-semibold tracking-tight text-slate-900">{value}</h2>
-    <p className="mt-1 text-[9px] md:text-xs text-slate-400">{description}</p>
+    <h2 style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="mt-2 md:mt-3 text-xl md:text-2xl font-semibold tracking-tight">
+      {value}
+    </h2>
+    <p className="mt-1 text-[9px] md:text-xs" style={{ color: COLOR.textMuted }}>{description}</p>
   </div>
 );
 
@@ -658,9 +755,12 @@ const FilterChip = ({
 }) => (
   <button
     onClick={onClick}
-    className={`rounded-full px-2 md:px-2.5 py-0.5 md:py-1 text-[10px] md:text-[11px] font-medium transition ${
-      active ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-    }`}
+    className="rounded-full px-2 md:px-2.5 py-0.5 md:py-1 text-[10px] md:text-[11px] font-medium transition"
+    style={{
+      background: active ? COLOR.primary : COLOR.bg,
+      color: active ? COLOR.bg : COLOR.textBody,
+      border: `1px solid ${active ? COLOR.primary : COLOR.border}`,
+    }}
   >
     {label}
   </button>
@@ -682,21 +782,24 @@ const NewTemplateModal = ({
   const [category, setCategory] = useState<Category>("Welcome");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-100 p-4 md:p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: "rgba(14,16,19,0.6)" }}>
+      <div className="w-full max-w-lg rounded-2xl shadow-2xl" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+        <div className="flex items-center justify-between p-4 md:p-6" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
           <div className="flex items-center gap-2 md:gap-3">
-            <span className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+            <span className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-lg" style={{ background: COLOR.primarySoft, color: COLOR.primary }}>
               <LayoutTemplate size={14} />
             </span>
             <div>
-              <h2 className="text-sm md:text-base font-semibold text-slate-900">New Template</h2>
-              <p className="text-[10px] md:text-xs text-slate-500">Start from a category-matched boilerplate.</p>
+              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-sm md:text-base font-semibold">
+                New Template
+              </h2>
+              <p className="text-[10px] md:text-xs" style={{ color: COLOR.textMuted }}>Start from a category-matched boilerplate.</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 md:p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+            className="mf-icon-btn rounded-lg p-1.5 md:p-2 transition"
+            style={{ color: COLOR.textMuted }}
           >
             <X size={14} />
           </button>
@@ -704,55 +807,69 @@ const NewTemplateModal = ({
 
         <div className="space-y-4 md:space-y-5 p-4 md:p-6">
           <div>
-            <label className="mb-1.5 md:mb-2 block text-xs md:text-sm font-medium text-slate-700">Template Name</label>
+            <label className="mb-1.5 md:mb-2 block text-xs md:text-sm font-medium" style={{ color: COLOR.textBody }}>
+              Template Name
+            </label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Cart Abandonment — Reminder"
-              className="w-full rounded-lg border border-slate-200 px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+              className="mf-input w-full rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm outline-none transition"
+              style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
             />
           </div>
 
           <div>
-            <label className="mb-1.5 md:mb-2 block text-xs md:text-sm font-medium text-slate-700">Subject Line</label>
+            <label className="mb-1.5 md:mb-2 block text-xs md:text-sm font-medium" style={{ color: COLOR.textBody }}>
+              Subject Line
+            </label>
             <input
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. You left something behind"
-              className="w-full rounded-lg border border-slate-200 px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+              className="mf-input w-full rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm outline-none transition"
+              style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
             />
           </div>
 
           <div>
-            <label className="mb-1.5 md:mb-2 block text-xs md:text-sm font-medium text-slate-700">Category</label>
+            <label className="mb-1.5 md:mb-2 block text-xs md:text-sm font-medium" style={{ color: COLOR.textBody }}>
+              Category
+            </label>
             <div className="grid grid-cols-2 gap-2">
-              {categories.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setCategory(c)}
-                  className={`rounded-lg border px-2 md:px-3 py-2 md:py-2.5 text-left text-[10px] md:text-sm font-medium transition ${
-                    category === c
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
+              {categories.map((c) => {
+                const active = category === c;
+                return (
+                  <button
+                    key={c}
+                    onClick={() => setCategory(c)}
+                    className="rounded-lg border px-2 md:px-3 py-2 md:py-2.5 text-left text-[10px] md:text-sm font-medium transition"
+                    style={{
+                      borderColor: active ? COLOR.primary : COLOR.border,
+                      background: active ? COLOR.primarySoft : COLOR.bg,
+                      color: active ? COLOR.primary : COLOR.textBody,
+                    }}
+                  >
+                    {c}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-end gap-2 md:gap-3 border-t border-slate-100 p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row justify-end gap-2 md:gap-3 p-4 md:p-6" style={{ borderTop: `1px solid ${COLOR.border}` }}>
           <button
             onClick={onClose}
-            className="rounded-lg border border-slate-200 px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
+            className="rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium transition hover:opacity-90"
+            style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
           >
             Cancel
           </button>
           <button
             onClick={() => onCreate(name, subject, category)}
-            className="rounded-lg bg-slate-900 px-4 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium text-white hover:bg-slate-800 transition"
+            className="rounded-lg px-4 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium transition hover:opacity-90"
+            style={{ background: COLOR.primary, color: COLOR.bg }}
           >
             Create Template
           </button>
