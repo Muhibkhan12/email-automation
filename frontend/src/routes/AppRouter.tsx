@@ -15,6 +15,7 @@ import Login from "../pages/Login";
 import Register from "../pages/Register";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 import EmailTemplatesAdmin from "../pages/Admin/AdminTemplates";
+import AdminCampaigns from "../pages/Admin/AdminCampaigns";
 
 const AppRouter = () => {
   return (
@@ -38,6 +39,7 @@ const AppRouter = () => {
         {/* admin routes */}
 
         <Route path="/admin/email-templates" element={<EmailTemplatesAdmin/>}/>
+        <Route path="/admin/campaigns" element={<AdminCampaigns/>}/>
     </Routes>
   )
 }

@@ -339,13 +339,13 @@ const AdminCampaigns = () => {
                     <Icon size={14} style={{ color: stat.accent }} />
                   </div>
                   <span
-                    className={`flex items-center gap-0.5 text-[10px] md:text-[11.5px] font-medium ${
-                      stat.trend === "up" ? "text-[#7FD98A]" : "text-[#FF5C6C]"
-                    }`}
-                  >
-                    {stat.trend === "up" ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                    {stat.delta}
-                  </span>
+  className={`flex items-center gap-0.5 text-[10px] md:text-[11.5px] font-medium ${
+    stat.trend === "up" ? "text-[#7FD98A]" : "text-[#FF5C6C]"
+  }`}
+>
+  {stat.trend === "up" ? "+" : "-"}
+  {stat.delta}
+</span>
                 </div>
                 <h2 className="mt-3 md:mt-4 text-xl md:text-2xl font-semibold tracking-tight text-[#E8E6E1] font-['JetBrains_Mono']">
                   {stat.value}
