@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import Sidebar from "../User/Sidebar";
+import AdminSidebar from "./AdminSidebar";
 import {
   Plus,
   Search,
@@ -334,7 +334,7 @@ const EmailTemplatesAdmin = () => {
 
       {/* Sidebar - sticky */}
       <div className="sticky top-0 h-screen flex-shrink-0">
-        <Sidebar />
+        <AdminSidebar />
       </div>
 
       {/* Main content */}

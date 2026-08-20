@@ -17,6 +17,7 @@ import AdminDashboard from "../pages/Admin/AdminDashboard";
 import EmailTemplatesAdmin from "../pages/Admin/AdminTemplates";
 import AdminCampaigns from "../pages/Admin/AdminCampaigns";
 import AdminAnalytics from "../pages/Admin/AdminAnalytics";
+import AdminUsers from "../pages/Admin/AdminUsersPage";
 
 const AppRouter = () => {
   return (
@@ -40,8 +41,9 @@ const AppRouter = () => {
 
         <Route path="/admin/dashboard"  element={<AdminDashboard/>} />
         <Route path="/admin/analytics"  element={<AdminAnalytics/>} />
-        <Route path="/admin/email-templates" element={<EmailTemplatesAdmin/>}/>
+        <Route path="/admin/templates" element={<EmailTemplatesAdmin/>}/>
         <Route path="/admin/campaigns" element={<AdminCampaigns/>}/>
+        <Route path="/admin/users" element={<AdminUsers/>}/>
     </Routes>
   )
 }
