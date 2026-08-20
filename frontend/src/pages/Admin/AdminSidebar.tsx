@@ -52,7 +52,7 @@ const navGroups = [
     items: [
       { name: 'Email Logs', path: '/admin/emaillogs', icon: Mail },
       { name: 'Queue Monitor', path: '/admin/queuemonitor', icon: ListOrdered },
-      { name: 'Sender Accounts', path: '/admin/sender-account', icon: AtSign },
+      { name: 'Sender Accounts', path: '/admin/senders-account', icon: AtSign },
     ],
   },
   {

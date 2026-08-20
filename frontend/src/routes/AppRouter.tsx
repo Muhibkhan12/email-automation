@@ -22,7 +22,7 @@ import AdminNotifications from "../pages/Admin/AdminNotification";
 import AdminEmailLogs from "../pages/Admin/AdminEmaillogs";
 import AdminQueueMonitor from "../pages/Admin/AdminQueuemonitor";
 import AdminSettings from "../pages/Admin/AdminSettings";
-import AdminSenderAccounts from "../pages/Admin/AdminSendersAccount";
+import AdminSenderAccounts from "../pages/Admin/AdminSenderAccount";
 
 import { Ad } from "lucide-react";
 
@@ -55,7 +55,7 @@ const AppRouter = () => {
         <Route path="/admin/emaillogs" element={<AdminEmailLogs/>}/>
         <Route path="/admin/queuemonitor" element={<AdminQueueMonitor/>}/>
         <Route path="/admin/settings" element={<AdminSettings/>} />
-        <Route path="admin/senders-account" element={<AdminSenderAccounts/>} />
+        <Route path="/admin/senders-account" element={<AdminSenderAccounts/>} />
     </Routes>
   )
 }
