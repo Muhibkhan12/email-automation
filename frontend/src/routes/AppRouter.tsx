@@ -19,6 +19,7 @@ import AdminCampaigns from "../pages/Admin/AdminCampaigns";
 import AdminAnalytics from "../pages/Admin/AdminAnalytics";
 import AdminUsers from "../pages/Admin/AdminUsersPage";
 import AdminNotifications from "../pages/Admin/AdminNotification";
+import AdminEmailLogs from "../pages/Admin/AdminEmaillogs";
 
 const AppRouter = () => {
   return (
@@ -46,6 +47,7 @@ const AppRouter = () => {
         <Route path="/admin/campaigns" element={<AdminCampaigns/>}/>
         <Route path="/admin/users" element={<AdminUsers/>}/>
         <Route path="/admin/notifications" element={<AdminNotifications/>}/>
+        <Route path="/admin/emaillogs" element={<AdminEmailLogs/>}></Route>
     </Routes>
   )
 }
