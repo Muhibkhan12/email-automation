@@ -16,6 +16,7 @@ import Register from "../pages/Register";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 import EmailTemplatesAdmin from "../pages/Admin/AdminTemplates";
 import AdminCampaigns from "../pages/Admin/AdminCampaigns";
+import AdminAnalytics from "../pages/Admin/AdminAnalytics";
 
 const AppRouter = () => {
   return (
@@ -38,6 +39,7 @@ const AppRouter = () => {
         {/* admin routes */}
 
         <Route path="/admin/dashboard"  element={<AdminDashboard/>} />
+        <Route path="/admin/analytics"  element={<AdminAnalytics/>} />
         <Route path="/admin/email-templates" element={<EmailTemplatesAdmin/>}/>
         <Route path="/admin/campaigns" element={<AdminCampaigns/>}/>
     </Routes>
