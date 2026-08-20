@@ -61,10 +61,10 @@ interface Incident {
 /* ---------------------------------------------------------------------- */
 
 const stats: StatCard[] = [
-  { title: "Total workspaces", value: "1,842", delta: "+64 this month", trend: "up", icon: Building2, accent: "#2F6FED", accentSoft: "#EAF0FE" },
-  { title: "Monthly recurring revenue", value: "$128,940", delta: "+9.4%", trend: "up", icon: DollarSign, accent: "#1FA971", accentSoft: "#E6F7EF" },
-  { title: "Active users (30d)", value: "9,204", delta: "+412", trend: "up", icon: Users, accent: "#7C3AED", accentSoft: "#F1EAFE" },
-  { title: "Platform emails sent (24h)", value: "2.4M", delta: "-3.1%", trend: "down", icon: Send, accent: "#E8A23D", accentSoft: "#FDF3E4" },
+  { title: "Total workspaces", value: "1,842", delta: "+64 this month", trend: "up", icon: Building2, accent: "#FF6A39", accentSoft: "rgba(255,106,57,0.12)" },
+  { title: "Monthly recurring revenue", value: "$128,940", delta: "+9.4%", trend: "up", icon: DollarSign, accent: "#7FD98A", accentSoft: "rgba(127,217,138,0.12)" },
+  { title: "Active users (30d)", value: "9,204", delta: "+412", trend: "up", icon: Users, accent: "#FFC24B", accentSoft: "rgba(255,194,75,0.12)" },
+  { title: "Platform emails sent (24h)", value: "2.4M", delta: "-3.1%", trend: "down", icon: Send, accent: "#FF5C6C", accentSoft: "rgba(255,92,108,0.12)" },
 ];
 
 const mrrTrend = [
@@ -74,10 +74,10 @@ const mrrTrend = [
 ];
 
 const planDistribution = [
-  { name: "Free", value: 1120, color: "#CBD5E1" },
-  { name: "Pro", value: 480, color: "#2F6FED" },
-  { name: "Business", value: 196, color: "#7C3AED" },
-  { name: "Enterprise", value: 46, color: "#1FA971" },
+  { name: "Free", value: 1120, color: "#2A2E37" },
+  { name: "Pro", value: 480, color: "#FF6A39" },
+  { name: "Business", value: 196, color: "#FFC24B" },
+  { name: "Enterprise", value: 46, color: "#7FD98A" },
 ];
 
 const systemComponents: SystemComponent[] = [
@@ -89,9 +89,9 @@ const systemComponents: SystemComponent[] = [
 ];
 
 const STATUS_META: Record<SystemStatus, { bg: string; fg: string; icon: React.ElementType }> = {
-  Operational: { bg: "bg-emerald-50", fg: "text-emerald-600", icon: ShieldCheck },
-  Degraded: { bg: "bg-amber-50", fg: "text-amber-600", icon: ShieldAlert },
-  Down: { bg: "bg-rose-50", fg: "text-rose-600", icon: ShieldX },
+  Operational: { bg: "bg-emerald-500/15", fg: "text-emerald-400", icon: ShieldCheck },
+  Degraded: { bg: "bg-amber-500/15", fg: "text-amber-400", icon: ShieldAlert },
+  Down: { bg: "bg-rose-500/15", fg: "text-rose-400", icon: ShieldX },
 };
 
 const topWorkspaces: Workspace[] = [
@@ -103,10 +103,10 @@ const topWorkspaces: Workspace[] = [
 ];
 
 const PLAN_STYLE: Record<WorkspacePlan, { bg: string; fg: string }> = {
-  Free: { bg: "bg-slate-100", fg: "text-slate-600" },
-  Pro: { bg: "bg-blue-50", fg: "text-blue-700" },
-  Business: { bg: "bg-violet-50", fg: "text-violet-700" },
-  Enterprise: { bg: "bg-emerald-50", fg: "text-emerald-700" },
+  Free: { bg: "bg-slate-700/30", fg: "text-slate-400" },
+  Pro: { bg: "bg-[#FF6A39]/15", fg: "text-[#FF6A39]" },
+  Business: { bg: "bg-[#FFC24B]/15", fg: "text-[#FFC24B]" },
+  Enterprise: { bg: "bg-[#7FD98A]/15", fg: "text-[#7FD98A]" },
 };
 
 const recentSignups: Signup[] = [
@@ -123,9 +123,9 @@ const incidents: Incident[] = [
 ];
 
 const INCIDENT_STYLE: Record<Incident["severity"], { bg: string; fg: string; icon: React.ElementType }> = {
-  Critical: { bg: "bg-rose-50", fg: "text-rose-600", icon: AlertTriangle },
-  Warning: { bg: "bg-amber-50", fg: "text-amber-600", icon: AlertTriangle },
-  Resolved: { bg: "bg-emerald-50", fg: "text-emerald-600", icon: CheckCircle2 },
+  Critical: { bg: "bg-rose-500/15", fg: "text-rose-400", icon: AlertTriangle },
+  Warning: { bg: "bg-amber-500/15", fg: "text-amber-400", icon: AlertTriangle },
+  Resolved: { bg: "bg-emerald-500/15", fg: "text-emerald-400", icon: CheckCircle2 },
 };
 
 const RANGES = ["Last 24 hours", "Last 7 days", "Last 30 days"];
@@ -139,20 +139,35 @@ const AdminDashboard = () => {
   const planTotal = planDistribution.reduce((s, p) => s + p.value, 0);
 
   return (
-    <div className="flex min-h-screen overflow-hidden bg-slate-50">
+    <div className="flex min-h-screen overflow-hidden bg-[#0E1013]">
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        
         .main-content::-webkit-scrollbar {
           width: 6px;
         }
         .main-content::-webkit-scrollbar-track {
-          background: #f1f5f9;
+          background: #0E1013;
         }
         .main-content::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
+          background: #2A2E37;
           border-radius: 3px;
         }
         .main-content::-webkit-scrollbar-thumb:hover {
-          background: #94a3b8;
+          background: #3A3F4A;
+        }
+        .mf-card:hover {
+          border-color: #3A3F4A;
+        }
+        .mf-row:hover {
+          background-color: #1B1E24;
+        }
+        .pulse-dot {
+          animation: pulse-fade 1.8s ease-in-out infinite;
+        }
+        @keyframes pulse-fade {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
         }
       `}</style>
 
@@ -160,19 +175,19 @@ const AdminDashboard = () => {
         <Sidebar />
       </div>
 
-      <main className="main-content flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-slate-50 h-screen">
+      <main className="main-content flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-[#0E1013] h-screen">
         {/* Header */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2 md:gap-2.5">
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#E8E6E1] font-['Space_Grotesk']">
                 Admin Dashboard
               </h1>
-              <span className="rounded-full px-2 md:px-2.5 py-0.5 text-[10px] md:text-[11px] font-medium bg-violet-50 text-violet-700">
+              <span className="rounded-full px-2 md:px-2.5 py-0.5 text-[10px] md:text-[11px] font-medium bg-[#FF6A39]/15 text-[#FF6A39]">
                 Super Admin
               </span>
             </div>
-            <p className="mt-1 text-xs md:text-sm text-slate-500">
+            <p className="mt-1 text-xs md:text-sm text-[#8B8D94]">
               Platform-wide oversight across all workspaces and system health.
             </p>
           </div>
@@ -180,7 +195,7 @@ const AdminDashboard = () => {
           <select
             value={range}
             onChange={(e) => setRange(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm text-slate-600 outline-none w-full sm:w-auto"
+            className="rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm text-[#C7C9CE] outline-none w-full sm:w-auto focus:border-[#FF6A39]"
           >
             {RANGES.map((r) => (
               <option key={r}>{r}</option>
@@ -195,7 +210,7 @@ const AdminDashboard = () => {
             return (
               <div
                 key={stat.title}
-                className="rounded-xl bg-white p-4 md:p-5 border border-slate-200 hover:shadow-md transition-shadow"
+                className="rounded-xl bg-[#171A21] p-4 md:p-5 border border-[#2A2E37] hover:border-[#3A3F4A] transition-all"
               >
                 <div className="flex items-start justify-between">
                   <div
@@ -206,17 +221,17 @@ const AdminDashboard = () => {
                   </div>
                   <span
                     className={`flex items-center gap-0.5 text-[10px] md:text-[11.5px] font-medium ${
-                      stat.trend === "up" ? "text-emerald-600" : "text-rose-600"
+                      stat.trend === "up" ? "text-[#7FD98A]" : "text-[#FF5C6C]"
                     }`}
                   >
                     {stat.trend === "up" ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                     {stat.delta}
                   </span>
                 </div>
-                <h2 className="mt-3 md:mt-4 text-xl md:text-2xl font-semibold tracking-tight text-slate-900 font-mono">
+                <h2 className="mt-3 md:mt-4 text-xl md:text-2xl font-semibold tracking-tight text-[#E8E6E1] font-['JetBrains_Mono']">
                   {stat.value}
                 </h2>
-                <p className="mt-1 text-xs md:text-sm text-slate-600">
+                <p className="mt-1 text-xs md:text-sm text-[#C7C9CE]">
                   {stat.title}
                 </p>
               </div>
@@ -226,12 +241,12 @@ const AdminDashboard = () => {
 
         {/* MRR trend + Plan distribution */}
         <div className="mb-6 grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
-          <div className="lg:col-span-2 rounded-xl bg-white p-4 md:p-6 border border-slate-200">
+          <div className="lg:col-span-2 rounded-xl bg-[#171A21] p-4 md:p-6 border border-[#2A2E37]">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
-              <h2 className="text-base md:text-lg font-semibold text-slate-900">
+              <h2 className="text-base md:text-lg font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
                 Revenue growth
               </h2>
-              <span className="text-[10px] md:text-[11px] text-slate-500 font-mono">
+              <span className="text-[10px] md:text-[11px] text-[#8B8D94] font-['JetBrains_Mono']">
                 MRR, last 7 months
               </span>
             </div>
@@ -240,26 +255,37 @@ const AdminDashboard = () => {
                 <AreaChart data={mrrTrend} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
                   <defs>
                     <linearGradient id="fillMrr" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#1FA971" stopOpacity={0.25} />
-                      <stop offset="100%" stopColor="#1FA971" stopOpacity={0} />
+                      <stop offset="0%" stopColor="#7FD98A" stopOpacity={0.25} />
+                      <stop offset="100%" stopColor="#7FD98A" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid stroke="#E7E8EC" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#8A8F9C", fontFamily: "monospace" }} axisLine={false} tickLine={false} />
+                  <CartesianGrid stroke="#2A2E37" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#8B8D94", fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} />
                   <YAxis
-                    tick={{ fontSize: 11, fill: "#8A8F9C", fontFamily: "monospace" }}
+                    tick={{ fontSize: 11, fill: "#8B8D94", fontFamily: "JetBrains Mono" }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => `$${Math.round(v / 1000)}k`}
                   />
-                  <Area type="monotone" dataKey="mrr" stroke="#1FA971" strokeWidth={2} fill="url(#fillMrr)" />
+                  <Tooltip
+                    contentStyle={{ 
+                      borderRadius: 8, 
+                      border: "1px solid #2A2E37", 
+                      background: "#171A21",
+                      fontFamily: "JetBrains Mono",
+                      fontSize: 12,
+                      color: "#E8E6E1"
+                    }}
+                    formatter={(v: number) => [`$${v.toLocaleString()}`, "MRR"]}
+                  />
+                  <Area type="monotone" dataKey="mrr" stroke="#7FD98A" strokeWidth={2} fill="url(#fillMrr)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="rounded-xl bg-white p-4 md:p-6 border border-slate-200">
-            <h2 className="text-base md:text-lg font-semibold text-slate-900 mb-3 md:mb-4">
+          <div className="rounded-xl bg-[#171A21] p-4 md:p-6 border border-[#2A2E37]">
+            <h2 className="text-base md:text-lg font-semibold text-[#E8E6E1] font-['Space_Grotesk'] mb-3 md:mb-4">
               Plan distribution
             </h2>
             <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4">
@@ -277,11 +303,11 @@ const AdminDashboard = () => {
               <div className="flex-1 w-full space-y-1.5 md:space-y-2">
                 {planDistribution.map((p) => (
                   <div key={p.name} className="flex items-center justify-between text-[11px] md:text-[12.5px]">
-                    <span className="flex items-center gap-1.5 text-slate-600">
+                    <span className="flex items-center gap-1.5 text-[#C7C9CE]">
                       <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full" style={{ background: p.color }} />
                       {p.name}
                     </span>
-                    <span className="font-medium text-slate-900 font-mono">
+                    <span className="font-medium text-[#E8E6E1] font-['JetBrains_Mono']">
                       {Math.round((p.value / planTotal) * 100)}%
                     </span>
                   </div>
@@ -293,10 +319,10 @@ const AdminDashboard = () => {
 
         {/* System health + Incidents */}
         <div className="mb-6 grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
-          <div className="lg:col-span-2 rounded-xl bg-white p-4 md:p-6 border border-slate-200">
+          <div className="lg:col-span-2 rounded-xl bg-[#171A21] p-4 md:p-6 border border-[#2A2E37]">
             <div className="flex items-center gap-2 mb-3 md:mb-4">
-              <Activity size={14} className="text-blue-600" />
-              <h2 className="text-base md:text-lg font-semibold text-slate-900">
+              <Activity size={14} className="text-[#FF6A39]" />
+              <h2 className="text-base md:text-lg font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
                 System health
               </h2>
             </div>
@@ -307,16 +333,16 @@ const AdminDashboard = () => {
                 return (
                   <div
                     key={c.name}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 md:px-3.5 py-2.5 md:py-3 bg-slate-50"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 md:px-3.5 py-2.5 md:py-3 bg-[#0E1013]"
                   >
                     <div className="flex items-center gap-2 md:gap-2.5">
                       <div className={`flex h-6 w-6 md:h-7 md:w-7 items-center justify-center rounded-md ${meta.bg}`}>
                         <Icon size={12} className={meta.fg} />
                       </div>
-                      <span className="text-[11px] md:text-[13px] text-slate-600">{c.name}</span>
+                      <span className="text-[11px] md:text-[13px] text-[#C7C9CE]">{c.name}</span>
                     </div>
                     <div className="flex items-center gap-2 md:gap-3">
-                      <span className="text-[10px] md:text-[11.5px] text-slate-500 font-mono">
+                      <span className="text-[10px] md:text-[11.5px] text-[#8B8D94] font-['JetBrains_Mono']">
                         {c.latency}
                       </span>
                       <span className={`rounded-full px-1.5 md:px-2 py-0.5 text-[10px] md:text-[11px] font-medium ${meta.bg} ${meta.fg}`}>
@@ -329,8 +355,8 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="rounded-xl bg-white p-4 md:p-6 border border-slate-200">
-            <h2 className="text-base md:text-lg font-semibold text-slate-900 mb-3 md:mb-4">
+          <div className="rounded-xl bg-[#171A21] p-4 md:p-6 border border-[#2A2E37]">
+            <h2 className="text-base md:text-lg font-semibold text-[#E8E6E1] font-['Space_Grotesk'] mb-3 md:mb-4">
               Recent incidents
             </h2>
             <div className="space-y-2.5 md:space-y-3">
@@ -343,8 +369,8 @@ const AdminDashboard = () => {
                       <Icon size={11} className={meta.fg} />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[11px] md:text-[12.5px] leading-snug text-slate-600">{inc.title}</p>
-                      <p className="text-[10px] md:text-[11px] mt-0.5 text-slate-500 font-mono">
+                      <p className="text-[11px] md:text-[12.5px] leading-snug text-[#C7C9CE]">{inc.title}</p>
+                      <p className="text-[10px] md:text-[11px] mt-0.5 text-[#8B8D94] font-['JetBrains_Mono']">
                         {inc.time}
                       </p>
                     </div>
@@ -357,22 +383,22 @@ const AdminDashboard = () => {
 
         {/* Top workspaces + Recent signups */}
         <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
-          <div className="lg:col-span-2 rounded-xl bg-white border border-slate-200 overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-3 p-4 md:p-5 border-b border-slate-200">
-              <h2 className="text-sm font-semibold text-slate-900">
+          <div className="lg:col-span-2 rounded-xl bg-[#171A21] border border-[#2A2E37] overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-3 p-4 md:p-5 border-b border-[#2A2E37]">
+              <h2 className="text-sm font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
                 Top workspaces by volume
               </h2>
-              <div className="flex items-center gap-2 rounded-lg px-2 md:px-3 py-1 md:py-1.5 border border-slate-200 bg-slate-50">
-                <Search size={12} className="text-slate-500" />
+              <div className="flex items-center gap-2 rounded-lg px-2 md:px-3 py-1 md:py-1.5 border border-[#2A2E37] bg-[#0E1013]">
+                <Search size={12} className="text-[#8B8D94]" />
                 <input
                   placeholder="Search workspaces"
-                  className="bg-transparent text-xs outline-none text-slate-600 w-[100px] md:w-[120px]"
+                  className="bg-transparent text-xs outline-none text-[#C7C9CE] w-[100px] md:w-[120px] placeholder:text-[#8B8D94]"
                 />
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left min-w-[500px]">
-                <thead className="text-[10px] md:text-[11px] uppercase tracking-wide text-slate-500">
+                <thead className="text-[10px] md:text-[11px] uppercase tracking-wide text-[#8B8D94]">
                   <tr>
                     <th className="px-3 md:px-5 py-2 md:py-2.5 font-medium">Workspace</th>
                     <th className="px-2 md:px-3 py-2 md:py-2.5 font-medium">Plan</th>
@@ -385,10 +411,10 @@ const AdminDashboard = () => {
                   {topWorkspaces.map((w, i) => {
                     const plan = PLAN_STYLE[w.plan];
                     return (
-                      <tr key={w.id} className="hover:bg-slate-50 transition" style={{ borderTop: i === 0 ? "none" : "1px solid #E7E8EC" }}>
+                      <tr key={w.id} className="mf-row transition" style={{ borderTop: i === 0 ? "none" : "1px solid #2A2E37" }}>
                         <td className="px-3 md:px-5 py-2.5 md:py-3">
-                          <p className="text-[12px] md:text-[13.5px] font-medium text-slate-900">{w.name}</p>
-                          <p className="text-[10px] md:text-[11px] text-slate-500 font-mono">
+                          <p className="text-[12px] md:text-[13.5px] font-medium text-[#E8E6E1]">{w.name}</p>
+                          <p className="text-[10px] md:text-[11px] text-[#8B8D94] font-['JetBrains_Mono']">
                             {w.seats} seats · joined {w.joined}
                           </p>
                         </td>
@@ -397,14 +423,14 @@ const AdminDashboard = () => {
                             {w.plan}
                           </span>
                         </td>
-                        <td className="px-2 md:px-3 py-2.5 md:py-3 text-[11px] md:text-[13px] text-slate-600 font-mono">
+                        <td className="px-2 md:px-3 py-2.5 md:py-3 text-[11px] md:text-[13px] text-[#C7C9CE] font-['JetBrains_Mono']">
                           {w.emailsSent.toLocaleString()}
                         </td>
-                        <td className="px-2 md:px-3 py-2.5 md:py-3 text-[11px] md:text-[13px] text-slate-600 font-mono">
+                        <td className="px-2 md:px-3 py-2.5 md:py-3 text-[11px] md:text-[13px] text-[#C7C9CE] font-['JetBrains_Mono']">
                           {w.mrr}
                         </td>
                         <td className="px-3 md:px-5 py-2.5 md:py-3 text-right">
-                          <button className="text-slate-400 hover:text-slate-600">
+                          <button className="text-[#8B8D94] hover:text-[#E8E6E1]">
                             <MoreHorizontal size={14} />
                           </button>
                         </td>
@@ -416,30 +442,30 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="rounded-xl bg-white border border-slate-200 overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-2 p-4 md:p-5 border-b border-slate-200">
-              <h2 className="text-sm font-semibold text-slate-900">
+          <div className="rounded-xl bg-[#171A21] border border-[#2A2E37] overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-2 p-4 md:p-5 border-b border-[#2A2E37]">
+              <h2 className="text-sm font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
                 Recent signups
               </h2>
-              <button className="flex items-center gap-1 text-[10px] md:text-[11.5px] font-medium text-blue-600 hover:text-blue-700">
+              <button className="flex items-center gap-1 text-[10px] md:text-[11.5px] font-medium text-[#FF6A39] hover:text-[#FF7F52]">
                 View all
                 <ExternalLink size={10} />
               </button>
             </div>
-            <div className="divide-y divide-slate-200">
+            <div className="divide-y divide-[#2A2E37]">
               {recentSignups.map((s) => {
                 const plan = PLAN_STYLE[s.plan];
                 return (
                   <div key={s.email} className="flex items-center justify-between gap-2 px-4 md:px-5 py-3 md:py-3.5">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[11px] md:text-[13px] font-medium truncate text-slate-900">{s.name}</p>
-                      <p className="text-[10px] md:text-[11.5px] truncate text-slate-500">{s.email}</p>
+                      <p className="text-[11px] md:text-[13px] font-medium truncate text-[#E8E6E1]">{s.name}</p>
+                      <p className="text-[10px] md:text-[11.5px] truncate text-[#8B8D94]">{s.email}</p>
                     </div>
                     <div className="flex flex-col items-end gap-0.5 md:gap-1 shrink-0 ml-2">
                       <span className={`rounded-full px-1.5 md:px-2 py-0.5 text-[9px] md:text-[10.5px] font-medium ${plan.bg} ${plan.fg}`}>
                         {s.plan}
                       </span>
-                      <span className="text-[9px] md:text-[10.5px] text-slate-500 font-mono">
+                      <span className="text-[9px] md:text-[10.5px] text-[#8B8D94] font-['JetBrains_Mono']">
                         {s.time}
                       </span>
                     </div>
