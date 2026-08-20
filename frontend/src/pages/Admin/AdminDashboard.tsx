@@ -1,9 +1,20 @@
 import React, { useState } from "react";
 import AdminSidebar from "./AdminSidebar";
 import {
-  Building2, Users, DollarSign, Send, ArrowUpRight, ArrowDownRight,
-  ShieldCheck, ShieldAlert, ShieldX, Activity, AlertTriangle, CheckCircle2,
-  MoreHorizontal, Search, ExternalLink,
+  Building2, 
+  Users, 
+  Send, 
+  ArrowUpRight, 
+  ArrowDownRight, // ← Added
+  ShieldCheck, 
+  ShieldAlert, 
+  ShieldX, 
+  Activity, 
+  AlertTriangle, 
+  CheckCircle2,
+  MoreHorizontal, 
+  Search, 
+  ExternalLink,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -165,10 +176,12 @@ const AdminDashboard = () => {
         }
       `}</style>
 
+      {/* Sidebar */}
       <div className="sticky top-0 h-screen flex-shrink-0">
         <AdminSidebar />
       </div>
 
+      {/* Main Content */}
       <main className="main-content flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-[#0E1013] h-screen">
         {/* Header */}
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
