@@ -15,8 +15,6 @@ import {
   ChevronRight,
   ShieldCheck,
   Activity,
-  AlertTriangle,
-  Server,
 } from 'lucide-react'
 
 const COLOR = {
