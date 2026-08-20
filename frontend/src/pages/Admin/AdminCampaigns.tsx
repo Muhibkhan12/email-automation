@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import Sidebar from "../User/Sidebar";
+import AdminSidebar from "./AdminSidebar";
 import {
   Megaphone,
   Send,
@@ -291,7 +291,7 @@ const AdminCampaigns = () => {
       `}</style>
 
       <div className="sticky top-0 h-screen flex-shrink-0">
-        <Sidebar />
+        <AdminSidebar />
       </div>
 
       <main className="main-content flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-[#0E1013] h-screen">
