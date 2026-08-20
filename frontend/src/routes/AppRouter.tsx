@@ -34,10 +34,10 @@ const AppRouter = () => {
         <Route path="/recipients" element={<Recipients/>}/>
         <Route path="/login"  element={<Login/>}/>
         <Route path="/register"  element={<Register/>}/>
-        <Route path="/admin-dashboard"  element={<AdminDashboard/>} />
 
         {/* admin routes */}
 
+        <Route path="/admin/dashboard"  element={<AdminDashboard/>} />
         <Route path="/admin/email-templates" element={<EmailTemplatesAdmin/>}/>
         <Route path="/admin/campaigns" element={<AdminCampaigns/>}/>
     </Routes>
