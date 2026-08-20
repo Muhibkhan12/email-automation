@@ -62,15 +62,9 @@ interface Incident {
 
 const stats: StatCard[] = [
   { title: "Total workspaces", value: "1,842", delta: "+64 this month", trend: "up", icon: Building2, accent: "#FF6A39", accentSoft: "rgba(255,106,57,0.12)" },
-  { title: "Monthly recurring revenue", value: "$128,940", delta: "+9.4%", trend: "up", icon: DollarSign, accent: "#7FD98A", accentSoft: "rgba(127,217,138,0.12)" },
   { title: "Active users (30d)", value: "9,204", delta: "+412", trend: "up", icon: Users, accent: "#FFC24B", accentSoft: "rgba(255,194,75,0.12)" },
   { title: "Platform emails sent (24h)", value: "2.4M", delta: "-3.1%", trend: "down", icon: Send, accent: "#FF5C6C", accentSoft: "rgba(255,92,108,0.12)" },
-];
-
-const mrrTrend = [
-  { month: "Feb", mrr: 96200 }, { month: "Mar", mrr: 101400 }, { month: "Apr", mrr: 104800 },
-  { month: "May", mrr: 109600 }, { month: "Jun", mrr: 114200 }, { month: "Jul", mrr: 121800 },
-  { month: "Aug", mrr: 128940 },
+  { title: "System health", value: "98.4%", delta: "+0.6%", trend: "up", icon: CheckCircle2, accent: "#7FD98A", accentSoft: "rgba(127,217,138,0.12)" },
 ];
 
 const planDistribution = [
@@ -239,87 +233,9 @@ const AdminDashboard = () => {
           })}
         </div>
 
-        {/* MRR trend + Plan distribution */}
-        <div className="mb-6 grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
-          <div className="lg:col-span-2 rounded-xl bg-[#171A21] p-4 md:p-6 border border-[#2A2E37]">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
-              <h2 className="text-base md:text-lg font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
-                Revenue growth
-              </h2>
-              <span className="text-[10px] md:text-[11px] text-[#8B8D94] font-['JetBrains_Mono']">
-                MRR, last 7 months
-              </span>
-            </div>
-            <div className="h-[180px] md:h-[220px] mt-3 md:mt-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={mrrTrend} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="fillMrr" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#7FD98A" stopOpacity={0.25} />
-                      <stop offset="100%" stopColor="#7FD98A" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke="#2A2E37" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#8B8D94", fontFamily: "JetBrains Mono" }} axisLine={false} tickLine={false} />
-                  <YAxis
-                    tick={{ fontSize: 11, fill: "#8B8D94", fontFamily: "JetBrains Mono" }}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(v) => `$${Math.round(v / 1000)}k`}
-                  />
-                  <Tooltip
-                    contentStyle={{ 
-                      borderRadius: 8, 
-                      border: "1px solid #2A2E37", 
-                      background: "#171A21",
-                      fontFamily: "JetBrains Mono",
-                      fontSize: 12,
-                      color: "#E8E6E1"
-                    }}
-                    formatter={(v: number) => [`$${v.toLocaleString()}`, "MRR"]}
-                  />
-                  <Area type="monotone" dataKey="mrr" stroke="#7FD98A" strokeWidth={2} fill="url(#fillMrr)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="rounded-xl bg-[#171A21] p-4 md:p-6 border border-[#2A2E37]">
-            <h2 className="text-base md:text-lg font-semibold text-[#E8E6E1] font-['Space_Grotesk'] mb-3 md:mb-4">
-              Plan distribution
-            </h2>
-            <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4">
-              <div className="w-[90px] h-[90px] md:w-[110px] md:h-[110px] shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={planDistribution} dataKey="value" innerRadius={28} outerRadius={42} paddingAngle={2}>
-                      {planDistribution.map((p) => (
-                        <Cell key={p.name} fill={p.color} stroke="none" />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex-1 w-full space-y-1.5 md:space-y-2">
-                {planDistribution.map((p) => (
-                  <div key={p.name} className="flex items-center justify-between text-[11px] md:text-[12.5px]">
-                    <span className="flex items-center gap-1.5 text-[#C7C9CE]">
-                      <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full" style={{ background: p.color }} />
-                      {p.name}
-                    </span>
-                    <span className="font-medium text-[#E8E6E1] font-['JetBrains_Mono']">
-                      {Math.round((p.value / planTotal) * 100)}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* System health + Incidents */}
-        <div className="mb-6 grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
-          <div className="lg:col-span-2 rounded-xl bg-[#171A21] p-4 md:p-6 border border-[#2A2E37]">
+        <div className="mb-6 grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-2">
+          <div className="rounded-xl bg-[#171A21] p-4 md:p-6 border border-[#2A2E37]">
             <div className="flex items-center gap-2 mb-3 md:mb-4">
               <Activity size={14} className="text-[#FF6A39]" />
               <h2 className="text-base md:text-lg font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
@@ -381,8 +297,40 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Top workspaces + Recent signups */}
+        {/* Plan distribution + Top workspaces */}
         <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
+          <div className="rounded-xl bg-[#171A21] p-4 md:p-6 border border-[#2A2E37]">
+            <h2 className="text-base md:text-lg font-semibold text-[#E8E6E1] font-['Space_Grotesk'] mb-3 md:mb-4">
+              Plan distribution
+            </h2>
+            <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4">
+              <div className="w-[90px] h-[90px] md:w-[110px] md:h-[110px] shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={planDistribution} dataKey="value" innerRadius={28} outerRadius={42} paddingAngle={2}>
+                      {planDistribution.map((p) => (
+                        <Cell key={p.name} fill={p.color} stroke="none" />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex-1 w-full space-y-1.5 md:space-y-2">
+                {planDistribution.map((p) => (
+                  <div key={p.name} className="flex items-center justify-between text-[11px] md:text-[12.5px]">
+                    <span className="flex items-center gap-1.5 text-[#C7C9CE]">
+                      <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full" style={{ background: p.color }} />
+                      {p.name}
+                    </span>
+                    <span className="font-medium text-[#E8E6E1] font-['JetBrains_Mono']">
+                      {Math.round((p.value / planTotal) * 100)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
           <div className="lg:col-span-2 rounded-xl bg-[#171A21] border border-[#2A2E37] overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-3 p-4 md:p-5 border-b border-[#2A2E37]">
               <h2 className="text-sm font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
@@ -441,38 +389,39 @@ const AdminDashboard = () => {
               </table>
             </div>
           </div>
+        </div>
 
-          <div className="rounded-xl bg-[#171A21] border border-[#2A2E37] overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-2 p-4 md:p-5 border-b border-[#2A2E37]">
-              <h2 className="text-sm font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
-                Recent signups
-              </h2>
-              <button className="flex items-center gap-1 text-[10px] md:text-[11.5px] font-medium text-[#FF6A39] hover:text-[#FF7F52]">
-                View all
-                <ExternalLink size={10} />
-              </button>
-            </div>
-            <div className="divide-y divide-[#2A2E37]">
-              {recentSignups.map((s) => {
-                const plan = PLAN_STYLE[s.plan];
-                return (
-                  <div key={s.email} className="flex items-center justify-between gap-2 px-4 md:px-5 py-3 md:py-3.5">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[11px] md:text-[13px] font-medium truncate text-[#E8E6E1]">{s.name}</p>
-                      <p className="text-[10px] md:text-[11.5px] truncate text-[#8B8D94]">{s.email}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-0.5 md:gap-1 shrink-0 ml-2">
-                      <span className={`rounded-full px-1.5 md:px-2 py-0.5 text-[9px] md:text-[10.5px] font-medium ${plan.bg} ${plan.fg}`}>
-                        {s.plan}
-                      </span>
-                      <span className="text-[9px] md:text-[10.5px] text-[#8B8D94] font-['JetBrains_Mono']">
-                        {s.time}
-                      </span>
-                    </div>
+        {/* Recent signups */}
+        <div className="mt-4 md:mt-5 rounded-xl bg-[#171A21] border border-[#2A2E37] overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-4 md:p-5 border-b border-[#2A2E37]">
+            <h2 className="text-sm font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
+              Recent signups
+            </h2>
+            <button className="flex items-center gap-1 text-[10px] md:text-[11.5px] font-medium text-[#FF6A39] hover:text-[#FF7F52]">
+              View all
+              <ExternalLink size={10} />
+            </button>
+          </div>
+          <div className="divide-y divide-[#2A2E37]">
+            {recentSignups.map((s) => {
+              const plan = PLAN_STYLE[s.plan];
+              return (
+                <div key={s.email} className="flex items-center justify-between gap-2 px-4 md:px-5 py-3 md:py-3.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] md:text-[13px] font-medium truncate text-[#E8E6E1]">{s.name}</p>
+                    <p className="text-[10px] md:text-[11.5px] truncate text-[#8B8D94]">{s.email}</p>
                   </div>
-                );
-              })}
-            </div>
+                  <div className="flex flex-col items-end gap-0.5 md:gap-1 shrink-0 ml-2">
+                    <span className={`rounded-full px-1.5 md:px-2 py-0.5 text-[9px] md:text-[10.5px] font-medium ${plan.bg} ${plan.fg}`}>
+                      {s.plan}
+                    </span>
+                    <span className="text-[9px] md:text-[10.5px] text-[#8B8D94] font-['JetBrains_Mono']">
+                      {s.time}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </main>
