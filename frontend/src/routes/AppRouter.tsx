@@ -55,7 +55,7 @@ const AppRouter = () => {
         <Route path="/admin/emaillogs" element={<AdminEmailLogs/>}/>
         <Route path="/admin/queuemonitor" element={<AdminQueueMonitor/>}/>
         <Route path="/admin/settings" element={<AdminSettings/>} />
-        <Route path="admin/senderaccount" element={<AdminSenderAccounts/>} />
+        <Route path="admin/senders-account" element={<AdminSenderAccounts/>} />
     </Routes>
   )
 }
