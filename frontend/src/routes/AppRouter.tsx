@@ -50,7 +50,6 @@ const AppRouter = () => {
         <Route path="/admin/notifications" element={<AdminNotifications/>}/>
         <Route path="/admin/emaillogs" element={<AdminEmailLogs/>}/>
         <Route path="/admin/queuemonitor" element={<AdminQueueMonitor/>}/>
-
     </Routes>
   )
 }
