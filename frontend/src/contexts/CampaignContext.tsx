@@ -1,26 +1,28 @@
-import React, { createContext } from 'react'
-import { useContext,useState,useEffect } from 'react'
-import { getCampaign } from '../services/CampaignService'
+import { createContext, useState, useEffect } from "react";
+import { getCampaign } from "../services/CampaignService";
 
-export const campaignContext = createContext("null");
+export const CampaignContext = createContext(null);
 
-export const campaignProvider = ({children}) =>{
-    const [campaign, setCampaign] = useState([])
+export const CampaignProvider = ({ children }) => {
 
-    useEffect(() => {
-        const fetchCampaign = async ()=>{
-            const data = await getCampaign();
+  const [campaign, setCampaign] = useState([]);
 
-            setCampaign(data);
-        }
-        fetchCampaign();
-    },[]);
+  useEffect(() => {
 
-    return (
-        <campaignContext.Provider value={campaigns}>
-            {children}
-        </campaignContext.Provider>  
-    );
-    
+    const fetchCampaign = async () => {
 
-}
+      const data = await getCampaign();
+
+      setCampaign(data);
+    };
+
+    fetchCampaign();
+
+  }, []);
+
+  return (
+    <CampaignContext.Provider value={campaign}>
+      {children}
+    </CampaignContext.Provider>
+  );
+};
