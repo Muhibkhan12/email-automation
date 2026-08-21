@@ -1,11 +1,17 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, ReactNode } from "react";
 import { getCampaign } from "../services/CampaignService";
+import Campaign from "../pages/User/Campaign";
+
+
+type campaignProviderProps = {
+    children : ReactNode;
+}
 
 export const CampaignContext = createContext(null);
 
-export const CampaignProvider = ({ children }) => {
+export const CampaignProvider = ({ children } : campaignProviderProps ) => {
 
-  const [campaign, setCampaign] = useState([]);
+  const [campaign, setCampaign] = useState<Campaign[]>([]);
 
   useEffect(() => {
 
