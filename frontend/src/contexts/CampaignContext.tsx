@@ -1,15 +1,39 @@
-import { createContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useState, useEffect, type ReactNode } from "react";
 import { getCampaign } from "../services/CampaignService";
-import Campaign from "../pages/User/Campaign";
 
 
-type campaignProviderProps = {
-    children : ReactNode;
-}
+type CampaignProviderProps = {
+  children: ReactNode;
+};
 
-export const CampaignContext = createContext(null);
 
-export const CampaignProvider = ({ children } : campaignProviderProps ) => {
+type Campaign = {
+  id: number;
+  user_id: number;
+  campaign_name: string;
+  subject: string;
+  template_id: number;
+  sender_account_id: number;
+
+  status:
+    | "DRAFT"
+    | "READY"
+    | "RUNNING"
+    | "PAUSED"
+    | "COMPLETED"
+    | "CANCELLED";
+
+  created_at: string;
+  updated_at: string;
+};
+
+
+export const CampaignContext = createContext<Campaign[]>([]);
+
+
+export const CampaignProvider = ({
+  children
+}: CampaignProviderProps) => {
 
   const [campaign, setCampaign] = useState<Campaign[]>([]);
 
@@ -20,11 +44,13 @@ export const CampaignProvider = ({ children } : campaignProviderProps ) => {
       const data = await getCampaign();
 
       setCampaign(data);
+
     };
 
     fetchCampaign();
 
   }, []);
+
 
   return (
     <CampaignContext.Provider value={campaign}>
