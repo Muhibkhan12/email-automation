@@ -7,7 +7,7 @@ export const getCampaign = async() =>{
     return response.data;
 };
 
-export const getCampaignById = async() =>{
-    const response = await axios.get("/campaigns/{1}");
+export const getCampaignById = async(id : number) =>{
+    const response = await axios.get(`/campaigns/${id}`);
     return response.data;
 }
