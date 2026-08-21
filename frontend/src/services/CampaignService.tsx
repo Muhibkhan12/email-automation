@@ -1,9 +1,8 @@
 import React from 'react'
+import axios from 'axios'
 
-const CampaignService = () => {
-  return (
-    <div>CampaignService</div>
-  )
-}
 
-export default CampaignService
+export const getCampaign = async() =>{
+    const response = await axios.get("/campaigns/");
+    return response.data;
+};
