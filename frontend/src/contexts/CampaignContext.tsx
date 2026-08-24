@@ -21,7 +21,6 @@ type Campaign = {
     | "PAUSED"
     | "COMPLETED"
     | "CANCELLED";
-
   created_at: string;
   updated_at: string;
 };
