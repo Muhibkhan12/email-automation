@@ -2,7 +2,6 @@ import React, { useState, useMemo } from "react";
 import AdminSidebar from "./AdminSidebar";
 import {
   Megaphone,
-  Send,
   Users,
   Eye,
   MoreHorizontal,
@@ -14,12 +13,6 @@ import {
   XCircle,
   PlayCircle,
   PauseCircle,
-  AlertCircle,
-  ExternalLink,
-  Calendar,
-  Mail,
-  TrendingUp,
-  BarChart3,
 } from "lucide-react";
 import {
   AreaChart,
@@ -339,13 +332,13 @@ const AdminCampaigns = () => {
                     <Icon size={14} style={{ color: stat.accent }} />
                   </div>
                   <span
-  className={`flex items-center gap-0.5 text-[10px] md:text-[11.5px] font-medium ${
-    stat.trend === "up" ? "text-[#7FD98A]" : "text-[#FF5C6C]"
-  }`}
->
-  {stat.trend === "up" ? "+" : "-"}
-  {stat.delta}
-</span>
+                    className={`flex items-center gap-0.5 text-[10px] md:text-[11.5px] font-medium ${
+                      stat.trend === "up" ? "text-[#7FD98A]" : "text-[#FF5C6C]"
+                    }`}
+                  >
+                    {stat.trend === "up" ? "+" : "-"}
+                    {stat.delta}
+                  </span>
                 </div>
                 <h2 className="mt-3 md:mt-4 text-xl md:text-2xl font-semibold tracking-tight text-[#E8E6E1] font-['JetBrains_Mono']">
                   {stat.value}

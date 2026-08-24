@@ -6,7 +6,6 @@ type CampaignProviderProps = {
   children: ReactNode;
 };
 
-
 type Campaign = {
   id: number;
   user_id: number;

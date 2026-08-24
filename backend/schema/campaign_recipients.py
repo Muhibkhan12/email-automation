@@ -37,7 +37,5 @@ class RecipientsResponse(BaseModel):
     company : str
     phone : str | None
     status : RecipientStatus
-
-
     class config:
         from_attributes = True
