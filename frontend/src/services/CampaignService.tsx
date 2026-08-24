@@ -13,7 +13,7 @@ export const getCampaignById = async(id : number) =>{
 }
 
 export const createCampaign = async(data : CreateCampaignData) => {
-    const response = await axios.post(`/campaigns/${data}`);
+    const response = await axios.post(`/campaigns/`, data);
     return response.data
 }
 
