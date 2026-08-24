@@ -1,7 +1,5 @@
-import React from 'react'
 import axios from 'axios'
-import { UpdatedCampaignData, CreateCampaignData,Campaign } from '../types/CampaignTypes';
-import Campaign from '../pages/User/Campaign';
+import type{ UpdatedCampaignData, CreateCampaignData,Campaign } from '../types/CampaignTypes';
 
 
 export const getCampaign = async() =>{
@@ -14,11 +12,16 @@ export const getCampaignById = async(id : number) =>{
     return response.data;
 }
 
-export const deleteCampaign = async(id : Number): Promise<void> => {
-    await axios.delete(`/campaigns/${id}`) ;
+export const createCampaign = async(data : CreateCampaignData) => {
+    const response = await axios.post(`/campaigns/${data}`);
+    return response.data
 }
 
-export const updateCampaignById = async(id : number, data : UpdatedCampaignData) => Promise<Campaign> {
-    const response = await axios.put(`/campaign/${id},${data}`);
+export const deleteCampaign = async(id : number): Promise<void> => {
+    await axios.delete(`/campaigns/${id}`) ;
+};
+
+export const updateCampaignById = async(id : number, data : UpdatedCampaignData): Promise<Campaign> =>  {
+    const response = await axios.put(`/campaigns/${id}`, data);
     return response.data;
-}
+};
