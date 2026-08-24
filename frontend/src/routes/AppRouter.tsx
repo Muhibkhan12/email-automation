@@ -29,35 +29,33 @@ const AppRouter = () => {
     <Routes>
 
         <Route path="/user">
-          <Route path="/dashboard" element={<Dashboard/>} />
-          <Route path="/notifications" element={<Notifications/>} />
-          <Route path="/emaillogs" element={< EmailLogs/>}/>
-          <Route path="/templates" element={<Templates/> }/>
-          <Route path="/settings" element={<Settings/>}/>
-          <Route path="/profile" element={<Profile/>}/>
-          <Route path="/sender-account" element={<SenderAccount/>} />
-          <Route path="/queuemonitor" element={<QueueMonitor/>}/>
-          <Route path="/campaign" element={<Campaign/>}/>
-          <Route path="/upload" element={<Upload/>} />
-          <Route path="/analytics" element={<Analytics/>}/>
-          <Route path="/recipients" element={<Recipients/>}/>
-          <Route path="/login"  element={<Login/>}/>
-          <Route path="/register"  element={<Register/>}/>
+          <Route path="dashboard" element={<Dashboard/>} />
+          <Route path="notifications" element={<Notifications/>} />
+          <Route path="emaillogs" element={< EmailLogs/>}/>
+          <Route path="templates" element={<Templates/> }/>
+          <Route path="settings" element={<Settings/>}/>
+          <Route path="profile" element={<Profile/>}/>
+          <Route path="sender-account" element={<SenderAccount/>} />
+          <Route path="queuemonitor" element={<QueueMonitor/>}/>
+          <Route path="campaign" element={<Campaign/>}/>
+          <Route path="upload" element={<Upload/>} />
+          <Route path="analytics" element={<Analytics/>}/>
+          <Route path="recipients" element={<Recipients/>}/>
+          <Route path="login"  element={<Login/>}/>
+          <Route path="register"  element={<Register/>}/>
         </Route>
-
-
         {/* admin routes */}
         <Route path="/admin">
-          <Route path="/dashboard"  element={<AdminDashboard/>} />
-          <Route path="/analytics"  element={<AdminAnalytics/>} />
-          <Route path="/templates" element={<EmailTemplatesAdmin/>}/>
-          <Route path="/campaigns" element={<AdminCampaigns/>}/>
-          <Route path="/users" element={<AdminUsers/>}/>
-          <Route path="/notifications" element={<AdminNotifications/>}/>
-          <Route path="/emaillogs" element={<AdminEmailLogs/>}/>
-          <Route path="/queuemonitor" element={<AdminQueueMonitor/>}/>
-          <Route path="/settings" element={<AdminSettings/>} />
-          <Route path="/senders-account" element={<AdminSenderAccounts/>} />
+          <Route path="dashboard"  element={<AdminDashboard/>} />
+          <Route path="analytics"  element={<AdminAnalytics/>} />
+          <Route path="templates" element={<EmailTemplatesAdmin/>}/>
+          <Route path="campaigns" element={<AdminCampaigns/>}/>
+          <Route path="users" element={<AdminUsers/>}/>
+          <Route path="notifications" element={<AdminNotifications/>}/>
+          <Route path="emaillogs" element={<AdminEmailLogs/>}/>
+          <Route path="queuemonitor" element={<AdminQueueMonitor/>}/>
+          <Route path="settings" element={<AdminSettings/>} />
+          <Route path="senders-account" element={<AdminSenderAccounts/>} />
         </Route>
     </Routes>
   )
