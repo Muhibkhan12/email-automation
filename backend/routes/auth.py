@@ -5,7 +5,7 @@ from schema.user import (RegisterSchema, LoginSchema, ForgetSchema, UpdateUser)
 from database import get_db
 from models.user import User
 from services.auth import oauth2_scheme
-from services.user import (LoginUser, RegisterUser, ForgetPassword, GetCurrentUser, updateUser)
+from services.user import (LoginUser, RegisterUser, ForgetPassword, GetCurrentUser, updateUser, deleteUser, getUserById, getAllUsers)
 
 router = APIRouter(
     prefix="/auth",
@@ -43,6 +43,18 @@ def profile(current_user : User = Depends(GetCurrentUser)):
         "user_name" : current_user.username,
         "user_email" : current_user.email,
     }
-@router.post("/user/update")
-def update_user(credentials : UpdateUser, db:Session = Depends(get_db)):
-    return updateUser(credentials,db)
+@router.post("/user/update/{id}")
+def update_user(credentials : UpdateUser,user_id : int, db:Session = Depends(get_db) ):
+    return updateUser(db, user_id, credentials)
+
+@router.post("/user/delete/{id}")
+def delete_user(user_id : int ,db : Session = Depends(get_db)):
+    return deleteUser(db, user_id)
+
+@router.get("/users")
+def get_all_users(db:Session = Depends(get_db)):
+    return getAllUsers(db)
+
+@router.get("/user/{id}")
+def get_user_by_id(user_id : int , db : Session = Depends(get_db)):
+    return getUserById(db,user_id)
