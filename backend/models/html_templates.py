@@ -9,7 +9,7 @@ class HTMLTemplate(Base):
     __tablename__ = "html_templates"
 
     id : Mapped[int] = mapped_column(Integer, primary_key=True,index=True)
-    user_id : Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), nullable=False)
+    user_id : Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     name : Mapped[str] = mapped_column(String(255), nullable=False)
     html_content : Mapped[str] = mapped_column(Text,nullable=False)
     description: Mapped[str | None] = mapped_column(String(255),nullable=True)
