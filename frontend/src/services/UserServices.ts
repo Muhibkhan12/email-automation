@@ -1,6 +1,6 @@
 import axios from "axios";
-import { Type } from "lucide-react";
-
-export const getUser = () => {
-    
+import type { User, RegisterUser, UserLogin } from "../types/UserTypes"; 
+export const getAllUser = async() => {
+    const response = await axios.get('/auth/users');
+    return response.data
 }
