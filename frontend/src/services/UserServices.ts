@@ -1,10 +1,6 @@
-import React from 'react'
-import axios from axios
+import axios from "axios";
+import { Type } from "lucide-react";
 
-const UserServices = () => {
-    export const getUserbyId = (id : number) => {
-        const response = axios.get('')
-    }
+export const getUser = () => {
+    
 }
-
-export default UserServices

@@ -22,6 +22,7 @@ def RegisterUser(db: Session, credential : RegisterSchema):
         username = credential.username,
         email = credential.email,
         password = hash_password(credential.password),
+        role = credential.role,
     )
 
     db.add(user)
