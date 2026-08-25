@@ -6,10 +6,8 @@ from sqlalchemy.orm import Session
 from services.auth import create_access_token, create_refresh_token, oauth2_scheme, verify_access_token
 from services.security import verify_password, hash_password
 from database import get_db
-from schema.user import (LoginSchema, RegisterSchema, ForgetSchema)
+from schema.user import (LoginSchema, RegisterSchema, ForgetSchema, UpdateUser)
 from models.user import User
-
-
 
 def RegisterUser(db: Session, credential : RegisterSchema):
     existing_user = db.query(User).filter(User.email == credential.email).first()
@@ -89,3 +87,46 @@ def GetCurrentUser(token: str = Depends(oauth2_scheme), db: Session = Depends(ge
 
 def ForgetPassword(db: Session, credetntial : ForgetSchema):
     pass
+
+
+
+def getAllUsers(db : Session):
+    users = db.query(User).all()
+    return{
+        "users" : users
+    }
+
+def getUserById(db : Session, user_id : int):
+    user = db.query(User).filter(User.id == user_id).first()
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="User not Found"
+    )
+    return user
+
+def updateUser(db : Session, user_id : int, credentials : UpdateUser):
+    user = getUserById(db, user_id)
+    if credentials.username is not None:
+        user.username = credentials.username
+
+    if credentials.email is not None:
+        user.email = credentials.email
+
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "user": user,
+        "message" : "User Updated Successfully"
+    }
+
+def deleteUser(db:Session, user_id : int):
+    user = getUserById(db, user_id)
+
+    db.delete(user)
+    db.commit()
+
+    return {
+        "message" : "User deleted Successfully"
+    }
