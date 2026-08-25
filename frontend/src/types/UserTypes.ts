@@ -17,7 +17,7 @@ export interface UserLogin {
     name : string
     password : string
 }
-export interface updateUser {
+export interface UpdateUser {
     name?: string
     email?: string
     password?: string
