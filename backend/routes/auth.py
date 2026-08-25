@@ -5,7 +5,7 @@ from schema.user import (RegisterSchema, LoginSchema, ForgetSchema)
 from database import get_db
 from models.user import User
 from services.auth import oauth2_scheme
-from services.user import (LoginUser, RegisterUser, ForgetPassword, GetCurrentUser)
+from services.user import (LoginUser, RegisterUser, ForgetPassword, GetCurrentUser, updateUser)
 
 router = APIRouter(
     prefix="/auth",
@@ -43,3 +43,6 @@ def profile(current_user : User = Depends(GetCurrentUser)):
         "user_name" : current_user.username,
         "user_email" : current_user.email,
     }
+@router.post("/user/update")
+def update_user(credentials : updateUser, db:Session = Depends(get_db)):
+    return updateUser(credentials,db)
