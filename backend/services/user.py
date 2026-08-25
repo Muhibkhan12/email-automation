@@ -88,8 +88,6 @@ def GetCurrentUser(token: str = Depends(oauth2_scheme), db: Session = Depends(ge
 def ForgetPassword(db: Session, credetntial : ForgetSchema):
     pass
 
-
-
 def getAllUsers(db : Session):
     users = db.query(User).all()
     return{
