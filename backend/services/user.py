@@ -112,7 +112,7 @@ def getUserById(db : Session, user_id : int):
         )
     return user
 
-def userByIdWithSenAcc():
+def userByIdWithSenAcc(db : Session, user_id : int):
     user = db.query(User).options(selectinload(User.sender_accounts)).filter(User.id == user_id).first()
 
     if user is None:
