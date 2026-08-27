@@ -63,6 +63,6 @@ def get_user_by_id(user_id : int , db : Session = Depends(get_db)):
 def get_send_acc_with_users( db : Session = Depends(get_db)):
     return getAllUserWithSenderAccounts(db)
 
-@router.get("user/sender-account/{id}")
+@router.get("/user/sender-account/{id}")
 def get_send_acc_with_user_id(user_id : int, db : Session = Depends(get_db)):
     return userByIdWithSenAcc(db, user_id)
