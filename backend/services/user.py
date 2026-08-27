@@ -1,4 +1,5 @@
 from fastapi import HTTPException, status, Depends
+import asyncio
 
 from sqlalchemy.orm import Session
 # from datetime import datetime
@@ -95,7 +96,7 @@ def getAllUsers(db : Session):
         "users" : users
     }
 
-def getUserById(db : Session, user_id : int):
+def  getUserById(db : Session, user_id : int):
     user = db.query(User).filter(User.id == user_id).first()
 
     raise HTTPException(
