@@ -1,4 +1,5 @@
 from pydantic import BaseModel,EmailStr
+from schema.sender_account import SenderAccountResponse
 from enum import Enum
 
 class UserRole(str, Enum):
@@ -9,6 +10,12 @@ class RegisterSchema(BaseModel):
     username : str
     email : EmailStr
     password : str
+
+class UserWithSenderAccountsResponse(BaseModel):
+    username : str
+    email : str
+    role : str
+    sender_accounts : list[SenderAccountResponse]
     
 
 class LoginSchema(BaseModel):

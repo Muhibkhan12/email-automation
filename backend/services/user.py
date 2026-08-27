@@ -91,18 +91,35 @@ def ForgetPassword(db: Session, credetntial : ForgetSchema):
     pass
 
 def getAllUsers(db : Session):
-    users = db.query(User).options(selectinload(User.sender_accounts)).all()
+    users = db.query(User).all()
     return{
         "users" : users
     }
 
+def getAllUserWithSenderAccounts(db: Session):
+    userWithAcc =   db.query(User).selectinload(User.sender_accounts).all() 
+    return {
+        "users" : userWithAcc
+    }
+
 def getUserById(db : Session, user_id : int):
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not Found"
+        )
+    return user
+
+def userByIdWithSenAcc():
     user = db.query(User).options(selectinload(User.sender_accounts)).filter(User.id == user_id).first()
 
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="User not Found"
-    )
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not Found"
+        )
     return user
 
 def updateUser(db : Session, user_id : int, credentials : UpdateUser):
