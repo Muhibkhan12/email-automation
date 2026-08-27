@@ -24,6 +24,10 @@ class SenderAccountResponse(BaseModel):
     updated_at : str	
     emails_sent_hour : str	
 
+    model_config = {
+        "form_attributes" : True
+    }
+
 class updateSenderAccout(BaseModel):
     email : EmailStr
     display_name : str
