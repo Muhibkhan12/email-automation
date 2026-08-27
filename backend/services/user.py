@@ -91,13 +91,13 @@ def ForgetPassword(db: Session, credetntial : ForgetSchema):
     pass
 
 def getAllUsers(db : Session):
-    users = db.query(User).all()
+    users = db.query(User).options(selectinload(User.sender_accounts)).all()
     return{
         "users" : users
     }
 
-def  getUserById(db : Session, user_id : int):
-    user = db.query(User).filter(User.id == user_id).first()
+def getUserById(db : Session, user_id : int):
+    user = db.query(User).options(selectinload(User.sender_accounts)).filter(User.id == user_id).first()
 
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
