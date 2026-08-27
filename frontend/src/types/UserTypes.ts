@@ -1,4 +1,7 @@
+import type { SenderAccount } from "./SenderAccount";
+
 export type UserRole = "ADMIN" | "EMPLOYEE"
+
 
 export interface User{
     id : number
@@ -32,3 +35,7 @@ export interface UserResponse {
     message : string;
     user : User;
 }
+
+export interface UserWithSenderAccounts extends User{
+    senderAccount : SenderAccount[];
+} 

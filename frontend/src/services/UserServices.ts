@@ -16,3 +16,6 @@ export const deleteUser = async(id : number) => {
     const response = await axios.delete<User>(`auth/user/delete/${id}`)
     return response.data
 }
+export const getUserWithSenderAccount = async () => {
+
+}

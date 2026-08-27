@@ -16,6 +16,10 @@ class UserWithSenderAccountsResponse(BaseModel):
     email : str
     role : str
     sender_accounts : list[SenderAccountResponse]
+
+    model_config = {  
+        "from_attribute" : True
+    }
     
 
 class LoginSchema(BaseModel):
