@@ -1,6 +1,6 @@
 import { createContext, useEffect, useState, type ReactNode } from 'react'
-import { addUser,getAllUser, deleteUser, updateUser, getUsersById,getUsersWithSenderAccounts,getSenderAccountWithUser } from '../services/UserServices';
-import type { User, UserLogin,UpdateUser  } from '../types/UserTypes';
+import { addUser,getAllUser, deleteUser, updateUser, getUsersById,getUsersWithSenderAccounts,getSenderAccountWithUserById} from '../services/UserServices';
+import type { User, UserLogin,UpdateUser, UserWithSenderAccounts  } from '../types/UserTypes';
 import { UserStar } from 'lucide-react';
 import { data } from 'react-router-dom';
 
@@ -11,17 +11,17 @@ type UsersProviderProps = {
 type UsersContextType = {
     user: User[];
     loading: boolean;
-
     addUsers: (data: UserLogin) => Promise<void>;
     editUser: (id: number, data: UpdateUser) => Promise<void>;
     removeUser: (id: number) => Promise<void>;
+    fetchUserWithSenderAccounts : (id : number) => Promise<void>;
 };
 
 export const UsersContext = createContext<UsersContextType | undefined>(undefined);
 
-
-export const UserProvider = ({children } : UsersProviderProps) => {
+export const UserProvider = ({ children } : UsersProviderProps) => {
   const [user, setUser] = useState<User[]>([]);
+  const [usersWithSenderAccount, setUserWithSenderAccount] = useState<UserWithSenderAccounts[]>([])
   const [loading, setLoading] = useState(false);
 
 
@@ -53,12 +53,17 @@ export const UserProvider = ({children } : UsersProviderProps) => {
       await deleteUser(id);
       setUser(prev => prev.filter(user => user.id !== id));
     }
+
+    const fetchUserWithSenderAccounts = async(id : number) => {
+      await getSenderAccountWithUserById(id);
+    }
+
   useEffect(() => {
     fetchUser();
   }, []);
 
   return (
-    <UsersContext.Provider value={{user, loading, addUsers, editUser, removeUser }}>
+    <UsersContext.Provider value={{user, loading, addUsers, editUser, removeUser,fetchUserWithSenderAccounts}}>
       {children}
     </UsersContext.Provider>
   );
