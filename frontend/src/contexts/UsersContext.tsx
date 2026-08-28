@@ -1,6 +1,6 @@
 import { createContext, useEffect, useState, type ReactNode } from 'react'
-import { getAllUser } from '../services/UserServices';
-import type { User } from '../types/UserTypes';
+import { getAllUser, deleteUser, updateUser, getUsersById,getUsersWithSenderAccounts,getSenderAccountWithUser } from '../services/UserServices';
+import type { User, UserLogin } from '../types/UserTypes';
 
 type UsersProviderProps = {
   children : ReactNode;
@@ -20,7 +20,7 @@ export const UserProvider = ({children } : UsersProviderProps) => {
   }, []);
 
   return (
-    <UsersContext.Provider value={user}>
+    <UsersContext.Provider value={{user, loading, addUser, updateUser, deleteUser,getUsersWithSenderAccounts }}>
       {children}
     </UsersContext.Provider>
   );

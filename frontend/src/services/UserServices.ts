@@ -8,6 +8,12 @@ export const getUsersById = async(id : number) => {
     const response = await axios.get<User>(`/auth/user/${id}`)
     return response.data
 }
+
+export const addUser = async(data : UserLogin) => {
+    const response = await axios.post<User>(`auth/login/`,data)
+    return response.data
+}
+
 export const updateUser = async(id : number, data : UpdateUser) => {
     const response = await axios.post<User>(`/auth/user/${id}`,data)
     return response.data
