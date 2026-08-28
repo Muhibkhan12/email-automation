@@ -3,4 +3,6 @@ export interface SenderAccount  {
     email : string
     provider : string
     status : string
+    created_at : string
+    updated_at : string
 }
