@@ -21,7 +21,6 @@ export const UsersContext = createContext<UsersContextType | undefined>(undefine
 export const UserProvider = ({ children } : UsersProviderProps) => {
   const [user, setUser] = useState<User[]>([]);
   const [usersWithSenderAccounts, setUsersWithSenderAccounts] = useState<UserWithSenderAccounts[]>([]);
-
   const [userWithSenderAccount, setUserWithSenderAccount] = useState<UserWithSenderAccounts | null>(null);
   const [loading, setLoading] = useState(false);
 
