@@ -20,10 +20,10 @@ export const UsersContext = createContext<UsersContextType | undefined>(undefine
 
 export const UserProvider = ({ children } : UsersProviderProps) => {
   const [user, setUser] = useState<User[]>([]);
-  // const [usersWithSenderAccount, setUserWithSenderAccount] = useState<UserWithSenderAccounts[]>([])D
+  const [usersWithSenderAccounts, setUsersWithSenderAccounts] = useState<UserWithSenderAccounts[]>([]);
+
   const [userWithSenderAccount, setUserWithSenderAccount] = useState<UserWithSenderAccounts | null>(null);
   const [loading, setLoading] = useState(false);
-
 
       const fetchUser = async () => {
 
@@ -60,7 +60,7 @@ export const UserProvider = ({ children } : UsersProviderProps) => {
     }
     const fetchUserWithSenderAccounts = async() => {
       const data = await getUsersWithSenderAccounts();
-      setUserWithSenderAccount(data);
+      setUsersWithSenderAccounts(data);
     }
 
   useEffect(() => {

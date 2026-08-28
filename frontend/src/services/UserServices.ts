@@ -27,11 +27,11 @@ export const deleteUser = async(id : number) => {
 }
 
 export const getUsersWithSenderAccounts = async () => {
-    const response = await axios.get<User[]>(`/auth/users/sender-accounts`)
+    const response = await axios.get<UserWithSenderAccounts[]>(`/auth/users/sender-accounts`)
     return response.data
 }
 
 export const getSenderAccountWithUserById = async (id : number)=> {
-    const response = await axios.get<User[]>(`/auth/user/sender-accounts/${id}`)
+    const response = await axios.get<UserWithSenderAccounts>(`/auth/user/sender-accounts/${id}`)
     return response.data
 }
