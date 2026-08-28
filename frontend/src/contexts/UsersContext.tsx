@@ -1,6 +1,6 @@
 import { createContext, useEffect, useState, type ReactNode } from 'react'
 import { addUser,getAllUser, deleteUser, updateUser, getUsersById,getUsersWithSenderAccounts,getSenderAccountWithUser } from '../services/UserServices';
-import type { User, UserLogin,  } from '../types/UserTypes';
+import type { User, UserLogin,UpdateUser  } from '../types/UserTypes';
 import { UserStar } from 'lucide-react';
 import { data } from 'react-router-dom';
 
@@ -8,7 +8,16 @@ type UsersProviderProps = {
   children : ReactNode;
 }
 
-export const UsersContext = createContext<User[]>([]);
+type UsersContextType = {
+    user: User[];
+    loading: boolean;
+
+    addUsers: (data: UserLogin) => Promise<void>;
+    editUser: (id: number, data: UpdateUser) => Promise<void>;
+    removeUser: (id: number) => Promise<void>;
+};
+
+export const UsersContext = createContext<UsersContextType | undefined>(undefined);
 
 
 export const UserProvider = ({children } : UsersProviderProps) => {
@@ -16,24 +25,21 @@ export const UserProvider = ({children } : UsersProviderProps) => {
   const [loading, setLoading] = useState(false);
 
 
+      const fetchUser = async () => {
 
-  useEffect(() => {
-    
-    const fetchUser = async () => {
-
-        try {
-        setLoading(false)
+      try {
+        setLoading(true)
 
         const data = await getAllUser();
         setUser(data);
       }finally{
-        setLoading(data)
+        setLoading(false)
       }
     };
 
     const addUsers = async (data : UserLogin)=> {
       const newUser = await  addUser(data);
-      setUsers(prev=> [...prev, newUser]);
+      setUser(prev=> [...prev, newUser]);
     };
 
     const editUser = async(id : number, data : UpdateUser)=> {
@@ -45,16 +51,14 @@ export const UserProvider = ({children } : UsersProviderProps) => {
 
     const removeUser = async(id : number) => {
       await deleteUser(id);
-      setUsers(prev => prev.filter(user => user.id !== id));
+      setUser(prev => prev.filter(user => user.id !== id));
     }
-
-
-
+  useEffect(() => {
     fetchUser();
   }, []);
 
   return (
-    <UsersContext.Provider value={{user, loading, addUser, updateUser, deleteUser,getUsersWithSenderAccounts }}>
+    <UsersContext.Provider value={{user, loading, addUsers, editUser, removeUser }}>
       {children}
     </UsersContext.Provider>
   );
