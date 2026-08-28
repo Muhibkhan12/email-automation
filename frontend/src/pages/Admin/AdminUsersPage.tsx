@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 
 import UsersContext from "../../contexts/UsersContext";
-import type { User } from "../../types/UserTypes";
+import type { UserWithSenderAccounts } from "../../types/UserTypes";
 
 /* ------------------------------------------------------------------ */
 /* Constants + lookup tables                                          */
@@ -77,7 +77,7 @@ const StatCard = ({ stat }: { stat: Stat }) => {
   );
 };
 
-const SenderAccountCard = ({ account }: { account: User["sender_accounts"][number] }) => {
+const SenderAccountCard = ({ account }: { account: UserWithSenderAccounts["sender_accounts"][number] }) => {
   const status = getSenderStatus(account.status);
   const style = senderStatusColors[status];
   const StatusIcon = style.icon;
@@ -132,7 +132,7 @@ const AdminUsers = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [roleFilter, setRoleFilter] = useState("All");
-  const [sortField, setSortField] = useState<keyof User>("username");
+  const [sortField, setSortField] = useState<keyof UserWithSenderAccounts>("username");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedUsers, setSelectedUsers] = useState<Set<number>>(new Set());
   const [expandedUsers, setExpandedUsers] = useState<Set<number>>(new Set());
@@ -176,7 +176,7 @@ const AdminUsers = () => {
     return result;
   }, [users, search, roleFilter, sortField, sortDirection]);
 
-  const toggleSort = (field: keyof User) => {
+  const toggleSort = (field: keyof UserWithSenderAccounts) => {
     if (sortField === field) {
       setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
