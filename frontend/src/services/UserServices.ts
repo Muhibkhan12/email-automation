@@ -31,7 +31,7 @@ export const getUsersWithSenderAccounts = async () => {
     return response.data
 }
 
-export const getSenderAccountWithUser = async (id : number)=> {
+export const getSenderAccountWithUserById = async (id : number)=> {
     const response = await axios.get<User[]>(`/auth/user/sender-accounts/${id}`)
     return response.data
 }
