@@ -1,4 +1,6 @@
 from pydantic import BaseModel, EmailStr
+from datetime import datetime
+from typing import Optional
 
 class addSenderAccountSchema(BaseModel):
     email : EmailStr
@@ -29,9 +31,18 @@ class SenderAccountResponse(BaseModel):
     }
 
 class updateSenderAccout(BaseModel):
-    email : EmailStr
-    display_name : str
-    username : str
-    provider : str
-    daily_limit : int
-    hourly_limit : int
+    email: Optional[EmailStr] = None
+    display_name: Optional[str] = None
+    provider: Optional[str] = None
+
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    token_expires_at: Optional[datetime] = None
+
+    daily_limit: Optional[int] = None
+    hourly_limit: Optional[int] = None
+
+    emails_sent_today: Optional[int] = None
+    emails_sent_hour: Optional[int] = None
+
+    status: Optional[str] = None

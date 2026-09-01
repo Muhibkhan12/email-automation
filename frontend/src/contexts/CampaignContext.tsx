@@ -10,6 +10,7 @@ export const CampaignContext = createContext<Campaign[]>([]);
 
 export const CampaignProvider = ({ children }: CampaignProviderProps) => {
   const [campaign, setCampaign] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchCampaign = async () => {

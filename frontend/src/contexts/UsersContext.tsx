@@ -9,6 +9,10 @@ type UsersProviderProps = {
 type UsersContextType = {
     user: User[];
     loading: boolean;
+
+    usersWithSenderAccounts: UserWithSenderAccounts[];
+    userWithSenderAccount: UserWithSenderAccounts | null;
+
     addUsers: (data: UserLogin) => Promise<void>;
     editUser: (id: number, data: UpdateUser) => Promise<void>;
     removeUser: (id: number) => Promise<void>;
@@ -67,7 +71,7 @@ export const UserProvider = ({ children } : UsersProviderProps) => {
   }, []);
 
   return (
-    <UsersContext.Provider value={{user, loading, addUsers, editUser, removeUser,fetchUserWithSenderAccountsById, fetchUserWithSenderAccounts}}>
+    <UsersContext.Provider value={{user, loading, addUsers, editUser, removeUser,fetchUserWithSenderAccountsById,usersWithSenderAccounts,userWithSenderAccount, fetchUserWithSenderAccounts}}>
       {children}
     </UsersContext.Provider>
   );
