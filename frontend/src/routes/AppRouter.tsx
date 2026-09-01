@@ -28,6 +28,9 @@ const AppRouter = () => {
   return (
     <Routes>
 
+
+          <Route path="/"  element={<Login/>}/>
+          <Route path="/register"  element={<Register/>}/>
         <Route path="/user">
           <Route path="dashboard" element={<Dashboard/>} />
           <Route path="notifications" element={<Notifications/>} />
@@ -41,8 +44,7 @@ const AppRouter = () => {
           <Route path="upload" element={<Upload/>} />
           <Route path="analytics" element={<Analytics/>}/>
           <Route path="recipients" element={<Recipients/>}/>
-          <Route path="login"  element={<Login/>}/>
-          <Route path="register"  element={<Register/>}/>
+
         </Route>
         {/* admin routes */}
         <Route path="/admin">
