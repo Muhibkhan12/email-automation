@@ -9,7 +9,7 @@
 /* What one row looks like when you READ it from the database/API. */
 
 export interface SenderAccount {
-  id: string
+  id: number
   user_id: string
   display_name: string
   email: string

@@ -99,7 +99,7 @@ const SenderAccountsContext = ({ children }: SenderAccountProp) => {
 
     setSenderAcc(prev =>
       prev.map(account =>
-        SenderAccount.id === id
+        account.id === id
           ? updatedAccount
           : account
       )
@@ -112,7 +112,7 @@ const SenderAccountsContext = ({ children }: SenderAccountProp) => {
     await deleteSenderAccount(id);
 
     setSenderAcc(prev =>
-      prev.filter(account => SenderAccount.id !== id)
+      prev.filter(account => account.id !== id)
     );
   };
 
