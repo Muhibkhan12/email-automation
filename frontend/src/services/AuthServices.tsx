@@ -1,9 +1,7 @@
-import React from 'react'
+import axios from "axios"
+import type{ AuthResponse,UserLogin, RegisterUser} from "../types/UserTypes"
 
-const AuthServices = () => {
-  return (
-    <div>AuthServices</div>
-  )
-}
-
-export default AuthServices
+export const loginUser = async(data : UserLogin): Promise<AuthResponse> => {
+  const response = await axios.post('/auth/login', data);
+  return response.data
+};
