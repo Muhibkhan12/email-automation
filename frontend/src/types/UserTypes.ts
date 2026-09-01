@@ -12,16 +12,25 @@ export interface User{
     updated_at : string
 }
 export interface RegisterUser {
-    name : string;
+    username : string;
     email : string;
     password : string;
 }
+
+
 export interface UserLogin {
-    name : string
+    username : string
     password : string
 }
+export interface AuthResponse {
+    access_token : string
+    refresh_token : string
+    token_type : string
+} 
+
+
 export interface UpdateUser {
-    name?: string
+    username?: string
     email?: string
     password?: string
 }
