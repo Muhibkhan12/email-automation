@@ -12,7 +12,6 @@ import type {
   SenderAccount,
   CreateSenderAccountInput,
   UpdateSenderAccountInput,
-  SenderAccountIdParam,
 } from "../types/SenderAccount";
 
 
