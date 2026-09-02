@@ -2,7 +2,6 @@ import type { SenderAccount } from "./SenderAccount";
 
 export type UserRole = "ADMIN" | "EMPLOYEE"
 
-
 export interface User{
     id : number
     username : string;
@@ -17,9 +16,8 @@ export interface RegisterUser {
     password : string;
 }
 
-
 export interface UserLogin {
-    username : string
+    email : string
     password : string
 }
 export interface AuthResponse {
@@ -27,7 +25,6 @@ export interface AuthResponse {
     refresh_token : string
     token_type : string
 } 
-
 
 export interface UpdateUser {
     username?: string
