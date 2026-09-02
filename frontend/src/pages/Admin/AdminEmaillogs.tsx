@@ -1,3 +1,4 @@
+// AdminEmailLogs.tsx
 import React, { useState, useMemo } from "react";
 import AdminSidebar from "./AdminSidebar";
 import {
@@ -22,6 +23,7 @@ import {
   Users,
   Send,
   Activity,
+  Menu,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------- */
@@ -184,11 +186,11 @@ const AdminEmailLogs = () => {
   const [selectedLogs, setSelectedLogs] = useState<Set<string>>(new Set());
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const filteredLogs = useMemo(() => {
     let result = emailLogs;
 
-    // Search filter
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(
@@ -201,12 +203,10 @@ const AdminEmailLogs = () => {
       );
     }
 
-    // Status filter
     if (statusFilter !== "All") {
       result = result.filter((log) => log.status === statusFilter);
     }
 
-    // Workspace filter
     if (workspaceFilter !== "All") {
       result = result.filter((log) => log.workspace === workspaceFilter);
     }
@@ -245,10 +245,11 @@ const AdminEmailLogs = () => {
     const Icon = config.icon;
     return (
       <span
-        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${config.bg} ${config.text}`}
+        className={`inline-flex items-center gap-1 md:gap-1.5 rounded-full px-1.5 md:px-2.5 py-0.5 md:py-1 text-[8px] md:text-xs font-medium ${config.bg} ${config.text}`}
       >
-        <Icon size={12} />
-        {status}
+        <Icon size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />
+        <span className="hidden xs:inline">{status}</span>
+        <span className="xs:hidden">{status.charAt(0)}</span>
       </span>
     );
   };
@@ -280,44 +281,88 @@ const AdminEmailLogs = () => {
         .stat-card:hover {
           transform: translateY(-2px);
         }
+        .sidebar-overlay {
+          animation: fadeIn 0.2s ease-in-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .sidebar-slide {
+          animation: slideIn 0.25s ease-out;
+        }
+        @keyframes slideIn {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
+        }
+        @media (max-width: 480px) {
+          .filter-controls {
+            flex-direction: column;
+            width: 100%;
+          }
+          .filter-controls select {
+            width: 100%;
+          }
+        }
       `}</style>
 
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="sticky top-0 h-screen flex-shrink-0">
-        <AdminSidebar />
+      <div className={`
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        sidebar-slide
+      `}>
+        <AdminSidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main Content */}
-      <main className="main-content flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-[#0E1013] h-screen">
+      <main className="main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8 bg-[#0E1013] h-screen w-full">
         {/* Header */}
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 md:gap-2.5">
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#E8E6E1] font-['Space_Grotesk']">
-                Email Logs
-              </h1>
-              <span className="rounded-full px-2 md:px-2.5 py-0.5 text-[10px] md:text-[11px] font-medium bg-[#FF6A39]/15 text-[#FF6A39]">
-                Admin View
-              </span>
+        <div className="mb-6 md:mb-8 flex flex-wrap items-center justify-between gap-3 md:gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <div className="flex flex-wrap items-center gap-2 md:gap-2.5">
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-[#E8E6E1] font-['Space_Grotesk']">
+                  Email Logs
+                </h1>
+                <span className="rounded-full px-2 md:px-2.5 py-0.5 text-[9px] md:text-[10px] lg:text-[11px] font-medium bg-[#FF6A39]/15 text-[#FF6A39]">
+                  Admin View
+                </span>
+              </div>
+              <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm text-[#8B8D94]">
+                Track every email sent across all workspaces.
+              </p>
             </div>
-            <p className="mt-1 text-xs md:text-sm text-[#8B8D94]">
-              Track every email sent across all workspaces.
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button className="flex items-center gap-2 rounded-lg border border-[#2A2E37] bg-[#171A21] px-4 py-2.5 text-xs md:text-sm font-medium text-[#C7C9CE] hover:border-[#3A3F4A] transition">
-              <RefreshCw size={14} />
-              Refresh
+          <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full sm:w-auto">
+            <button className="flex items-center gap-1.5 md:gap-2 rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-[#C7C9CE] hover:border-[#3A3F4A] transition flex-1 sm:flex-none justify-center">
+              <RefreshCw size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
+              <span className="hidden xs:inline">Refresh</span>
             </button>
-            <button className="flex items-center gap-2 rounded-lg border border-[#2A2E37] bg-[#171A21] px-4 py-2.5 text-xs md:text-sm font-medium text-[#C7C9CE] hover:border-[#3A3F4A] transition">
-              <Download size={14} />
-              Export
+            <button className="flex items-center gap-1.5 md:gap-2 rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-[#C7C9CE] hover:border-[#3A3F4A] transition flex-1 sm:flex-none justify-center">
+              <Download size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
+              <span className="hidden xs:inline">Export</span>
             </button>
             <select
               value={range}
               onChange={(e) => setRange(e.target.value)}
-              className="rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm text-[#C7C9CE] outline-none focus:border-[#FF6A39]"
+              className="flex-1 sm:flex-none rounded-lg border border-[#2A2E37] bg-[#171A21] px-2.5 md:px-3 lg:px-4 py-1.5 md:py-2 lg:py-2.5 text-[10px] md:text-xs lg:text-sm text-[#C7C9CE] outline-none focus:border-[#FF6A39]"
             >
               {RANGES.map((r) => (
                 <option key={r}>{r}</option>
@@ -327,75 +372,77 @@ const AdminEmailLogs = () => {
         </div>
 
         {/* Stats */}
-        <div className="mb-6 grid grid-cols-1 gap-4 md:gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (
               <div
                 key={stat.title}
-                className="stat-card rounded-xl bg-[#171A21] p-4 md:p-5 border border-[#2A2E37] hover:border-[#3A3F4A] transition-all"
+                className="stat-card rounded-xl bg-[#171A21] p-3 md:p-4 lg:p-5 border border-[#2A2E37] hover:border-[#3A3F4A] transition-all"
               >
                 <div className="flex items-start justify-between">
-                  <div className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-lg bg-[#FF6A39]/10">
-                    <Icon size={14} className="text-[#FF6A39]" />
+                  <div className="flex h-7 w-7 md:h-8 md:w-8 lg:h-9 lg:w-9 items-center justify-center rounded-lg bg-[#FF6A39]/10">
+                    <Icon size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] text-[#FF6A39]" />
                   </div>
                   <span
-                    className={`flex items-center gap-0.5 text-[10px] md:text-[11.5px] font-medium ${
+                    className={`flex items-center gap-0.5 text-[9px] md:text-[10px] lg:text-[11.5px] font-medium ${
                       stat.trend === "up" ? "text-[#7FD98A]" : "text-[#FF5C6C]"
                     }`}
                   >
-                    {stat.trend === "up" ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                    {stat.trend === "up" ? <ArrowUpRight size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" /> : <ArrowDownRight size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />}
                     {stat.change}
                   </span>
                 </div>
-                <h2 className="mt-3 md:mt-4 text-xl md:text-2xl font-semibold tracking-tight text-[#E8E6E1] font-['JetBrains_Mono']">
+                <h2 className="mt-2 md:mt-3 lg:mt-4 text-lg md:text-xl lg:text-2xl font-semibold tracking-tight text-[#E8E6E1] font-['JetBrains_Mono']">
                   {stat.value}
                 </h2>
-                <p className="mt-1 text-xs md:text-sm text-[#C7C9CE]">{stat.title}</p>
+                <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm text-[#C7C9CE]">{stat.title}</p>
               </div>
             );
           })}
         </div>
 
         {/* Filters */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 py-2">
-              <Search size={14} className="text-[#8B8D94]" />
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 md:gap-4">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full lg:w-auto">
+            <div className="flex items-center gap-1.5 md:gap-2 rounded-lg border border-[#2A2E37] bg-[#171A21] px-2 md:px-3 py-1.5 md:py-2 flex-1 lg:flex-none">
+              <Search size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] text-[#8B8D94] shrink-0" />
               <input
                 placeholder="Search logs..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-transparent text-xs md:text-sm outline-none text-[#C7C9CE] w-[150px] md:w-[200px] placeholder:text-[#8B8D94]"
+                className="bg-transparent text-[10px] md:text-xs lg:text-sm outline-none text-[#C7C9CE] w-[100px] md:w-[150px] lg:w-[200px] placeholder:text-[#8B8D94]"
               />
             </div>
 
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 py-2 text-xs md:text-sm text-[#C7C9CE] outline-none focus:border-[#FF6A39]"
-            >
-              {STATUS_FILTERS.map((f) => (
-                <option key={f}>{f}</option>
-              ))}
-            </select>
+            <div className="filter-controls flex flex-wrap items-center gap-2 md:gap-3 w-full lg:w-auto">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="flex-1 lg:flex-none rounded-lg border border-[#2A2E37] bg-[#171A21] px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs lg:text-sm text-[#C7C9CE] outline-none focus:border-[#FF6A39]"
+              >
+                {STATUS_FILTERS.map((f) => (
+                  <option key={f}>{f}</option>
+                ))}
+              </select>
 
-            <select
-              value={workspaceFilter}
-              onChange={(e) => setWorkspaceFilter(e.target.value)}
-              className="rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 py-2 text-xs md:text-sm text-[#C7C9CE] outline-none focus:border-[#FF6A39]"
-            >
-              {WORKSPACE_FILTERS.map((w) => (
-                <option key={w}>{w}</option>
-              ))}
-            </select>
+              <select
+                value={workspaceFilter}
+                onChange={(e) => setWorkspaceFilter(e.target.value)}
+                className="flex-1 lg:flex-none rounded-lg border border-[#2A2E37] bg-[#171A21] px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs lg:text-sm text-[#C7C9CE] outline-none focus:border-[#FF6A39]"
+              >
+                {WORKSPACE_FILTERS.map((w) => (
+                  <option key={w}>{w}</option>
+                ))}
+              </select>
+            </div>
 
             {selectedLogs.size > 0 && (
-              <span className="text-xs text-[#8B8D94]">{selectedLogs.size} selected</span>
+              <span className="text-[9px] md:text-xs text-[#8B8D94]">{selectedLogs.size} selected</span>
             )}
           </div>
 
-          <div className="text-xs text-[#8B8D94]">
+          <div className="text-[9px] md:text-xs text-[#8B8D94]">
             Showing {filteredLogs.length} of {emailLogs.length} logs
           </div>
         </div>
@@ -403,10 +450,10 @@ const AdminEmailLogs = () => {
         {/* Logs Table */}
         <div className="rounded-xl bg-[#171A21] border border-[#2A2E37] overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[1100px]">
-              <thead className="text-[10px] md:text-[11px] uppercase tracking-wide text-[#8B8D94] border-b border-[#2A2E37] bg-[#0E1013]">
+            <table className="w-full text-left min-w-[800px] md:min-w-[950px] lg:min-w-[1100px]">
+              <thead className="text-[8px] md:text-[9px] lg:text-[11px] uppercase tracking-wide text-[#8B8D94] border-b border-[#2A2E37] bg-[#0E1013]">
                 <tr>
-                  <th className="px-4 md:px-5 py-3 font-medium w-10">
+                  <th className="px-2 md:px-3 lg:px-5 py-2 md:py-2.5 lg:py-3 font-medium w-6 md:w-8 lg:w-10">
                     <input
                       type="checkbox"
                       checked={selectedLogs.size === filteredLogs.length && filteredLogs.length > 0}
@@ -414,14 +461,14 @@ const AdminEmailLogs = () => {
                       className="rounded border-[#2A2E37] bg-[#0E1013] accent-[#FF6A39]"
                     />
                   </th>
-                  <th className="px-3 py-3 font-medium">Log ID</th>
-                  <th className="px-3 py-3 font-medium">Recipient</th>
-                  <th className="px-3 py-3 font-medium">Campaign</th>
-                  <th className="px-3 py-3 font-medium">Subject</th>
-                  <th className="px-3 py-3 font-medium">Status</th>
-                  <th className="px-3 py-3 font-medium">Workspace</th>
-                  <th className="px-3 py-3 font-medium">Sent At</th>
-                  <th className="px-4 md:px-5 py-3 font-medium w-10" />
+                  <th className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Log ID</th>
+                  <th className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Recipient</th>
+                  <th className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Campaign</th>
+                  <th className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Subject</th>
+                  <th className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Status</th>
+                  <th className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Workspace</th>
+                  <th className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Sent At</th>
+                  <th className="px-2 md:px-3 lg:px-5 py-2 md:py-2.5 lg:py-3 font-medium w-6 md:w-8 lg:w-10" />
                 </tr>
               </thead>
               <tbody>
@@ -436,7 +483,7 @@ const AdminEmailLogs = () => {
                       onMouseEnter={() => setHoveredId(log.id)}
                       onMouseLeave={() => setHoveredId(null)}
                     >
-                      <td className="px-4 md:px-5 py-3.5">
+                      <td className="px-2 md:px-3 lg:px-5 py-2.5 md:py-3 lg:py-3.5">
                         <input
                           type="checkbox"
                           checked={selectedLogs.has(log.id)}
@@ -444,52 +491,54 @@ const AdminEmailLogs = () => {
                           className="rounded border-[#2A2E37] bg-[#0E1013] accent-[#FF6A39]"
                         />
                       </td>
-                      <td className="px-3 py-3.5">
+                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
                         <button
                           onClick={() => handleCopy(log.id)}
-                          className="flex items-center gap-1.5 font-mono text-[10px] md:text-[11px] text-[#8B8D94] hover:text-[#E8E6E1] transition"
+                          className="flex items-center gap-1 md:gap-1.5 font-mono text-[8px] md:text-[9px] lg:text-[11px] text-[#8B8D94] hover:text-[#E8E6E1] transition"
                         >
-                          {log.id}
-                          <Copy size={10} />
+                          <span className="hidden xs:inline">{log.id}</span>
+                          <span className="xs:hidden">{log.id.substring(0, 8)}</span>
+                          <Copy size={9} className="md:w-[10px] md:h-[10px] lg:w-[10px] lg:h-[10px]" />
                           {isCopied && (
-                            <span className="text-[#7FD98A] text-[10px]">✓</span>
+                            <span className="text-[#7FD98A] text-[8px] md:text-[9px] lg:text-[10px]">✓</span>
                           )}
                         </button>
                       </td>
-                      <td className="px-3 py-3.5">
+                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
                         <div>
-                          <p className="text-[11px] md:text-[13px] text-[#C7C9CE]">
+                          <p className="text-[9px] md:text-[10px] lg:text-[13px] text-[#C7C9CE] truncate max-w-[100px] md:max-w-[140px] lg:max-w-none">
                             {log.recipient}
                           </p>
-                          <p className="text-[9px] md:text-[10px] text-[#8B8D94]">
+                          <p className="text-[7px] md:text-[8px] lg:text-[10px] text-[#8B8D94] truncate max-w-[100px] md:max-w-[140px] lg:max-w-none">
                             {log.sender}
                           </p>
                         </div>
                       </td>
-                      <td className="px-3 py-3.5">
-                        <p className="text-[11px] md:text-[13px] text-[#C7C9CE]">
+                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
+                        <p className="text-[9px] md:text-[10px] lg:text-[13px] text-[#C7C9CE] truncate max-w-[80px] md:max-w-[120px] lg:max-w-none">
                           {log.campaign}
                         </p>
                       </td>
-                      <td className="px-3 py-3.5">
-                        <p className="text-[10px] md:text-[12px] text-[#8B8D94] truncate max-w-[180px]">
+                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
+                        <p className="text-[8px] md:text-[9px] lg:text-[12px] text-[#8B8D94] truncate max-w-[80px] md:max-w-[120px] lg:max-w-[180px]">
                           {log.subject}
                         </p>
                       </td>
-                      <td className="px-3 py-3.5">
+                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
                         {getStatusBadge(log.status)}
                       </td>
-                      <td className="px-3 py-3.5">
-                        <span className="text-[10px] md:text-[12px] text-[#8B8D94]">
+                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
+                        <span className="text-[8px] md:text-[9px] lg:text-[12px] text-[#8B8D94] truncate max-w-[80px] md:max-w-[120px] lg:max-w-none block">
                           {log.workspace}
                         </span>
                       </td>
-                      <td className="px-3 py-3.5">
-                        <span className="text-[9px] md:text-[11px] text-[#8B8D94] font-['JetBrains_Mono'] whitespace-nowrap">
-                          {new Date(log.sentAt).toLocaleString()}
+                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
+                        <span className="text-[7px] md:text-[8px] lg:text-[11px] text-[#8B8D94] font-['JetBrains_Mono'] whitespace-nowrap">
+                          {new Date(log.sentAt).toLocaleDateString()}
+                          <span className="hidden md:inline"> {new Date(log.sentAt).toLocaleTimeString()}</span>
                         </span>
                       </td>
-                      <td className="px-4 md:px-5 py-3.5 text-right">
+                      <td className="px-2 md:px-3 lg:px-5 py-2.5 md:py-3 lg:py-3.5 text-right">
                         <button
                           className={`p-1 rounded transition ${
                             isHovered
@@ -497,7 +546,7 @@ const AdminEmailLogs = () => {
                               : "text-[#8B8D94]"
                           }`}
                         >
-                          <MoreHorizontal size={14} />
+                          <MoreHorizontal size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
                         </button>
                       </td>
                     </tr>
@@ -506,13 +555,13 @@ const AdminEmailLogs = () => {
 
                 {filteredLogs.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="px-5 py-16 text-center">
+                    <td colSpan={9} className="px-3 md:px-5 py-10 md:py-16 text-center">
                       <div className="flex flex-col items-center">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#2A2E37] mb-3">
-                          <Inbox size={20} className="text-[#8B8D94]" />
+                        <div className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full bg-[#2A2E37] mb-2 md:mb-3">
+                          <Inbox size={16} className="md:w-[18px] md:h-[18px] lg:w-[20px] lg:h-[20px] text-[#8B8D94]" />
                         </div>
-                        <p className="text-sm text-[#8B8D94]">No logs found</p>
-                        <p className="text-xs text-[#6B727C] mt-1">Try adjusting your filters</p>
+                        <p className="text-xs md:text-sm text-[#8B8D94]">No logs found</p>
+                        <p className="text-[9px] md:text-xs text-[#6B727C] mt-1">Try adjusting your filters</p>
                       </div>
                     </td>
                   </tr>
@@ -522,25 +571,25 @@ const AdminEmailLogs = () => {
           </div>
 
           {/* Pagination */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-4 md:p-5 border-t border-[#2A2E37]">
-            <span className="text-[10px] md:text-xs text-[#8B8D94]">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 md:p-4 lg:p-5 border-t border-[#2A2E37]">
+            <span className="text-[9px] md:text-[10px] lg:text-xs text-[#8B8D94]">
               Showing 1-{Math.min(filteredLogs.length, 10)} of {filteredLogs.length} logs
             </span>
-            <div className="flex items-center gap-1.5">
-              <button className="px-3 py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-xs hover:bg-[#1B1E24] transition disabled:opacity-40 disabled:cursor-not-allowed">
-                <ChevronLeft size={14} />
+            <div className="flex items-center gap-1 md:gap-1.5">
+              <button className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[9px] md:text-xs hover:bg-[#1B1E24] transition disabled:opacity-40 disabled:cursor-not-allowed">
+                <ChevronLeft size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
               </button>
-              <button className="px-3 py-1.5 rounded-lg bg-[#FF6A39] text-white text-xs font-medium">
+              <button className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg bg-[#FF6A39] text-white text-[9px] md:text-xs font-medium">
                 1
               </button>
-              <button className="px-3 py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-xs hover:bg-[#1B1E24] transition">
+              <button className="hidden sm:inline-block px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[9px] md:text-xs hover:bg-[#1B1E24] transition">
                 2
               </button>
-              <button className="px-3 py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-xs hover:bg-[#1B1E24] transition">
+              <button className="hidden sm:inline-block px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[9px] md:text-xs hover:bg-[#1B1E24] transition">
                 3
               </button>
-              <button className="px-3 py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-xs hover:bg-[#1B1E24] transition">
-                <ChevronRight size={14} />
+              <button className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[9px] md:text-xs hover:bg-[#1B1E24] transition">
+                <ChevronRight size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
               </button>
             </div>
           </div>
