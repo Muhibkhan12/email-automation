@@ -1,3 +1,4 @@
+// AdminNotifications.tsx
 import React, { useState } from "react";
 import AdminSidebar from "./AdminSidebar";
 import {
@@ -21,6 +22,7 @@ import {
   Zap,
   ExternalLink,
   ArrowUpRight,
+  Menu,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------- */
@@ -205,6 +207,7 @@ const AdminNotifications = () => {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [notifList, setNotifList] = useState(notifications);
 
@@ -296,99 +299,144 @@ const AdminNotifications = () => {
         .notif-item.read {
           border-left: 3px solid transparent;
         }
+        .sidebar-overlay {
+          animation: fadeIn 0.2s ease-in-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .sidebar-slide {
+          animation: slideIn 0.25s ease-out;
+        }
+        @keyframes slideIn {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
+        }
+        @media (max-width: 480px) {
+          .filter-controls {
+            flex-direction: column;
+            width: 100%;
+          }
+          .filter-controls select {
+            width: 100%;
+          }
+        }
       `}</style>
 
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="sticky top-0 h-screen flex-shrink-0">
-        <AdminSidebar />
+      <div className={`
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        sidebar-slide
+      `}>
+        <AdminSidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main Content */}
-      <main className="main-content flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-[#0E1013] h-screen">
+      <main className="main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8 bg-[#0E1013] h-screen w-full">
         {/* Header */}
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 md:gap-2.5">
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#E8E6E1] font-['Space_Grotesk']">
-                Notifications
-              </h1>
-              {unreadCount > 0 && (
-                <span className="rounded-full px-2.5 py-0.5 text-xs font-medium bg-[#FF6A39] text-white">
-                  {unreadCount} new
-                </span>
-              )}
+        <div className="mb-6 md:mb-8 flex flex-wrap items-center justify-between gap-3 md:gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <div className="flex flex-wrap items-center gap-2 md:gap-2.5">
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-[#E8E6E1] font-['Space_Grotesk']">
+                  Notifications
+                </h1>
+                {unreadCount > 0 && (
+                  <span className="rounded-full px-2 md:px-2.5 py-0.5 text-[9px] md:text-xs font-medium bg-[#FF6A39] text-white">
+                    {unreadCount} new
+                  </span>
+                )}
+              </div>
+              <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm text-[#8B8D94]">
+                System-wide notifications and alerts.
+              </p>
             </div>
-            <p className="mt-1 text-xs md:text-sm text-[#8B8D94]">
-              System-wide notifications and alerts.
-            </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full sm:w-auto">
             <button
               onClick={markAllAsRead}
               disabled={unreadCount === 0}
-              className="flex items-center gap-2 rounded-lg border border-[#2A2E37] bg-[#171A21] px-4 py-2.5 text-xs md:text-sm font-medium text-[#C7C9CE] hover:bg-[#1B1E24] hover:text-[#E8E6E1] transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 md:gap-2 rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-[#C7C9CE] hover:bg-[#1B1E24] hover:text-[#E8E6E1] transition disabled:opacity-50 disabled:cursor-not-allowed flex-1 sm:flex-none justify-center"
             >
-              <CheckCheck size={14} />
-              Mark all as read
+              <CheckCheck size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
+              <span className="hidden xs:inline">Mark all as read</span>
+              <span className="xs:hidden">Mark read</span>
             </button>
-            <button className="flex items-center gap-2 rounded-lg border border-[#2A2E37] bg-[#171A21] px-4 py-2.5 text-xs md:text-sm font-medium text-[#C7C9CE] hover:bg-[#1B1E24] hover:text-[#E8E6E1] transition">
-              <Settings size={14} />
-              Settings
+            <button className="flex items-center gap-1.5 md:gap-2 rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-[#C7C9CE] hover:bg-[#1B1E24] hover:text-[#E8E6E1] transition flex-1 sm:flex-none justify-center">
+              <Settings size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
+              <span className="hidden xs:inline">Settings</span>
             </button>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="mb-6 grid grid-cols-1 gap-4 md:gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (
               <div
                 key={stat.title}
-                className="rounded-xl bg-[#171A21] p-4 md:p-5 border border-[#2A2E37] hover:border-[#3A3F4A] transition-all"
+                className="rounded-xl bg-[#171A21] p-3 md:p-4 lg:p-5 border border-[#2A2E37] hover:border-[#3A3F4A] transition-all"
               >
                 <div className="flex items-start justify-between">
-                  <div className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-lg bg-[#FF6A39]/10">
-                    <Icon size={14} className="text-[#FF6A39]" />
+                  <div className="flex h-7 w-7 md:h-8 md:w-8 lg:h-9 lg:w-9 items-center justify-center rounded-lg bg-[#FF6A39]/10">
+                    <Icon size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] text-[#FF6A39]" />
                   </div>
                   <span
-                    className={`flex items-center gap-0.5 text-[10px] md:text-[11.5px] font-medium ${
+                    className={`flex items-center gap-0.5 text-[9px] md:text-[10px] lg:text-[11.5px] font-medium ${
                       stat.trend === "up" ? "text-[#7FD98A]" : "text-[#FF5C6C]"
                     }`}
                   >
-                    {stat.trend === "up" ? <ArrowUpRight size={12} /> : <ArrowUpRight size={12} />}
+                    <ArrowUpRight size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />
                     {stat.change}
                   </span>
                 </div>
-                <h2 className="mt-3 md:mt-4 text-xl md:text-2xl font-semibold tracking-tight text-[#E8E6E1] font-['JetBrains_Mono']">
+                <h2 className="mt-2 md:mt-3 lg:mt-4 text-lg md:text-xl lg:text-2xl font-semibold tracking-tight text-[#E8E6E1] font-['JetBrains_Mono']">
                   {stat.value}
                 </h2>
-                <p className="mt-1 text-xs md:text-sm text-[#C7C9CE]">{stat.title}</p>
+                <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm text-[#C7C9CE]">{stat.title}</p>
               </div>
             );
           })}
         </div>
 
         {/* Filters */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 py-2">
-              <Search size={14} className="text-[#8B8D94]" />
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 md:gap-4">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full lg:w-auto">
+            <div className="flex items-center gap-1.5 md:gap-2 rounded-lg border border-[#2A2E37] bg-[#171A21] px-2 md:px-3 py-1.5 md:py-2 flex-1 lg:flex-none">
+              <Search size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] text-[#8B8D94] shrink-0" />
               <input
                 placeholder="Search notifications..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-transparent text-xs md:text-sm outline-none text-[#C7C9CE] w-[120px] md:w-[180px] placeholder:text-[#8B8D94]"
+                className="bg-transparent text-[10px] md:text-xs lg:text-sm outline-none text-[#C7C9CE] w-[100px] md:w-[140px] lg:w-[180px] placeholder:text-[#8B8D94]"
               />
             </div>
 
-            <div className="flex items-center gap-1 rounded-lg border border-[#2A2E37] bg-[#171A21] p-1">
+            <div className="flex flex-wrap items-center gap-1 rounded-lg border border-[#2A2E37] bg-[#171A21] p-1">
               {FILTERS.map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                  className={`rounded-md px-2 md:px-3 py-1 md:py-1.5 text-[9px] md:text-xs font-medium transition ${
                     filter === f
                       ? "bg-[#FF6A39] text-white"
                       : "text-[#C7C9CE] hover:text-[#E8E6E1]"
@@ -402,7 +450,7 @@ const AdminNotifications = () => {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 py-2 text-xs md:text-sm text-[#C7C9CE] outline-none focus:border-[#FF6A39]"
+              className="flex-1 lg:flex-none rounded-lg border border-[#2A2E37] bg-[#171A21] px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs lg:text-sm text-[#C7C9CE] outline-none focus:border-[#FF6A39]"
             >
               {CATEGORY_FILTERS.map((c) => (
                 <option key={c}>{c}</option>
@@ -411,9 +459,9 @@ const AdminNotifications = () => {
           </div>
 
           {selectedNotifications.size > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-[#8B8D94]">{selectedNotifications.size} selected</span>
-              <button className="rounded-lg border border-rose-500/30 px-3 py-1.5 text-xs font-medium text-rose-400 hover:bg-rose-500/10 transition">
+            <div className="flex items-center gap-1.5 md:gap-2 w-full sm:w-auto justify-end">
+              <span className="text-[9px] md:text-xs text-[#8B8D94]">{selectedNotifications.size} selected</span>
+              <button className="rounded-lg border border-rose-500/30 px-2 md:px-3 py-1 md:py-1.5 text-[9px] md:text-xs font-medium text-rose-400 hover:bg-rose-500/10 transition">
                 Dismiss
               </button>
             </div>
@@ -423,12 +471,12 @@ const AdminNotifications = () => {
         {/* Notifications List */}
         <div className="rounded-xl bg-[#171A21] border border-[#2A2E37] overflow-hidden">
           {filteredNotifs.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#2A2E37] mb-4">
-                <Bell size={24} className="text-[#8B8D94]" />
+            <div className="flex flex-col items-center justify-center py-12 md:py-16 px-4 text-center">
+              <div className="flex h-12 w-12 md:h-16 md:w-16 items-center justify-center rounded-full bg-[#2A2E37] mb-3 md:mb-4">
+                <Bell size={20} className="md:w-[22px] md:h-[22px] lg:w-[24px] lg:h-[24px] text-[#8B8D94]" />
               </div>
-              <h3 className="text-base font-semibold text-[#E8E6E1]">All caught up!</h3>
-              <p className="mt-1 text-sm text-[#8B8D94]">No notifications match your filters.</p>
+              <h3 className="text-sm md:text-base font-semibold text-[#E8E6E1]">All caught up!</h3>
+              <p className="mt-1 text-xs md:text-sm text-[#8B8D94]">No notifications match your filters.</p>
             </div>
           ) : (
             <div className="divide-y divide-[#2A2E37]">
@@ -442,37 +490,37 @@ const AdminNotifications = () => {
                 return (
                   <div
                     key={notif.id}
-                    className={`notif-item ${isUnread ? "unread" : "read"} p-4 md:p-5 transition`}
+                    className={`notif-item ${isUnread ? "unread" : "read"} p-3 md:p-4 lg:p-5 transition`}
                     onMouseEnter={() => setHoveredId(notif.id)}
                     onMouseLeave={() => setHoveredId(null)}
                   >
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-start gap-3 md:gap-4">
                       {/* Icon */}
                       <div
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${typeStyle.bg}`}
+                        className={`flex h-8 w-8 md:h-9 md:w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-lg ${typeStyle.bg}`}
                       >
-                        <Icon size={18} className={typeStyle.text} />
+                        <Icon size={14} className="md:w-[16px] md:h-[16px] lg:w-[18px] lg:h-[18px] ${typeStyle.text}" />
                       </div>
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <p className={`text-sm font-medium ${isUnread ? "text-[#E8E6E1]" : "text-[#C7C9CE]"}`}>
+                        <div className="flex flex-wrap items-start justify-between gap-1.5 md:gap-2">
+                          <div className="flex items-center gap-1.5 md:gap-2 min-w-0">
+                            <p className={`text-[11px] md:text-xs lg:text-sm font-medium truncate ${isUnread ? "text-[#E8E6E1]" : "text-[#C7C9CE]"}`}>
                               {notif.title}
                             </p>
                             {isUnread && (
-                              <span className="h-2 w-2 rounded-full bg-[#FF6A39] animate-pulse" />
+                              <span className="h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-[#FF6A39] animate-pulse shrink-0" />
                             )}
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[10px] text-[#8B8D94] font-['JetBrains_Mono']">
+                          <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+                            <span className="text-[8px] md:text-[9px] lg:text-[10px] text-[#8B8D94] font-['JetBrains_Mono']">
                               {getTimeAgo(notif.time)}
                             </span>
                             {!isUnread && (
                               <button
                                 onClick={() => markAsRead(notif.id)}
-                                className="text-[10px] font-medium text-[#FF6A39] hover:text-[#FF7F52] transition"
+                                className="text-[8px] md:text-[9px] lg:text-[10px] font-medium text-[#FF6A39] hover:text-[#FF7F52] transition"
                               >
                                 Mark read
                               </button>
@@ -480,27 +528,30 @@ const AdminNotifications = () => {
                           </div>
                         </div>
 
-                        <p className="mt-1 text-sm text-[#8B8D94]">{notif.description}</p>
+                        <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm text-[#8B8D94]">
+                          {notif.description}
+                        </p>
 
-                        <div className="mt-3 flex flex-wrap items-center gap-3">
-                          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-[#2A2E37] text-[#8B8D94]">
-                            <CategoryIcon size={10} />
-                            {notif.category}
+                        <div className="mt-2 md:mt-3 flex flex-wrap items-center gap-1.5 md:gap-3">
+                          <span className="inline-flex items-center gap-0.5 md:gap-1 rounded-full px-1.5 md:px-2 py-0.5 text-[8px] md:text-[9px] lg:text-[10px] font-medium bg-[#2A2E37] text-[#8B8D94]">
+                            <CategoryIcon size={8} className="md:w-[9px] md:h-[9px] lg:w-[10px] lg:h-[10px]" />
+                            <span className="hidden xs:inline">{notif.category}</span>
+                            <span className="xs:hidden">{notif.category.charAt(0)}</span>
                           </span>
 
                           {notif.action && (
                             <a
                               href={notif.action.href}
-                              className="inline-flex items-center gap-1 text-xs font-medium text-[#FF6A39] hover:text-[#FF7F52] transition"
+                              className="inline-flex items-center gap-0.5 md:gap-1 text-[9px] md:text-[10px] lg:text-xs font-medium text-[#FF6A39] hover:text-[#FF7F52] transition"
                             >
                               {notif.action.label}
-                              <ExternalLink size={10} />
+                              <ExternalLink size={8} className="md:w-[9px] md:h-[9px] lg:w-[10px] lg:h-[10px]" />
                             </a>
                           )}
 
                           {isHovered && (
                             <button className="ml-auto text-[#8B8D94] hover:text-[#E8E6E1] transition">
-                              <MoreHorizontal size={14} />
+                              <MoreHorizontal size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
                             </button>
                           )}
                         </div>
