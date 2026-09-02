@@ -1,3 +1,4 @@
+// AdminQueueMonitor.tsx
 import React, { useState } from "react";
 import AdminSidebar from "./AdminSidebar";
 import {
@@ -22,6 +23,8 @@ import {
   MoreHorizontal,
   ChevronLeft,
   ChevronRight,
+  Menu,
+  X,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------- */
@@ -182,6 +185,7 @@ const priorityColors: Record<Queue["priority"], { bg: string; text: string }> = 
 
 const AdminQueueMonitor = () => {
   const [refreshing, setRefreshing] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -191,7 +195,7 @@ const AdminQueueMonitor = () => {
   const getPriorityBadge = (priority: Queue["priority"]) => {
     const colors = priorityColors[priority];
     return (
-      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${colors.bg} ${colors.text}`}>
+      <span className={`inline-flex items-center rounded-full px-1.5 md:px-2 py-0.5 text-[8px] md:text-[10px] font-medium ${colors.bg} ${colors.text}`}>
         {priority}
       </span>
     );
@@ -199,15 +203,16 @@ const AdminQueueMonitor = () => {
 
   const getStatusDot = (status: Queue["status"]) => {
     const colors = statusColors[status];
-    return <span className={`h-1.5 w-1.5 rounded-full ${colors.dot}`} />;
+    return <span className={`h-1 w-1 md:h-1.5 md:w-1.5 rounded-full ${colors.dot}`} />;
   };
 
   const getWorkerStatusBadge = (status: Worker["status"]) => {
     const colors = workerStatusColors[status];
     return (
-      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${colors.bg} ${colors.text}`}>
-        <span className={`h-1.5 w-1.5 rounded-full ${colors.dot}`} />
-        {status}
+      <span className={`inline-flex items-center gap-1 md:gap-1.5 rounded-full px-1.5 md:px-2 py-0.5 text-[8px] md:text-[10px] font-medium ${colors.bg} ${colors.text}`}>
+        <span className={`h-1 w-1 md:h-1.5 md:w-1.5 rounded-full ${colors.dot}`} />
+        <span className="hidden xs:inline">{status}</span>
+        <span className="xs:hidden">{status.charAt(0)}</span>
       </span>
     );
   };
@@ -216,9 +221,10 @@ const AdminQueueMonitor = () => {
     const colors = jobStatusColors[status];
     const Icon = colors.icon;
     return (
-      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${colors.bg} ${colors.text}`}>
-        <Icon size={11} className={colors.spin ? "animate-spin" : ""} />
-        {status}
+      <span className={`inline-flex items-center gap-1 md:gap-1.5 rounded-full px-1.5 md:px-2 py-0.5 text-[8px] md:text-[10px] font-medium ${colors.bg} ${colors.text}`}>
+        <Icon size={9} className={`md:w-[10px] md:h-[10px] lg:w-[11px] lg:h-[11px] ${colors.spin ? "animate-spin" : ""}`} />
+        <span className="hidden xs:inline">{status}</span>
+        <span className="xs:hidden">{status.charAt(0)}</span>
       </span>
     );
   };
@@ -259,131 +265,181 @@ const AdminQueueMonitor = () => {
         .job-row:hover {
           background-color: #1B1E24;
         }
+        .sidebar-overlay {
+          animation: fadeIn 0.2s ease-in-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .sidebar-slide {
+          animation: slideIn 0.25s ease-out;
+        }
+        @keyframes slideIn {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
+        }
+        @media (max-width: 480px) {
+          .worker-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+        @media (max-width: 360px) {
+          .worker-grid {
+            grid-template-columns: 1fr;
+          }
+        }
       `}</style>
 
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="sticky top-0 h-screen flex-shrink-0">
-        <AdminSidebar />
+      <div className={`
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        sidebar-slide
+      `}>
+        <AdminSidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main Content */}
-      <main className="main-content flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-[#0E1013] h-screen">
+      <main className="main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8 bg-[#0E1013] h-screen w-full">
         {/* Header */}
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 md:gap-2.5">
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#E8E6E1] font-['Space_Grotesk']">
-                Queue Monitor
-              </h1>
-              <span className="rounded-full px-2 md:px-2.5 py-0.5 text-[10px] md:text-[11px] font-medium bg-emerald-500/15 text-emerald-400 flex items-center gap-1.5">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        <div className="mb-6 md:mb-8 flex flex-wrap items-center justify-between gap-3 md:gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <div className="flex flex-wrap items-center gap-2 md:gap-2.5">
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-[#E8E6E1] font-['Space_Grotesk']">
+                  Queue Monitor
+                </h1>
+                <span className="rounded-full px-2 md:px-2.5 py-0.5 text-[9px] md:text-[10px] lg:text-[11px] font-medium bg-emerald-500/15 text-emerald-400 flex items-center gap-1 md:gap-1.5">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  </span>
+                  <span className="hidden xs:inline">System Healthy</span>
+                  <span className="xs:hidden">✓</span>
                 </span>
-                System Healthy
-              </span>
+              </div>
+              <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm text-[#8B8D94]">
+                Monitor queues, workers, and background jobs in real-time.
+              </p>
             </div>
-            <p className="mt-1 text-xs md:text-sm text-[#8B8D94]">
-              Monitor queues, workers, and background jobs in real-time.
-            </p>
           </div>
 
           <button
             onClick={handleRefresh}
-            className="flex items-center gap-2 rounded-lg border border-[#2A2E37] bg-[#171A21] px-4 py-2.5 text-xs md:text-sm font-medium text-[#C7C9CE] hover:border-[#3A3F4A] transition"
+            className="flex items-center gap-1.5 md:gap-2 rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-[#C7C9CE] hover:border-[#3A3F4A] transition w-full sm:w-auto justify-center"
           >
-            <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
-            Refresh
+            <RefreshCw size={12} className={`md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] ${refreshing ? "animate-spin" : ""}`} />
+            <span className="hidden xs:inline">Refresh</span>
           </button>
         </div>
 
         {/* Stats */}
-        <div className="mb-6 grid grid-cols-1 gap-4 md:gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (
               <div
                 key={stat.title}
-                className="stat-card rounded-xl bg-[#171A21] p-4 md:p-5 border border-[#2A2E37] hover:border-[#3A3F4A] transition-all"
+                className="stat-card rounded-xl bg-[#171A21] p-3 md:p-4 lg:p-5 border border-[#2A2E37] hover:border-[#3A3F4A] transition-all"
               >
                 <div className="flex items-start justify-between">
-                  <div className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-lg bg-[#FF6A39]/10">
-                    <Icon size={14} className="text-[#FF6A39]" />
+                  <div className="flex h-7 w-7 md:h-8 md:w-8 lg:h-9 lg:w-9 items-center justify-center rounded-lg bg-[#FF6A39]/10">
+                    <Icon size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] text-[#FF6A39]" />
                   </div>
                   <span
-                    className={`flex items-center gap-0.5 text-[10px] md:text-[11.5px] font-medium ${
+                    className={`flex items-center gap-0.5 text-[9px] md:text-[10px] lg:text-[11.5px] font-medium ${
                       stat.trend === "up" ? "text-[#7FD98A]" : "text-[#FF5C6C]"
                     }`}
                   >
-                    {stat.trend === "up" ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                    {stat.trend === "up" ? <ArrowUpRight size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" /> : <ArrowDownRight size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />}
                     {stat.change}
                   </span>
                 </div>
-                <h2 className="mt-3 md:mt-4 text-xl md:text-2xl font-semibold tracking-tight text-[#E8E6E1] font-['JetBrains_Mono']">
+                <h2 className="mt-2 md:mt-3 lg:mt-4 text-lg md:text-xl lg:text-2xl font-semibold tracking-tight text-[#E8E6E1] font-['JetBrains_Mono']">
                   {stat.value}
                 </h2>
-                <p className="mt-1 text-xs md:text-sm text-[#C7C9CE]">{stat.title}</p>
+                <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm text-[#C7C9CE]">{stat.title}</p>
               </div>
             );
           })}
         </div>
 
         {/* Workers */}
-        <div className="mb-6 rounded-xl bg-[#171A21] border border-[#2A2E37] p-4 md:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <div className="mb-6 rounded-xl bg-[#171A21] border border-[#2A2E37] p-3 md:p-4 lg:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 md:gap-4 mb-3 md:mb-4">
             <div>
-              <h2 className="text-sm font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
+              <h2 className="text-xs md:text-sm font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
                 Workers
               </h2>
-              <p className="text-xs text-[#8B8D94]">
+              <p className="text-[9px] md:text-xs text-[#8B8D94]">
                 {workers.filter((w) => w.status !== "Offline").length} of {workers.length} online
               </p>
             </div>
-            <div className="flex items-center gap-3 text-xs text-[#8B8D94]">
-              <span className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5 md:gap-3 text-[8px] md:text-xs text-[#8B8D94]">
+              <span className="flex items-center gap-1 md:gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                Active
+                <span className="hidden xs:inline">Active</span>
+                <span className="xs:hidden">A</span>
               </span>
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1 md:gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                Busy
+                <span className="hidden xs:inline">Busy</span>
+                <span className="xs:hidden">B</span>
               </span>
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1 md:gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-                Idle
+                <span className="hidden xs:inline">Idle</span>
+                <span className="xs:hidden">I</span>
               </span>
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1 md:gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
-                Offline
+                <span className="hidden xs:inline">Offline</span>
+                <span className="xs:hidden">O</span>
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="worker-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
             {workers.map((worker) => (
               <div
                 key={worker.id}
-                className="worker-card rounded-lg border border-[#2A2E37] bg-[#0E1013] p-4 transition"
+                className="worker-card rounded-lg border border-[#2A2E37] bg-[#0E1013] p-3 md:p-4 transition"
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#2A2E37]">
-                      <Cpu size={14} className="text-[#8B8D94]" />
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <div className="flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-lg bg-[#2A2E37] shrink-0">
+                      <Cpu size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] text-[#8B8D94]" />
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-[#E8E6E1]">{worker.name}</p>
-                      <p className="text-[10px] text-[#8B8D94]">Uptime: {worker.uptime}</p>
+                    <div className="min-w-0">
+                      <p className="text-[10px] md:text-xs lg:text-sm font-medium text-[#E8E6E1] truncate">{worker.name}</p>
+                      <p className="text-[8px] md:text-[9px] lg:text-[10px] text-[#8B8D94]">Uptime: {worker.uptime}</p>
                     </div>
                   </div>
                   {getWorkerStatusBadge(worker.status)}
                 </div>
 
-                <div className="mt-3">
-                  <div className="flex items-center justify-between text-xs mb-1">
+                <div className="mt-2 md:mt-3">
+                  <div className="flex items-center justify-between text-[9px] md:text-xs mb-1">
                     <span className="text-[#8B8D94]">Load</span>
                     <span className="font-medium text-[#E8E6E1]">{worker.load}%</span>
                   </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#2A2E37]">
+                  <div className="h-1 md:h-1.5 w-full overflow-hidden rounded-full bg-[#2A2E37]">
                     <div
                       className={`h-full rounded-full transition-all ${
                         worker.load > 80
@@ -397,17 +453,17 @@ const AdminQueueMonitor = () => {
                   </div>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between text-xs">
+                <div className="mt-2 md:mt-3 flex items-center justify-between text-[9px] md:text-xs">
                   <span className="text-[#8B8D94]">Jobs Processed</span>
-                  <span className="font-medium text-[#E8E6E1] font-['JetBrains_Mono']">
+                  <span className="font-medium text-[#E8E6E1] font-['JetBrains_Mono'] text-[9px] md:text-xs">
                     {worker.jobsProcessed.toLocaleString()}
                   </span>
                 </div>
 
                 {worker.currentJob && (
-                  <div className="mt-2 rounded-md bg-[#1B1E24] px-2 py-1">
-                    <p className="text-[10px] text-[#8B8D94]">Current Job</p>
-                    <p className="text-[11px] font-mono text-[#FF6A39]">{worker.currentJob}</p>
+                  <div className="mt-2 rounded-md bg-[#1B1E24] px-1.5 md:px-2 py-1">
+                    <p className="text-[8px] md:text-[9px] lg:text-[10px] text-[#8B8D94]">Current Job</p>
+                    <p className="text-[9px] md:text-[10px] lg:text-[11px] font-mono text-[#FF6A39] truncate">{worker.currentJob}</p>
                   </div>
                 )}
               </div>
@@ -417,23 +473,23 @@ const AdminQueueMonitor = () => {
 
         {/* Queues */}
         <div className="mb-6 rounded-xl bg-[#171A21] border border-[#2A2E37] overflow-hidden">
-          <div className="p-4 md:p-5 border-b border-[#2A2E37]">
-            <h2 className="text-sm font-semibold text-[#E8E6E1] font-['Space_Grotesk']">Queues</h2>
-            <p className="text-xs text-[#8B8D94]">Current status of all processing queues</p>
+          <div className="p-3 md:p-4 lg:p-5 border-b border-[#2A2E37]">
+            <h2 className="text-xs md:text-sm font-semibold text-[#E8E6E1] font-['Space_Grotesk']">Queues</h2>
+            <p className="text-[9px] md:text-xs text-[#8B8D94]">Current status of all processing queues</p>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[800px]">
-              <thead className="text-[10px] md:text-[11px] uppercase tracking-wide text-[#8B8D94] border-b border-[#2A2E37] bg-[#0E1013]">
+            <table className="w-full text-left min-w-[600px] md:min-w-[700px] lg:min-w-[800px]">
+              <thead className="text-[8px] md:text-[9px] lg:text-[11px] uppercase tracking-wide text-[#8B8D94] border-b border-[#2A2E37] bg-[#0E1013]">
                 <tr>
-                  <th className="px-4 md:px-5 py-3 font-medium">Queue</th>
-                  <th className="px-3 py-3 font-medium">Priority</th>
-                  <th className="px-3 py-3 font-medium">Pending</th>
-                  <th className="px-3 py-3 font-medium">Processing</th>
-                  <th className="px-3 py-3 font-medium">Completed</th>
-                  <th className="px-3 py-3 font-medium">Failed</th>
-                  <th className="px-3 py-3 font-medium">Status</th>
-                  <th className="px-4 md:px-5 py-3 font-medium text-right">Action</th>
+                  <th className="px-2 md:px-3 lg:px-5 py-2 md:py-2.5 lg:py-3 font-medium">Queue</th>
+                  <th className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Priority</th>
+                  <th className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Pending</th>
+                  <th className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Processing</th>
+                  <th className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Completed</th>
+                  <th className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Failed</th>
+                  <th className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Status</th>
+                  <th className="px-2 md:px-3 lg:px-5 py-2 md:py-2.5 lg:py-3 font-medium text-right">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -442,57 +498,61 @@ const AdminQueueMonitor = () => {
                     key={queue.id}
                     className="queue-row transition border-t border-[#2A2E37]"
                   >
-                    <td className="px-4 md:px-5 py-3.5">
-                      <span className="font-mono text-[11px] md:text-[12px] text-[#C7C9CE]">
+                    <td className="px-2 md:px-3 lg:px-5 py-2.5 md:py-3 lg:py-3.5">
+                      <span className="font-mono text-[9px] md:text-[10px] lg:text-[12px] text-[#C7C9CE]">
                         {queue.name}
                       </span>
                     </td>
-                    <td className="px-3 py-3.5">
+                    <td className="px-1.5 md:px-2 lg:px-3 py-2.5 md:py-3 lg:py-3.5">
                       {getPriorityBadge(queue.priority)}
                     </td>
-                    <td className="px-3 py-3.5">
-                      <span className="text-[11px] md:text-[13px] text-[#E8E6E1] font-['JetBrains_Mono']">
+                    <td className="px-1.5 md:px-2 lg:px-3 py-2.5 md:py-3 lg:py-3.5">
+                      <span className="text-[9px] md:text-[10px] lg:text-[13px] text-[#E8E6E1] font-['JetBrains_Mono']">
                         {queue.pending.toLocaleString()}
                       </span>
                     </td>
-                    <td className="px-3 py-3.5">
-                      <span className="text-[11px] md:text-[13px] text-blue-400 font-['JetBrains_Mono']">
+                    <td className="px-1.5 md:px-2 lg:px-3 py-2.5 md:py-3 lg:py-3.5">
+                      <span className="text-[9px] md:text-[10px] lg:text-[13px] text-blue-400 font-['JetBrains_Mono']">
                         {queue.processing.toLocaleString()}
                       </span>
                     </td>
-                    <td className="px-3 py-3.5">
-                      <span className="text-[11px] md:text-[13px] text-emerald-400 font-['JetBrains_Mono']">
+                    <td className="px-1.5 md:px-2 lg:px-3 py-2.5 md:py-3 lg:py-3.5">
+                      <span className="text-[9px] md:text-[10px] lg:text-[13px] text-emerald-400 font-['JetBrains_Mono']">
                         {queue.completed.toLocaleString()}
                       </span>
                     </td>
-                    <td className="px-3 py-3.5">
-                      <span className="text-[11px] md:text-[13px] text-rose-400 font-['JetBrains_Mono']">
+                    <td className="px-1.5 md:px-2 lg:px-3 py-2.5 md:py-3 lg:py-3.5">
+                      <span className="text-[9px] md:text-[10px] lg:text-[13px] text-rose-400 font-['JetBrains_Mono']">
                         {queue.failed.toLocaleString()}
                       </span>
                     </td>
-                    <td className="px-3 py-3.5">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColors[queue.status].bg} ${statusColors[queue.status].text}`}>
+                    <td className="px-1.5 md:px-2 lg:px-3 py-2.5 md:py-3 lg:py-3.5">
+                      <span className={`inline-flex items-center gap-1 md:gap-1.5 rounded-full px-1.5 md:px-2 py-0.5 text-[8px] md:text-[9px] lg:text-[10px] font-medium ${statusColors[queue.status].bg} ${statusColors[queue.status].text}`}>
                         {getStatusDot(queue.status)}
-                        {queue.status}
+                        <span className="hidden xs:inline">{queue.status}</span>
+                        <span className="xs:hidden">{queue.status.charAt(0)}</span>
                       </span>
                     </td>
-                    <td className="px-4 md:px-5 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-2 md:px-3 lg:px-5 py-2.5 md:py-3 lg:py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1 md:gap-2">
                         {queue.status === "Running" ? (
-                          <button className="flex items-center gap-1 rounded-lg border border-[#2A2E37] px-2.5 py-1 text-[10px] font-medium text-[#C7C9CE] hover:bg-[#1B1E24] transition">
-                            <Pause size={12} /> Pause
+                          <button className="flex items-center gap-0.5 md:gap-1 rounded-lg border border-[#2A2E37] px-1.5 md:px-2.5 py-0.5 md:py-1 text-[8px] md:text-[9px] lg:text-[10px] font-medium text-[#C7C9CE] hover:bg-[#1B1E24] transition">
+                            <Pause size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />
+                            <span className="hidden xs:inline">Pause</span>
                           </button>
                         ) : queue.status === "Paused" ? (
-                          <button className="flex items-center gap-1 rounded-lg border border-[#2A2E37] px-2.5 py-1 text-[10px] font-medium text-[#C7C9CE] hover:bg-[#1B1E24] transition">
-                            <Play size={12} /> Resume
+                          <button className="flex items-center gap-0.5 md:gap-1 rounded-lg border border-[#2A2E37] px-1.5 md:px-2.5 py-0.5 md:py-1 text-[8px] md:text-[9px] lg:text-[10px] font-medium text-[#C7C9CE] hover:bg-[#1B1E24] transition">
+                            <Play size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />
+                            <span className="hidden xs:inline">Resume</span>
                           </button>
                         ) : (
-                          <button className="flex items-center gap-1 rounded-lg border border-[#2A2E37] px-2.5 py-1 text-[10px] font-medium text-[#C7C9CE] hover:bg-[#1B1E24] transition">
-                            <Play size={12} /> Start
+                          <button className="flex items-center gap-0.5 md:gap-1 rounded-lg border border-[#2A2E37] px-1.5 md:px-2.5 py-0.5 md:py-1 text-[8px] md:text-[9px] lg:text-[10px] font-medium text-[#C7C9CE] hover:bg-[#1B1E24] transition">
+                            <Play size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />
+                            <span className="hidden xs:inline">Start</span>
                           </button>
                         )}
                         <button className="text-[#8B8D94] hover:text-[#E8E6E1] transition">
-                          <MoreHorizontal size={14} />
+                          <MoreHorizontal size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
                         </button>
                       </div>
                     </td>
@@ -505,28 +565,28 @@ const AdminQueueMonitor = () => {
 
         {/* Recent Jobs */}
         <div className="rounded-xl bg-[#171A21] border border-[#2A2E37] overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-3 p-4 md:p-5 border-b border-[#2A2E37]">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 md:p-4 lg:p-5 border-b border-[#2A2E37]">
             <div>
-              <h2 className="text-sm font-semibold text-[#E8E6E1] font-['Space_Grotesk]">Recent Jobs</h2>
-              <p className="text-xs text-[#8B8D94]">Latest jobs processed by workers</p>
+              <h2 className="text-xs md:text-sm font-semibold text-[#E8E6E1] font-['Space_Grotesk']">Recent Jobs</h2>
+              <p className="text-[9px] md:text-xs text-[#8B8D94]">Latest jobs processed by workers</p>
             </div>
-            <button className="text-xs font-medium text-[#FF6A39] hover:text-[#FF7F52] transition">
-              View all jobs →
+            <button className="text-[9px] md:text-[10px] lg:text-xs font-medium text-[#FF6A39] hover:text-[#FF7F52] transition">
+              View all →
             </button>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[900px]">
-              <thead className="text-[10px] md:text-[11px] uppercase tracking-wide text-[#8B8D94] border-b border-[#2A2E37] bg-[#0E1013]">
+            <table className="w-full text-left min-w-[650px] md:min-w-[750px] lg:min-w-[900px]">
+              <thead className="text-[8px] md:text-[9px] lg:text-[11px] uppercase tracking-wide text-[#8B8D94] border-b border-[#2A2E37] bg-[#0E1013]">
                 <tr>
-                  <th className="px-4 md:px-5 py-3 font-medium">Job ID</th>
-                  <th className="px-3 py-3 font-medium">Campaign</th>
-                  <th className="px-3 py-3 font-medium">Recipient</th>
-                  <th className="px-3 py-3 font-medium">Sender</th>
-                  <th className="px-3 py-3 font-medium">Queue</th>
-                  <th className="px-3 py-3 font-medium">Status</th>
-                  <th className="px-3 py-3 font-medium">Attempts</th>
-                  <th className="px-4 md:px-5 py-3 font-medium">Time</th>
+                  <th className="px-2 md:px-3 lg:px-5 py-2 md:py-2.5 lg:py-3 font-medium">Job ID</th>
+                  <th className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Campaign</th>
+                  <th className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Recipient</th>
+                  <th className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Sender</th>
+                  <th className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Queue</th>
+                  <th className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Status</th>
+                  <th className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Attempts</th>
+                  <th className="px-2 md:px-3 lg:px-5 py-2 md:py-2.5 lg:py-3 font-medium">Time</th>
                 </tr>
               </thead>
               <tbody>
@@ -535,41 +595,41 @@ const AdminQueueMonitor = () => {
                     key={job.id}
                     className="job-row transition border-t border-[#2A2E37]"
                   >
-                    <td className="px-4 md:px-5 py-3.5">
-                      <span className="font-mono text-[10px] md:text-[11px] text-[#8B8D94]">
+                    <td className="px-2 md:px-3 lg:px-5 py-2.5 md:py-3 lg:py-3.5">
+                      <span className="font-mono text-[8px] md:text-[9px] lg:text-[11px] text-[#8B8D94]">
                         {job.id}
                       </span>
                     </td>
-                    <td className="px-3 py-3.5">
-                      <span className="text-[11px] md:text-[13px] text-[#C7C9CE]">
+                    <td className="px-1.5 md:px-2 lg:px-3 py-2.5 md:py-3 lg:py-3.5">
+                      <span className="text-[9px] md:text-[10px] lg:text-[13px] text-[#C7C9CE]">
                         {job.campaign}
                       </span>
                     </td>
-                    <td className="px-3 py-3.5">
-                      <span className="text-[10px] md:text-[12px] text-[#8B8D94]">
+                    <td className="px-1.5 md:px-2 lg:px-3 py-2.5 md:py-3 lg:py-3.5">
+                      <span className="text-[8px] md:text-[9px] lg:text-[12px] text-[#8B8D94]">
                         {job.recipient}
                       </span>
                     </td>
-                    <td className="px-3 py-3.5">
-                      <span className="text-[10px] md:text-[12px] text-[#8B8D94]">
+                    <td className="px-1.5 md:px-2 lg:px-3 py-2.5 md:py-3 lg:py-3.5">
+                      <span className="text-[8px] md:text-[9px] lg:text-[12px] text-[#8B8D94]">
                         {job.sender}
                       </span>
                     </td>
-                    <td className="px-3 py-3.5">
-                      <span className="text-[10px] md:text-[12px] text-[#8B8D94] font-mono">
+                    <td className="px-1.5 md:px-2 lg:px-3 py-2.5 md:py-3 lg:py-3.5">
+                      <span className="text-[8px] md:text-[9px] lg:text-[12px] text-[#8B8D94] font-mono">
                         {job.queue}
                       </span>
                     </td>
-                    <td className="px-3 py-3.5">
+                    <td className="px-1.5 md:px-2 lg:px-3 py-2.5 md:py-3 lg:py-3.5">
                       {getJobStatusBadge(job.status)}
                     </td>
-                    <td className="px-3 py-3.5">
-                      <span className="text-[10px] md:text-[12px] text-[#8B8D94] font-['JetBrains_Mono']">
+                    <td className="px-1.5 md:px-2 lg:px-3 py-2.5 md:py-3 lg:py-3.5">
+                      <span className="text-[8px] md:text-[9px] lg:text-[12px] text-[#8B8D94] font-['JetBrains_Mono']">
                         {job.attempts}
                       </span>
                     </td>
-                    <td className="px-4 md:px-5 py-3.5">
-                      <span className="text-[10px] md:text-[11px] text-[#8B8D94] font-['JetBrains_Mono']">
+                    <td className="px-2 md:px-3 lg:px-5 py-2.5 md:py-3 lg:py-3.5">
+                      <span className="text-[8px] md:text-[9px] lg:text-[11px] text-[#8B8D94] font-['JetBrains_Mono']">
                         {job.time}
                       </span>
                     </td>
@@ -580,19 +640,19 @@ const AdminQueueMonitor = () => {
           </div>
 
           {/* Pagination */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-4 md:p-5 border-t border-[#2A2E37]">
-            <span className="text-[10px] md:text-xs text-[#8B8D94]">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 md:p-4 lg:p-5 border-t border-[#2A2E37]">
+            <span className="text-[9px] md:text-[10px] lg:text-xs text-[#8B8D94]">
               Showing 1-6 of 6 jobs
             </span>
-            <div className="flex items-center gap-1.5">
-              <button className="px-3 py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-xs hover:bg-[#1B1E24] transition disabled:opacity-40 disabled:cursor-not-allowed">
-                <ChevronLeft size={14} />
+            <div className="flex items-center gap-1 md:gap-1.5">
+              <button className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[9px] md:text-xs hover:bg-[#1B1E24] transition disabled:opacity-40 disabled:cursor-not-allowed">
+                <ChevronLeft size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
               </button>
-              <button className="px-3 py-1.5 rounded-lg bg-[#FF6A39] text-white text-xs font-medium">
+              <button className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg bg-[#FF6A39] text-white text-[9px] md:text-xs font-medium">
                 1
               </button>
-              <button className="px-3 py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-xs hover:bg-[#1B1E24] transition">
-                <ChevronRight size={14} />
+              <button className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[9px] md:text-xs hover:bg-[#1B1E24] transition">
+                <ChevronRight size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
               </button>
             </div>
           </div>
