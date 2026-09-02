@@ -1,3 +1,4 @@
+// AdminDashboard.tsx
 import React, { useState } from "react";
 import AdminSidebar from "./AdminSidebar";
 import {
@@ -5,7 +6,7 @@ import {
   Users, 
   Send, 
   ArrowUpRight, 
-  ArrowDownRight, // ← Added
+  ArrowDownRight,
   ShieldCheck, 
   ShieldAlert, 
   ShieldX, 
@@ -15,6 +16,8 @@ import {
   MoreHorizontal, 
   Search, 
   ExternalLink,
+  Menu,
+  X,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -141,6 +144,7 @@ const RANGES = ["Last 24 hours", "Last 7 days", "Last 30 days"];
 
 const AdminDashboard = () => {
   const [range, setRange] = useState(RANGES[1]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const planTotal = planDistribution.reduce((s, p) => s + p.value, 0);
 
   return (
@@ -174,35 +178,80 @@ const AdminDashboard = () => {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.4; }
         }
+        .sidebar-overlay {
+          animation: fadeIn 0.2s ease-in-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .sidebar-slide {
+          animation: slideIn 0.25s ease-out;
+        }
+        @keyframes slideIn {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
+        }
+        @media (max-width: 768px) {
+          .stats-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .stats-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
       `}</style>
 
-      {/* Sidebar */}
-      <div className="sticky top-0 h-screen flex-shrink-0">
-        <AdminSidebar />
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - Desktop always visible, Mobile slide-out */}
+      <div className={`
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        sidebar-slide
+      `}>
+        <AdminSidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main Content */}
-      <main className="main-content flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-[#0E1013] h-screen">
+      <main className="main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8 bg-[#0E1013] h-screen w-full">
         {/* Header */}
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 md:gap-2.5">
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#E8E6E1] font-['Space_Grotesk']">
-                Admin Dashboard
-              </h1>
-              <span className="rounded-full px-2 md:px-2.5 py-0.5 text-[10px] md:text-[11px] font-medium bg-[#FF6A39]/15 text-[#FF6A39]">
-                Super Admin
-              </span>
+        <div className="mb-6 md:mb-8 flex flex-wrap items-center justify-between gap-3 md:gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <div className="flex flex-wrap items-center gap-2 md:gap-2.5">
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-[#E8E6E1] font-['Space_Grotesk']">
+                  Admin Dashboard
+                </h1>
+                <span className="rounded-full px-2 md:px-2.5 py-0.5 text-[9px] md:text-[10px] lg:text-[11px] font-medium bg-[#FF6A39]/15 text-[#FF6A39]">
+                  Super Admin
+                </span>
+              </div>
+              <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm text-[#8B8D94]">
+                Platform-wide oversight across all workspaces and system health.
+              </p>
             </div>
-            <p className="mt-1 text-xs md:text-sm text-[#8B8D94]">
-              Platform-wide oversight across all workspaces and system health.
-            </p>
           </div>
 
           <select
             value={range}
             onChange={(e) => setRange(e.target.value)}
-            className="rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm text-[#C7C9CE] outline-none w-full sm:w-auto focus:border-[#FF6A39]"
+            className="w-full sm:w-auto rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm text-[#C7C9CE] outline-none focus:border-[#FF6A39]"
           >
             {RANGES.map((r) => (
               <option key={r}>{r}</option>
@@ -211,34 +260,34 @@ const AdminDashboard = () => {
         </div>
 
         {/* Stats */}
-        <div className="mb-6 grid grid-cols-1 gap-4 md:gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (
               <div
                 key={stat.title}
-                className="rounded-xl bg-[#171A21] p-4 md:p-5 border border-[#2A2E37] hover:border-[#3A3F4A] transition-all"
+                className="rounded-xl bg-[#171A21] p-3 md:p-4 lg:p-5 border border-[#2A2E37] hover:border-[#3A3F4A] transition-all"
               >
                 <div className="flex items-start justify-between">
                   <div
-                    className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-lg"
+                    className="flex h-7 w-7 md:h-8 md:w-8 lg:h-9 lg:w-9 items-center justify-center rounded-lg"
                     style={{ background: stat.accentSoft }}
                   >
-                    <Icon size={14} style={{ color: stat.accent }} />
+                    <Icon size={13} className="md:w-[14px] md:h-[14px] lg:w-[14px] lg:h-[14px]" style={{ color: stat.accent }} />
                   </div>
                   <span
-                    className={`flex items-center gap-0.5 text-[10px] md:text-[11.5px] font-medium ${
+                    className={`flex items-center gap-0.5 text-[9px] md:text-[10px] lg:text-[11.5px] font-medium ${
                       stat.trend === "up" ? "text-[#7FD98A]" : "text-[#FF5C6C]"
                     }`}
                   >
-                    {stat.trend === "up" ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                    {stat.trend === "up" ? <ArrowUpRight size={11} className="md:w-[12px] md:h-[12px]" /> : <ArrowDownRight size={11} className="md:w-[12px] md:h-[12px]" />}
                     {stat.delta}
                   </span>
                 </div>
-                <h2 className="mt-3 md:mt-4 text-xl md:text-2xl font-semibold tracking-tight text-[#E8E6E1] font-['JetBrains_Mono']">
+                <h2 className="mt-2 md:mt-3 lg:mt-4 text-lg md:text-xl lg:text-2xl font-semibold tracking-tight text-[#E8E6E1] font-['JetBrains_Mono']">
                   {stat.value}
                 </h2>
-                <p className="mt-1 text-xs md:text-sm text-[#C7C9CE]">
+                <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm text-[#C7C9CE]">
                   {stat.title}
                 </p>
               </div>
@@ -247,11 +296,11 @@ const AdminDashboard = () => {
         </div>
 
         {/* System health + Incidents */}
-        <div className="mb-6 grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-2">
-          <div className="rounded-xl bg-[#171A21] p-4 md:p-6 border border-[#2A2E37]">
+        <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 lg:gap-5">
+          <div className="rounded-xl bg-[#171A21] p-3 md:p-4 lg:p-6 border border-[#2A2E37]">
             <div className="flex items-center gap-2 mb-3 md:mb-4">
-              <Activity size={14} className="text-[#FF6A39]" />
-              <h2 className="text-base md:text-lg font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
+              <Activity size={13} className="md:w-[14px] md:h-[14px] text-[#FF6A39]" />
+              <h2 className="text-sm md:text-base lg:text-lg font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
                 System health
               </h2>
             </div>
@@ -262,19 +311,19 @@ const AdminDashboard = () => {
                 return (
                   <div
                     key={c.name}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 md:px-3.5 py-2.5 md:py-3 bg-[#0E1013]"
+                    className="flex flex-wrap items-center justify-between gap-1.5 md:gap-2 rounded-lg px-2.5 md:px-3 lg:px-3.5 py-2 md:py-2.5 lg:py-3 bg-[#0E1013]"
                   >
                     <div className="flex items-center gap-2 md:gap-2.5">
-                      <div className={`flex h-6 w-6 md:h-7 md:w-7 items-center justify-center rounded-md ${meta.bg}`}>
-                        <Icon size={12} className={meta.fg} />
+                      <div className={`flex h-5 w-5 md:h-6 md:w-6 lg:h-7 lg:w-7 items-center justify-center rounded-md ${meta.bg}`}>
+                        <Icon size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px] ${meta.fg}" />
                       </div>
-                      <span className="text-[11px] md:text-[13px] text-[#C7C9CE]">{c.name}</span>
+                      <span className="text-[10px] md:text-[11px] lg:text-[13px] text-[#C7C9CE]">{c.name}</span>
                     </div>
-                    <div className="flex items-center gap-2 md:gap-3">
-                      <span className="text-[10px] md:text-[11.5px] text-[#8B8D94] font-['JetBrains_Mono']">
+                    <div className="flex items-center gap-1.5 md:gap-2 lg:gap-3">
+                      <span className="text-[9px] md:text-[10px] lg:text-[11.5px] text-[#8B8D94] font-['JetBrains_Mono']">
                         {c.latency}
                       </span>
-                      <span className={`rounded-full px-1.5 md:px-2 py-0.5 text-[10px] md:text-[11px] font-medium ${meta.bg} ${meta.fg}`}>
+                      <span className={`rounded-full px-1.5 md:px-2 py-0.5 text-[8px] md:text-[9px] lg:text-[11px] font-medium ${meta.bg} ${meta.fg}`}>
                         {c.status}
                       </span>
                     </div>
@@ -284,8 +333,8 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="rounded-xl bg-[#171A21] p-4 md:p-6 border border-[#2A2E37]">
-            <h2 className="text-base md:text-lg font-semibold text-[#E8E6E1] font-['Space_Grotesk'] mb-3 md:mb-4">
+          <div className="rounded-xl bg-[#171A21] p-3 md:p-4 lg:p-6 border border-[#2A2E37]">
+            <h2 className="text-sm md:text-base lg:text-lg font-semibold text-[#E8E6E1] font-['Space_Grotesk'] mb-3 md:mb-4">
               Recent incidents
             </h2>
             <div className="space-y-2.5 md:space-y-3">
@@ -294,12 +343,12 @@ const AdminDashboard = () => {
                 const Icon = meta.icon;
                 return (
                   <div key={i} className="flex items-start gap-2 md:gap-2.5">
-                    <div className={`flex h-5 w-5 md:h-6 md:w-6 shrink-0 items-center justify-center rounded-md mt-0.5 ${meta.bg}`}>
-                      <Icon size={11} className={meta.fg} />
+                    <div className={`flex h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 shrink-0 items-center justify-center rounded-md mt-0.5 ${meta.bg}`}>
+                      <Icon size={9} className="md:w-[10px] md:h-[10px] lg:w-[11px] lg:h-[11px] ${meta.fg}" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[11px] md:text-[12.5px] leading-snug text-[#C7C9CE]">{inc.title}</p>
-                      <p className="text-[10px] md:text-[11px] mt-0.5 text-[#8B8D94] font-['JetBrains_Mono']">
+                      <p className="text-[10px] md:text-[11px] lg:text-[12.5px] leading-snug text-[#C7C9CE]">{inc.title}</p>
+                      <p className="text-[9px] md:text-[10px] lg:text-[11px] mt-0.5 text-[#8B8D94] font-['JetBrains_Mono']">
                         {inc.time}
                       </p>
                     </div>
@@ -311,16 +360,16 @@ const AdminDashboard = () => {
         </div>
 
         {/* Plan distribution + Top workspaces */}
-        <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-3">
-          <div className="rounded-xl bg-[#171A21] p-4 md:p-6 border border-[#2A2E37]">
-            <h2 className="text-base md:text-lg font-semibold text-[#E8E6E1] font-['Space_Grotesk'] mb-3 md:mb-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-5">
+          <div className="rounded-xl bg-[#171A21] p-3 md:p-4 lg:p-6 border border-[#2A2E37]">
+            <h2 className="text-sm md:text-base lg:text-lg font-semibold text-[#E8E6E1] font-['Space_Grotesk'] mb-3 md:mb-4">
               Plan distribution
             </h2>
             <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4">
-              <div className="w-[90px] h-[90px] md:w-[110px] md:h-[110px] shrink-0">
+              <div className="w-[80px] h-[80px] md:w-[90px] md:h-[90px] lg:w-[110px] lg:h-[110px] shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={planDistribution} dataKey="value" innerRadius={28} outerRadius={42} paddingAngle={2}>
+                    <Pie data={planDistribution} dataKey="value" innerRadius={25} outerRadius={38} paddingAngle={2}>
                       {planDistribution.map((p) => (
                         <Cell key={p.name} fill={p.color} stroke="none" />
                       ))}
@@ -330,7 +379,7 @@ const AdminDashboard = () => {
               </div>
               <div className="flex-1 w-full space-y-1.5 md:space-y-2">
                 {planDistribution.map((p) => (
-                  <div key={p.name} className="flex items-center justify-between text-[11px] md:text-[12.5px]">
+                  <div key={p.name} className="flex items-center justify-between text-[10px] md:text-[11px] lg:text-[12.5px]">
                     <span className="flex items-center gap-1.5 text-[#C7C9CE]">
                       <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full" style={{ background: p.color }} />
                       {p.name}
@@ -345,27 +394,27 @@ const AdminDashboard = () => {
           </div>
 
           <div className="lg:col-span-2 rounded-xl bg-[#171A21] border border-[#2A2E37] overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-3 p-4 md:p-5 border-b border-[#2A2E37]">
-              <h2 className="text-sm font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 md:p-4 lg:p-5 border-b border-[#2A2E37]">
+              <h2 className="text-xs md:text-sm font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
                 Top workspaces by volume
               </h2>
               <div className="flex items-center gap-2 rounded-lg px-2 md:px-3 py-1 md:py-1.5 border border-[#2A2E37] bg-[#0E1013]">
-                <Search size={12} className="text-[#8B8D94]" />
+                <Search size={11} className="md:w-[12px] md:h-[12px] text-[#8B8D94]" />
                 <input
                   placeholder="Search workspaces"
-                  className="bg-transparent text-xs outline-none text-[#C7C9CE] w-[100px] md:w-[120px] placeholder:text-[#8B8D94]"
+                  className="bg-transparent text-[10px] md:text-xs outline-none text-[#C7C9CE] w-[80px] md:w-[100px] lg:w-[120px] placeholder:text-[#8B8D94]"
                 />
               </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left min-w-[500px]">
-                <thead className="text-[10px] md:text-[11px] uppercase tracking-wide text-[#8B8D94]">
+              <table className="w-full text-left min-w-[400px] md:min-w-[500px]">
+                <thead className="text-[9px] md:text-[10px] lg:text-[11px] uppercase tracking-wide text-[#8B8D94]">
                   <tr>
-                    <th className="px-3 md:px-5 py-2 md:py-2.5 font-medium">Workspace</th>
-                    <th className="px-2 md:px-3 py-2 md:py-2.5 font-medium">Plan</th>
-                    <th className="px-2 md:px-3 py-2 md:py-2.5 font-medium">Emails sent</th>
-                    <th className="px-2 md:px-3 py-2 md:py-2.5 font-medium">MRR</th>
-                    <th className="px-3 md:px-5 py-2 md:py-2.5 font-medium w-10" />
+                    <th className="px-2 md:px-3 lg:px-5 py-2 md:py-2.5 font-medium">Workspace</th>
+                    <th className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 font-medium">Plan</th>
+                    <th className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 font-medium">Emails sent</th>
+                    <th className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 font-medium">MRR</th>
+                    <th className="px-2 md:px-3 lg:px-5 py-2 md:py-2.5 font-medium w-8 md:w-10" />
                   </tr>
                 </thead>
                 <tbody>
@@ -373,26 +422,26 @@ const AdminDashboard = () => {
                     const plan = PLAN_STYLE[w.plan];
                     return (
                       <tr key={w.id} className="mf-row transition" style={{ borderTop: i === 0 ? "none" : "1px solid #2A2E37" }}>
-                        <td className="px-3 md:px-5 py-2.5 md:py-3">
-                          <p className="text-[12px] md:text-[13.5px] font-medium text-[#E8E6E1]">{w.name}</p>
-                          <p className="text-[10px] md:text-[11px] text-[#8B8D94] font-['JetBrains_Mono']">
+                        <td className="px-2 md:px-3 lg:px-5 py-2 md:py-2.5 lg:py-3">
+                          <p className="text-[10px] md:text-[11px] lg:text-[13.5px] font-medium text-[#E8E6E1]">{w.name}</p>
+                          <p className="text-[8px] md:text-[9px] lg:text-[11px] text-[#8B8D94] font-['JetBrains_Mono']">
                             {w.seats} seats · joined {w.joined}
                           </p>
                         </td>
-                        <td className="px-2 md:px-3 py-2.5 md:py-3">
-                          <span className={`rounded-full px-1.5 md:px-2 py-0.5 text-[10px] md:text-[11px] font-medium ${plan.bg} ${plan.fg}`}>
+                        <td className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 lg:py-3">
+                          <span className={`rounded-full px-1 md:px-1.5 lg:px-2 py-0.5 text-[8px] md:text-[9px] lg:text-[11px] font-medium ${plan.bg} ${plan.fg}`}>
                             {w.plan}
                           </span>
                         </td>
-                        <td className="px-2 md:px-3 py-2.5 md:py-3 text-[11px] md:text-[13px] text-[#C7C9CE] font-['JetBrains_Mono']">
+                        <td className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 lg:py-3 text-[9px] md:text-[10px] lg:text-[13px] text-[#C7C9CE] font-['JetBrains_Mono']">
                           {w.emailsSent.toLocaleString()}
                         </td>
-                        <td className="px-2 md:px-3 py-2.5 md:py-3 text-[11px] md:text-[13px] text-[#C7C9CE] font-['JetBrains_Mono']">
+                        <td className="px-1.5 md:px-2 lg:px-3 py-2 md:py-2.5 lg:py-3 text-[9px] md:text-[10px] lg:text-[13px] text-[#C7C9CE] font-['JetBrains_Mono']">
                           {w.mrr}
                         </td>
-                        <td className="px-3 md:px-5 py-2.5 md:py-3 text-right">
+                        <td className="px-2 md:px-3 lg:px-5 py-2 md:py-2.5 lg:py-3 text-right">
                           <button className="text-[#8B8D94] hover:text-[#E8E6E1]">
-                            <MoreHorizontal size={14} />
+                            <MoreHorizontal size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
                           </button>
                         </td>
                       </tr>
@@ -406,29 +455,29 @@ const AdminDashboard = () => {
 
         {/* Recent signups */}
         <div className="mt-4 md:mt-5 rounded-xl bg-[#171A21] border border-[#2A2E37] overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-2 p-4 md:p-5 border-b border-[#2A2E37]">
-            <h2 className="text-sm font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 md:p-4 lg:p-5 border-b border-[#2A2E37]">
+            <h2 className="text-xs md:text-sm font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
               Recent signups
             </h2>
-            <button className="flex items-center gap-1 text-[10px] md:text-[11.5px] font-medium text-[#FF6A39] hover:text-[#FF7F52]">
+            <button className="flex items-center gap-1 text-[9px] md:text-[10px] lg:text-[11.5px] font-medium text-[#FF6A39] hover:text-[#FF7F52]">
               View all
-              <ExternalLink size={10} />
+              <ExternalLink size={9} className="md:w-[10px] md:h-[10px]" />
             </button>
           </div>
           <div className="divide-y divide-[#2A2E37]">
             {recentSignups.map((s) => {
               const plan = PLAN_STYLE[s.plan];
               return (
-                <div key={s.email} className="flex items-center justify-between gap-2 px-4 md:px-5 py-3 md:py-3.5">
+                <div key={s.email} className="flex items-center justify-between gap-2 px-3 md:px-4 lg:px-5 py-2.5 md:py-3 lg:py-3.5">
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] md:text-[13px] font-medium truncate text-[#E8E6E1]">{s.name}</p>
-                    <p className="text-[10px] md:text-[11.5px] truncate text-[#8B8D94]">{s.email}</p>
+                    <p className="text-[10px] md:text-[11px] lg:text-[13px] font-medium truncate text-[#E8E6E1]">{s.name}</p>
+                    <p className="text-[9px] md:text-[10px] lg:text-[11.5px] truncate text-[#8B8D94]">{s.email}</p>
                   </div>
                   <div className="flex flex-col items-end gap-0.5 md:gap-1 shrink-0 ml-2">
-                    <span className={`rounded-full px-1.5 md:px-2 py-0.5 text-[9px] md:text-[10.5px] font-medium ${plan.bg} ${plan.fg}`}>
+                    <span className={`rounded-full px-1.5 md:px-2 py-0.5 text-[8px] md:text-[9px] lg:text-[10.5px] font-medium ${plan.bg} ${plan.fg}`}>
                       {s.plan}
                     </span>
-                    <span className="text-[9px] md:text-[10.5px] text-[#8B8D94] font-['JetBrains_Mono']">
+                    <span className="text-[8px] md:text-[9px] lg:text-[10.5px] text-[#8B8D94] font-['JetBrains_Mono']">
                       {s.time}
                     </span>
                   </div>
