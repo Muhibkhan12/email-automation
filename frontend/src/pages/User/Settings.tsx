@@ -101,7 +101,7 @@ const Card = ({ title, description, children, footer, danger }: CardProps) => (
       <h2
         style={{ 
           fontFamily: FONT.display, 
-          color: danger ? "#F87171" : "#E8E6E1" 
+          color: danger ? "#F87171" : "#FFFFFF" 
         }}
         className="text-xs md:text-sm lg:text-base font-semibold"
       >
@@ -244,8 +244,8 @@ const Settings = () => {
             </button>
             <div>
               <h1
-                style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }}
-                className="text-xl font-light md:text-2xl lg:text-3xl font-bold" 
+                style={{ fontFamily: FONT.display, letterSpacing: "-0.01em", color: "#FFFFFF" }}
+                className="text-xl md:text-2xl lg:text-3xl font-bold" 
               >
                 Settings
               </h1>
@@ -551,7 +551,7 @@ const ToggleRow = ({ title, description, checked, onChange, last, className = ""
     style={{ borderBottom: last ? "none" : "1px solid #2A2E37" }}
   >
     <div className="mf-toggle-row-content flex-1 min-w-0">
-      <p className="mf-toggle-title text-[10px] md:text-xs lg:text-sm font-medium" style={{ color: "#E8E6E1" }}>
+      <p className="mf-toggle-title text-[10px] md:text-xs lg:text-sm font-medium" style={{ color: "#FFFFFF" }}>
         {title}
       </p>
       <p className="mf-toggle-desc mt-0.5 text-[8px] md:text-[9px] lg:text-xs" style={{ color: "#6B727C" }}>
@@ -577,7 +577,7 @@ const DangerRow = ({ title, description, action, last }: DangerRowProps) => (
     style={{ borderBottom: last ? "none" : "1px solid #2A2E37" }}
   >
     <div className="min-w-0 flex-1">
-      <p className="mf-danger-title text-[10px] md:text-xs lg:text-sm font-medium" style={{ color: "#E8E6E1" }}>
+      <p className="mf-danger-title text-[10px] md:text-xs lg:text-sm font-medium" style={{ color: "#FFFFFF" }}>
         {title}
       </p>
       <p className="mf-danger-desc mt-0.5 text-[8px] md:text-[9px] lg:text-xs" style={{ color: "#6B727C" }}>
