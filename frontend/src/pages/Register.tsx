@@ -94,7 +94,7 @@ const Register = () => {
         <div className="flex items-center gap-2.5">
           <Flame className="flame-icon w-6 h-6 text-[#FF6A39]" strokeWidth={2.2} />
           <span className="font-display text-lg font-semibold tracking-tight text-[#E8E6E1]">
-            MailForge
+            Outwerk Solutions
           </span>
         </div>
 
@@ -135,7 +135,7 @@ const Register = () => {
           <div className="lg:hidden flex items-center gap-2 mb-10 justify-center">
             <Flame className="w-5 h-5 text-[#FF6A39]" strokeWidth={2.2} />
             <span className="font-display text-base font-semibold text-[#E8E6E1]">
-              MailForge
+              Outwerk Solutions
             </span>
           </div>
 
