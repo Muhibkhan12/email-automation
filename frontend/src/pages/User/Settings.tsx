@@ -9,6 +9,7 @@ import {
   Copy,
   Check,
   RefreshCw,
+  Menu,
 } from "lucide-react";
 
 const FONT = {
@@ -43,12 +44,12 @@ const Toggle = ({ checked, onChange, label }: ToggleProps) => (
     aria-checked={checked}
     aria-label={label}
     onClick={onChange}
-    className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
+    className="relative h-5 w-9 md:h-6 md:w-11 shrink-0 rounded-full transition-colors"
     style={{ background: checked ? "#FF6A39" : "#2A2E37" }}
   >
     <span
-      className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
-      style={{ transform: checked ? "translateX(22px)" : "translateX(2px)" }}
+      className="absolute top-0.5 h-4 w-4 md:h-5 md:w-5 rounded-full bg-white shadow transition-transform"
+      style={{ transform: checked ? "translateX(18px)" : "translateX(2px)" }}
     />
   </button>
 );
@@ -61,12 +62,12 @@ interface FieldProps {
 
 const Field = ({ label, hint, children }: FieldProps) => (
   <div>
-    <label className="mb-2 block text-xs md:text-sm font-medium" style={{ color: "#C7C9CE" }}>
+    <label className="mb-1 md:mb-2 block text-[10px] md:text-xs lg:text-sm font-medium" style={{ color: "#C7C9CE" }}>
       {label}
     </label>
     {children}
     {hint && (
-      <p className="mt-1.5 text-[10px] md:text-xs" style={{ color: "#6B727C" }}>
+      <p className="mt-1 md:mt-1.5 text-[8px] md:text-[9px] lg:text-xs" style={{ color: "#6B727C" }}>
         {hint}
       </p>
     )}
@@ -96,23 +97,23 @@ const Card = ({ title, description, children, footer, danger }: CardProps) => (
       background: "#12151B"
     }}
   >
-    <div className="px-4 md:px-6 py-4 md:py-5" style={{ borderBottom: `1px solid ${danger ? "rgba(248,113,113,0.2)" : "#2A2E37"}` }}>
+    <div className="px-3 md:px-4 lg:px-6 py-3 md:py-4 lg:py-5" style={{ borderBottom: `1px solid ${danger ? "rgba(248,113,113,0.2)" : "#2A2E37"}` }}>
       <h2
         style={{ 
           fontFamily: FONT.display, 
           color: danger ? "#F87171" : "#E8E6E1" 
         }}
-        className="text-sm md:text-base font-semibold"
+        className="text-xs md:text-sm lg:text-base font-semibold"
       >
         {title}
       </h2>
-      <p className="mt-1 text-xs md:text-sm" style={{ color: danger ? "#FCA5A5" : "#9BA0A8" }}>
+      <p className="mt-0.5 md:mt-1 text-[9px] md:text-xs lg:text-sm" style={{ color: danger ? "#FCA5A5" : "#9BA0A8" }}>
         {description}
       </p>
     </div>
-    <div className="p-4 md:p-6">{children}</div>
+    <div className="p-3 md:p-4 lg:p-6">{children}</div>
     {footer && (
-      <div className="flex justify-end px-4 md:px-6 py-3 md:py-4" style={{ borderTop: `1px solid ${danger ? "rgba(248,113,113,0.2)" : "#2A2E37"}` }}>
+      <div className="flex justify-end px-3 md:px-4 lg:px-6 py-2.5 md:py-3 lg:py-4" style={{ borderTop: `1px solid ${danger ? "rgba(248,113,113,0.2)" : "#2A2E37"}` }}>
         {footer}
       </div>
     )}
@@ -125,6 +126,7 @@ const Card = ({ title, description, children, footer, danger }: CardProps) => (
 
 const Settings = () => {
   const [active, setActive] = useState<SectionKey>("general");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [workspaceName, setWorkspaceName] = useState("MailForge Workspace");
   const [timezone, setTimezone] = useState("Asia/Karachi (GMT+5)");
@@ -162,13 +164,12 @@ const Settings = () => {
         input.mf-input, select.mf-input {
           width: 100%;
           border-radius: 0.5rem;
-          padding: 0.5rem 0.75rem;
-          font-size: 0.8rem;
+          padding: 0.4rem 0.6rem;
+          font-size: 0.7rem;
           outline: none;
           transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
 
-        /* Custom scrollbar for the main content */
         .mf-main-content::-webkit-scrollbar {
           width: 6px;
         }
@@ -183,132 +184,81 @@ const Settings = () => {
           background: #3A3F4A;
         }
 
-        /* Mobile responsiveness */
-        @media (max-width: 1024px) {
-          .mf-settings-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .mf-nav {
-            flex-direction: row !important;
-            overflow-x: auto !important;
-            padding-bottom: 0.5rem !important;
-          }
-          .mf-nav-btn {
-            white-space: nowrap !important;
-            font-size: 0.7rem !important;
-            padding: 0.4rem 0.75rem !important;
-          }
+        .sidebar-overlay {
+          animation: fadeIn 0.2s ease-in-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .sidebar-slide {
+          animation: slideIn 0.25s ease-out;
+        }
+        @keyframes slideIn {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
         }
 
-        @media (max-width: 768px) {
-          .mf-header h1 {
-            font-size: 1.5rem !important;
-          }
-          .mf-field-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .mf-toggle-row {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 0.5rem !important;
-          }
-          .mf-toggle-row-content {
-            width: 100% !important;
-          }
-          .mf-toggle-row-control {
-            align-self: flex-end !important;
-          }
-          .mf-danger-row {
-            flex-direction: column !important;
-            align-items: stretch !important;
-          }
-          .mf-danger-row button {
-            width: 100% !important;
-            justify-content: center !important;
-          }
-          .mf-api-key-container {
-            flex-direction: column !important;
-          }
-          .mf-api-key-input {
-            width: 100% !important;
-          }
-          .mf-api-key-actions {
-            width: 100% !important;
-            justify-content: stretch !important;
-          }
-          .mf-api-key-actions button {
-            flex: 1 !important;
-          }
-          .mf-main-content {
-            padding: 0.75rem !important;
-          }
-          .mf-card-padding {
-            padding: 0.75rem !important;
-          }
-          .mf-save-btn {
-            width: 100% !important;
-            justify-content: center !important;
+        @media (min-width: 640px) {
+          input.mf-input, select.mf-input {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
           }
         }
-
-        @media (max-width: 640px) {
-          .mf-nav-btn {
-            font-size: 0.6rem !important;
-            padding: 0.3rem 0.6rem !important;
-          }
-          .mf-nav-btn svg {
-            width: 0.8rem !important;
-            height: 0.8rem !important;
-          }
-          .mf-field-label {
-            font-size: 0.7rem !important;
-          }
-          .mf-field-input {
-            font-size: 0.7rem !important;
-            padding: 0.4rem 0.6rem !important;
-          }
-          .mf-toggle-title {
-            font-size: 0.75rem !important;
-          }
-          .mf-toggle-desc {
-            font-size: 0.6rem !important;
-          }
-          .mf-danger-title {
-            font-size: 0.75rem !important;
-          }
-          .mf-danger-desc {
-            font-size: 0.6rem !important;
-          }
-          .mf-danger-btn {
-            font-size: 0.65rem !important;
-            padding: 0.4rem !important;
+        @media (min-width: 1024px) {
+          input.mf-input, select.mf-input {
+            padding: 0.6rem 0.75rem;
+            font-size: 0.875rem;
           }
         }
       `}</style>
 
-      {/* Sidebar - sticky on all screen sizes */}
-      <div className="sticky top-0 h-screen flex-shrink-0">
-        <Sidebar />
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        sidebar-slide
+      `}>
+        <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main content with scrolling */}
-      <main className="mf-main-content flex-1 overflow-y-auto p-3 md:p-6 lg:p-8" style={{ background: "#12151B", height: "100vh" }}>
+      <main className="mf-main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8" style={{ background: "#12151B", height: "100vh", width: "100%" }}>
         {/* Header */}
-        <div className="mf-header mb-5 md:mb-8">
-          <h1
-            style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }}
-            className="text-2xl md:text-3xl font-bold" 
-          >
-            Settings
-          </h1>
-          <p className="mt-1 text-xs md:text-sm" style={{ color: "#9BA0A8" }}>
-            Configure your workspace, sending defaults and integrations.
-          </p>
+        <div className="mf-header mb-4 md:mb-5 lg:mb-8">
+          <div className="flex items-center gap-3 md:gap-4">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <h1
+                style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }}
+                className="text-xl font-light md:text-2xl lg:text-3xl font-bold" 
+              >
+                Settings
+              </h1>
+              <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm" style={{ color: "#9BA0A8" }}>
+                Configure your workspace, sending defaults and integrations.
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="mf-settings-grid grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-[220px_1fr]">
-          {/* Section nav */}
-          <nav className="mf-nav flex gap-1 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible lg:pb-0">
+        <div className="mf-settings-grid grid grid-cols-1 gap-3 md:gap-4 lg:gap-6 lg:grid-cols-[220px_1fr]">
+          {/* Section nav - Horizontal scroll on mobile */}
+          <nav className="mf-nav flex gap-0.5 md:gap-1 overflow-x-auto pb-2 lg:flex-col lg:overflow-visible lg:pb-0">
             {SECTIONS.map((s) => {
               const Icon = s.icon;
               const isActive = active === s.key;
@@ -317,7 +267,7 @@ const Settings = () => {
                 <button
                   key={s.key}
                   onClick={() => setActive(s.key)}
-                  className="mf-nav-btn flex shrink-0 items-center gap-1.5 md:gap-2.5 rounded-lg px-2.5 md:px-3.5 py-2 md:py-2.5 text-[10px] md:text-sm font-medium transition-colors lg:shrink"
+                  className="mf-nav-btn flex shrink-0 items-center gap-1 md:gap-1.5 lg:gap-2.5 rounded-lg px-1.5 md:px-2 lg:px-3.5 py-1 md:py-1.5 lg:py-2.5 text-[8px] md:text-[9px] lg:text-sm font-medium transition-colors lg:shrink"
                   style={{
                     background: isActive ? (isDanger ? "rgba(248,113,113,0.12)" : "rgba(255,106,57,0.12)") : "transparent",
                     color: isActive ? (isDanger ? "#F87171" : "#FF6A39") : "#9BA0A8",
@@ -335,29 +285,30 @@ const Settings = () => {
                     }
                   }}
                 >
-                  <Icon size={13} />
-                  {s.label}
+                  <Icon size={11} className="md:w-[12px] md:h-[12px] lg:w-[13px] lg:h-[13px]" />
+                  <span className="hidden xs:inline">{s.label}</span>
+                  <span className="xs:hidden">{s.label.substring(0, 4)}</span>
                 </button>
               );
             })}
           </nav>
 
           {/* Section content */}
-          <div className="space-y-4 md:space-y-6">
+          <div className="space-y-3 md:space-y-4 lg:space-y-6">
             {active === "general" && (
               <Card
                 title="General"
                 description="Basic information about your workspace."
                 footer={
                   <button
-                    className="mf-save-btn rounded-lg px-4 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium text-white transition hover:opacity-90"
+                    className="mf-save-btn rounded-lg px-3 md:px-4 lg:px-5 py-1.5 md:py-2 lg:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-white transition hover:opacity-90 w-full sm:w-auto"
                     style={{ background: "#FF6A39" }}
                   >
                     Save changes
                   </button>
                 }
               >
-                <div className="mf-field-grid grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-2">
+                <div className="mf-field-grid grid grid-cols-1 gap-3 md:gap-4 lg:gap-6 md:grid-cols-2">
                   <Field label="Workspace name">
                     <input
                       className="mf-field-input mf-input"
@@ -397,14 +348,14 @@ const Settings = () => {
                 description="Defaults applied across every campaign and automation."
                 footer={
                   <button
-                    className="mf-save-btn rounded-lg px-4 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium text-white transition hover:opacity-90"
+                    className="mf-save-btn rounded-lg px-3 md:px-4 lg:px-5 py-1.5 md:py-2 lg:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-white transition hover:opacity-90 w-full sm:w-auto"
                     style={{ background: "#FF6A39" }}
                   >
                     Save changes
                   </button>
                 }
               >
-                <div className="mf-field-grid grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-2">
+                <div className="mf-field-grid grid grid-cols-1 gap-3 md:gap-4 lg:gap-6 md:grid-cols-2">
                   <Field label="Send rate limit" hint="Emails per minute, per sender account.">
                     <input
                       className="mf-field-input mf-input"
@@ -423,9 +374,9 @@ const Settings = () => {
                   </Field>
                 </div>
 
-                <div className="mt-4 md:mt-6 space-y-0" style={{ borderTop: "1px solid #2A2E37" }}>
+                <div className="mt-3 md:mt-4 lg:mt-6 space-y-0" style={{ borderTop: "1px solid #2A2E37" }}>
                   <ToggleRow
-                    className="pt-4 md:pt-5"
+                    className="pt-3 md:pt-4 lg:pt-5"
                     title="Track opens"
                     description="Embed a tracking pixel in outgoing emails."
                     checked={trackOpens}
@@ -488,9 +439,9 @@ const Settings = () => {
             {active === "api" && (
               <Card title="API & webhooks" description="Connect MailForge to your own tools and scripts.">
                 <Field label="API key" hint="Keep this secret — it grants full send access to your account.">
-                  <div className="mf-api-key-container flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <div className="mf-api-key-container flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 md:gap-2">
                     <div
-                      className="mf-api-key-input flex-1 truncate rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm"
+                      className="mf-api-key-input flex-1 truncate rounded-lg px-2 md:px-3 lg:px-4 py-1.5 md:py-2 lg:py-2.5 text-[9px] md:text-xs lg:text-sm"
                       style={{ 
                         fontFamily: FONT.mono, 
                         background: "#0B0E12", 
@@ -500,10 +451,10 @@ const Settings = () => {
                     >
                       {apiKey}
                     </div>
-                    <div className="mf-api-key-actions flex items-center gap-2">
+                    <div className="mf-api-key-actions flex items-center gap-1.5 md:gap-2">
                       <button
                         onClick={copyKey}
-                        className="flex h-9 w-9 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-lg transition-colors"
+                        className="flex h-8 w-8 md:h-9 md:w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-lg transition-colors"
                         style={{ border: "1px solid #2A2E37", background: "#12151B" }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.background = "#1B1E24";
@@ -514,13 +465,13 @@ const Settings = () => {
                         aria-label="Copy API key"
                       >
                         {copied ? (
-                          <Check size={13} style={{ color: "#34D399" }} />
+                          <Check size={11} className="md:w-[12px] md:h-[12px] lg:w-[13px] lg:h-[13px]" style={{ color: "#34D399" }} />
                         ) : (
-                          <Copy size={13} style={{ color: "#6B727C" }} />
+                          <Copy size={11} className="md:w-[12px] md:h-[12px] lg:w-[13px] lg:h-[13px]" style={{ color: "#6B727C" }} />
                         )}
                       </button>
                       <button
-                        className="flex h-9 w-9 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-lg transition-colors"
+                        className="flex h-8 w-8 md:h-9 md:w-9 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-lg transition-colors"
                         style={{ border: "1px solid #2A2E37", background: "#12151B" }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.background = "#1B1E24";
@@ -530,13 +481,13 @@ const Settings = () => {
                         }}
                         aria-label="Regenerate API key"
                       >
-                        <RefreshCw size={13} style={{ color: "#6B727C" }} />
+                        <RefreshCw size={11} className="md:w-[12px] md:h-[12px] lg:w-[13px] lg:h-[13px]" style={{ color: "#6B727C" }} />
                       </button>
                     </div>
                   </div>
                 </Field>
 
-                <div className="mt-4 md:mt-6">
+                <div className="mt-3 md:mt-4 lg:mt-6">
                   <Field label="Webhook URL" hint="We'll POST delivery, open and click events here.">
                     <input
                       className="mf-field-input mf-input"
@@ -596,18 +547,18 @@ interface ToggleRowProps {
 
 const ToggleRow = ({ title, description, checked, onChange, last, className = "" }: ToggleRowProps) => (
   <div
-    className={`mf-toggle-row flex items-center justify-between gap-3 md:gap-4 py-3 md:py-4 ${className}`}
+    className={`mf-toggle-row flex items-center justify-between gap-2 md:gap-3 lg:gap-4 py-2 md:py-3 lg:py-4 ${className}`}
     style={{ borderBottom: last ? "none" : "1px solid #2A2E37" }}
   >
-    <div className="mf-toggle-row-content flex-1">
-      <p className="mf-toggle-title text-xs md:text-sm font-medium" style={{ color: "#E8E6E1" }}>
+    <div className="mf-toggle-row-content flex-1 min-w-0">
+      <p className="mf-toggle-title text-[10px] md:text-xs lg:text-sm font-medium" style={{ color: "#E8E6E1" }}>
         {title}
       </p>
-      <p className="mf-toggle-desc mt-0.5 text-[10px] md:text-xs" style={{ color: "#6B727C" }}>
+      <p className="mf-toggle-desc mt-0.5 text-[8px] md:text-[9px] lg:text-xs" style={{ color: "#6B727C" }}>
         {description}
       </p>
     </div>
-    <div className="mf-toggle-row-control">
+    <div className="mf-toggle-row-control shrink-0">
       <Toggle checked={checked} onChange={onChange} label={title} />
     </div>
   </div>
@@ -622,19 +573,19 @@ interface DangerRowProps {
 
 const DangerRow = ({ title, description, action, last }: DangerRowProps) => (
   <div
-    className="mf-danger-row flex flex-col gap-2 md:gap-3 py-3 md:py-4 sm:flex-row sm:items-center sm:justify-between"
+    className="mf-danger-row flex flex-col gap-1.5 md:gap-2 lg:gap-3 py-2 md:py-3 lg:py-4 sm:flex-row sm:items-center sm:justify-between"
     style={{ borderBottom: last ? "none" : "1px solid #2A2E37" }}
   >
-    <div>
-      <p className="mf-danger-title text-xs md:text-sm font-medium" style={{ color: "#E8E6E1" }}>
+    <div className="min-w-0 flex-1">
+      <p className="mf-danger-title text-[10px] md:text-xs lg:text-sm font-medium" style={{ color: "#E8E6E1" }}>
         {title}
       </p>
-      <p className="mf-danger-desc mt-0.5 text-[10px] md:text-xs" style={{ color: "#6B727C" }}>
+      <p className="mf-danger-desc mt-0.5 text-[8px] md:text-[9px] lg:text-xs" style={{ color: "#6B727C" }}>
         {description}
       </p>
     </div>
     <button
-      className="mf-danger-btn shrink-0 rounded-lg px-3 md:px-4 py-1.5 md:py-2 text-[10px] md:text-sm font-medium transition-colors"
+      className="mf-danger-btn shrink-0 rounded-lg px-2.5 md:px-3 lg:px-4 py-1 md:py-1.5 lg:py-2 text-[9px] md:text-[10px] lg:text-sm font-medium transition-colors w-full sm:w-auto"
       style={{ 
         border: "1px solid rgba(248,113,113,0.3)", 
         color: "#F87171", 
