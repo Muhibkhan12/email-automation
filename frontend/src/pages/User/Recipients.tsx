@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import Sidebar from "./Sidebar";
 import {
   Search, UserPlus, UploadCloud, Users, MailCheck, MailX, MailWarning,
-  ChevronLeft, ChevronRight, Trash2, Tag as TagIcon, MoreVertical,
+  ChevronLeft, ChevronRight, Trash2, Tag as TagIcon, MoreVertical, Menu,
 } from "lucide-react";
 
 type RecipientStatus = "Subscribed" | "Unsubscribed" | "Bounced";
@@ -44,10 +44,10 @@ const summary = [
 ];
 
 const tintClasses: Record<string, { bg: string; fg: string }> = {
-  sky: { bg: "bg-sky-50", fg: "text-sky-600" },
-  emerald: { bg: "bg-emerald-50", fg: "text-emerald-600" },
-  gray: { bg: "bg-gray-100", fg: "text-gray-500" },
-  red: { bg: "bg-red-50", fg: "text-red-600" },
+  sky: { bg: "bg-[#FF6A39]/20", fg: "text-[#FF6A39]" },
+  emerald: { bg: "bg-[#FF6A39]/20", fg: "text-[#FF6A39]" },
+  gray: { bg: "bg-[#FF6A39]/20", fg: "text-[#FF6A39]" },
+  red: { bg: "bg-[#FF6A39]/20", fg: "text-[#FF6A39]" },
 };
 
 const Recipients = () => {
@@ -55,6 +55,7 @@ const Recipients = () => {
   const [filter, setFilter] = useState<"All" | RecipientStatus>("All");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
@@ -91,7 +92,6 @@ const Recipients = () => {
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 1s linear infinite; }
         
-        /* Custom scrollbar */
         .main-content::-webkit-scrollbar {
           width: 6px;
         }
@@ -105,72 +105,109 @@ const Recipients = () => {
         .main-content::-webkit-scrollbar-thumb:hover {
           background: #3A3F4A;
         }
+
+        .sidebar-overlay {
+          animation: fadeIn 0.2s ease-in-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .sidebar-slide {
+          animation: slideIn 0.25s ease-out;
+        }
+        @keyframes slideIn {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
+        }
       `}</style>
 
-      {/* Sidebar - sticky */}
-      <div className="sticky top-0 h-screen flex-shrink-0">
-        <Sidebar />
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        sidebar-slide
+      `}>
+        <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main content */}
-      <main className="main-content flex-1 overflow-y-auto p-3 md:p-6 lg:p-8 bg-[#12151B] h-screen">
+      <main className="main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8 bg-[#12151B] h-screen w-full">
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-5 md:mb-7">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-[#E8E6E1] tracking-tight">
-              Recipients
-            </h1>
-            <p className="mt-1 text-xs md:text-sm text-[#9BA0A8]">Manage everyone who receives your campaigns.</p>
+        <div className="flex flex-wrap items-center justify-between gap-3 md:gap-4 mb-4 md:mb-5 lg:mb-7">
+          <div className="flex items-center gap-3 md:gap-4">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-[#E8E6E1] tracking-tight">
+                Recipients
+              </h1>
+              <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm text-[#9BA0A8]">Manage everyone who receives your campaigns.</p>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 md:gap-2.5 w-full sm:w-auto">
-            <button className="flex items-center justify-center gap-1.5 md:gap-2 rounded-lg border border-[#2A2E37] bg-[#12151B] px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium text-[#C7C9CE] hover:bg-[#1B1E24] hover:text-[#E8E6E1] transition-colors flex-1 sm:flex-none">
-              <UploadCloud size={14} />
-              Import CSV
+            <button className="flex items-center justify-center gap-1.5 md:gap-2 rounded-lg border border-[#2A2E37] bg-[#12151B] px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-[#C7C9CE] hover:bg-[#1B1E24] hover:text-[#E8E6E1] transition-colors flex-1 sm:flex-none">
+              <UploadCloud size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" style={{ color: "#FF6A39" }} />
+              <span className="hidden xs:inline">Import CSV</span>
+              <span className="xs:hidden">Import</span>
             </button>
-            <button className="flex items-center justify-center gap-1.5 md:gap-2 rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium text-white shadow-sm hover:bg-[#e85a2c] transition-colors flex-1 sm:flex-none" style={{ background: "#FF6A39", boxShadow: "0 4px 12px rgba(255,106,57,0.25)" }}>
-              <UserPlus size={14} />
-              Add Recipient
+            <button className="flex items-center justify-center gap-1.5 md:gap-2 rounded-lg px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-white shadow-sm hover:bg-[#e85a2c] transition-colors flex-1 sm:flex-none" style={{ background: "#FF6A39", boxShadow: "0 4px 12px rgba(255,106,57,0.25)" }}>
+              <UserPlus size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
+              <span className="hidden xs:inline">Add Recipient</span>
+              <span className="xs:hidden">Add</span>
             </button>
           </div>
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5 mb-4 md:mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-3 lg:gap-5 mb-3 md:mb-4 lg:mb-6">
           {summary.map((s) => {
             const t = tintClasses[s.tint];
             const Icon = s.icon;
-            const isEmber = s.tint === "sky"; 
             return (
-              <div key={s.label} className="rounded-xl border border-[#2A2E37] bg-[#12151B] p-3 md:p-5 shadow-sm">
-                <div className={`w-7 h-7 md:w-9 md:h-9 rounded-lg flex items-center justify-center mb-2 md:mb-3 ${isEmber ? "bg-[#FF6A39]/20" : t.bg}`}>
-                  <Icon size={14} className={isEmber ? "text-[#FF6A39]" : t.fg} />
+              <div key={s.label} className="rounded-xl border border-[#2A2E37] bg-[#12151B] p-2.5 md:p-3 lg:p-5 shadow-sm">
+                <div className="w-6 h-6 md:w-7 md:h-7 lg:h-9 lg:w-9 rounded-lg flex items-center justify-center mb-1.5 md:mb-2 lg:mb-3 bg-[#FF6A39]/20">
+                  <Icon size={11} className="md:w-[12px] md:h-[12px] lg:w-[14px] lg:h-[14px]" style={{ color: "#FF6A39" }} />
                 </div>
-                <p className="text-xl md:text-2xl font-semibold tracking-tight text-[#E8E6E1] font-mono">
+                <p className="text-base md:text-xl lg:text-2xl font-semibold tracking-tight text-[#E8E6E1] font-mono">
                   {s.value}
                 </p>
-                <p className="text-[10px] md:text-[13px] mt-0.5 md:mt-1 text-[#9BA0A8]">{s.label}</p>
+                <p className="text-[9px] md:text-[10px] lg:text-[13px] mt-0.5 md:mt-1 text-[#9BA0A8]">{s.label}</p>
               </div>
             );
           })}
         </div>
 
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-3 mb-3 md:mb-4">
-          <div className="flex items-center gap-2 rounded-lg border border-[#2A2E37] bg-[#12151B] px-2 md:px-3 py-1.5 md:py-2 flex-1 min-w-[180px]">
-            <Search size={14} className="text-[#6B727C]" />
+        <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-2.5 md:mb-3 lg:mb-4">
+          <div className="flex items-center gap-1.5 md:gap-2 rounded-lg border border-[#2A2E37] bg-[#12151B] px-2 md:px-3 py-1.5 md:py-2 flex-1 min-w-[140px]">
+            <Search size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] text-[#FF6A39]" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name, email, or tag…"
-              className="w-full bg-transparent text-xs md:text-sm outline-none text-[#E8E6E1] placeholder:text-[#6B727C]"
+              className="w-full bg-transparent text-[10px] md:text-xs lg:text-sm outline-none text-[#E8E6E1] placeholder:text-[#6B727C]"
             />
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1 md:gap-1.5">
             {FILTERS.map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-medium transition-colors border ${
+                className={`rounded-lg px-1.5 md:px-2 lg:px-3 py-1 md:py-1.5 lg:py-2 text-[8px] md:text-[9px] lg:text-xs font-medium transition-colors border ${
                   filter === f 
                     ? "bg-[#FF6A39] text-white border-[#FF6A39]" 
                     : "bg-[#12151B] text-[#C7C9CE] border-[#2A2E37] hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
@@ -181,27 +218,28 @@ const Recipients = () => {
             ))}
           </div>
           {selected.size > 0 && (
-            <button className="flex items-center gap-1.5 rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-medium transition-colors hover:bg-[#FF6A39]/20 border border-[#FF6A39]/20 bg-[#FF6A39]/10 text-[#FF6A39]">
-              <Trash2 size={12} />
-              Remove {selected.size} selected
+            <button className="flex items-center gap-1 md:gap-1.5 rounded-lg px-1.5 md:px-2 lg:px-3 py-1 md:py-1.5 lg:py-2 text-[8px] md:text-[9px] lg:text-xs font-medium transition-colors hover:bg-[#FF6A39]/20 border border-[#FF6A39]/20 bg-[#FF6A39]/10 text-[#FF6A39]">
+              <Trash2 size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" style={{ color: "#FF6A39" }} />
+              <span className="hidden xs:inline">Remove {selected.size} selected</span>
+              <span className="xs:hidden">Remove {selected.size}</span>
             </button>
           )}
         </div>
 
         {/* Table */}
         <div className="rounded-xl border border-[#2A2E37] bg-[#12151B] shadow-sm overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between px-3 md:px-5 py-3 md:py-4 border-b border-[#2A2E37] gap-2">
-            <h2 className="text-xs md:text-sm font-semibold text-[#E8E6E1]">
+          <div className="flex flex-wrap items-center justify-between px-3 md:px-4 lg:px-5 py-2.5 md:py-3 lg:py-4 border-b border-[#2A2E37] gap-2">
+            <h2 className="text-[10px] md:text-xs lg:text-sm font-semibold text-[#E8E6E1]">
               {filtered.length} {filtered.length === 1 ? "recipient" : "recipients"}
             </h2>
-            <span className="text-[9px] md:text-[11px] text-[#6B727C] font-mono">synced live</span>
+            <span className="text-[8px] md:text-[9px] lg:text-[11px] text-[#6B727C] font-mono">synced live</span>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[700px]">
+            <table className="w-full text-left min-w-[500px] md:min-w-[600px] lg:min-w-[700px]">
               <thead>
-                <tr className="text-[9px] md:text-[11px] uppercase tracking-wider text-[#6B727C]">
-                  <th className="px-3 md:px-5 py-2 md:py-2.5 font-medium w-10">
+                <tr className="text-[8px] md:text-[9px] lg:text-[11px] uppercase tracking-wider text-[#6B727C]">
+                  <th className="px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-2.5 font-medium w-6 md:w-8 lg:w-10">
                     <input 
                       type="checkbox" 
                       checked={allSelected} 
@@ -209,18 +247,18 @@ const Recipients = () => {
                       className="rounded border-[#2A2E37] bg-[#12151B] accent-[#FF6A39]"
                     />
                   </th>
-                  <th className="px-2 md:px-3 py-2 md:py-2.5 font-medium">Name</th>
-                  <th className="px-2 md:px-3 py-2 md:py-2.5 font-medium">Tags</th>
-                  <th className="px-2 md:px-3 py-2 md:py-2.5 font-medium">Status</th>
-                  <th className="px-2 md:px-3 py-2 md:py-2.5 font-medium">Opens</th>
-                  <th className="px-2 md:px-3 py-2 md:py-2.5 font-medium">Added</th>
-                  <th className="px-3 md:px-5 py-2 md:py-2.5 font-medium w-10" />
+                  <th className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Name</th>
+                  <th className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Tags</th>
+                  <th className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Status</th>
+                  <th className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Opens</th>
+                  <th className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Added</th>
+                  <th className="px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-2.5 font-medium w-6 md:w-8 lg:w-10" />
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-3 md:px-5 py-8 md:py-12 text-center text-xs md:text-sm text-[#6B727C]">
+                    <td colSpan={7} className="px-2 md:px-3 lg:px-5 py-6 md:py-8 lg:py-12 text-center text-[9px] md:text-xs lg:text-sm text-[#6B727C]">
                       No recipients match your search.
                     </td>
                   </tr>
@@ -243,7 +281,7 @@ const Recipients = () => {
                         onMouseEnter={() => setHoveredRowId(r.id)}
                         onMouseLeave={() => setHoveredRowId(null)}
                       >
-                        <td className="px-3 md:px-5 py-2 md:py-3">
+                        <td className="px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-3">
                           <input
                             type="checkbox"
                             checked={selected.has(r.id)}
@@ -251,42 +289,44 @@ const Recipients = () => {
                             className="rounded border-[#2A2E37] bg-[#12151B] accent-[#FF6A39]"
                           />
                         </td>
-                        <td className="px-2 md:px-3 py-2 md:py-3">
-                          <p className="text-[11px] md:text-[13.5px] font-medium" style={{ color: isHovered ? "#E8E6E1" : "#D1D5DB" }}>
+                        <td className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3">
+                          <p className="text-[9px] md:text-[10px] lg:text-[13.5px] font-medium truncate max-w-[80px] md:max-w-[120px] lg:max-w-none" style={{ color: isHovered ? "#E8E6E1" : "#D1D5DB" }}>
                             {r.name}
                           </p>
-                          <p className="text-[9px] md:text-[12px] text-[#6B727C]">{r.email}</p>
+                          <p className="text-[7px] md:text-[8px] lg:text-[12px] text-[#6B727C] truncate max-w-[80px] md:max-w-[120px] lg:max-w-none">{r.email}</p>
                         </td>
-                        <td className="px-2 md:px-3 py-2 md:py-3">
-                          <div className="flex flex-wrap gap-1 md:gap-1.5">
+                        <td className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3">
+                          <div className="flex flex-wrap gap-0.5 md:gap-1 lg:gap-1.5">
                             {r.tags.map((tag) => (
                               <span
                                 key={tag}
-                                className="inline-flex items-center gap-0.5 md:gap-1 rounded-full px-1 md:px-2 py-0.5 text-[8px] md:text-[11px] font-medium"
+                                className="inline-flex items-center gap-0.5 md:gap-1 rounded-full px-1 md:px-2 py-0.5 text-[7px] md:text-[8px] lg:text-[11px] font-medium whitespace-nowrap"
                                 style={{ backgroundColor: "rgba(255,106,57,0.12)", color: "#FF6A39" }}
                               >
-                                <TagIcon size={8} />
-                                {tag}
+                                <TagIcon size={6} className="md:w-[7px] md:h-[7px] lg:w-[8px] lg:h-[8px]" style={{ color: "#FF6A39" }} />
+                                <span className="hidden xs:inline">{tag}</span>
+                                <span className="xs:hidden">{tag.substring(0, 3)}</span>
                               </span>
                             ))}
                           </div>
                         </td>
-                        <td className="px-2 md:px-3 py-2 md:py-3">
+                        <td className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3">
                           <span 
-                            className="inline-flex items-center gap-0.5 md:gap-1 rounded-full px-1.5 md:px-2 py-0.5 text-[8px] md:text-[11.5px] font-medium whitespace-nowrap"
+                            className="inline-flex items-center gap-0.5 md:gap-1 rounded-full px-1 md:px-1.5 lg:px-2 py-0.5 text-[7px] md:text-[8px] lg:text-[11.5px] font-medium whitespace-nowrap"
                             style={{ backgroundColor: statusColors[r.status].bg, color: statusColors[r.status].fg }}
                           >
-                            <StatusIcon size={9} />
-                            {r.status}
+                            <StatusIcon size={7} className="md:w-[8px] md:h-[8px] lg:w-[9px] lg:h-[9px]" />
+                            <span className="hidden xs:inline">{r.status}</span>
+                            <span className="xs:hidden">{r.status.charAt(0)}</span>
                           </span>
                         </td>
-                        <td className="px-2 md:px-3 py-2 md:py-3 text-[10px] md:text-[13px] font-mono text-[#9BA0A8]">
+                        <td className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3 text-[8px] md:text-[9px] lg:text-[13px] font-mono text-[#9BA0A8]">
                           {r.opens}
                         </td>
-                        <td className="px-2 md:px-3 py-2 md:py-3 text-[9px] md:text-[12.5px] whitespace-nowrap text-[#6B727C]">{r.addedOn}</td>
-                        <td className="px-3 md:px-5 py-2 md:py-3 text-right">
+                        <td className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3 text-[7px] md:text-[8px] lg:text-[12.5px] whitespace-nowrap text-[#6B727C]">{r.addedOn}</td>
+                        <td className="px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-3 text-right">
                           <button className={`transition-colors ${isHovered ? "text-[#E8E6E1]" : "text-[#6B727C]"} hover:text-[#E8E6E1]`}>
-                            <MoreVertical size={13} />
+                            <MoreVertical size={11} className="md:w-[12px] md:h-[12px] lg:w-[13px] lg:h-[13px]" style={{ color: isHovered ? "#E8E6E1" : "#6B727C" }} />
                           </button>
                         </td>
                       </tr>
@@ -298,15 +338,15 @@ const Recipients = () => {
           </div>
 
           {/* Pagination */}
-          <div className="flex flex-wrap items-center justify-between px-3 md:px-5 py-2 md:py-3 border-t border-[#2A2E37] gap-2">
-            <span className="text-[9px] md:text-xs text-[#6B727C]">Showing {filtered.length} of 34,920</span>
+          <div className="flex flex-wrap items-center justify-between px-3 md:px-4 lg:px-5 py-2 md:py-2.5 lg:py-3 border-t border-[#2A2E37] gap-1.5 md:gap-2">
+            <span className="text-[8px] md:text-[9px] lg:text-xs text-[#6B727C]">Showing {filtered.length} of 34,920</span>
             <div className="flex items-center gap-1 md:gap-1.5">
-              <button className="w-6 h-6 md:w-7 md:h-7 rounded-lg border border-[#2A2E37] bg-[#12151B] flex items-center justify-center text-[#6B727C] hover:bg-[#1B1E24] hover:text-[#E8E6E1] transition-colors">
-                <ChevronLeft size={12} />
+              <button className="w-5 h-5 md:w-6 md:h-6 lg:w-7 lg:h-7 rounded-lg border border-[#2A2E37] bg-[#12151B] flex items-center justify-center text-[#6B727C] hover:bg-[#1B1E24] hover:text-[#E8E6E1] transition-colors">
+                <ChevronLeft size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />
               </button>
-              <span className="px-1 md:px-2 text-[10px] md:text-[13px] font-mono text-[#C7C9CE]">1 / 4,366</span>
-              <button className="w-6 h-6 md:w-7 md:h-7 rounded-lg border border-[#2A2E37] bg-[#12151B] flex items-center justify-center text-[#C7C9CE] hover:bg-[#1B1E24] hover:text-[#E8E6E1] transition-colors">
-                <ChevronRight size={12} />
+              <span className="px-1 md:px-1.5 lg:px-2 text-[8px] md:text-[9px] lg:text-[13px] font-mono text-[#C7C9CE]">1 / 4,366</span>
+              <button className="w-5 h-5 md:w-6 md:h-6 lg:w-7 lg:h-7 rounded-lg border border-[#2A2E37] bg-[#12151B] flex items-center justify-center text-[#C7C9CE] hover:bg-[#1B1E24] hover:text-[#E8E6E1] transition-colors">
+                <ChevronRight size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />
               </button>
             </div>
           </div>
