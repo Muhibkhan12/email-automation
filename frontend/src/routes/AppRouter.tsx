@@ -27,8 +27,6 @@ import AdminSenderAccounts from "../pages/Admin/AdminSenderAccount";
 const AppRouter = () => {
   return (
     <Routes>
-
-
           <Route path="/"  element={<Login/>}/>
           <Route path="/register"  element={<Register/>}/>
         <Route path="/user">

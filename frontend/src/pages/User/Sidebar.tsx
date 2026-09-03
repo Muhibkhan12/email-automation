@@ -28,37 +28,39 @@ const COLOR = {
   textBody: '#C7C9CE',
 }
 
+// NOTE: all paths are ABSOLUTE (start with '/') so they resolve the same
+// way no matter where <Sidebar /> is mounted in the route tree.
 const navGroups = [
   {
     label: 'Overview',
     items: [
       { name: 'Dashboard', path: '/user/dashboard', icon: LayoutGrid },
-      { name: 'Analytics', path: 'user/analytics', icon: BarChart3 },
+      { name: 'Analytics', path: '/user/analytics', icon: BarChart3 },
     ],
   },
   {
     label: 'Campaigns',
     items: [
-      { name: 'Campaign', path: 'user/campaign', icon: Megaphone },
-      { name: 'Templates', path: 'user/templates', icon: FileStack },
-      { name: 'Recipients', path: 'user/recipients', icon: Users },
-      { name: 'Upload', path: 'user/upload', icon: UploadCloud },
+      { name: 'Campaign', path: '/user/campaign', icon: Megaphone },
+      { name: 'Templates', path: '/user/templates', icon: FileStack },
+      { name: 'Recipients', path: '/user/recipients', icon: Users },
+      { name: 'Upload', path: '/user/upload', icon: UploadCloud },
     ],
   },
   {
     label: 'Delivery',
     items: [
-      { name: 'Email Logs', path: 'user/emaillogs', icon: Mail },
-      { name: 'Queue Monitor', path: 'user/queuemonitor', icon: ListOrdered },
-      { name: 'Sender Account', path: 'user/sender-account', icon: AtSign },
+      { name: 'Email Logs', path: '/user/emaillogs', icon: Mail },
+      { name: 'Queue Monitor', path: '/user/queuemonitor', icon: ListOrdered },
+      { name: 'Sender Account', path: '/user/sender-account', icon: AtSign },
     ],
   },
   {
     label: 'Account',
     items: [
-      { name: 'Notifications', path: 'user/notifications', icon: Bell },
-      { name: 'Profile', path: 'user/profile', icon: User },
-      { name: 'Settings', path: 'user/settings', icon: SettingsIcon },
+      { name: 'Notifications', path: '/user/notifications', icon: Bell },
+      { name: 'Profile', path: '/user/profile', icon: User },
+      { name: 'Settings', path: '/user/settings', icon: SettingsIcon },
     ],
   },
 ]
@@ -69,7 +71,7 @@ const NavItem = ({ path, name, icon: Icon }: { path: string; name: string; icon:
   return (
     <NavLink
       to={path}
-      end={path === '/'}
+      end
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className="relative flex items-center gap-3 pl-3 pr-2.5 py-2.5 rounded-lg text-[13.5px] font-medium transition-all duration-150"
