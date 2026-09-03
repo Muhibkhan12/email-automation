@@ -1189,7 +1189,7 @@ const AIGenerateModal = ({
           }}
         >
           <Wand2 size={14} />
-          Generate Template
+          Generate Template 
         </button>
       </div>
     </div>

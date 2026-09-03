@@ -1,13 +1,33 @@
 import React, { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, Flame } from 'lucide-react'
+import { loginUser } from '../services/AuthServices';
+import * as z from "Zod";
 
 const STAGES = ['Queued', 'Sending', 'Delivered'] as const
 
+const User = z.object({
+  name : z.string(),
+});
+
+type Inputs = {
+  email: string
+  password: string
+}
+
 const Login = () => {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<Inputs>({
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  })
+
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [delivered, setDelivered] = useState(1842)
@@ -20,18 +40,12 @@ const Login = () => {
     return () => clearInterval(id)
   }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onSubmit = async (data: Inputs) => {
     setError(null)
-
-    if (!email || !password) {
-      setError('Enter your email and password to continue.')
-      return
-    }
-
     setLoading(true)
     try {
       // TODO: replace with real auth call
+      console.log('submitting', data)
       await new Promise((resolve) => setTimeout(resolve, 900))
     } catch {
       setError('Something went wrong. Try again.')
@@ -72,7 +86,7 @@ const Login = () => {
         <div className="flex items-center gap-2.5">
           <Flame className="flame-icon w-6 h-6 text-[#FF6A39]" strokeWidth={2.2} />
           <span className="font-display text-lg font-semibold tracking-tight text-[#E8E6E1]">
-            MailForge
+            Outwerk Solutions
           </span>
         </div>
 
@@ -103,7 +117,6 @@ const Login = () => {
         </div>
 
         <p className="font-mono-ui text-[11px] text-[#5B5D64]">
-          v2.4 · status: operational
         </p>
       </div>
 
@@ -113,7 +126,7 @@ const Login = () => {
           <div className="lg:hidden flex items-center gap-2 mb-10 justify-center">
             <Flame className="w-5 h-5 text-[#FF6A39]" strokeWidth={2.2} />
             <span className="font-display text-base font-semibold text-[#E8E6E1]">
-              MailForge
+              Outwerk Solutions
             </span>
           </div>
 
@@ -126,7 +139,7 @@ const Login = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} noValidate className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
             <div>
               <label
                 htmlFor="email"
@@ -140,12 +153,20 @@ const Login = () => {
                   id="email"
                   type="email"
                   autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@company.com"
+                  {...register('email', {
+                    required: 'Enter your email to continue.',
+                    pattern: {
+                      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                      message: 'Enter a valid email address.',
+                    },
+                  })}
                   className="w-full bg-[#171A21] border border-[#2A2E37] rounded-lg pl-10 pr-3.5 py-2.5 text-sm text-[#E8E6E1] placeholder-[#5B5D64] outline-none transition-colors focus:border-[#FF6A39] focus:ring-1 focus:ring-[#FF6A39]/40"
                 />
               </div>
+              {errors.email && (
+                <p className="text-xs text-[#FF6A39] mt-1.5">{errors.email.message}</p>
+              )}
             </div>
 
             <div>
@@ -156,12 +177,7 @@ const Login = () => {
                 >
                   Password
                 </label>
-                <a
-                  href="#"
-                  className="text-xs text-[#FF6A39] hover:underline underline-offset-2"
-                >
-                  Forgot password?
-                </a>
+
               </div>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5B5D64]" />
@@ -169,9 +185,14 @@ const Login = () => {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  {...register('password', {
+                    required: 'Enter your password to continue.',
+                    minLength: {
+                      value: 6,
+                      message: 'Password must be at least 6 characters.',
+                    },
+                  })}
                   className="w-full bg-[#171A21] border border-[#2A2E37] rounded-lg pl-10 pr-10 py-2.5 text-sm text-[#E8E6E1] placeholder-[#5B5D64] outline-none transition-colors focus:border-[#FF6A39] focus:ring-1 focus:ring-[#FF6A39]/40"
                 />
                 <button
@@ -187,17 +208,10 @@ const Login = () => {
                   )}
                 </button>
               </div>
+              {errors.password && (
+                <p className="text-xs text-[#FF6A39] mt-1.5">{errors.password.message}</p>
+              )}
             </div>
-
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-3.5 h-3.5 rounded border-[#2A2E37] bg-[#171A21] accent-[#FF6A39]"
-              />
-              <span className="text-xs text-[#8B8D94]">Remember me</span>
-            </label>
 
             {error && (
               <p
@@ -227,9 +241,7 @@ const Login = () => {
             </button>
           </form>
 
-          <p className="text-xs text-[#5B5D64] mt-8 text-center">
-            Don't have an account? Contact your workspace admin.
-          </p>
+
         </div>
       </div>
     </div>

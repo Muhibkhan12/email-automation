@@ -1,5 +1,5 @@
 import { Routes, Route } from "react-router-dom";
-import Dashboard from "../pages/User/Dashboard";
+import Dashboard from "../pages/User/UserDashboard";
 import Notifications from "../pages/User/Notifications";
 import EmailLogs from "../pages/User/EmailLogs";
 import Templates from "../pages/User/Templates";

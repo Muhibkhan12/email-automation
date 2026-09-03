@@ -32,33 +32,33 @@ const navGroups = [
   {
     label: 'Overview',
     items: [
-      { name: 'Dashboard', path: '/', icon: LayoutGrid },
-      { name: 'Analytics', path: '/analytics', icon: BarChart3 },
+      { name: 'Dashboard', path: '/user/dashboard', icon: LayoutGrid },
+      { name: 'Analytics', path: 'user/analytics', icon: BarChart3 },
     ],
   },
   {
     label: 'Campaigns',
     items: [
-      { name: 'Campaign', path: '/campaign', icon: Megaphone },
-      { name: 'Templates', path: '/templates', icon: FileStack },
-      { name: 'Recipients', path: '/recipients', icon: Users },
-      { name: 'Upload', path: '/upload', icon: UploadCloud },
+      { name: 'Campaign', path: 'user/campaign', icon: Megaphone },
+      { name: 'Templates', path: 'user/templates', icon: FileStack },
+      { name: 'Recipients', path: 'user/recipients', icon: Users },
+      { name: 'Upload', path: 'user/upload', icon: UploadCloud },
     ],
   },
   {
     label: 'Delivery',
     items: [
-      { name: 'Email Logs', path: '/emaillogs', icon: Mail },
-      { name: 'Queue Monitor', path: '/queuemonitor', icon: ListOrdered },
-      { name: 'Sender Account', path: '/sender-account', icon: AtSign },
+      { name: 'Email Logs', path: 'user/emaillogs', icon: Mail },
+      { name: 'Queue Monitor', path: 'user/queuemonitor', icon: ListOrdered },
+      { name: 'Sender Account', path: 'user/sender-account', icon: AtSign },
     ],
   },
   {
     label: 'Account',
     items: [
-      { name: 'Notifications', path: '/notifications', icon: Bell },
-      { name: 'Profile', path: '/profile', icon: User },
-      { name: 'Settings', path: '/settings', icon: SettingsIcon },
+      { name: 'Notifications', path: 'user/notifications', icon: Bell },
+      { name: 'Profile', path: 'user/profile', icon: User },
+      { name: 'Settings', path: 'user/settings', icon: SettingsIcon },
     ],
   },
 ]
