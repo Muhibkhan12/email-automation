@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
 
-
 class AddHTMLSchema(BaseModel):
     name : str
     html_content : str
