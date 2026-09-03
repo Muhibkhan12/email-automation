@@ -3,7 +3,7 @@ import Sidebar from "./Sidebar";
 import {
   Plus, Search, Megaphone, PlayCircle, CheckCircle2, XCircle, Clock,
   MoreHorizontal, ArrowUpRight, ArrowDownRight, ArrowUpDown, Eye, Copy,
-  Pause, Trash2, Inbox,
+  Pause, Trash2, Inbox, Menu,
 } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
@@ -31,6 +31,7 @@ const COLOR = {
   surface: "#171A21",
   surfaceHover: "#1B1E24",
   border: "#2A2E37",
+  borderHover: "#3A3F4A",
   textMuted: "#8B8D94",
   textBody: "#C7C9CE",
 };
@@ -119,13 +120,13 @@ const ActionMenu = ({ campaignName }: { campaignName: string }) => {
     <div ref={ref} className="relative inline-block text-left">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="mf-btn inline-flex h-8 w-8 items-center justify-center rounded-lg transition"
+        className="mf-btn inline-flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-lg transition"
         style={{ background: "transparent" }}
         onMouseEnter={(e) => (e.currentTarget.style.background = COLOR.surfaceHover)}
         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
         aria-label={`Actions for ${campaignName}`}
       >
-        <MoreHorizontal size={16} style={{ color: COLOR.textMuted }} />
+        <MoreHorizontal size={14} className="md:w-[15px] md:h-[15px] lg:w-[16px] lg:h-[16px]" style={{ color: COLOR.textMuted }} />
       </button>
       {open && (
         <div
@@ -138,10 +139,10 @@ const ActionMenu = ({ campaignName }: { campaignName: string }) => {
               <button
                 key={a.label}
                 onClick={() => setOpen(false)}
-                className="mf-menu-item flex w-full items-center gap-2 px-3 py-2 text-left text-[13px]"
+                className="mf-menu-item flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] md:text-[13px]"
                 style={{ color: a.danger ? COLOR.danger : COLOR.textBody }}
               >
-                <Icon size={13} />
+                <Icon size={12} className="md:w-[13px] md:h-[13px]" />
                 {a.label}
               </button>
             );
@@ -162,6 +163,7 @@ const Campaign = () => {
   const [sortKey, setSortKey] = useState<SortKey>(null);
   const [sortAsc, setSortAsc] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const filtered = useMemo(() => {
     let list = campaigns.filter((c) => {
@@ -216,7 +218,6 @@ const Campaign = () => {
         }
         .mf-input::placeholder { color: ${COLOR.textMuted}; }
 
-        /* Custom scrollbar for the main content */
         .mf-main-content::-webkit-scrollbar {
           width: 6px;
         }
@@ -230,160 +231,114 @@ const Campaign = () => {
         .mf-main-content::-webkit-scrollbar-thumb:hover {
           background: ${COLOR.borderHover};
         }
-        /* Mobile responsiveness */
-        @media (max-width: 1024px) {
-          .mf-stats-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-        }
 
-        @media (max-width: 768px) {
-          .mf-header {
-            flex-direction: column !important;
-            align-items: stretch !important;
-          }
-          .mf-toolbar {
-            flex-direction: column !important;
-            align-items: stretch !important;
-          }
-          .mf-toolbar-actions {
-            flex-direction: column !important;
-            width: 100% !important;
-          }
-          .mf-search-container {
-            width: 100% !important;
-          }
-          .mf-search-input {
-            width: 100% !important;
-          }
-          .mf-filters-container {
-            width: 100% !important;
-            justify-content: flex-start !important;
-            flex-wrap: wrap !important;
-          }
-          .mf-chip {
-            font-size: 0.7rem !important;
-            padding: 0.4rem 0.6rem !important;
-          }
-          .mf-table-wrapper {
-            overflow-x: auto !important;
-          }
-          .mf-table-cell {
-            padding: 0.75rem 0.5rem !important;
-          }
-          .mf-table-cell-padded {
-            padding: 0.75rem 1rem !important;
-          }
-          .mf-progress-bar {
-            width: 60px !important;
-          }
-          .mf-status-badge {
-            padding: 0.25rem 0.6rem !important;
-            font-size: 0.65rem !important;
-          }
+        .sidebar-overlay {
+          animation: fadeIn 0.2s ease-in-out;
         }
-
-        @media (max-width: 640px) {
-          .mf-stats-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .mf-create-btn {
-            width: 100% !important;
-            justify-content: center !important;
-          }
-          .mf-table-cell {
-            padding: 0.5rem 0.4rem !important;
-          }
-          .mf-table-cell-padded {
-            padding: 0.5rem 0.75rem !important;
-          }
-          .mf-progress-bar {
-            width: 40px !important;
-          }
-          .mf-sparkline {
-            display: none !important;
-          }
-          .mf-bulk-action {
-            flex-direction: column !important;
-            gap: 0.5rem !important;
-            align-items: stretch !important;
-          }
-          .mf-bulk-buttons {
-            width: 100% !important;
-            justify-content: center !important;
-          }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .sidebar-slide {
+          animation: slideIn 0.25s ease-out;
+        }
+        @keyframes slideIn {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
         }
       `}</style>
 
-      {/* Sidebar - sticky on all screen sizes */}
-      <div className="sticky top-0 h-screen flex-shrink-0">
-        <Sidebar />
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        sidebar-slide
+      `}>
+        <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main content with scrolling */}
-      <main className="mf-main-content flex-1 overflow-y-auto p-4 md:p-6 lg:p-8" style={{ height: "100vh" }}>
+      <main className="mf-main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8" style={{ height: "100vh", width: "100%" }}>
         {/* Header */}
-        <div className="mf-header mb-6 md:mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1
-              style={{ fontFamily: FONT.display, letterSpacing: "-0.01em", color: COLOR.dark }}
-              className="text-2xl md:text-3xl font-bold"
+        <div className="mf-header mb-5 md:mb-6 lg:mb-8 flex flex-wrap items-center justify-between gap-3 md:gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
             >
-              Campaigns
-            </h1>
-            <p className="mt-1 text-xs md:text-sm" style={{ color: COLOR.textMuted }}>
-              Create, manage and monitor your email campaigns.
-            </p>
+              <Menu size={20} />
+            </button>
+            <div>
+              <h1
+                style={{ fontFamily: FONT.display, letterSpacing: "-0.01em", color: COLOR.dark }}
+                className="text-xl md:text-2xl lg:text-3xl font-bold"
+              >
+                Campaigns
+              </h1>
+              <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm" style={{ color: COLOR.textMuted }}>
+                Create, manage and monitor your email campaigns.
+              </p>
+            </div>
           </div>
 
           <button
-            className="mf-create-btn flex items-center justify-center gap-1.5 rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-sm font-medium transition hover:opacity-90"
+            className="mf-create-btn flex items-center justify-center gap-1.5 md:gap-2 rounded-lg px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-sm font-medium transition hover:opacity-90 w-full sm:w-auto"
             style={{ background: COLOR.primary, color: COLOR.bg }}
           >
-            <Plus size={16} />
-            Create campaign
+            <Plus size={14} className="md:w-[15px] md:h-[15px] lg:w-[16px] lg:h-[16px]" />
+            <span className="hidden xs:inline">Create campaign</span>
+            <span className="xs:hidden">Create</span>
           </button>
         </div>
 
-        {/* Stats */}
-        <div className="mf-stats-grid mb-6 grid grid-cols-1 gap-4 md:gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Stats - Responsive Grid */}
+        <div className="mf-stats-grid mb-5 md:mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
           {stats.map((stat) => {
             const Icon = stat.icon;
             const sparkData = stat.spark.map((v, i) => ({ i, v }));
             return (
               <div
                 key={stat.title}
-                className="mf-card relative overflow-hidden rounded-xl p-4 md:p-5 transition-colors"
+                className="mf-card relative overflow-hidden rounded-xl p-3 md:p-4 lg:p-5 transition-colors"
                 style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}
               >
                 <div className="flex items-start justify-between">
                   <div
-                    className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-lg"
+                    className="flex h-7 w-7 md:h-8 md:w-8 lg:h-9 lg:w-9 items-center justify-center rounded-lg"
                     style={{ background: stat.accentSoft }}
                   >
-                    <Icon size={14} style={{ color: stat.accent }} />
+                    <Icon size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" style={{ color: stat.accent }} />
                   </div>
                   <span
-                    className="flex items-center gap-0.5 text-[10px] md:text-[11.5px] font-medium"
+                    className="flex items-center gap-0.5 text-[9px] md:text-[10px] lg:text-[11.5px] font-medium"
                     style={{ color: stat.trend === "up" ? COLOR.success : COLOR.danger }}
                   >
-                    {stat.trend === "up" ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                    {stat.trend === "up" ? <ArrowUpRight size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" /> : <ArrowDownRight size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />}
                     {stat.delta}
                   </span>
                 </div>
                 <h2
                   style={{ fontFamily: FONT.mono, color: COLOR.dark }}
-                  className="mt-3 md:mt-4 text-xl md:text-2xl font-semibold tracking-tight"
+                  className="mt-2 md:mt-3 lg:mt-4 text-lg md:text-xl lg:text-2xl font-semibold tracking-tight"
                 >
                   {stat.value}
                 </h2>
-                <p className="mt-1 text-xs md:text-sm" style={{ color: COLOR.textBody }}>
+                <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm" style={{ color: COLOR.textBody }}>
                   {stat.title}
                 </p>
-                <div className="mf-sparkline absolute bottom-0 right-0 h-8 md:h-10 w-20 md:w-24 opacity-70">
+                <div className="mf-sparkline absolute bottom-0 right-0 h-6 md:h-8 lg:h-10 w-14 md:w-20 lg:w-24 opacity-70">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={sparkData}>
-                      <Line type="monotone" dataKey="v" stroke={stat.accent} strokeWidth={1.75} dot={false} />
+                      <Line type="monotone" dataKey="v" stroke={stat.accent} strokeWidth={1.5} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -396,35 +351,35 @@ const Campaign = () => {
         <div className="rounded-xl" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
           {/* Toolbar */}
           <div
-            className="mf-toolbar flex flex-wrap items-center justify-between gap-4 p-4 md:p-5"
+            className="mf-toolbar flex flex-wrap items-center justify-between gap-3 md:gap-4 p-3 md:p-4 lg:p-5"
             style={{ borderBottom: `1px solid ${COLOR.border}` }}
           >
             <div>
-              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-base md:text-lg font-semibold">
+              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-sm md:text-base lg:text-lg font-semibold">
                 Your campaigns
               </h2>
-              <p className="mt-1 text-xs md:text-sm" style={{ color: COLOR.textMuted }}>
+              <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm" style={{ color: COLOR.textMuted }}>
                 View and manage your email campaigns.
               </p>
             </div>
 
-            <div className="mf-toolbar-actions flex flex-wrap items-center gap-3">
+            <div className="mf-toolbar-actions flex flex-wrap items-center gap-2 md:gap-3 w-full lg:w-auto">
               <div
-                className="mf-search-container flex items-center gap-2 rounded-lg px-2 md:px-3 py-1.5 md:py-2"
+                className="mf-search-container flex items-center gap-1.5 md:gap-2 rounded-lg px-2 md:px-3 py-1 md:py-1.5 lg:py-2 flex-1 lg:flex-none"
                 style={{ border: `1px solid ${COLOR.border}`, background: COLOR.bg }}
               >
-                <Search size={14} style={{ color: COLOR.textMuted }} />
+                <Search size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" style={{ color: COLOR.textMuted }} />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search campaigns"
-                  className="mf-search-input bg-transparent text-xs md:text-sm outline-none"
-                  style={{ color: COLOR.textBody, width: 120 }}
+                  className="mf-search-input bg-transparent text-[10px] md:text-xs lg:text-sm outline-none w-full"
+                  style={{ color: COLOR.textBody }}
                 />
               </div>
 
               <div
-                className="mf-filters-container flex flex-wrap items-center gap-1 rounded-xl p-1"
+                className="mf-filters-container flex flex-wrap items-center gap-0.5 md:gap-1 rounded-xl p-1 w-full lg:w-auto overflow-x-auto"
                 style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}` }}
               >
                 {FILTERS.map((f) => {
@@ -433,7 +388,7 @@ const Campaign = () => {
                     <button
                       key={f}
                       onClick={() => setFilter(f)}
-                      className="mf-chip rounded-lg px-2 md:px-3 py-1 md:py-1.5 text-[10px] md:text-xs font-medium transition-colors whitespace-nowrap"
+                      className="mf-chip rounded-lg px-1.5 md:px-2 lg:px-3 py-0.5 md:py-1 text-[8px] md:text-[9px] lg:text-xs font-medium transition-colors whitespace-nowrap flex-1 sm:flex-none"
                       style={{
                         background: active ? COLOR.primary : "transparent",
                         color: active ? COLOR.bg : COLOR.textBody,
@@ -450,26 +405,26 @@ const Campaign = () => {
           {/* Bulk action bar */}
           {selected.size > 0 && (
             <div
-              className="mf-bulk-action flex flex-wrap items-center justify-between px-4 md:px-6 py-2 md:py-3"
+              className="mf-bulk-action flex flex-wrap items-center justify-between gap-2 px-3 md:px-4 lg:px-6 py-1.5 md:py-2 lg:py-3"
               style={{ background: COLOR.primarySoft, borderBottom: `1px solid ${COLOR.border}` }}
             >
-              <span style={{ fontFamily: FONT.mono, color: COLOR.primary }} className="text-[11px] md:text-[12.5px] font-medium">
+              <span style={{ fontFamily: FONT.mono, color: COLOR.primary }} className="text-[10px] md:text-[11px] lg:text-[12.5px] font-medium">
                 {selected.size} selected
               </span>
-              <div className="mf-bulk-buttons flex flex-wrap items-center gap-2">
+              <div className="mf-bulk-buttons flex flex-wrap items-center gap-1.5 md:gap-2">
                 <button
-                  className="flex items-center gap-1.5 rounded-lg px-2 md:px-3 py-1 md:py-1.5 text-[10px] md:text-xs font-medium hover:opacity-90"
+                  className="flex items-center gap-1 md:gap-1.5 rounded-lg px-1.5 md:px-2 lg:px-3 py-0.5 md:py-1 text-[9px] md:text-[9px] lg:text-xs font-medium hover:opacity-90"
                   style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
                 >
-                  <Pause size={12} />
-                  Pause
+                  <Pause size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />
+                  <span className="hidden xs:inline">Pause</span>
                 </button>
                 <button
-                  className="flex items-center gap-1.5 rounded-lg px-2 md:px-3 py-1 md:py-1.5 text-[10px] md:text-xs font-medium hover:opacity-90"
+                  className="flex items-center gap-1 md:gap-1.5 rounded-lg px-1.5 md:px-2 lg:px-3 py-0.5 md:py-1 text-[9px] md:text-[9px] lg:text-xs font-medium hover:opacity-90"
                   style={{ background: COLOR.dangerSoft, color: COLOR.danger }}
                 >
-                  <Trash2 size={12} />
-                  Delete
+                  <Trash2 size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />
+                  <span className="hidden xs:inline">Delete</span>
                 </button>
               </div>
             </div>
@@ -477,32 +432,32 @@ const Campaign = () => {
 
           {/* Table */}
           <div className="mf-table-wrapper overflow-x-auto">
-            <table className="w-full text-left" style={{ minWidth: "600px" }}>
-              <thead className="text-[10px] md:text-xs uppercase tracking-wide" style={{ color: COLOR.textMuted }}>
+            <table className="w-full text-left" style={{ minWidth: "500px" }}>
+              <thead className="text-[8px] md:text-[9px] lg:text-xs uppercase tracking-wide" style={{ color: COLOR.textMuted }}>
                 <tr>
-                  <th className="mf-table-cell-padded px-4 md:px-6 py-3 md:py-4 font-medium w-10">
+                  <th className="mf-table-cell-padded px-3 md:px-4 lg:px-6 py-2 md:py-3 lg:py-4 font-medium w-8 md:w-10">
                     <input type="checkbox" checked={allSelected} onChange={toggleAll} className="rounded" />
                   </th>
-                  <th className="mf-table-cell px-2 md:px-3 py-3 md:py-4 font-medium">Campaign</th>
+                  <th className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-2 md:py-3 lg:py-4 font-medium">Campaign</th>
                   <th
-                    className="mf-table-cell px-2 md:px-3 py-3 md:py-4 font-medium cursor-pointer select-none"
+                    className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-2 md:py-3 lg:py-4 font-medium cursor-pointer select-none"
                     onClick={() => toggleSort("recipients")}
                   >
-                    <span className="inline-flex items-center gap-1">
-                      Recipients <ArrowUpDown size={11} />
+                    <span className="inline-flex items-center gap-0.5 md:gap-1">
+                      Recipients <ArrowUpDown size={9} className="md:w-[10px] md:h-[10px] lg:w-[11px] lg:h-[11px]" />
                     </span>
                   </th>
-                  <th className="mf-table-cell px-2 md:px-3 py-3 md:py-4 font-medium">Delivery progress</th>
+                  <th className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-2 md:py-3 lg:py-4 font-medium">Progress</th>
                   <th
-                    className="mf-table-cell px-2 md:px-3 py-3 md:py-4 font-medium cursor-pointer select-none"
+                    className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-2 md:py-3 lg:py-4 font-medium cursor-pointer select-none"
                     onClick={() => toggleSort("opened")}
                   >
-                    <span className="inline-flex items-center gap-1">
-                      Opened <ArrowUpDown size={11} />
+                    <span className="inline-flex items-center gap-0.5 md:gap-1">
+                      Opened <ArrowUpDown size={9} className="md:w-[10px] md:h-[10px] lg:w-[11px] lg:h-[11px]" />
                     </span>
                   </th>
-                  <th className="mf-table-cell px-2 md:px-3 py-3 md:py-4 font-medium">Status</th>
-                  <th className="mf-table-cell-padded px-4 md:px-6 py-3 md:py-4 font-medium text-right">Action</th>
+                  <th className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-2 md:py-3 lg:py-4 font-medium">Status</th>
+                  <th className="mf-table-cell-padded px-3 md:px-4 lg:px-6 py-2 md:py-3 lg:py-4 font-medium text-right">Action</th>
                 </tr>
               </thead>
 
@@ -519,7 +474,7 @@ const Campaign = () => {
                       className="mf-row"
                       style={{ borderTop: i === 0 ? "none" : `1px solid ${COLOR.border}` }}
                     >
-                      <td className="mf-table-cell-padded px-4 md:px-6 py-3 md:py-5">
+                      <td className="mf-table-cell-padded px-3 md:px-4 lg:px-6 py-2 md:py-3 lg:py-5">
                         <input
                           type="checkbox"
                           checked={selected.has(c.id)}
@@ -527,73 +482,74 @@ const Campaign = () => {
                           className="rounded"
                         />
                       </td>
-                      <td className="mf-table-cell px-2 md:px-3 py-3 md:py-5">
-                        <div className="flex items-center gap-2 md:gap-3">
+                      <td className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-2 md:py-3 lg:py-5">
+                        <div className="flex items-center gap-1.5 md:gap-2 lg:gap-3">
                           <div
-                            className="flex h-8 w-8 md:h-9 md:w-9 shrink-0 items-center justify-center rounded-lg"
+                            className="flex h-6 w-6 md:h-8 md:w-8 lg:h-9 lg:w-9 shrink-0 items-center justify-center rounded-lg"
                             style={{ background: style.bg }}
                           >
-                            <Megaphone size={13} style={{ color: style.dot }} />
+                            <Megaphone size={10} className="md:w-[12px] md:h-[12px] lg:w-[13px] lg:h-[13px]" style={{ color: style.dot }} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm md:text-base font-medium truncate" style={{ color: COLOR.dark }}>
+                            <p className="text-[10px] md:text-xs lg:text-sm font-medium truncate" style={{ color: COLOR.dark }}>
                               {c.name}
                             </p>
-                            <p style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[10px] md:text-xs">
+                            <p style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[7px] md:text-[8px] lg:text-xs">
                               Created {c.createdOn}
                             </p>
                           </div>
                         </div>
                       </td>
 
-                      <td className="mf-table-cell px-2 md:px-3 py-3 md:py-5 text-xs md:text-sm" style={{ fontFamily: FONT.mono, color: COLOR.textBody }}>
+                      <td className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-2 md:py-3 lg:py-5 text-[9px] md:text-[10px] lg:text-sm" style={{ fontFamily: FONT.mono, color: COLOR.textBody }}>
                         {c.recipients.toLocaleString()}
                       </td>
 
-                      <td className="mf-table-cell px-2 md:px-3 py-3 md:py-5">
+                      <td className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-2 md:py-3 lg:py-5">
                         {c.status === "Scheduled" ? (
-                          <span style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[10px] md:text-xs">
-                            Not sent yet
+                          <span style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[8px] md:text-[9px] lg:text-xs">
+                            Not sent
                           </span>
                         ) : (
-                          <div className="flex items-center gap-1 md:gap-2">
-                            <div className="mf-progress-bar h-1.5 w-16 md:w-28 rounded-full" style={{ background: COLOR.bg }}>
+                          <div className="flex items-center gap-1 md:gap-1.5 lg:gap-2">
+                            <div className="mf-progress-bar h-1 md:h-1.5 w-10 md:w-16 lg:w-28 rounded-full" style={{ background: COLOR.bg }}>
                               <div
-                                className="mf-progress-fill h-1.5 rounded-full"
+                                className="mf-progress-fill h-1 md:h-1.5 rounded-full"
                                 style={{ width: `${sentPct}%`, background: style.dot }}
                               />
                             </div>
-                            <span style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[9px] md:text-xs whitespace-nowrap">
-                              {c.sent.toLocaleString()} · {sentPct}%
+                            <span style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[7px] md:text-[8px] lg:text-xs whitespace-nowrap">
+                              {sentPct}%
                             </span>
                           </div>
                         )}
                       </td>
 
-                      <td className="mf-table-cell px-2 md:px-3 py-3 md:py-5 text-xs md:text-sm" style={{ fontFamily: FONT.mono, color: COLOR.textBody }}>
+                      <td className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-2 md:py-3 lg:py-5 text-[9px] md:text-[10px] lg:text-sm" style={{ fontFamily: FONT.mono, color: COLOR.textBody }}>
                         {c.status === "Scheduled" ? (
                           <span style={{ color: COLOR.textMuted }}>—</span>
                         ) : (
-                          <>
-                            {c.opened.toLocaleString()}{" "}
-                            <span style={{ color: COLOR.textMuted }} className="text-[9px] md:text-xs">
-                              ({openPct}%)
+                          <span>
+                            {c.opened.toLocaleString()}
+                            <span className="text-[7px] md:text-[8px] lg:text-xs" style={{ color: COLOR.textMuted }}>
+                              {" "}({openPct}%)
                             </span>
-                          </>
+                          </span>
                         )}
                       </td>
 
-                      <td className="mf-table-cell px-2 md:px-3 py-3 md:py-5">
+                      <td className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-2 md:py-3 lg:py-5">
                         <span
-                          className="mf-status-badge inline-flex items-center gap-1 md:gap-1.5 rounded-full px-2 md:px-3 py-0.5 md:py-1 text-[9px] md:text-xs font-medium whitespace-nowrap"
+                          className="mf-status-badge inline-flex items-center gap-0.5 md:gap-1 rounded-full px-1 md:px-1.5 lg:px-3 py-0.5 text-[7px] md:text-[8px] lg:text-xs font-medium whitespace-nowrap"
                           style={{ background: style.bg, color: style.text }}
                         >
-                          <StatusIcon size={10} />
-                          {c.status}
+                          <StatusIcon size={8} className="md:w-[9px] md:h-[9px] lg:w-[10px] lg:h-[10px]" />
+                          <span className="hidden xs:inline">{c.status}</span>
+                          <span className="xs:hidden">{c.status.charAt(0)}</span>
                         </span>
                       </td>
 
-                      <td className="mf-table-cell-padded px-4 md:px-6 py-3 md:py-5 text-right">
+                      <td className="mf-table-cell-padded px-3 md:px-4 lg:px-6 py-2 md:py-3 lg:py-5 text-right">
                         <ActionMenu campaignName={c.name} />
                       </td>
                     </tr>
@@ -602,18 +558,18 @@ const Campaign = () => {
 
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 md:px-6 py-12 md:py-16">
+                    <td colSpan={7} className="px-3 md:px-4 lg:px-6 py-8 md:py-12 lg:py-16">
                       <div className="flex flex-col items-center text-center">
                         <div
-                          className="mb-3 flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-2xl"
+                          className="mb-2 md:mb-3 flex h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 items-center justify-center rounded-2xl"
                           style={{ background: COLOR.primarySoft }}
                         >
-                          <Inbox size={18} style={{ color: COLOR.primary }} />
+                          <Inbox size={14} className="md:w-[16px] md:h-[16px] lg:w-[18px] lg:h-[18px]" style={{ color: COLOR.primary }} />
                         </div>
-                        <p style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-xs md:text-sm font-semibold">
+                        <p style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[10px] md:text-xs lg:text-sm font-semibold">
                           No campaigns match this filter
                         </p>
-                        <p className="mt-1 text-[10px] md:text-xs" style={{ color: COLOR.textMuted }}>
+                        <p className="mt-0.5 md:mt-1 text-[9px] md:text-[10px] lg:text-xs" style={{ color: COLOR.textMuted }}>
                           Try a different search term or status filter.
                         </p>
                       </div>
