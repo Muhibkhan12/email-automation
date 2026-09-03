@@ -13,6 +13,7 @@ import {
   Copy,
   Inbox,
   MoreHorizontal,
+  Menu,
 } from "lucide-react";
 
 const FONT = {
@@ -89,6 +90,7 @@ const EmailLogs = () => {
   const [dateFilter, setDateFilter] = useState("All time");
   const [page, setPage] = useState(1);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const filteredLogs = useMemo(() => {
     return emailLogs.filter((log) => {
@@ -129,7 +131,6 @@ const EmailLogs = () => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-        /* Custom scrollbar for the main content */
         .mf-main-content::-webkit-scrollbar {
           width: 6px;
         }
@@ -144,125 +145,64 @@ const EmailLogs = () => {
           background: #3A3F4A;
         }
 
-        /* Mobile responsiveness */
-        @media (max-width: 1024px) {
-          .mf-stats-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
+        .sidebar-overlay {
+          animation: fadeIn 0.2s ease-in-out;
         }
-
-        @media (max-width: 768px) {
-          .mf-header {
-            flex-direction: column !important;
-            align-items: stretch !important;
-            gap: 1rem !important;
-          }
-          .mf-header-actions {
-            flex-direction: column !important;
-            width: 100% !important;
-          }
-          .mf-header-btn {
-            width: 100% !important;
-            justify-content: center !important;
-          }
-          .mf-filters-container {
-            flex-direction: column !important;
-            gap: 0.75rem !important;
-          }
-          .mf-search-input {
-            width: 100% !important;
-          }
-          .mf-filter-selects {
-            flex-direction: column !important;
-            width: 100% !important;
-          }
-          .mf-filter-select {
-            width: 100% !important;
-          }
-          .mf-table-wrapper {
-            overflow-x: auto !important;
-          }
-          .mf-stat-card {
-            padding: 1rem !important;
-          }
-          .mf-stat-value {
-            font-size: 1.25rem !important;
-          }
-          .mf-pagination {
-            flex-direction: column !important;
-            align-items: stretch !important;
-            gap: 0.75rem !important;
-          }
-          .mf-pagination-info {
-            text-align: center !important;
-          }
-          .mf-pagination-controls {
-            justify-content: center !important;
-            flex-wrap: wrap !important;
-          }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
-
-        @media (max-width: 640px) {
-          .mf-stats-grid {
-            grid-template-columns: 1fr !important;
-            gap: 0.75rem !important;
-          }
-          .mf-main-content {
-            padding: 0.75rem !important;
-          }
-          .mf-table-cell {
-            padding: 0.5rem 0.5rem !important;
-          }
-          .mf-table-cell-padded {
-            padding: 0.5rem 0.75rem !important;
-          }
-          .mf-status-badge {
-            font-size: 0.6rem !important;
-            padding: 0.15rem 0.4rem !important;
-          }
-          .mf-campaign-tag {
-            font-size: 0.6rem !important;
-            padding: 0.15rem 0.4rem !important;
-          }
-          .mf-subject-text {
-            font-size: 0.7rem !important;
-          }
-          .mf-email-text {
-            font-size: 0.7rem !important;
-          }
-          .mf-timestamp {
-            font-size: 0.65rem !important;
-          }
-          .mf-log-id {
-            font-size: 0.6rem !important;
-          }
-          .mf-filter-label {
-            display: none !important;
-          }
+        .sidebar-slide {
+          animation: slideIn 0.25s ease-out;
+        }
+        @keyframes slideIn {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
         }
       `}</style>
 
-      {/* Sidebar - sticky on all screen sizes */}
-      <div className="sticky top-0 h-screen flex-shrink-0">
-        <Sidebar />
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        sidebar-slide
+      `}>
+        <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main content with scrolling */}
-      <main className="mf-main-content flex-1 overflow-y-auto p-3 md:p-6 lg:p-8" style={{ background: "#12151B", height: "100vh" }}>
+      <main className="mf-main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8" style={{ background: "#12151B", height: "100vh", width: "100%" }}>
         {/* Header */}
-        <div className="mf-header mb-5 md:mb-7 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl md:text-2xl font-semibold tracking-tight" style={{ color: "#E8E6E1" }}>
-              Email Logs
-            </h1>
-            <p className="mt-1 text-xs md:text-sm" style={{ color: "#9BA0A8" }}>
-              Track every email sent through your campaigns.
-            </p>
+        <div className="mf-header mb-5 md:mb-6 lg:mb-7 flex flex-wrap items-center justify-between gap-3 md:gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <h1 className="text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight" style={{ color: "#E8E6E1" }}>
+                Email Logs
+              </h1>
+              <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm" style={{ color: "#9BA0A8" }}>
+                Track every email sent through your campaigns.
+              </p>
+            </div>
           </div>
 
-          <div className="mf-header-actions flex flex-wrap items-center gap-2">
+          <div className="mf-header-actions flex flex-wrap items-center gap-2 md:gap-3 w-full sm:w-auto">
             <button 
-              className="mf-header-btn flex items-center justify-center gap-2 rounded-lg border px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium shadow-sm transition-colors"
+              className="mf-header-btn flex items-center justify-center gap-1.5 md:gap-2 rounded-lg border px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium shadow-sm transition-colors flex-1 sm:flex-none"
               style={{ 
                 borderColor: "#2A2E37", 
                 background: "#12151B", 
@@ -277,24 +217,24 @@ const EmailLogs = () => {
                 e.currentTarget.style.color = "#C7C9CE";
               }}
             >
-              <RefreshCw size={14} />
-              Refresh
+              <RefreshCw size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
+              <span className="hidden xs:inline">Refresh</span>
             </button>
             <button 
-              className="mf-header-btn flex items-center justify-center gap-2 rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium text-white shadow-sm transition-all hover:opacity-90 hover:scale-[1.02]"
+              className="mf-header-btn flex items-center justify-center gap-1.5 md:gap-2 rounded-lg px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-white shadow-sm transition-all hover:opacity-90 hover:scale-[1.02] flex-1 sm:flex-none"
               style={{ 
                 background: "#FF6A39",
                 boxShadow: "0 4px 12px rgba(255,106,57,0.25)"
               }}
             >
-              <Download size={14} />
-              Export
+              <Download size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
+              <span className="hidden xs:inline">Export</span>
             </button>
           </div>
         </div>
 
-        {/* Statistics */}
-        <div className="mf-stats-grid mb-4 md:mb-6 grid grid-cols-1 gap-3 md:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Statistics - Responsive Grid */}
+        <div className="mf-stats-grid mb-4 md:mb-5 lg:mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <StatCard
             title="Total Emails"
             value="48,250"
@@ -330,7 +270,7 @@ const EmailLogs = () => {
           <div className="mf-filters-container flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="mf-search-input relative flex-1">
               <Search
-                size={15}
+                size={13}
                 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" 
                 style={{ color: "#6B727C" }}
               />
@@ -339,7 +279,7 @@ const EmailLogs = () => {
                 placeholder="Search recipient, sender, campaign, or subject…"
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full rounded-lg border py-2 md:py-2.5 pl-9 pr-3 text-xs md:text-sm outline-none transition"
+                className="w-full rounded-lg border py-1.5 md:py-2.5 pl-8 pr-3 text-[10px] md:text-xs lg:text-sm outline-none transition"
                 style={{ 
                   borderColor: "#2A2E37", 
                   background: "#0B0E12", 
@@ -356,11 +296,11 @@ const EmailLogs = () => {
               />
             </div>
 
-            <div className="mf-filter-selects flex gap-2 md:gap-3">
+            <div className="mf-filter-selects flex flex-wrap gap-2 md:gap-3">
               <select
                 value={statusFilter}
                 onChange={(e) => handleStatusChange(e.target.value)}
-                className="mf-filter-select rounded-lg border px-2.5 md:px-3.5 py-2 md:py-2.5 text-xs md:text-sm outline-none transition flex-1"
+                className="mf-filter-select rounded-lg border px-2 md:px-3.5 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm outline-none transition flex-1"
                 style={{ 
                   borderColor: "#2A2E37", 
                   background: "#0B0E12", 
@@ -383,7 +323,7 @@ const EmailLogs = () => {
               <select
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                className="mf-filter-select rounded-lg border px-2.5 md:px-3.5 py-2 md:py-2.5 text-xs md:text-sm outline-none transition flex-1"
+                className="mf-filter-select rounded-lg border px-2 md:px-3.5 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm outline-none transition flex-1"
                 style={{ 
                   borderColor: "#2A2E37", 
                   background: "#0B0E12", 
@@ -405,7 +345,7 @@ const EmailLogs = () => {
           </div>
 
           {(search || statusFilter !== "All") && (
-            <div className="mt-2 md:mt-3 flex flex-wrap items-center gap-2 text-[10px] md:text-xs" style={{ color: "#6B727C" }}>
+            <div className="mt-2 md:mt-3 flex flex-wrap items-center gap-2 text-[9px] md:text-[10px] lg:text-xs" style={{ color: "#6B727C" }}>
               <span>
                 {filteredLogs.length} result{filteredLogs.length !== 1 && "s"}
               </span>
@@ -426,26 +366,26 @@ const EmailLogs = () => {
 
         {/* Logs Table */}
         <div className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: "#2A2E37", background: "#12151B" }}>
-          <div className="flex flex-wrap items-center justify-between border-b px-4 md:px-6 py-3 md:py-4 gap-2" style={{ borderColor: "#2A2E37" }}>
+          <div className="flex flex-wrap items-center justify-between border-b px-3 md:px-4 lg:px-6 py-2.5 md:py-3 lg:py-4 gap-2" style={{ borderColor: "#2A2E37" }}>
             <div>
-              <h2 className="text-xs md:text-sm font-semibold" style={{ color: "#E8E6E1" }}>Email Activity</h2>
-              <p className="mt-0.5 text-[10px] md:text-xs" style={{ color: "#6B727C" }}>
+              <h2 className="text-[10px] md:text-xs lg:text-sm font-semibold" style={{ color: "#E8E6E1" }}>Email Activity</h2>
+              <p className="mt-0.5 text-[8px] md:text-[9px] lg:text-xs" style={{ color: "#6B727C" }}>
                 {filteredLogs.length} logs matching current filters
               </p>
             </div>
           </div>
 
           <div className="mf-table-wrapper overflow-x-auto">
-            <table className="w-full text-left" style={{ minWidth: "700px" }}>
+            <table className="w-full text-left" style={{ minWidth: "500px" }}>
               <thead>
-                <tr className="border-b text-[9px] md:text-xs uppercase tracking-wide" style={{ borderColor: "#2A2E37", color: "#6B727C", background: "#0B0E12" }}>
-                  <th className="mf-table-cell-padded px-3 md:px-6 py-2 md:py-3.5 font-medium">Recipient</th>
-                  <th className="mf-table-cell-padded px-3 md:px-6 py-2 md:py-3.5 font-medium">Campaign</th>
-                  <th className="mf-table-cell-padded px-3 md:px-6 py-2 md:py-3.5 font-medium">Subject</th>
-                  <th className="mf-table-cell-padded px-3 md:px-6 py-2 md:py-3.5 font-medium">Sender</th>
-                  <th className="mf-table-cell-padded px-3 md:px-6 py-2 md:py-3.5 font-medium">Status</th>
-                  <th className="mf-table-cell-padded px-3 md:px-6 py-2 md:py-3.5 font-medium">Sent At</th>
-                  <th className="mf-table-cell-padded px-3 md:px-6 py-2 md:py-3.5" />
+                <tr className="border-b text-[8px] md:text-[9px] lg:text-xs uppercase tracking-wide" style={{ borderColor: "#2A2E37", color: "#6B727C", background: "#0B0E12" }}>
+                  <th className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Recipient</th>
+                  <th className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Campaign</th>
+                  <th className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Subject</th>
+                  <th className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Sender</th>
+                  <th className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Status</th>
+                  <th className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Sent At</th>
+                  <th className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5" />
                 </tr>
               </thead>
 
@@ -461,48 +401,49 @@ const EmailLogs = () => {
                       e.currentTarget.style.background = "transparent";
                     }}
                   >
-                    <td className="mf-table-cell-padded px-3 md:px-6 py-2 md:py-4">
-                      <p className="mf-email-text text-[11px] md:text-sm font-medium" style={{ color: "#E8E6E1" }}>{log.recipient}</p>
+                    <td className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
+                      <p className="mf-email-text text-[9px] md:text-[10px] lg:text-sm font-medium" style={{ color: "#E8E6E1" }}>{log.recipient}</p>
                       <button
                         onClick={() => handleCopy(log.id)}
-                        className="mf-log-id mt-1 flex items-center gap-1 font-mono text-[9px] md:text-[11px] hover:text-[#E8E6E1]" 
+                        className="mf-log-id mt-0.5 flex items-center gap-0.5 md:gap-1 font-mono text-[7px] md:text-[8px] lg:text-[11px] hover:text-[#E8E6E1]" 
                         style={{ color: "#6B727C" }}
                       >
-                        {log.id}
-                        <Copy size={9} />
+                        <span className="hidden xs:inline">{log.id}</span>
+                        <span className="xs:hidden">{log.id.substring(0, 8)}</span>
+                        <Copy size={7} className="md:w-[8px] md:h-[8px] lg:w-[9px] lg:h-[9px]" />
                         {copiedId === log.id && (
-                          <span className="ml-1 text-emerald-400">Copied</span>
+                          <span className="ml-0.5 md:ml-1 text-emerald-400 text-[7px] md:text-[8px]">✓</span>
                         )}
                       </button>
                     </td>
 
-                    <td className="mf-table-cell-padded px-3 md:px-6 py-2 md:py-4">
-                      <span className="mf-campaign-tag inline-flex rounded-md px-1.5 md:px-2.5 py-0.5 md:py-1 text-[9px] md:text-xs font-medium" style={{ background: "#1B1E24", color: "#C7C9CE" }}>
+                    <td className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
+                      <span className="mf-campaign-tag inline-flex rounded-md px-1 md:px-2.5 py-0.5 text-[7px] md:text-[8px] lg:text-xs font-medium truncate max-w-[60px] md:max-w-[80px] lg:max-w-none" style={{ background: "#1B1E24", color: "#C7C9CE" }}>
                         {log.campaign}
                       </span>
                     </td>
 
-                    <td className="mf-table-cell-padded px-3 md:px-6 py-2 md:py-4">
-                      <p className="mf-subject-text truncate text-[10px] md:text-sm" style={{ color: "#9BA0A8", maxWidth: "150px" }}>{log.subject}</p>
+                    <td className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
+                      <p className="mf-subject-text truncate text-[8px] md:text-[9px] lg:text-sm" style={{ color: "#9BA0A8", maxWidth: "100px" }}>{log.subject}</p>
                     </td>
 
-                    <td className="mf-table-cell-padded px-3 md:px-6 py-2 md:py-4">
-                      <p className="mf-email-text text-[10px] md:text-sm" style={{ color: "#9BA0A8" }}>{log.sender}</p>
+                    <td className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
+                      <p className="mf-email-text text-[8px] md:text-[9px] lg:text-sm truncate max-w-[80px] md:max-w-[120px] lg:max-w-none" style={{ color: "#9BA0A8" }}>{log.sender}</p>
                     </td>
 
-                    <td className="mf-table-cell-padded px-3 md:px-6 py-2 md:py-4">
+                    <td className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
                       <StatusBadge status={log.status} />
                     </td>
 
-                    <td className="mf-table-cell-padded px-3 md:px-6 py-2 md:py-4">
-                      <p className="mf-timestamp whitespace-nowrap text-[9px] md:text-sm" style={{ color: "#6B727C" }}>
+                    <td className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
+                      <p className="mf-timestamp whitespace-nowrap text-[7px] md:text-[8px] lg:text-sm" style={{ color: "#6B727C" }}>
                         {log.sentAt}
                       </p>
                     </td>
 
-                    <td className="mf-table-cell-padded px-3 md:px-6 py-2 md:py-4 text-right">
-                      <button className="rounded-lg p-1.5 md:p-2 opacity-0 transition group-hover:opacity-100 hover:bg-[#1B1E24] hover:text-[#E8E6E1]" style={{ color: "#6B727C" }}>
-                        <MoreHorizontal size={14} />
+                    <td className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4 text-right">
+                      <button className="rounded-lg p-1 md:p-2 opacity-0 group-hover:opacity-100 transition hover:bg-[#1B1E24] hover:text-[#E8E6E1]" style={{ color: "#6B727C" }}>
+                        <MoreHorizontal size={11} className="md:w-[12px] md:h-[12px] lg:w-[14px] lg:h-[14px]" />
                       </button>
                     </td>
                   </tr>
@@ -513,12 +454,12 @@ const EmailLogs = () => {
 
           {/* Empty State */}
           {filteredLogs.length === 0 && (
-            <div className="flex flex-col items-center px-4 md:px-6 py-12 md:py-16 text-center">
-              <div className="mb-3 flex h-10 w-10 md:h-11 md:w-11 items-center justify-center rounded-full" style={{ background: "#1B1E24" }}>
-                <Inbox size={16} className="text-[#6B727C]" />
+            <div className="flex flex-col items-center px-4 md:px-6 py-10 md:py-12 lg:py-16 text-center">
+              <div className="mb-2 md:mb-3 flex h-8 w-8 md:h-10 md:w-10 lg:h-11 lg:w-11 items-center justify-center rounded-full" style={{ background: "#1B1E24" }}>
+                <Inbox size={14} className="md:w-[15px] md:h-[15px] lg:w-[16px] lg:h-[16px] text-[#6B727C]" />
               </div>
-              <h3 className="text-xs md:text-sm font-medium" style={{ color: "#E8E6E1" }}>No emails found</h3>
-              <p className="mt-1 text-[10px] md:text-sm" style={{ color: "#6B727C" }}>
+              <h3 className="text-[10px] md:text-xs lg:text-sm font-medium" style={{ color: "#E8E6E1" }}>No emails found</h3>
+              <p className="mt-0.5 md:mt-1 text-[8px] md:text-[9px] lg:text-sm" style={{ color: "#6B727C" }}>
                 Try adjusting your search or filters.
               </p>
             </div>
@@ -526,8 +467,8 @@ const EmailLogs = () => {
 
           {/* Pagination */}
           {filteredLogs.length > 0 && (
-            <div className="mf-pagination flex flex-wrap gap-3 border-t px-4 md:px-6 py-3 md:py-4 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "#2A2E37" }}>
-              <p className="mf-pagination-info text-[10px] md:text-sm" style={{ color: "#6B727C" }}>
+            <div className="mf-pagination flex flex-wrap gap-2 md:gap-3 border-t px-3 md:px-4 lg:px-6 py-2.5 md:py-3 lg:py-4 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "#2A2E37" }}>
+              <p className="mf-pagination-info text-[8px] md:text-[9px] lg:text-sm" style={{ color: "#6B727C" }}>
                 Showing {(page - 1) * PAGE_SIZE + 1}–
                 {Math.min(page * PAGE_SIZE, filteredLogs.length)} of {filteredLogs.length}
               </p>
@@ -536,7 +477,7 @@ const EmailLogs = () => {
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="flex items-center gap-1 rounded-lg border px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-sm transition disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex items-center gap-0.5 md:gap-1 rounded-lg border px-1.5 md:px-3 py-1 md:py-1.5 lg:py-2 text-[8px] md:text-[9px] lg:text-sm transition disabled:cursor-not-allowed disabled:opacity-40"
                   style={{ 
                     borderColor: "#2A2E37", 
                     color: "#C7C9CE",
@@ -553,15 +494,15 @@ const EmailLogs = () => {
                     e.currentTarget.style.color = "#C7C9CE";
                   }}
                 >
-                  <ChevronLeft size={12} />
-                  Prev
+                  <ChevronLeft size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />
+                  <span className="hidden xs:inline">Prev</span>
                 </button>
 
                 {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((p) => (
                   <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`rounded-lg border px-2.5 md:px-3.5 py-1.5 md:py-2 text-[10px] md:text-sm transition ${
+                    className={`rounded-lg border px-1.5 md:px-3.5 py-1 md:py-1.5 lg:py-2 text-[8px] md:text-[9px] lg:text-sm transition ${
                       p === page
                         ? "border-[#FF6A39] bg-[#FF6A39] text-white"
                         : "border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
@@ -573,10 +514,10 @@ const EmailLogs = () => {
 
                 {totalPages > 5 && (
                   <>
-                    <span style={{ color: "#6B727C" }} className="text-xs">…</span>
+                    <span style={{ color: "#6B727C" }} className="text-[8px] md:text-xs">…</span>
                     <button
                       onClick={() => setPage(totalPages)}
-                      className={`rounded-lg border px-2.5 md:px-3.5 py-1.5 md:py-2 text-[10px] md:text-sm transition ${
+                      className={`rounded-lg border px-1.5 md:px-3.5 py-1 md:py-1.5 lg:py-2 text-[8px] md:text-[9px] lg:text-sm transition ${
                         page === totalPages
                           ? "border-[#FF6A39] bg-[#FF6A39] text-white"
                           : "border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
@@ -590,7 +531,7 @@ const EmailLogs = () => {
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="flex items-center gap-1 rounded-lg border px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-sm transition disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex items-center gap-0.5 md:gap-1 rounded-lg border px-1.5 md:px-3 py-1 md:py-1.5 lg:py-2 text-[8px] md:text-[9px] lg:text-sm transition disabled:cursor-not-allowed disabled:opacity-40"
                   style={{ 
                     borderColor: "#2A2E37", 
                     color: "#C7C9CE",
@@ -607,8 +548,8 @@ const EmailLogs = () => {
                     e.currentTarget.style.color = "#C7C9CE";
                   }}
                 >
-                  Next
-                  <ChevronRight size={12} />
+                  <span className="hidden xs:inline">Next</span>
+                  <ChevronRight size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />
                 </button>
               </div>
             </div>
@@ -634,19 +575,19 @@ interface StatCardProps {
 const StatCard = ({ title, value, description, icon: Icon, accent }: StatCardProps) => {
   const isEmber = title === "Total Emails";
   return (
-    <div className="mf-stat-card rounded-xl border p-3 md:p-5 shadow-sm transition hover:shadow-md" style={{ borderColor: "#2A2E37", background: "#12151B" }}>
+    <div className="mf-stat-card rounded-xl border p-3 md:p-4 lg:p-5 shadow-sm transition hover:shadow-md" style={{ borderColor: "#2A2E37", background: "#12151B" }}>
       <div className="flex items-start justify-between">
-        <p className="text-[10px] md:text-sm" style={{ color: "#9BA0A8" }}>{title}</p>
-        <span className={`flex h-7 w-7 md:h-8 md:w-8 items-center justify-center rounded-lg ${
+        <p className="text-[9px] md:text-[10px] lg:text-sm" style={{ color: "#9BA0A8" }}>{title}</p>
+        <span className={`flex h-6 w-6 md:h-7 md:w-7 lg:h-8 lg:w-8 items-center justify-center rounded-lg ${
           isEmber ? "bg-ember-soft" : ""
         } ${!isEmber ? accent : ""}`}
         style={{ background: isEmber ? "rgba(255,106,57,0.12)" : undefined }}
         >
-          <Icon size={14} className={isEmber ? "text-[#FF6A39]" : ""}  />
+          <Icon size={12} className={`md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] ${isEmber ? "text-[#FF6A39]" : ""}`}  />
         </span>
       </div>
-      <h2 className="mf-stat-value mt-2 md:mt-3 text-xl md:text-2xl font-semibold tracking-tight" style={{ color: "#E8E6E1" }}>{value}</h2>
-      <p className="mt-1 text-[9px] md:text-xs" style={{ color: "#6B727C" }}>{description}</p>
+      <h2 className="mf-stat-value mt-1.5 md:mt-2 lg:mt-3 text-lg md:text-xl lg:text-2xl font-semibold tracking-tight" style={{ color: "#E8E6E1" }}>{value}</h2>
+      <p className="mt-0.5 md:mt-1 text-[8px] md:text-[9px] lg:text-xs" style={{ color: "#6B727C" }}>{description}</p>
     </div>
   );
 };
@@ -670,10 +611,11 @@ const StatusBadge = ({ status }: { status: EmailStatus }) => {
 
   return (
     <span
-      className={`mf-status-badge inline-flex items-center gap-1 md:gap-1.5 rounded-full px-1.5 md:px-2.5 py-0.5 md:py-1 text-[8px] md:text-xs font-medium ${className}`}
+      className={`mf-status-badge inline-flex items-center gap-0.5 md:gap-1.5 rounded-full px-1 md:px-2.5 py-0.5 text-[7px] md:text-[8px] lg:text-xs font-medium ${className}`}
     >
-      <Icon size={10} />
-      {status}
+      <Icon size={8} className="md:w-[9px] md:h-[9px] lg:w-[10px] lg:h-[10px]" />
+      <span className="hidden xs:inline">{status}</span>
+      <span className="xs:hidden">{status.charAt(0)}</span>
     </span>
   );
 };
