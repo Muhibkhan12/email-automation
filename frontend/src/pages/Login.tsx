@@ -42,7 +42,7 @@ const Login = () => {
     try {
       // loginUser already stores access_token in localStorage (see AuthServices.ts)
       await loginUser(data)
-      navigate('/dashboard')
+      navigate('/user/dashboard')
     } catch (err: any) {
       const backendMessage =
         err?.response?.data?.message || err?.message || 'Invalid email or password.'
