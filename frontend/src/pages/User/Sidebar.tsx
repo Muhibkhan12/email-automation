@@ -192,7 +192,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         .mf-sidebar-scroll::-webkit-scrollbar { width: 4px; }
         .mf-sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
         .mf-sidebar-scroll::-webkit-scrollbar-thumb { background: ${COLOR.border}; border-radius: 3px; }
-        .mf-sidebar-scroll::-webkit-scrollbar-thumb:hover { background: ${COLOR.borderHover || '#3A3F4A'}; }
+        .mf-sidebar-scroll::-webkit-scrollbar-thumb:hover { background: ${COLOR.border || '#3A3F4A'}; }
       `}</style>
 
       <SidebarContent onClose={onClose} />
