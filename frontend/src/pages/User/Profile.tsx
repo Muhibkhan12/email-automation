@@ -9,6 +9,7 @@ import {
   Monitor,
   Plus,
   Pencil,
+  Menu,
 } from "lucide-react";
 
 interface SenderAccount {
@@ -32,6 +33,7 @@ const PROVIDER_STYLE: Record<string, { label: string; accent: string; soft: stri
 
 const Profile = () => {
   const [editing, setEditing] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="flex min-h-screen overflow-hidden bg-[#0B0E12]">
@@ -39,7 +41,6 @@ const Profile = () => {
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 1s linear infinite; }
         
-        /* Custom scrollbar */
         .main-content::-webkit-scrollbar {
           width: 6px;
         }
@@ -53,34 +54,70 @@ const Profile = () => {
         .main-content::-webkit-scrollbar-thumb:hover {
           background: #3A3F4A;
         }
+
+        .sidebar-overlay {
+          animation: fadeIn 0.2s ease-in-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .sidebar-slide {
+          animation: slideIn 0.25s ease-out;
+        }
+        @keyframes slideIn {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
+        }
       `}</style>
 
-      {/* Sidebar - sticky */}
-      <div className="sticky top-0 h-screen flex-shrink-0">
-        <Sidebar />
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        sidebar-slide
+      `}>
+        <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main content */}
-      <main className="main-content flex-1 overflow-y-auto bg-[#12151B] h-screen">
+      <main className="main-content flex-1 overflow-y-auto bg-[#12151B] h-screen w-full">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-[#12151B] border-b border-[#2A2E37]">
-          <div className="mx-auto max-w-7xl px-4 md:px-6 py-4 md:py-7 lg:px-10">
+          <div className="mx-auto max-w-7xl px-3 md:px-4 lg:px-6 xl:px-10 py-3 md:py-4 lg:py-7">
             <div className="flex flex-col gap-3 md:gap-6 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-[10px] md:text-sm font-medium text-[#6B727C]">Account</p>
-                <h1 className="mt-0.5 md:mt-1 text-2xl md:text-3xl font-bold text-[#E8E6E1] tracking-tight">
-                  Profile
-                </h1>
-                <p className="mt-0.5 md:mt-1 text-xs md:text-sm text-[#9BA0A8]">
-                  Manage your account, security and connected email accounts.
-                </p>
+              <div className="flex items-center gap-3 md:gap-4">
+                {/* Mobile Menu Button */}
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
+                >
+                  <Menu size={20} />
+                </button>
+                <div>
+                  <p className="text-[10px] md:text-sm font-medium text-[#6B727C]">Account</p>
+                  <h1 className="mt-0.5 md:mt-1 text-xl md:text-2xl lg:text-3xl font-bold text-[#E8E6E1] tracking-tight">
+                    Profile
+                  </h1>
+                  <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm text-[#9BA0A8]">
+                    Manage your account, security and connected email accounts.
+                  </p>
+                </div>
               </div>
 
               <button
                 onClick={() => setEditing(!editing)}
-                className="flex items-center justify-center gap-1.5 rounded-lg border border-[#2A2E37] px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium text-[#C7C9CE] bg-[#12151B] hover:bg-[#1B1E24] hover:text-[#E8E6E1] transition-colors w-full sm:w-auto"
+                className="flex items-center justify-center gap-1.5 rounded-lg border border-[#2A2E37] px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-[#C7C9CE] bg-[#12151B] hover:bg-[#1B1E24] hover:text-[#E8E6E1] transition-colors w-full sm:w-auto"
               >
-                <Pencil size={13} />
+                <Pencil size={12} className="md:w-[13px] md:h-[13px] lg:w-[13px] lg:h-[13px]" />
                 {editing ? "Cancel editing" : "Edit profile"}
               </button>
             </div>
@@ -88,45 +125,46 @@ const Profile = () => {
         </div>
 
         {/* Content */}
-        <div className="mx-auto max-w-7xl space-y-4 md:space-y-6 px-4 md:px-6 py-4 md:py-8 lg:px-10">
+        <div className="mx-auto max-w-7xl space-y-3 md:space-y-4 lg:space-y-6 px-3 md:px-4 lg:px-6 xl:px-10 py-3 md:py-4 lg:py-8">
           {/* Profile Hero */}
           <section className="overflow-hidden rounded-xl border border-[#2A2E37] bg-[#12151B]">
-            <div className="h-16 md:h-28 bg-gradient-to-r from-[#1B1E24] via-[#2A2E37] to-[#1B1E24]" />
+            <div className="h-12 md:h-16 lg:h-28 bg-gradient-to-r from-[#1B1E24] via-[#2A2E37] to-[#1B1E24]" />
 
-            <div className="px-4 md:px-6 pb-5 md:pb-7">
-              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 md:gap-5 -mt-8 md:-mt-12">
-                <div className="flex flex-col sm:flex-row items-center sm:items-end gap-3 md:gap-5">
+            <div className="px-3 md:px-4 lg:px-6 pb-4 md:pb-5 lg:pb-7">
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 md:gap-5 -mt-6 md:-mt-8 lg:-mt-12">
+                <div className="flex flex-col sm:flex-row items-center sm:items-end gap-2 md:gap-3 lg:gap-5">
                   <div className="relative">
-                    <div className="flex h-16 w-16 md:h-24 md:w-24 items-center justify-center rounded-2xl border-4 border-[#12151B] text-lg md:text-2xl font-semibold text-white shadow-lg bg-[#FF6A39]">
+                    <div className="flex h-12 w-12 md:h-16 md:w-16 lg:h-24 lg:w-24 items-center justify-center rounded-2xl border-4 border-[#12151B] text-base md:text-lg lg:text-2xl font-semibold text-white shadow-lg bg-[#FF6A39]">
                       MK
                     </div>
-                    <span className="absolute bottom-0.5 md:bottom-1 right-0.5 md:right-1 h-3 w-3 md:h-4 md:w-4 rounded-full border-2 border-[#12151B] bg-emerald-400" />
+                    <span className="absolute bottom-0 md:bottom-1 right-0 md:right-1 h-2.5 w-2.5 md:h-3 md:w-3 lg:h-4 lg:w-4 rounded-full border-2 border-[#12151B] bg-emerald-400" />
                   </div>
 
                   <div className="text-center sm:text-left pb-0 sm:pb-1">
-                    <h2 className="text-xl md:text-2xl font-semibold text-[#E8E6E1]">Muhib Khan</h2>
-                    <p className="text-xs md:text-sm text-[#9BA0A8]">muhib@example.com</p>
+                    <h2 className="text-base md:text-xl lg:text-2xl font-semibold text-[#E8E6E1]">Muhib Khan</h2>
+                    <p className="text-[10px] md:text-xs lg:text-sm text-[#9BA0A8]">muhib@example.com</p>
                   </div>
                 </div>
 
                 <div className="flex justify-center sm:justify-end pb-0 sm:pb-1">
-                  <span className="flex items-center gap-1.5 md:gap-2 rounded-full px-2 md:px-3 py-1 md:py-1.5 text-[9px] md:text-xs font-medium whitespace-nowrap bg-emerald-500/15 text-emerald-400">
-                    <span className="h-1 w-1 md:h-1.5 md:w-1.5 rounded-full bg-emerald-400" />
-                    Active account
+                  <span className="flex items-center gap-1 md:gap-1.5 lg:gap-2 rounded-full px-1.5 md:px-2 lg:px-3 py-0.5 md:py-1 lg:py-1.5 text-[8px] md:text-[9px] lg:text-xs font-medium whitespace-nowrap bg-emerald-500/15 text-emerald-400">
+                    <span className="h-1 w-1 md:h-1.5 md:w-1.5 lg:h-1.5 lg:w-1.5 rounded-full bg-emerald-400" />
+                    <span className="hidden xs:inline">Active account</span>
+                    <span className="xs:hidden">Active</span>
                   </span>
                 </div>
               </div>
 
-              <div className="mt-3 md:mt-6 flex flex-wrap justify-center sm:justify-start gap-x-4 md:gap-x-6 gap-y-1 md:gap-y-2 text-[10px] md:text-sm text-[#6B727C]">
+              <div className="mt-2 md:mt-3 lg:mt-6 flex flex-wrap justify-center sm:justify-start gap-x-2 md:gap-x-4 lg:gap-x-6 gap-y-1 md:gap-y-1.5 lg:gap-y-2 text-[8px] md:text-[9px] lg:text-sm text-[#6B727C]">
                 <span className="font-mono">Member since Aug 2026</span>
-                <span className="hidden sm:block text-[#2A2E37]">•</span>
+                <span className="hidden xs:block text-[#2A2E37]">•</span>
                 <span className="font-mono">Last login today</span>
               </div>
             </div>
           </section>
 
           {/* Stats */}
-          <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+          <section className="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-3 lg:gap-4">
             <StatCard 
               icon={Megaphone} 
               accent="#9BA0A8" 
@@ -157,22 +195,22 @@ const Profile = () => {
           </section>
 
           {/* Grid */}
-          <div className="grid grid-cols-1 gap-4 md:gap-6 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:gap-4 lg:gap-6 xl:grid-cols-3">
             {/* Personal Info */}
             <section className="rounded-xl border border-[#2A2E37] bg-[#12151B] xl:col-span-2">
-              <div className="flex flex-wrap items-center justify-between gap-2 px-4 md:px-6 py-3 md:py-5 border-b border-[#2A2E37]">
+              <div className="flex flex-wrap items-center justify-between gap-2 px-3 md:px-4 lg:px-6 py-2.5 md:py-3 lg:py-5 border-b border-[#2A2E37]">
                 <div>
-                  <h2 className="text-sm md:text-base font-semibold text-[#E8E6E1]">Personal information</h2>
-                  <p className="mt-0.5 md:mt-1 text-[10px] md:text-sm text-[#9BA0A8]">
+                  <h2 className="text-xs md:text-sm lg:text-base font-semibold text-[#E8E6E1]">Personal information</h2>
+                  <p className="mt-0.5 md:mt-1 text-[9px] md:text-[10px] lg:text-sm text-[#9BA0A8]">
                     Your basic account information.
                   </p>
                 </div>
-                <span className="rounded-md px-2 md:px-2.5 py-0.5 md:py-1 text-[9px] md:text-xs font-medium whitespace-nowrap bg-[#1B1E24] text-[#C7C9CE]">
+                <span className="rounded-md px-1.5 md:px-2 lg:px-2.5 py-0.5 md:py-1 text-[8px] md:text-[9px] lg:text-xs font-medium whitespace-nowrap bg-[#1B1E24] text-[#C7C9CE]">
                   Account
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 p-4 md:p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 lg:gap-6 p-3 md:p-4 lg:p-6">
                 <InputField label="Full name" value="Muhib Khan" disabled={!editing} />
                 <InputField label="Email address" value="muhib@example.com" disabled={!editing} />
                 <InputField label="Username" value="@muhib" disabled={!editing} />
@@ -180,8 +218,8 @@ const Profile = () => {
               </div>
 
               {editing && (
-                <div className="flex justify-end px-4 md:px-6 py-3 md:py-4 border-t border-[#2A2E37]">
-                  <button className="rounded-lg px-4 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium text-white bg-[#FF6A39] hover:opacity-90 transition">
+                <div className="flex justify-end px-3 md:px-4 lg:px-6 py-2.5 md:py-3 lg:py-4 border-t border-[#2A2E37]">
+                  <button className="rounded-lg px-3 md:px-4 lg:px-5 py-1.5 md:py-2 lg:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-white bg-[#FF6A39] hover:opacity-90 transition">
                     Save changes
                   </button>
                 </div>
@@ -190,9 +228,9 @@ const Profile = () => {
 
             {/* Security */}
             <section className="rounded-xl border border-[#2A2E37] bg-[#12151B]">
-              <div className="px-4 md:px-6 py-3 md:py-5 border-b border-[#2A2E37]">
-                <h2 className="text-sm md:text-base font-semibold text-[#E8E6E1]">Security</h2>
-                <p className="mt-0.5 md:mt-1 text-[10px] md:text-sm text-[#9BA0A8]">Protect your account.</p>
+              <div className="px-3 md:px-4 lg:px-6 py-2.5 md:py-3 lg:py-5 border-b border-[#2A2E37]">
+                <h2 className="text-xs md:text-sm lg:text-base font-semibold text-[#E8E6E1]">Security</h2>
+                <p className="mt-0.5 md:mt-1 text-[9px] md:text-[10px] lg:text-sm text-[#9BA0A8]">Protect your account.</p>
               </div>
 
               <div>
@@ -224,17 +262,18 @@ const Profile = () => {
 
           {/* Senders */}
           <section className="rounded-xl border border-[#2A2E37] bg-[#12151B]">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 md:gap-4 px-4 md:px-6 py-3 md:py-5 border-b border-[#2A2E37]">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 md:gap-3 lg:gap-4 px-3 md:px-4 lg:px-6 py-2.5 md:py-3 lg:py-5 border-b border-[#2A2E37]">
               <div>
-                <h2 className="text-sm md:text-base font-semibold text-[#E8E6E1]">Connected sender accounts</h2>
-                <p className="mt-0.5 md:mt-1 text-[10px] md:text-sm text-[#9BA0A8]">
+                <h2 className="text-xs md:text-sm lg:text-base font-semibold text-[#E8E6E1]">Connected sender accounts</h2>
+                <p className="mt-0.5 md:mt-1 text-[9px] md:text-[10px] lg:text-sm text-[#9BA0A8]">
                   Email accounts used to send your campaigns.
                 </p>
               </div>
 
-              <button className="flex items-center justify-center gap-1.5 rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium text-white bg-[#FF6A39] hover:opacity-90 transition">
-                <Plus size={13} />
-                Add sender
+              <button className="flex items-center justify-center gap-1.5 rounded-lg px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-white bg-[#FF6A39] hover:opacity-90 transition w-full sm:w-auto">
+                <Plus size={12} className="md:w-[13px] md:h-[13px] lg:w-[13px] lg:h-[13px]" />
+                <span className="hidden xs:inline">Add sender</span>
+                <span className="xs:hidden">Add</span>
               </button>
             </div>
 
@@ -244,21 +283,21 @@ const Profile = () => {
                 return (
                   <div
                     key={sender.email}
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 md:gap-4 px-4 md:px-6 py-3 md:py-5 border-t border-[#2A2E37] hover:bg-[#1B1E24] transition"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 md:gap-3 lg:gap-4 px-3 md:px-4 lg:px-6 py-2.5 md:py-3 lg:py-5 border-t border-[#2A2E37] hover:bg-[#1B1E24] transition"
                   >
-                    <div className="flex items-center gap-3 md:gap-4">
+                    <div className="flex items-center gap-2 md:gap-3 lg:gap-4">
                       <div
-                        className="flex h-9 w-9 md:h-11 md:w-11 items-center justify-center rounded-xl text-xs md:text-sm font-semibold shrink-0"
+                        className="flex h-7 w-7 md:h-9 md:w-9 lg:h-11 lg:w-11 items-center justify-center rounded-xl text-[9px] md:text-xs lg:text-sm font-semibold shrink-0"
                         style={{ background: p.soft, color: p.accent }}
                       >
                         {p.label}
                       </div>
 
                       <div className="min-w-0">
-                        <p className="text-xs md:text-sm font-medium truncate text-[#E8E6E1]">
+                        <p className="text-[10px] md:text-xs lg:text-sm font-medium truncate text-[#E8E6E1]">
                           {sender.email}
                         </p>
-                        <div className="mt-0.5 md:mt-1 flex flex-wrap items-center gap-1.5 md:gap-2 text-[9px] md:text-xs text-[#6B727C]">
+                        <div className="mt-0.5 md:mt-1 flex flex-wrap items-center gap-1 md:gap-1.5 lg:gap-2 text-[8px] md:text-[9px] lg:text-xs text-[#6B727C]">
                           <span>{sender.provider}</span>
                           <span className="text-[#2A2E37]">•</span>
                           <span className="font-mono">{sender.sent.toLocaleString()} emails sent</span>
@@ -266,19 +305,21 @@ const Profile = () => {
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
                       <span
-                        className="rounded-full px-2 md:px-3 py-1 md:py-1.5 text-[9px] md:text-xs font-medium whitespace-nowrap"
+                        className="rounded-full px-1.5 md:px-2 lg:px-3 py-0.5 md:py-1 lg:py-1.5 text-[8px] md:text-[9px] lg:text-xs font-medium whitespace-nowrap"
                         style={{
                           background: sender.status === "Active" ? "rgba(52,211,153,0.12)" : "rgba(248,113,113,0.12)",
                           color: sender.status === "Active" ? "#34D399" : "#F87171",
                         }}
                       >
-                        {sender.status}
+                        <span className="hidden xs:inline">{sender.status}</span>
+                        <span className="xs:hidden">{sender.status.charAt(0)}</span>
                       </span>
 
-                      <button className="rounded-lg border border-[#2A2E37] px-2.5 md:px-3 py-1.5 md:py-2 text-[10px] md:text-sm font-medium text-[#C7C9CE] bg-transparent hover:bg-[#1B1E24] hover:text-[#E8E6E1] transition">
-                        Manage
+                      <button className="rounded-lg border border-[#2A2E37] px-2 md:px-2.5 lg:px-3 py-1 md:py-1.5 lg:py-2 text-[8px] md:text-[9px] lg:text-sm font-medium text-[#C7C9CE] bg-transparent hover:bg-[#1B1E24] hover:text-[#E8E6E1] transition">
+                        <span className="hidden xs:inline">Manage</span>
+                        <span className="xs:hidden">⚙</span>
                       </button>
                     </div>
                   </div>
@@ -289,15 +330,15 @@ const Profile = () => {
 
           {/* Danger Zone */}
           <section className="rounded-xl border border-rose-500/30 bg-rose-500/5">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 md:gap-4 p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 md:gap-3 lg:gap-4 p-3 md:p-4 lg:p-6">
               <div>
-                <h2 className="text-sm md:text-base font-semibold text-rose-400">Delete account</h2>
-                <p className="mt-0.5 md:mt-1 text-[10px] md:text-sm text-rose-300">
+                <h2 className="text-xs md:text-sm lg:text-base font-semibold text-rose-400">Delete account</h2>
+                <p className="mt-0.5 md:mt-1 text-[9px] md:text-[10px] lg:text-sm text-rose-300">
                   Permanently delete your account and all associated campaigns, templates and email data.
                 </p>
               </div>
 
-              <button className="rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium text-rose-400 border border-rose-500/30 bg-transparent hover:bg-rose-500/10 transition">
+              <button className="rounded-lg px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-rose-400 border border-rose-500/30 bg-transparent hover:bg-rose-500/10 transition w-full sm:w-auto">
                 Delete account
               </button>
             </div>
@@ -324,20 +365,20 @@ interface StatCardProps {
 
 const StatCard = ({ icon: Icon, accent, soft, label, value, description, isEmber }: StatCardProps) => {
   return (
-    <div className="rounded-xl border border-[#2A2E37] bg-[#12151B] p-3 md:p-5 hover:translate-y-[-2px] transition-transform duration-150">
+    <div className="rounded-xl border border-[#2A2E37] bg-[#12151B] p-2.5 md:p-3 lg:p-5 hover:translate-y-[-2px] transition-transform duration-150">
       <div 
-        className="flex h-7 w-7 md:h-9 md:w-9 items-center justify-center rounded-lg"
+        className="flex h-6 w-6 md:h-7 md:w-7 lg:h-9 lg:w-9 items-center justify-center rounded-lg"
         style={{ background: isEmber ? "rgba(255,106,57,0.12)" : soft }}
       >
-        <Icon size={13} style={{ color: isEmber ? "#FF6A39" : accent }} />
+        <Icon size={11} className="md:w-[12px] md:h-[12px] lg:w-[13px] lg:h-[13px]" style={{ color: isEmber ? "#FF6A39" : accent }} />
       </div>
-      <p className="mt-2 md:mt-4 text-xl md:text-2xl font-semibold tracking-tight text-[#E8E6E1] font-mono">
+      <p className="mt-1.5 md:mt-2 lg:mt-4 text-base md:text-xl lg:text-2xl font-semibold tracking-tight text-[#E8E6E1] font-mono">
         {value}
       </p>
-      <p className="mt-0.5 md:mt-1 text-[10px] md:text-sm text-[#9BA0A8]">
+      <p className="mt-0.5 md:mt-1 text-[9px] md:text-[10px] lg:text-sm text-[#9BA0A8]">
         {label}
       </p>
-      <p className="mt-0.5 md:mt-1 text-[8px] md:text-xs text-[#6B727C]">
+      <p className="mt-0.5 md:mt-1 text-[7px] md:text-[8px] lg:text-xs text-[#6B727C]">
         {description}
       </p>
     </div>
@@ -353,14 +394,14 @@ interface InputFieldProps {
 const InputField = ({ label, value, disabled }: InputFieldProps) => {
   return (
     <div>
-      <label className="mb-1.5 md:mb-2 block text-[10px] md:text-sm font-medium text-[#C7C9CE]">
+      <label className="mb-1 md:mb-1.5 lg:mb-2 block text-[9px] md:text-[10px] lg:text-sm font-medium text-[#C7C9CE]">
         {label}
       </label>
       <input
         type="text"
         defaultValue={value}
         disabled={disabled}
-        className="w-full rounded-lg px-3 md:px-4 py-2 md:py-3 text-xs md:text-sm outline-none transition disabled:cursor-not-allowed disabled:opacity-70 border border-[#2A2E37] bg-[#0B0E12] text-[#E8E6E1] focus:border-[#FF6A39] focus:ring-2 focus:ring-[#FF6A39]/10"
+        className="w-full rounded-lg px-2.5 md:px-3 lg:px-4 py-1.5 md:py-2 lg:py-3 text-[10px] md:text-xs lg:text-sm outline-none transition disabled:cursor-not-allowed disabled:opacity-70 border border-[#2A2E37] bg-[#0B0E12] text-[#E8E6E1] focus:border-[#FF6A39] focus:ring-2 focus:ring-[#FF6A39]/10"
       />
     </div>
   );
@@ -378,19 +419,19 @@ interface SecurityItemProps {
 const SecurityItem = ({ icon: Icon, title, description, action, accent = "#FF6A39", last }: SecurityItemProps) => {
   return (
     <div
-      className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 md:gap-4 px-4 md:px-6 py-3 md:py-5 ${last ? "" : "border-b border-[#2A2E37]"}`}
+      className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 md:gap-2 lg:gap-4 px-3 md:px-4 lg:px-6 py-2.5 md:py-3 lg:py-5 ${last ? "" : "border-b border-[#2A2E37]"}`}
     >
       <div className="flex items-center gap-2 md:gap-3">
-        <div className="flex h-7 w-7 md:h-9 md:w-9 items-center justify-center rounded-lg shrink-0" style={{ background: `${accent}1A` }}>
-          <Icon size={13} style={{ color: accent }} />
+        <div className="flex h-6 w-6 md:h-7 md:w-7 lg:h-9 lg:w-9 items-center justify-center rounded-lg shrink-0" style={{ background: `${accent}1A` }}>
+          <Icon size={11} className="md:w-[12px] md:h-[12px] lg:w-[13px] lg:h-[13px]" style={{ color: accent }} />
         </div>
         <div>
-          <p className="text-xs md:text-sm font-medium text-[#E8E6E1]">{title}</p>
-          <p className="mt-0.5 text-[9px] md:text-xs text-[#6B727C]">{description}</p>
+          <p className="text-[10px] md:text-xs lg:text-sm font-medium text-[#E8E6E1]">{title}</p>
+          <p className="mt-0.5 text-[8px] md:text-[9px] lg:text-xs text-[#6B727C]">{description}</p>
         </div>
       </div>
 
-      <button className="text-[10px] md:text-sm font-medium hover:text-[#E8E6E1] shrink-0" style={{ color: accent }}>
+      <button className="text-[9px] md:text-[10px] lg:text-sm font-medium hover:text-[#E8E6E1] shrink-0" style={{ color: accent }}>
         {action}
       </button>
     </div>
