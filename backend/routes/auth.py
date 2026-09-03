@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-
 from schema.user import (RegisterSchema, LoginSchema, ForgetSchema, UpdateUser)
 from database import get_db
 from models.user import User
-from services.auth import oauth2_scheme
+from services.auth import oauth2_scheme, refresh_access_token
 from services.user import (userByIdWithSenAcc,getAllUserWithSenderAccounts,LoginUser, RegisterUser, ForgetPassword, GetCurrentUser, updateUser, deleteUser, getUserById, getAllUsers)
 
 router = APIRouter(
@@ -31,6 +30,15 @@ def login(
         db=db,
         credential=credentials
     )
+
+@router.post("/refresh")
+def refresh_token_endpoint(request: Request):
+    token = request.cookies.get("refresh_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing refresh token")
+
+    new_access_token = refresh_access_token(token)
+    return {"access_token": new_access_token}
 
 @router.post("/forget_password")
 def forgetPassword(credentials: ForgetSchema, db: Session  = Depends(get_db)):

@@ -1,21 +1,17 @@
 import React, { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, Flame } from 'lucide-react'
-import { loginUser } from '../services/AuthServices';
-import * as z from "Zod";
+import { loginUser } from '../services/AuthServices'
+import type { UserLogin } from '../types/UserTypes'
 
 const STAGES = ['Queued', 'Sending', 'Delivered'] as const
 
-const User = z.object({
-  name : z.string(),
-});
-
-type Inputs = {
-  email: string
-  password: string
-}
+type Inputs = UserLogin // expects { email: string; password: string } — adjust if your type differs
 
 const Login = () => {
+  const navigate = useNavigate()
+
   const {
     register,
     handleSubmit,
@@ -44,11 +40,13 @@ const Login = () => {
     setError(null)
     setLoading(true)
     try {
-      // TODO: replace with real auth call
-      console.log('submitting', data)
-      await new Promise((resolve) => setTimeout(resolve, 900))
-    } catch {
-      setError('Something went wrong. Try again.')
+      // loginUser already stores access_token in localStorage (see AuthServices.ts)
+      await loginUser(data)
+      navigate('/dashboard')
+    } catch (err: any) {
+      const backendMessage =
+        err?.response?.data?.message || err?.message || 'Invalid email or password.'
+      setError(backendMessage)
     } finally {
       setLoading(false)
     }
@@ -240,8 +238,6 @@ const Login = () => {
               )}
             </button>
           </form>
-
-
         </div>
       </div>
     </div>

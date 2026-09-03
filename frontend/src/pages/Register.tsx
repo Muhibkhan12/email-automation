@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from "zod";
 import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Loader2, Flame, Check } from 'lucide-react'
+import { UserRegister } from '../services/AuthServices'
 
 const STAGES = ['Queued', 'Sending', 'Delivered'] as const
 
@@ -9,16 +13,66 @@ const PASSWORD_RULES = [
   { label: '1 uppercase letter', test: (v: string) => /[A-Z]/.test(v) },
 ]
 
+// Zod schema — mirrors the same rules the old manual checks enforced.
+const registerSchema = z
+  .object({
+    name: z.string().min(1, 'Full name is required.'),
+    email: z.string().min(1, 'Email is required.').email('Enter a valid email address.'),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters.')
+      .regex(/\d/, 'Password must include at least one number.')
+      .regex(/[A-Z]/, 'Password must include at least one uppercase letter.'),
+    confirmPassword: z.string().min(1, 'Confirm your password.'),
+    agreed: z.literal(true, {
+      errorMap: () => ({ message: 'Accept the terms to create your account.' }),
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match.',
+    path: ['confirmPassword'],
+  })
+
+type RegisterFormValues = z.infer<typeof registerSchema>
+
+// Payload type for the AuthServices call — adjust fields if your API expects more.
+interface RegisterUser {
+  username: string
+  email: string
+  password: string
+}
+
+// Shape of whatever your backend sends back on successful registration.
+// Adjust field name(s) to match your actual API response (e.g. res.message, res.msg, res.data.message).
+interface RegisterResponse {
+  message?: string
+  [key: string]: unknown
+}
+
 const Register = () => {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      agreed: false as unknown as true, // checkbox starts unchecked; zod validates on submit
+    },
+  })
+
   const [showPassword, setShowPassword] = useState(false)
-  const [agreed, setAgreed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [delivered, setDelivered] = useState(1842)
+
+  const password = watch('password', '')
 
   // Subtle live ticker in the brand panel — purely decorative
   useEffect(() => {
@@ -28,35 +82,26 @@ const Register = () => {
     return () => clearInterval(id)
   }, [])
 
-  const passwordValid = PASSWORD_RULES.every((rule) => rule.test(password))
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onSubmit = async (values: RegisterFormValues) => {
     setError(null)
-
-    if (!name || !email || !password || !confirmPassword) {
-      setError('Fill in every field to continue.')
-      return
-    }
-    if (!passwordValid) {
-      setError('Password does not meet the requirements below.')
-      return
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.')
-      return
-    }
-    if (!agreed) {
-      setError('Accept the terms to create your account.')
-      return
-    }
-
+    setSuccessMessage(null)
     setLoading(true)
     try {
-      // TODO: replace with real signup call
-      await new Promise((resolve) => setTimeout(resolve, 900))
-    } catch {
-      setError('Something went wrong. Try again.')
+      const payload: RegisterUser = {
+        username: values.name,
+        email: values.email,
+        password: values.password,
+      }
+      const res = (await UserRegister(payload)) as RegisterResponse
+      // Print/show whatever message the backend returned.
+      // If UserRegister's actual response shape differs (e.g. res.data.message), adjust here.
+      console.log('Register response:', res)
+      setSuccessMessage(res?.message ?? 'Account created successfully.')
+    } catch (err: any) {
+      // Also try to surface a backend-provided error message if present.
+      const backendMessage =
+        err?.response?.data?.message || err?.message || 'Something went wrong. Try again.'
+      setError(backendMessage)
     } finally {
       setLoading(false)
     }
@@ -148,7 +193,16 @@ const Register = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} noValidate className="space-y-5">
+          {successMessage && (
+            <p
+              role="status"
+              className="text-xs text-[#7FD98A] bg-[#7FD98A]/10 border border-[#7FD98A]/30 rounded-lg px-3 py-2 mb-5"
+            >
+              {successMessage}
+            </p>
+          )}
+
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
             <div>
               <label
                 htmlFor="name"
@@ -162,12 +216,14 @@ const Register = () => {
                   id="name"
                   type="text"
                   autoComplete="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
                   placeholder="Jane Cooper"
+                  {...register('name')}
                   className="w-full bg-[#171A21] border border-[#2A2E37] rounded-lg pl-10 pr-3.5 py-2.5 text-sm text-[#E8E6E1] placeholder-[#5B5D64] outline-none transition-colors focus:border-[#FF6A39] focus:ring-1 focus:ring-[#FF6A39]/40"
                 />
               </div>
+              {errors.name && (
+                <p className="text-xs text-[#FF6A39] mt-1.5">{errors.name.message}</p>
+              )}
             </div>
 
             <div>
@@ -183,12 +239,14 @@ const Register = () => {
                   id="email"
                   type="email"
                   autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@company.com"
+                  {...register('email')}
                   className="w-full bg-[#171A21] border border-[#2A2E37] rounded-lg pl-10 pr-3.5 py-2.5 text-sm text-[#E8E6E1] placeholder-[#5B5D64] outline-none transition-colors focus:border-[#FF6A39] focus:ring-1 focus:ring-[#FF6A39]/40"
                 />
               </div>
+              {errors.email && (
+                <p className="text-xs text-[#FF6A39] mt-1.5">{errors.email.message}</p>
+              )}
             </div>
 
             <div>
@@ -204,9 +262,8 @@ const Register = () => {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  {...register('password')}
                   className="w-full bg-[#171A21] border border-[#2A2E37] rounded-lg pl-10 pr-10 py-2.5 text-sm text-[#E8E6E1] placeholder-[#5B5D64] outline-none transition-colors focus:border-[#FF6A39] focus:ring-1 focus:ring-[#FF6A39]/40"
                 />
                 <button
@@ -241,6 +298,9 @@ const Register = () => {
                   })}
                 </div>
               )}
+              {errors.password && (
+                <p className="text-xs text-[#FF6A39] mt-1.5">{errors.password.message}</p>
+              )}
             </div>
 
             <div>
@@ -256,19 +316,20 @@ const Register = () => {
                   id="confirmPassword"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
+                  {...register('confirmPassword')}
                   className="w-full bg-[#171A21] border border-[#2A2E37] rounded-lg pl-10 pr-3.5 py-2.5 text-sm text-[#E8E6E1] placeholder-[#5B5D64] outline-none transition-colors focus:border-[#FF6A39] focus:ring-1 focus:ring-[#FF6A39]/40"
                 />
               </div>
+              {errors.confirmPassword && (
+                <p className="text-xs text-[#FF6A39] mt-1.5">{errors.confirmPassword.message}</p>
+              )}
             </div>
 
             <label className="flex items-start gap-2 cursor-pointer select-none">
               <input
                 type="checkbox"
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
+                {...register('agreed')}
                 className="w-3.5 h-3.5 mt-0.5 rounded border-[#2A2E37] bg-[#171A21] accent-[#FF6A39]"
               />
               <span className="text-xs text-[#8B8D94]">
@@ -282,6 +343,9 @@ const Register = () => {
                 </a>
               </span>
             </label>
+            {errors.agreed && (
+              <p className="text-xs text-[#FF6A39] -mt-3">{errors.agreed.message as string}</p>
+            )}
 
             {error && (
               <p

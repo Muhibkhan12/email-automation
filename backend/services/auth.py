@@ -79,3 +79,11 @@ def verify_refresh_token(token : str):
                   status_code=status.HTTP_401_UNAUTHORIZED,
                   detail="Invalid Refresh Token or Expired"
             )
+
+def refresh_access_token(refresh_token: str) -> str:
+    payload = verify_refresh_token(refresh_token)
+
+    # strip reserved claims so we don't leak old exp/type into the new token
+    data = {k: v for k, v in payload.items() if k not in ("exp", "type")}
+
+    return create_access_token(data)
