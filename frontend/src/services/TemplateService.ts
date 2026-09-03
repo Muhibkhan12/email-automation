@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { HtmlTemplates,htmlTemplateId,updateHtmlTemplates, } from '../types/HtmlTemplatesTypes';
+import type { HtmlTemplates,updateHtmlTemplates, } from '../types/HtmlTemplatesTypes';
 
 export const getHTMLTemplates = async(): Promise<HtmlTemplates[]> => {
     const response = await axios.get("/html_tempaltes");
