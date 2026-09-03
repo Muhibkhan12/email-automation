@@ -14,6 +14,8 @@ import {
   UploadCloud,
   Users,
   ChevronRight,
+  Menu,
+  X,
 } from 'lucide-react'
 
 const COLOR = {
@@ -65,7 +67,16 @@ const navGroups = [
   },
 ]
 
-const NavItem = ({ path, name, icon: Icon }: { path: string; name: string; icon: React.ElementType }) => {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+const NavItem = ({ path, name, icon: Icon, onClose }: { 
+  path: string; 
+  name: string; 
+  icon: React.ElementType;
+  onClose?: () => void;
+}) => {
   const [hovered, setHovered] = useState(false)
 
   return (
@@ -74,12 +85,13 @@ const NavItem = ({ path, name, icon: Icon }: { path: string; name: string; icon:
       end
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative flex items-center gap-3 pl-3 pr-2.5 py-2.5 rounded-lg text-[13.5px] font-medium transition-all duration-150"
+      onClick={onClose}
+      className="relative flex items-center gap-2 md:gap-3 pl-2 md:pl-3 pr-2 md:pr-2.5 py-2 md:py-2.5 rounded-lg text-[12px] md:text-[13.5px] font-medium transition-all duration-150"
     >
       {({ isActive }: { isActive: boolean }) => (
         <>
           <span
-            className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full transition-opacity"
+            className="absolute left-0 top-1/2 -translate-y-1/2 h-4 md:h-5 w-[2px] md:w-[3px] rounded-full transition-opacity"
             style={{ background: COLOR.primary, opacity: isActive ? 1 : 0 }}
           />
           <span
@@ -87,9 +99,9 @@ const NavItem = ({ path, name, icon: Icon }: { path: string; name: string; icon:
             style={{ background: isActive ? COLOR.primarySoft : hovered ? COLOR.surfaceHover : 'transparent' }}
           />
           <Icon
-            size={17}
+            size={15}
+            className="md:w-[17px] md:h-[17px] relative shrink-0"
             strokeWidth={2}
-            className="relative"
             style={{ color: isActive ? COLOR.primary : hovered ? COLOR.textBody : COLOR.textMuted }}
           />
           <span
@@ -98,43 +110,49 @@ const NavItem = ({ path, name, icon: Icon }: { path: string; name: string; icon:
           >
             {name}
           </span>
-          {isActive && <ChevronRight size={14} className="relative shrink-0" style={{ color: COLOR.primary }} />}
+          {isActive && <ChevronRight size={12} className="md:w-[14px] md:h-[14px] relative shrink-0" style={{ color: COLOR.primary }} />}
         </>
       )}
     </NavLink>
   )
 }
 
-const Sidebar = () => {
+const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
   return (
-    <div className="w-64 h-screen flex flex-col" style={{ background: COLOR.panel, borderRight: `1px solid ${COLOR.border}` }}>
-      <style>{`
-        .mf-footer:hover { background: ${COLOR.surfaceHover}; }
-      `}</style>
-
+    <>
       {/* Brand */}
-      <div className="flex items-center gap-2.5 px-5 h-16 shrink-0" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
+      <div className="flex items-center gap-2 md:gap-2.5 px-3 md:px-5 h-14 md:h-16 shrink-0 border-b border-[#2A2E37]">
         <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center"
+          className="w-7 h-7 md:w-8 md:h-8 rounded-lg flex items-center justify-center shrink-0"
           style={{ background: `linear-gradient(135deg, ${COLOR.primary}, #FFC24B)` }}
         >
-          <span className="text-sm font-bold" style={{ color: COLOR.bg }}>M</span>
+          <span className="text-xs md:text-sm font-bold" style={{ color: COLOR.bg }}>M</span>
         </div>
-        <span className="font-semibold text-[15px] tracking-tight" style={{ color: COLOR.dark }}>
+        <span className="font-semibold text-[13px] md:text-[15px] tracking-tight truncate" style={{ color: COLOR.dark }}>
           Outwerk Solutions
         </span>
+        
+        {/* Mobile Close Button */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="lg:hidden ml-auto p-1.5 rounded-lg hover:bg-[#1B1E24] transition-colors text-[#C7C9CE]"
+          >
+            <X size={18} />
+          </button>
+        )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 py-5 space-y-5">
+      <nav className="flex-1 overflow-y-auto px-2 md:px-3 py-3 md:py-5 space-y-4 md:space-y-5">
         {navGroups.map((group) => (
           <div key={group.label}>
-            <p className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-wider" style={{ color: COLOR.textMuted }}>
+            <p className="px-2 md:px-3 mb-1.5 md:mb-2 text-[9px] md:text-[11px] font-semibold uppercase tracking-wider" style={{ color: COLOR.textMuted }}>
               {group.label}
             </p>
             <div className="space-y-0.5">
               {group.items.map((item) => (
-                <NavItem key={item.path} {...item} />
+                <NavItem key={item.path} {...item} onClose={onClose} />
               ))}
             </div>
           </div>
@@ -142,19 +160,126 @@ const Sidebar = () => {
       </nav>
 
       {/* Footer / account */}
-      <div className="px-3 py-4 shrink-0" style={{ borderTop: `1px solid ${COLOR.border}` }}>
-        <div className="mf-footer flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: COLOR.primarySoft }}>
-            <span className="text-xs font-semibold" style={{ color: COLOR.primary }}>AK</span>
+      <div className="px-2 md:px-3 py-3 md:py-4 shrink-0 border-t border-[#2A2E37]">
+        <div className="mf-footer flex items-center gap-2 md:gap-3 px-2 md:px-3 py-2 md:py-2.5 rounded-lg cursor-pointer transition-colors">
+          <div className="w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: COLOR.primarySoft }}>
+            <span className="text-[10px] md:text-xs font-semibold" style={{ color: COLOR.primary }}>AK</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium truncate" style={{ color: COLOR.dark }}>Admin</p>
-            <p className="text-[11.5px] truncate" style={{ color: COLOR.textMuted }}>admin@mailpanel.com</p>
+            <p className="text-[11px] md:text-[13px] font-medium truncate" style={{ color: COLOR.dark }}>Admin</p>
+            <p className="text-[9px] md:text-[11.5px] truncate" style={{ color: COLOR.textMuted }}>admin@mailpanel.com</p>
           </div>
         </div>
       </div>
+    </>
+  )
+}
+
+const Sidebar = ({ onClose }: SidebarProps) => {
+  // If onClose is provided, this is being used as a mobile slide-out
+  // Otherwise, it's the desktop sidebar
+  const isMobile = !!onClose;
+
+  return (
+    <div 
+      className={`
+        w-64 md:w-64 h-screen flex flex-col bg-[#12151B] border-r border-[#2A2E37]
+        ${isMobile ? 'w-72' : 'w-64'}
+      `}
+    >
+      <style>{`
+        .mf-footer:hover { background: ${COLOR.surfaceHover}; }
+        .mf-sidebar-scroll::-webkit-scrollbar { width: 4px; }
+        .mf-sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+        .mf-sidebar-scroll::-webkit-scrollbar-thumb { background: ${COLOR.border}; border-radius: 3px; }
+        .mf-sidebar-scroll::-webkit-scrollbar-thumb:hover { background: ${COLOR.borderHover || '#3A3F4A'}; }
+      `}</style>
+
+      <SidebarContent onClose={onClose} />
     </div>
   )
 }
 
+// Mobile Hamburger Button Component
+export const MobileMenuButton = ({ onClick }: { onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
+    aria-label="Toggle menu"
+  >
+    <Menu size={20} />
+  </button>
+)
+
+// Mobile Overlay Component
+export const MobileOverlay = ({ onClick }: { onClick: () => void }) => (
+  <div
+    className="lg:hidden fixed inset-0 z-40 bg-black/70 animate-fadeIn"
+    onClick={onClick}
+    style={{
+      animation: 'fadeIn 0.2s ease-in-out'
+    }}
+  />
+)
+
+// Mobile Sidebar Wrapper with Slide Animation
+export const MobileSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  if (!isOpen) return null;
+
+  return (
+    <>
+      <MobileOverlay onClick={onClose} />
+      <div
+        className="fixed top-0 left-0 z-50 h-screen animate-slideIn lg:hidden"
+        style={{
+          animation: 'slideIn 0.25s ease-out'
+        }}
+      >
+        <Sidebar onClose={onClose} />
+      </div>
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideIn {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .animate-fadeIn, .animate-slideIn {
+            animation: none !important;
+          }
+        }
+      `}</style>
+    </>
+  )
+}
+
+// Main Sidebar export with mobile support
+const SidebarWithMobile = () => {
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  return (
+    <>
+      {/* Desktop Sidebar - always visible on large screens */}
+      <div className="hidden lg:block h-screen sticky top-0 flex-shrink-0">
+        <Sidebar />
+      </div>
+
+      {/* Mobile Menu Button - visible on small screens */}
+      <div className="lg:hidden sticky top-0 z-30 bg-[#12151B] border-b border-[#2A2E37] p-3 flex items-center gap-3">
+        <MobileMenuButton onClick={() => setIsMobileOpen(true)} />
+        <span className="font-semibold text-[15px] text-[#E8E6E1]">Outwerk Solutions</span>
+      </div>
+
+      {/* Mobile Sidebar - slide in */}
+      <MobileSidebar isOpen={isMobileOpen} onClose={() => setIsMobileOpen(false)} />
+    </>
+  )
+}
+
+// For backward compatibility, export the Sidebar component
+// Users can either use <Sidebar /> or <SidebarWithMobile />
 export default Sidebar
+export { SidebarWithMobile }

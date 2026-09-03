@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import Sidebar from "./Sidebar";
+import Sidebar, { MobileMenuButton, MobileSidebar } from "./Sidebar";
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   MailOpen,
   Clock3,
+  Menu,
 } from "lucide-react";
 import {
   AreaChart,
@@ -171,6 +172,7 @@ const RANGES = ["7 days", "30 days", "90 days", "This year"];
 
 const Analytics = () => {
   const [range, setRange] = useState(RANGES[0]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="flex min-h-screen" style={{ background: COLOR.bg, fontFamily: FONT.body }}>
@@ -222,89 +224,66 @@ const Analytics = () => {
           background: ${COLOR.borderHover};
         }
 
-        /* Mobile responsiveness */
-        @media (max-width: 1024px) {
-          .mf-stats-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
+        .sidebar-overlay {
+          animation: fadeIn 0.2s ease-in-out;
         }
-
-        @media (max-width: 640px) {
-          .mf-stats-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .mf-pipeline-container {
-            flex-direction: column !important;
-            align-items: stretch !important;
-            gap: 1rem !important;
-          }
-          .mf-pipeline-item {
-            width: 100% !important;
-            flex-direction: row !important;
-            justify-content: space-between !important;
-            align-items: center !important;
-          }
-          .mf-pipeline-connector {
-            display: none !important;
-          }
-          .mf-header {
-            flex-direction: column !important;
-            align-items: stretch !important;
-          }
-          .mf-range-selector {
-            width: 100% !important;
-            justify-content: center !important;
-            flex-wrap: wrap !important;
-          }
-          .mf-range-btn {
-            font-size: 0.75rem !important;
-            padding: 0.5rem 0.75rem !important;
-          }
-          .mf-bottom-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .mf-activity-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .mf-pipeline-stage {
-            width: 100% !important;
-          }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
-
-        @media (max-width: 768px) {
-          .mf-range-selector {
-            gap: 0.25rem !important;
-          }
-          .mf-range-btn {
-            padding: 0.4rem 0.6rem !important;
-            font-size: 0.7rem !important;
-          }
+        .sidebar-slide {
+          animation: slideIn 0.25s ease-out;
+        }
+        @keyframes slideIn {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
         }
       `}</style>
 
-      {/* Sidebar - sticky on all screen sizes */}
-      <div className="sticky top-0 h-screen flex-shrink-0">
-        <Sidebar />
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        sidebar-slide
+      `}>
+        <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Main content with scrolling */}
-      <main className="mf-main-content flex-1 overflow-y-auto p-4 md:p-6 lg:p-8" style={{ height: "100vh" }}>
+      <main className="mf-main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8" style={{ height: "100vh", width: "100%" }}>
         {/* Header */}
-        <div className="mf-header mb-6 md:mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1
-              style={{ fontFamily: FONT.display, letterSpacing: "-0.01em", color: COLOR.dark }}
-              className="text-2xl md:text-3xl font-bold"
+        <div className="mf-header mb-5 md:mb-6 lg:mb-8 flex flex-wrap items-center justify-between gap-3 md:gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
             >
-              Analytics
-            </h1>
-            <p className="mt-1 text-xs md:text-sm" style={{ color: COLOR.textMuted }}>
-              Track deliverability and engagement across every send.
-            </p>
+              <Menu size={20} />
+            </button>
+            <div>
+              <h1
+                style={{ fontFamily: FONT.display, letterSpacing: "-0.01em", color: COLOR.dark }}
+                className="text-xl md:text-2xl lg:text-3xl font-bold"
+              >
+                Analytics
+              </h1>
+              <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm" style={{ color: COLOR.textMuted }}>
+                Track deliverability and engagement across every send.
+              </p>
+            </div>
           </div>
 
           <div
-            className="mf-range-selector flex flex-wrap items-center gap-1 rounded-xl p-1"
+            className="mf-range-selector flex flex-wrap items-center gap-0.5 md:gap-1 rounded-xl p-1 w-full sm:w-auto"
             style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}
           >
             {RANGES.map((r) => {
@@ -313,7 +292,7 @@ const Analytics = () => {
                 <button
                   key={r}
                   onClick={() => setRange(r)}
-                  className="mf-range-btn rounded-lg px-2 md:px-3 py-1.5 text-xs md:text-sm font-medium transition-colors whitespace-nowrap"
+                  className="mf-range-btn rounded-lg px-1.5 md:px-2 lg:px-3 py-1 md:py-1.5 text-[9px] md:text-xs lg:text-sm font-medium transition-colors whitespace-nowrap flex-1 sm:flex-none"
                   style={{
                     fontFamily: FONT.body,
                     background: active ? COLOR.primary : "transparent",
@@ -327,46 +306,46 @@ const Analytics = () => {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="mf-stats-grid mb-6 grid grid-cols-1 gap-4 md:gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Stats - Responsive Grid */}
+        <div className="mf-stats-grid mb-5 md:mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (
               <div
                 key={stat.title}
-                className="mf-card rounded-xl p-4 md:p-5"
+                className="mf-card rounded-xl p-3 md:p-4 lg:p-5"
                 style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}
               >
                 <div className="flex items-center justify-between">
                   <div
-                    className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-lg"
+                    className="flex h-7 w-7 md:h-8 md:w-8 lg:h-9 lg:w-9 items-center justify-center rounded-lg"
                     style={{ background: stat.accentSoft }}
                   >
-                    <Icon size={14} style={{ color: stat.accent }} />
+                    <Icon size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" style={{ color: stat.accent }} />
                   </div>
                   <span
-                    className="flex items-center gap-0.5 rounded-full px-1.5 md:px-2 py-0.5 text-[10px] md:text-xs font-semibold"
+                    className="flex items-center gap-0.5 rounded-full px-1.5 md:px-2 py-0.5 text-[8px] md:text-[9px] lg:text-xs font-semibold"
                     style={{
                       fontFamily: FONT.mono,
                       color: stat.trend === "up" ? COLOR.success : COLOR.danger,
                       background: stat.trend === "up" ? COLOR.successSoft : COLOR.dangerSoft,
                     }}
                   >
-                    {stat.trend === "up" ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                    {stat.trend === "up" ? <ArrowUpRight size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" /> : <ArrowDownRight size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />}
                     {stat.change}
                   </span>
                 </div>
 
                 <h2
                   style={{ fontFamily: FONT.mono, color: COLOR.dark }}
-                  className="mt-3 md:mt-4 text-xl md:text-2xl font-semibold tracking-tight"
+                  className="mt-2 md:mt-3 lg:mt-4 text-lg md:text-xl lg:text-2xl font-semibold tracking-tight"
                 >
                   {stat.value}
                 </h2>
-                <p className="mt-1 text-xs md:text-sm" style={{ color: COLOR.textBody }}>
+                <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm" style={{ color: COLOR.textBody }}>
                   {stat.title}
                 </p>
-                <p className="mt-1.5 md:mt-2 text-[10px] md:text-xs" style={{ color: COLOR.textMuted }}>
+                <p className="mt-1 md:mt-1.5 lg:mt-2 text-[8px] md:text-[9px] lg:text-xs" style={{ color: COLOR.textMuted }}>
                   {stat.description}
                 </p>
               </div>
@@ -375,26 +354,26 @@ const Analytics = () => {
         </div>
 
         {/* Signature: delivery pipeline */}
-        <div className="mf-card mb-6 md:mb-8 rounded-xl p-4 md:p-6" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-          <div className="mb-4 md:mb-6 flex flex-wrap items-center justify-between gap-2">
+        <div className="mf-card mb-5 md:mb-6 lg:mb-8 rounded-xl p-3 md:p-4 lg:p-6" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+          <div className="mb-3 md:mb-4 lg:mb-6 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-base md:text-lg font-semibold">
+              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-sm md:text-base lg:text-lg font-semibold">
                 Delivery pipeline
               </h2>
-              <p className="mt-1 text-xs md:text-sm" style={{ color: COLOR.textMuted }}>
+              <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm" style={{ color: COLOR.textMuted }}>
                 Where this period's sends are right now, stage by stage.
               </p>
             </div>
             <span
-              className="flex items-center gap-1.5 rounded-full px-2 md:px-3 py-1 text-[10px] md:text-xs font-medium whitespace-nowrap"
+              className="flex items-center gap-1 md:gap-1.5 rounded-full px-1.5 md:px-2 lg:px-3 py-0.5 md:py-1 text-[8px] md:text-[9px] lg:text-xs font-medium whitespace-nowrap"
               style={{ fontFamily: FONT.mono, color: COLOR.primary, background: COLOR.primarySoft }}
             >
-              <Clock3 size={12} />
+              <Clock3 size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />
               live
             </span>
           </div>
 
-          <div className="mf-pipeline-container flex flex-wrap items-start gap-4 md:gap-2">
+          <div className="mf-pipeline-container flex flex-wrap items-start gap-3 md:gap-4 lg:gap-2">
             {pipeline.map((stage, i) => {
               const Icon = stage.icon;
               const pctOfSent = i === 0 ? 100 : Math.round((stage.value / pipeline[0].value) * 100);
@@ -403,32 +382,32 @@ const Analytics = () => {
 
               return (
                 <React.Fragment key={stage.label}>
-                  <div className="mf-pipeline-stage flex-1 min-w-[80px] md:min-w-[100px] flex flex-col items-center text-center">
+                  <div className="mf-pipeline-stage flex-1 min-w-[60px] md:min-w-[80px] lg:min-w-[100px] flex flex-col items-center text-center">
                     <div
-                      className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full"
+                      className="flex h-8 w-8 md:h-10 md:w-10 lg:h-12 lg:w-12 items-center justify-center rounded-full"
                       style={{ background: COLOR.primarySoft, border: `1px solid ${COLOR.primary}30` }}
                     >
-                      <Icon size={16} style={{ color: COLOR.primary }} />
+                      <Icon size={13} className="md:w-[14px] md:h-[14px] lg:w-[16px] lg:h-[16px]" style={{ color: COLOR.primary }} />
                     </div>
                     <p
                       style={{ fontFamily: FONT.mono, color: COLOR.dark }}
-                      className="mt-2 md:mt-3 text-base md:text-lg font-semibold"
+                      className="mt-1.5 md:mt-2 lg:mt-3 text-sm md:text-base lg:text-lg font-semibold"
                     >
                       {stage.value.toLocaleString()}
                     </p>
-                    <p className="text-[10px] md:text-xs" style={{ color: COLOR.textBody }}>
+                    <p className="text-[8px] md:text-[9px] lg:text-xs" style={{ color: COLOR.textBody }}>
                       {stage.label}
                     </p>
                     <p
                       style={{ fontFamily: FONT.mono, color: dropFromPrev ? COLOR.danger : COLOR.textMuted }}
-                      className="mt-0.5 md:mt-1 text-[9px] md:text-[11px]"
+                      className="mt-0.5 md:mt-1 text-[7px] md:text-[8px] lg:text-[11px]"
                     >
                       {dropFromPrev === null ? `${pctOfSent}% of sent` : `-${dropFromPrev}% drop-off`}
                     </p>
                   </div>
 
                   {i < pipeline.length - 1 && (
-                    <div className="mf-pipeline-connector mf-flow-track flex-1 min-w-[20px] mt-6 md:mt-8">
+                    <div className="mf-pipeline-connector mf-flow-track flex-1 min-w-[15px] md:min-w-[20px] mt-5 md:mt-6 lg:mt-8">
                       <span className="mf-flow-dot" style={{ animationDelay: "0s" }} />
                       <span className="mf-flow-dot" style={{ animationDelay: "0.9s" }} />
                       <span className="mf-flow-dot" style={{ animationDelay: "1.8s" }} />
@@ -441,17 +420,17 @@ const Analytics = () => {
         </div>
 
         {/* Main analytics */}
-        <div className="mf-activity-grid mb-6 md:mb-8 grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-3">
+        <div className="mf-activity-grid mb-5 md:mb-6 lg:mb-8 grid grid-cols-1 gap-3 md:gap-4 lg:gap-6 lg:grid-cols-3">
           {/* Activity */}
-          <div className="mf-card rounded-xl p-4 md:p-6 lg:col-span-2" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-            <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-base md:text-lg font-semibold">
+          <div className="mf-card rounded-xl p-3 md:p-4 lg:p-6 lg:col-span-2" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+            <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-sm md:text-base lg:text-lg font-semibold">
               Email activity
             </h2>
-            <p className="mt-1 text-xs md:text-sm" style={{ color: COLOR.textMuted }}>
+            <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm" style={{ color: COLOR.textMuted }}>
               Emails sent and opened over time.
             </p>
 
-            <div style={{ height: 220 }} className="mt-4 md:mt-6">
+            <div style={{ height: 180 }} className="md:h-[200px] lg:h-[220px] mt-3 md:mt-4 lg:mt-6">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={activity} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                   <defs>
@@ -467,12 +446,12 @@ const Analytics = () => {
                   <CartesianGrid stroke={COLOR.border} vertical={false} />
                   <XAxis
                     dataKey="day"
-                    tick={{ fontSize: 10, fill: COLOR.textMuted, fontFamily: FONT.mono }}
+                    tick={{ fontSize: 9, fill: COLOR.textMuted, fontFamily: FONT.mono }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fontSize: 10, fill: COLOR.textMuted, fontFamily: FONT.mono }}
+                    tick={{ fontSize: 9, fill: COLOR.textMuted, fontFamily: FONT.mono }}
                     axisLine={false}
                     tickLine={false}
                   />
@@ -482,16 +461,17 @@ const Analytics = () => {
                       border: `1px solid ${COLOR.border}`,
                       background: COLOR.surface,
                       fontFamily: FONT.mono,
-                      fontSize: 12,
+                      fontSize: 11,
                       color: COLOR.dark,
                     }}
                   />
                   <Legend
                     verticalAlign="top"
                     align="right"
-                    height={25}
+                    height={20}
+                    wrapperStyle={{ fontSize: 10 }}
                     formatter={(v) => (
-                      <span style={{ fontFamily: FONT.body, fontSize: 11, color: COLOR.textBody }}>{v}</span>
+                      <span style={{ fontFamily: FONT.body, fontSize: 10, color: COLOR.textBody }}>{v}</span>
                     )}
                   />
                   <Area type="monotone" dataKey="sent" name="Sent" stroke={COLOR.dark} strokeWidth={2} fill="url(#fillSentA)" />
@@ -509,15 +489,15 @@ const Analytics = () => {
           </div>
 
           {/* Engagement */}
-          <div className="mf-card rounded-xl p-4 md:p-6" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-            <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-base md:text-lg font-semibold">
+          <div className="mf-card rounded-xl p-3 md:p-4 lg:p-6" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+            <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-sm md:text-base lg:text-lg font-semibold">
               Engagement
             </h2>
-            <p className="mt-1 text-xs md:text-sm" style={{ color: COLOR.textMuted }}>
+            <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm" style={{ color: COLOR.textMuted }}>
               Overall recipient engagement.
             </p>
 
-            <div className="mt-6 md:mt-8 space-y-4 md:space-y-6">
+            <div className="mt-4 md:mt-6 lg:mt-8 space-y-3 md:space-y-4 lg:space-y-6">
               <Metric label="Open rate" value="42.7%" width="43%" color={COLOR.primary} />
               <Metric label="Click rate" value="8.9%" width="9%" color={COLOR.success} />
               <Metric label="Bounce rate" value="1.6%" width="2%" color={COLOR.warning} />
@@ -527,14 +507,14 @@ const Analytics = () => {
         </div>
 
         {/* Bottom */}
-        <div className="mf-bottom-grid grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-2">
+        <div className="mf-bottom-grid grid grid-cols-1 gap-3 md:gap-4 lg:gap-6 lg:grid-cols-2">
           {/* Campaigns */}
           <section className="mf-card rounded-xl" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-            <div className="p-4 md:p-6" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
-              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-base md:text-lg font-semibold">
+            <div className="p-3 md:p-4 lg:p-6" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
+              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-sm md:text-base lg:text-lg font-semibold">
                 Top campaigns
               </h2>
-              <p className="text-xs md:text-sm" style={{ color: COLOR.textMuted }}>
+              <p className="text-[10px] md:text-xs lg:text-sm" style={{ color: COLOR.textMuted }}>
                 Campaigns with the highest engagement.
               </p>
             </div>
@@ -543,18 +523,18 @@ const Analytics = () => {
               {campaigns.map((campaign, i) => (
                 <div
                   key={campaign.name}
-                  className="flex items-center justify-between p-4 md:p-5"
+                  className="flex items-center justify-between p-3 md:p-4 lg:p-5"
                   style={{ borderBottom: i < campaigns.length - 1 ? `1px solid ${COLOR.border}` : "none" }}
                 >
                   <div className="min-w-0 flex-1 mr-2">
-                    <p className="text-sm md:text-base font-medium truncate" style={{ color: COLOR.dark }}>
+                    <p className="text-[11px] md:text-sm lg:text-base font-medium truncate" style={{ color: COLOR.dark }}>
                       {campaign.name}
                     </p>
-                    <p style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-xs md:text-sm">
+                    <p style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[9px] md:text-xs lg:text-sm">
                       {campaign.recipients.toLocaleString()} recipients
                     </p>
                   </div>
-                  <span style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="font-semibold text-sm md:text-base whitespace-nowrap">
+                  <span style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="font-semibold text-[11px] md:text-sm lg:text-base whitespace-nowrap">
                     {campaign.openRate}
                   </span>
                 </div>
@@ -564,11 +544,11 @@ const Analytics = () => {
 
           {/* Senders */}
           <section className="mf-card rounded-xl" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-            <div className="p-4 md:p-6" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
-              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-base md:text-lg font-semibold">
+            <div className="p-3 md:p-4 lg:p-6" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
+              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-sm md:text-base lg:text-lg font-semibold">
                 Sender performance
               </h2>
-              <p className="text-xs md:text-sm" style={{ color: COLOR.textMuted }}>
+              <p className="text-[10px] md:text-xs lg:text-sm" style={{ color: COLOR.textMuted }}>
                 Performance of your sender accounts.
               </p>
             </div>
@@ -577,14 +557,14 @@ const Analytics = () => {
               {senders.map((sender, i) => (
                 <div
                   key={sender.email}
-                  className="flex items-center justify-between p-4 md:p-5"
+                  className="flex items-center justify-between p-3 md:p-4 lg:p-5"
                   style={{ borderBottom: i < senders.length - 1 ? `1px solid ${COLOR.border}` : "none" }}
                 >
                   <div className="min-w-0 flex-1 mr-2">
-                    <p className="text-sm md:text-base font-medium truncate" style={{ color: COLOR.dark }}>
+                    <p className="text-[10px] md:text-sm lg:text-base font-medium truncate" style={{ color: COLOR.dark }}>
                       {sender.email}
                     </p>
-                    <p style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-xs md:text-sm">
+                    <p style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[8px] md:text-xs lg:text-sm">
                       {sender.sent.toLocaleString()} emails sent
                     </p>
                   </div>
@@ -612,16 +592,16 @@ interface MetricProps {
 
 const Metric = ({ label, value, width, color }: MetricProps) => (
   <div>
-    <div className="mb-1.5 md:mb-2 flex justify-between">
-      <span className="text-xs md:text-sm" style={{ color: COLOR.textBody }}>
+    <div className="mb-1 md:mb-1.5 lg:mb-2 flex justify-between">
+      <span className="text-[10px] md:text-xs lg:text-sm" style={{ color: COLOR.textBody }}>
         {label}
       </span>
-      <span style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="text-xs md:text-sm font-medium">
+      <span style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="text-[10px] md:text-xs lg:text-sm font-medium">
         {value}
       </span>
     </div>
-    <div className="h-1.5 md:h-2 rounded-full" style={{ background: COLOR.bg }}>
-      <div className="h-1.5 md:h-2 rounded-full transition-all" style={{ width, background: color }} />
+    <div className="h-1 md:h-1.5 lg:h-2 rounded-full" style={{ background: COLOR.bg }}>
+      <div className="h-1 md:h-1.5 lg:h-2 rounded-full transition-all" style={{ width, background: color }} />
     </div>
   </div>
 );
@@ -640,10 +620,11 @@ const StatusBadge = ({ status }: StatusBadgeProps) => {
 
   return (
     <span
-      className="rounded-full px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs font-medium whitespace-nowrap"
+      className="rounded-full px-1.5 md:px-2 lg:px-3 py-0.5 md:py-1 text-[8px] md:text-[9px] lg:text-xs font-medium whitespace-nowrap"
       style={{ background: s.bg, color: s.text }}
     >
-      {status}
+      <span className="hidden xs:inline">{status}</span>
+      <span className="xs:hidden">{status.charAt(0)}</span>
     </span>
   );
 };

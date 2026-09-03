@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import Sidebar from './Sidebar'
+import { useMemo, useState } from 'react'
+import Sidebar, { MobileMenuButton, MobileSidebar } from './Sidebar'
 import {
   Mail,
   Send,
@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   ShieldAlert,
   ShieldX,
+  Menu,
 } from 'lucide-react'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -116,82 +117,135 @@ const pulseDotColor = { success: COLOR.success, pending: COLOR.warning, failed: 
 
 // ---- Component -----------------------------------------------------
 const Dashboard = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const engagementTotal = useMemo(() => engagement.reduce((s, e) => s + e.value, 0), [])
 
   return (
     <div className="h-screen w-full flex overflow-hidden" style={{ fontFamily: FONT.body, background: COLOR.bg }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        
         .mf-card { transition: border-color 0.15s ease; }
         .mf-card:hover { border-color: ${COLOR.borderHover}; }
         .mf-row:hover { background-color: ${COLOR.surfaceHover}; }
         .mf-link:hover { color: #FF7F52; }
         .pulse-dot { animation: pulse-fade 1.8s ease-in-out infinite; }
+        
         @keyframes pulse-fade { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        
+        .sidebar-overlay {
+          animation: fadeIn 0.2s ease-in-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .sidebar-slide {
+          animation: slideIn 0.25s ease-out;
+        }
+        @keyframes slideIn {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(0); }
+        }
+        
+        @media (max-width: 640px) {
+          .stats-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+        @media (max-width: 480px) {
+          .stats-grid {
+            grid-template-columns: 1fr;
+          }
+        }
       `}</style>
 
-      <Sidebar />
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={`
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        sidebar-slide
+      `}>
+        <Sidebar onClose={() => setSidebarOpen(false)} />
+      </div>
 
       <main className="flex-1 overflow-y-auto" style={{ background: COLOR.bg }}>
-        <div className="px-8 py-7 max-w-[1320px]">
+        <div className="px-3 md:px-5 lg:px-8 py-4 md:py-6 lg:py-7 max-w-[1320px] mx-auto">
           {/* Header */}
-          <div className="flex items-center justify-between mb-7">
-            <div>
-              <h1
-                style={{ fontFamily: FONT.display, letterSpacing: '-0.01em', color: COLOR.dark }}
-                className="text-[24px] font-semibold"
+          <div className="flex flex-wrap items-center justify-between gap-3 md:gap-4 mb-5 md:mb-7">
+            <div className="flex items-center gap-3 md:gap-4">
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
               >
-                Dashboard
-              </h1>
-              <p className="text-sm mt-0.5" style={{ color: COLOR.textMuted }}>Overview of your campaigns and delivery health</p>
+                <Menu size={20} />
+              </button>
+              <div>
+                <h1
+                  style={{ fontFamily: FONT.display, letterSpacing: '-0.01em', color: COLOR.dark }}
+                  className="text-xl md:text-2xl font-semibold"
+                >
+                  Dashboard
+                </h1>
+                <p className="text-[10px] md:text-sm mt-0.5" style={{ color: COLOR.textMuted }}>Overview of your campaigns and delivery health</p>
+              </div>
             </div>
             <button
-              className="flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-lg transition-colors hover:opacity-90"
+              className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-sm font-medium px-3 md:px-4 py-1.5 md:py-2.5 rounded-lg transition-colors hover:opacity-90 w-full sm:w-auto justify-center"
               style={{ background: COLOR.primary, color: COLOR.bg }}
             >
-              <Mail size={16} />
+              <Mail size={14} className="md:w-[15px] md:h-[15px] lg:w-[16px] lg:h-[16px]" />
               New Campaign
             </button>
           </div>
 
-          {/* Stat cards */}
-          <div className="grid grid-cols-4 gap-4 mb-5">
+          {/* Stat cards - Responsive Grid */}
+          <div className="stats-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-5">
             {stats.map(({ label, value, delta, trend, icon: Icon, accent, accentSoft }) => (
               <div
                 key={label}
-                className="mf-card rounded-xl p-5"
+                className="mf-card rounded-xl p-3 md:p-4 lg:p-5"
                 style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}
               >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: accentSoft }}>
-                    <Icon size={17} style={{ color: accent }} />
+                <div className="flex items-center justify-between mb-2 md:mb-3">
+                  <div className="w-7 h-7 md:w-8 md:h-8 lg:w-9 lg:h-9 rounded-lg flex items-center justify-center" style={{ background: accentSoft }}>
+                    <Icon size={14} className="md:w-[15px] md:h-[15px] lg:w-[17px] lg:h-[17px]" style={{ color: accent }} />
                   </div>
                   <span
-                    className="flex items-center gap-0.5 text-[12px] font-medium"
+                    className="flex items-center gap-0.5 text-[10px] md:text-[11px] lg:text-[12px] font-medium"
                     style={{ color: trend === 'up' ? COLOR.success : COLOR.danger }}
                   >
-                    {trend === 'up' ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+                    {trend === 'up' ? <ArrowUpRight size={11} className="md:w-[12px] md:h-[12px] lg:w-[13px] lg:h-[13px]" /> : <ArrowDownRight size={11} className="md:w-[12px] md:h-[12px] lg:w-[13px] lg:h-[13px]" />}
                     {delta}
                   </span>
                 </div>
-                <p style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="text-2xl font-semibold tracking-tight">
+                <p style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="text-lg md:text-xl lg:text-2xl font-semibold tracking-tight">
                   {value}
                 </p>
-                <p className="text-[13px] mt-1" style={{ color: COLOR.textMuted }}>{label}</p>
+                <p className="text-[11px] md:text-[12px] lg:text-[13px] mt-0.5 md:mt-1" style={{ color: COLOR.textMuted }}>{label}</p>
               </div>
             ))}
           </div>
 
           {/* Delivery trend + engagement breakdown */}
-          <div className="grid grid-cols-3 gap-5 mb-5">
-            <div className="col-span-2 mf-card rounded-xl p-5" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-              <div className="flex items-center justify-between mb-4">
-                <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[14px] font-semibold">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-5 mb-4 md:mb-5">
+            <div className="lg:col-span-2 mf-card rounded-xl p-3 md:p-4 lg:p-5" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3 md:mb-4">
+                <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[12px] md:text-[13px] lg:text-[14px] font-semibold">
                   Delivery trend — last 13 days
                 </h2>
-                <span style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[11px]">daily volume</span>
+                <span style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[9px] md:text-[10px] lg:text-[11px]">daily volume</span>
               </div>
-              <div style={{ height: 200 }}>
+              <div style={{ height: 160 }} className="md:h-[180px] lg:h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={deliveryTrend} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                     <defs>
@@ -201,24 +255,24 @@ const Dashboard = () => {
                       </linearGradient>
                     </defs>
                     <CartesianGrid stroke={COLOR.border} vertical={false} />
-                    <XAxis dataKey="day" tick={{ fontSize: 10.5, fill: COLOR.textMuted, fontFamily: FONT.mono }} axisLine={false} tickLine={false} interval={1} />
-                    <YAxis tick={{ fontSize: 10.5, fill: COLOR.textMuted, fontFamily: FONT.mono }} axisLine={false} tickLine={false} />
-                    <Tooltip contentStyle={{ borderRadius: 8, border: `1px solid ${COLOR.border}`, background: COLOR.surface, fontFamily: FONT.mono, fontSize: 12, color: COLOR.dark }} />
+                    <XAxis dataKey="day" tick={{ fontSize: 9, fill: COLOR.textMuted, fontFamily: FONT.mono }} axisLine={false} tickLine={false} interval={1} />
+                    <YAxis tick={{ fontSize: 9, fill: COLOR.textMuted, fontFamily: FONT.mono }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ borderRadius: 8, border: `1px solid ${COLOR.border}`, background: COLOR.surface, fontFamily: FONT.mono, fontSize: 11, color: COLOR.dark }} />
                     <Area type="monotone" dataKey="sent" stroke={COLOR.primary} strokeWidth={2} fill="url(#fillSent)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            <div className="mf-card rounded-xl p-5" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[14px] font-semibold mb-4">
+            <div className="mf-card rounded-xl p-3 md:p-4 lg:p-5" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[12px] md:text-[13px] lg:text-[14px] font-semibold mb-3 md:mb-4">
                 Engagement breakdown
               </h2>
-              <div className="flex items-center gap-4">
-                <div style={{ width: 110, height: 110 }} className="shrink-0">
+              <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-4">
+                <div style={{ width: 90, height: 90 }} className="md:w-[100px] md:h-[100px] lg:w-[110px] lg:h-[110px] shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={engagement} dataKey="value" innerRadius={34} outerRadius={52} paddingAngle={2}>
+                      <Pie data={engagement} dataKey="value" innerRadius={28} outerRadius={42} paddingAngle={2}>
                         {engagement.map((e) => (
                           <Cell key={e.name} fill={e.color} stroke="none" />
                         ))}
@@ -226,11 +280,11 @@ const Dashboard = () => {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="flex-1 space-y-2">
+                <div className="flex-1 w-full space-y-1.5 md:space-y-2">
                   {engagement.map((e) => (
-                    <div key={e.name} className="flex items-center justify-between text-[12.5px]">
+                    <div key={e.name} className="flex items-center justify-between text-[11px] md:text-[12px] lg:text-[12.5px]">
                       <span className="flex items-center gap-1.5" style={{ color: COLOR.textBody }}>
-                        <span className="w-2 h-2 rounded-full" style={{ background: e.color }} />
+                        <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full" style={{ background: e.color }} />
                         {e.name}
                       </span>
                       <span style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="font-medium">
@@ -244,75 +298,77 @@ const Dashboard = () => {
           </div>
 
           {/* Recent campaigns + Queue monitor */}
-          <div className="grid grid-cols-3 gap-5 mb-5">
-            <div className="col-span-2 mf-card rounded-xl overflow-hidden" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-              <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
-                <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[14px] font-semibold">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-5 mb-4 md:mb-5">
+            <div className="lg:col-span-2 mf-card rounded-xl overflow-hidden" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+              <div className="flex flex-wrap items-center justify-between gap-2 px-3 md:px-4 lg:px-5 py-3 md:py-4" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
+                <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[12px] md:text-[13px] lg:text-[14px] font-semibold">
                   Recent Campaigns
                 </h2>
-                <button className="mf-link text-[12.5px] font-medium transition-colors" style={{ color: COLOR.primary }}>
+                <button className="mf-link text-[10px] md:text-[11px] lg:text-[12.5px] font-medium transition-colors" style={{ color: COLOR.primary }}>
                   View all
                 </button>
               </div>
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="text-[11px] uppercase tracking-wider" style={{ color: COLOR.textMuted }}>
-                    <th className="px-5 py-2.5 font-medium">Campaign</th>
-                    <th className="px-3 py-2.5 font-medium">Status</th>
-                    <th className="px-3 py-2.5 font-medium">Recipients</th>
-                    <th className="px-3 py-2.5 font-medium">Opened</th>
-                    <th className="px-5 py-2.5 font-medium text-right">Sent</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentCampaigns.map((c) => (
-                    <tr key={c.name} className="mf-row transition-colors" style={{ borderTop: `1px solid ${COLOR.border}` }}>
-                      <td className="px-5 py-3 text-[13.5px] font-medium" style={{ color: COLOR.dark }}>{c.name}</td>
-                      <td className="px-3 py-3">
-                        <span
-                          className="text-[11.5px] font-medium px-2 py-1 rounded-md"
-                          style={{ background: statusStyle[c.status].bg, color: statusStyle[c.status].fg }}
-                        >
-                          {c.status}
-                        </span>
-                      </td>
-                      <td style={{ fontFamily: FONT.mono, color: COLOR.textBody }} className="px-3 py-3 text-[13px]">{c.recipients}</td>
-                      <td style={{ fontFamily: FONT.mono, color: COLOR.textBody }} className="px-3 py-3 text-[13px]">{c.opened}</td>
-                      <td className="px-5 py-3 text-[12.5px] text-right whitespace-nowrap" style={{ color: COLOR.textMuted }}>
-                        {c.sentAt}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left min-w-[500px] md:min-w-[600px]">
+                  <thead>
+                    <tr className="text-[9px] md:text-[10px] lg:text-[11px] uppercase tracking-wider" style={{ color: COLOR.textMuted }}>
+                      <th className="px-3 md:px-4 lg:px-5 py-2 md:py-2.5 font-medium">Campaign</th>
+                      <th className="px-2 md:px-3 py-2 md:py-2.5 font-medium">Status</th>
+                      <th className="px-2 md:px-3 py-2 md:py-2.5 font-medium">Recipients</th>
+                      <th className="px-2 md:px-3 py-2 md:py-2.5 font-medium">Opened</th>
+                      <th className="px-3 md:px-4 lg:px-5 py-2 md:py-2.5 font-medium text-right">Sent</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {recentCampaigns.map((c) => (
+                      <tr key={c.name} className="mf-row transition-colors" style={{ borderTop: `1px solid ${COLOR.border}` }}>
+                        <td className="px-3 md:px-4 lg:px-5 py-2.5 md:py-3 text-[11px] md:text-[12px] lg:text-[13.5px] font-medium" style={{ color: COLOR.dark }}>{c.name}</td>
+                        <td className="px-2 md:px-3 py-2.5 md:py-3">
+                          <span
+                            className="text-[9px] md:text-[10px] lg:text-[11.5px] font-medium px-1.5 md:px-2 py-0.5 md:py-1 rounded-md"
+                            style={{ background: statusStyle[c.status].bg, color: statusStyle[c.status].fg }}
+                          >
+                            {c.status}
+                          </span>
+                        </td>
+                        <td style={{ fontFamily: FONT.mono, color: COLOR.textBody }} className="px-2 md:px-3 py-2.5 md:py-3 text-[10px] md:text-[11px] lg:text-[13px]">{c.recipients}</td>
+                        <td style={{ fontFamily: FONT.mono, color: COLOR.textBody }} className="px-2 md:px-3 py-2.5 md:py-3 text-[10px] md:text-[11px] lg:text-[13px]">{c.opened}</td>
+                        <td className="px-3 md:px-4 lg:px-5 py-2.5 md:py-3 text-[10px] md:text-[11px] lg:text-[12.5px] text-right whitespace-nowrap" style={{ color: COLOR.textMuted }}>
+                          {c.sentAt}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            <div className="mf-card rounded-xl p-5" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[14px] font-semibold mb-4">
+            <div className="mf-card rounded-xl p-3 md:p-4 lg:p-5" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[12px] md:text-[13px] lg:text-[14px] font-semibold mb-3 md:mb-4">
                 Queue Monitor
               </h2>
-              <div className="space-y-3">
+              <div className="space-y-2 md:space-y-3">
                 {queueActivity.map(({ label, value, icon: Icon, tone }) => (
                   <div
                     key={label}
-                    className="flex items-center justify-between px-3.5 py-3 rounded-lg"
+                    className="flex items-center justify-between px-2.5 md:px-3.5 py-2 md:py-3 rounded-lg"
                     style={{ background: COLOR.bg }}
                   >
-                    <div className="flex items-center gap-2.5">
-                      <Icon size={16} style={{ color: tone }} />
-                      <span className="text-[13px]" style={{ color: COLOR.textBody }}>{label}</span>
+                    <div className="flex items-center gap-2 md:gap-2.5">
+                      <Icon size={13} className="md:w-[14px] md:h-[14px] lg:w-[16px] lg:h-[16px]" style={{ color: tone }} />
+                      <span className="text-[11px] md:text-[12px] lg:text-[13px]" style={{ color: COLOR.textBody }}>{label}</span>
                     </div>
-                    <span style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="text-[13.5px] font-semibold">{value}</span>
+                    <span style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="text-[11px] md:text-[12px] lg:text-[13.5px] font-semibold">{value}</span>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${COLOR.border}` }}>
-                <div className="flex items-center justify-between text-[12.5px] mb-1.5" style={{ color: COLOR.textMuted }}>
+              <div className="mt-3 md:mt-4 lg:mt-5 pt-3 md:pt-4" style={{ borderTop: `1px solid ${COLOR.border}` }}>
+                <div className="flex items-center justify-between text-[10px] md:text-[11px] lg:text-[12.5px] mb-1 md:mb-1.5" style={{ color: COLOR.textMuted }}>
                   <span>Queue load</span>
                   <span style={{ fontFamily: FONT.mono, color: COLOR.textBody }} className="font-medium">72%</span>
                 </div>
-                <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: COLOR.bg }}>
+                <div className="h-1 md:h-1.5 w-full rounded-full overflow-hidden" style={{ background: COLOR.bg }}>
                   <div className="h-full w-[72%] rounded-full" style={{ background: COLOR.primary }} />
                 </div>
               </div>
@@ -320,43 +376,43 @@ const Dashboard = () => {
           </div>
 
           {/* Mail pulse + Sender account health */}
-          <div className="grid grid-cols-3 gap-5">
-            <div className="col-span-2 mf-card rounded-xl p-5" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-              <div className="flex items-center gap-2 mb-4">
-                <CircleDot size={14} style={{ color: COLOR.primary }} />
-                <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[14px] font-semibold">Mail pulse</h2>
-                <span style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[11px]">live</span>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4 lg:gap-5">
+            <div className="lg:col-span-2 mf-card rounded-xl p-3 md:p-4 lg:p-5" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+              <div className="flex items-center gap-1.5 md:gap-2 mb-3 md:mb-4">
+                <CircleDot size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" style={{ color: COLOR.primary }} />
+                <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[12px] md:text-[13px] lg:text-[14px] font-semibold">Mail pulse</h2>
+                <span style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[9px] md:text-[10px] lg:text-[11px]">live</span>
               </div>
-              <div className="space-y-2.5">
+              <div className="space-y-2 md:space-y-2.5">
                 {pulseEvents.map((e, i) => (
-                  <div key={i} className="flex items-center gap-3">
+                  <div key={i} className="flex items-center gap-2 md:gap-3">
                     <span
-                      className="w-2 h-2 rounded-full pulse-dot shrink-0"
+                      className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full pulse-dot shrink-0"
                       style={{ background: pulseDotColor[e.status] }}
                     />
-                    <span style={{ fontFamily: FONT.mono, color: COLOR.textBody }} className="text-[12px]">{e.text}</span>
+                    <span style={{ fontFamily: FONT.mono, color: COLOR.textBody }} className="text-[10px] md:text-[11px] lg:text-[12px]">{e.text}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="mf-card rounded-xl p-5" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[14px] font-semibold mb-4">
+            <div className="mf-card rounded-xl p-3 md:p-4 lg:p-5" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
+              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-[12px] md:text-[13px] lg:text-[14px] font-semibold mb-3 md:mb-4">
                 Sender account health
               </h2>
-              <div className="space-y-2.5">
+              <div className="space-y-2 md:space-y-2.5">
                 {senderAccounts.map((a) => {
                   const meta = accountStatusMeta[a.status]
                   const Icon = meta.icon
                   return (
                     <div key={a.name} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-7 h-7 rounded-md flex items-center justify-center shrink-0" style={{ background: meta.bg }}>
-                          <Icon size={13} style={{ color: meta.fg }} />
+                      <div className="flex items-center gap-1.5 md:gap-2 min-w-0">
+                        <div className="w-6 h-6 md:w-7 md:h-7 rounded-md flex items-center justify-center shrink-0" style={{ background: meta.bg }}>
+                          <Icon size={11} className="md:w-[12px] md:h-[12px] lg:w-[13px] lg:h-[13px]" style={{ color: meta.fg }} />
                         </div>
-                        <span className="text-[12.5px] truncate" style={{ color: COLOR.textBody }}>{a.name}</span>
+                        <span className="text-[10px] md:text-[11px] lg:text-[12.5px] truncate" style={{ color: COLOR.textBody }}>{a.name}</span>
                       </div>
-                      <span style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[11.5px] shrink-0 ml-2">
+                      <span style={{ fontFamily: FONT.mono, color: COLOR.textMuted }} className="text-[9px] md:text-[10px] lg:text-[11.5px] shrink-0 ml-1 md:ml-2">
                         {a.load}
                       </span>
                     </div>
