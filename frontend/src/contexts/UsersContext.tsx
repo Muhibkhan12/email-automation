@@ -35,27 +35,27 @@ export const UserProvider = ({ children } : UsersProviderProps) => {
 
       const fetchUser = async () => {
 
-      try {
-        setLoading(true)
+        try {
+          setLoading(true)
 
-        const data = await getAllUser();
-        setUser(data);
-      }finally{
-        setLoading(false)
-      }
-    };
+          const data = await getAllUser();
+          setUser(data);
+        }finally{
+          setLoading(false)
+        }
+      };
 
     const getUserUsingId = async (id: number) => {
-  try {
-    setLoading(true);
+      try {
+        setLoading(true);
 
-    const user = await getUsersById(id);
+        const user = await getUsersById(id);
 
-    setSelectedUser(user);
-  } finally {
-    setLoading(false);
-  }
-};
+        setSelectedUser(user);
+      } finally {
+        setLoading(false);
+      }
+    };
 
     const addUsers = async (data : UserLogin)=> {
       const newUser = await  addUser(data);
