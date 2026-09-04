@@ -41,8 +41,12 @@ const Login = () => {
     setLoading(true)
     try {
       // loginUser already stores access_token in localStorage (see AuthServices.ts)
-      await loginUser(data)
-      navigate('/user/dashboard')
+      const response = await loginUser(data);
+      if(response.user.role.toLowerCase() === "admin"){
+        navigate('/admin/dashboard');
+      }else{
+        navigate('/user/dashboard');
+      }
     } catch (err: any) {
       const backendMessage =
         err?.response?.data?.message || err?.message || 'Invalid email or password.'

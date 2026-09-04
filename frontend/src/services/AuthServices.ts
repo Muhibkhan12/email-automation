@@ -17,7 +17,6 @@ export const getProfile = async():Promise<User> =>{
   const response = await api.get('/auth/profile');
   return response.data
 }
-
 export const logoutUser = async() => {
   localStorage.removeItem("access_token")
   await api.post('/auth/logout');

@@ -7,15 +7,21 @@ type UsersProviderProps = {
 }
 
 type UsersContextType = {
-    user: User[];
-    loading: boolean;
-    usersWithSenderAccounts: UserWithSenderAccounts[];
-    userWithSenderAccount: UserWithSenderAccounts | null;
-    addUsers: (data: UserLogin) => Promise<void>;
-    editUser: (id: number, data: UpdateUser) => Promise<void>;
-    removeUser: (id: number) => Promise<void>;
-    fetchUserWithSenderAccounts : () => Promise<void>;
-    fetchUserWithSenderAccountsById : (id : number) => Promise<void>;
+  user: User[];
+  loading: boolean;
+
+  selectedUser: User | null;
+
+  usersWithSenderAccounts: UserWithSenderAccounts[];
+  userWithSenderAccount: UserWithSenderAccounts | null;
+
+  addUsers: (data: UserLogin) => Promise<void>;
+  getUserUsingId: (id: number) => Promise<void>;
+  editUser: (id: number, data: UpdateUser) => Promise<void>;
+  removeUser: (id: number) => Promise<void>;
+
+  fetchUserWithSenderAccounts: () => Promise<void>;
+  fetchUserWithSenderAccountsById: (id: number) => Promise<void>;
 };
 
 export const UsersContext = createContext<UsersContextType | undefined>(undefined);
@@ -24,6 +30,7 @@ export const UserProvider = ({ children } : UsersProviderProps) => {
   const [user, setUser] = useState<User[]>([]);
   const [usersWithSenderAccounts, setUsersWithSenderAccounts] = useState<UserWithSenderAccounts[]>([]);
   const [userWithSenderAccount, setUserWithSenderAccount] = useState<UserWithSenderAccounts | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
 
       const fetchUser = async () => {
@@ -37,6 +44,18 @@ export const UserProvider = ({ children } : UsersProviderProps) => {
         setLoading(false)
       }
     };
+
+    const getUserUsingId = async (id: number) => {
+  try {
+    setLoading(true);
+
+    const user = await getUsersById(id);
+
+    setSelectedUser(user);
+  } finally {
+    setLoading(false);
+  }
+};
 
     const addUsers = async (data : UserLogin)=> {
       const newUser = await  addUser(data);
@@ -69,7 +88,7 @@ export const UserProvider = ({ children } : UsersProviderProps) => {
   }, []);
 
   return (
-    <UsersContext.Provider value={{user, loading, addUsers, editUser, removeUser,fetchUserWithSenderAccountsById,usersWithSenderAccounts,userWithSenderAccount, fetchUserWithSenderAccounts}}>
+    <UsersContext.Provider value={{user, loading,selectedUser,getUserUsingId, addUsers, editUser, removeUser,fetchUserWithSenderAccountsById,usersWithSenderAccounts,userWithSenderAccount, fetchUserWithSenderAccounts}}>
       {children}
     </UsersContext.Provider>
   );
