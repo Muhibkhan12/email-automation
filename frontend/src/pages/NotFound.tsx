@@ -3,17 +3,17 @@ import { MailX, Home, ArrowLeft } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-black px-4">
       <div className="max-w-md w-full text-center">
         {/* Icon */}
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-indigo-50">
-          <MailX className="h-10 w-10 text-indigo-600" strokeWidth={1.5} />
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full ">
+          <MailX className="h-10 w-10 text-orange-600" strokeWidth={1.5} />
         </div>
 
         {/* 404 */}
-        <h1 className="text-7xl font-bold text-slate-900 tracking-tight">404</h1>
+        <h1 className="text-7xl font-bold text-orange-800 tracking-tight">404</h1>
 
-        <h2 className="mt-3 text-xl font-semibold text-slate-800">
+        <h2 className="mt-3 text-xl text-white font-semibold text-orange-00">
           This page bounced back
         </h2>
 
@@ -26,7 +26,7 @@ export default function NotFound() {
         <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             to="/"
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-orange-800 px-5 py-2.5 text-sm font-medium text-white hover:bg-orange-500 transition-colors"
           >
             <Home className="h-4 w-4" />
             Go to Dashboard

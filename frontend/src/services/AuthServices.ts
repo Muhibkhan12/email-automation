@@ -8,8 +8,6 @@ export const loginUser = async (data: UserLogin): Promise<AuthResponse> => {
     data
   );
 
-  console.log("LOGIN RESPONSE:", response.data);
-
   localStorage.setItem(
     "access_token",
     response.data.access_token
@@ -31,7 +29,6 @@ export const UserRegister = async(data: RegisterUser) => {
 export const getProfile = async (): Promise<User> => {
   const response = await api.get("/auth/profile");
 
-  console.log("🔥 ACTUAL PROFILE RESPONSE:", response.data);
 
   return response.data;
 };
