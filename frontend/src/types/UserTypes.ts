@@ -24,7 +24,9 @@ export interface AuthResponse {
     access_token : string
     refresh_token : string
     token_type : string
+    user : User
 } 
+
 
 export interface UpdateUser {
     username?: string
@@ -36,6 +38,7 @@ export interface LoginResponse {
     access_token : string
     refresh_token : string
     token_type : "Bearer";
+    user : User
 }
 export interface UserResponse {
     message : string;

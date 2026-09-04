@@ -9,10 +9,8 @@ type UsersProviderProps = {
 type UsersContextType = {
     user: User[];
     loading: boolean;
-
     usersWithSenderAccounts: UserWithSenderAccounts[];
     userWithSenderAccount: UserWithSenderAccounts | null;
-
     addUsers: (data: UserLogin) => Promise<void>;
     editUser: (id: number, data: UpdateUser) => Promise<void>;
     removeUser: (id: number) => Promise<void>;

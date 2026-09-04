@@ -22,7 +22,7 @@ type SenderAccountProp = {
 
 type SenderAccountContextType = {
   senderAcc: SenderAccount[];
-  loading: boolean;
+  loading: boolean;                                               
 
   fetchSenderAccount: (id: number) => Promise<void>;
   fetchAllSenderAccounts: () => Promise<void>;

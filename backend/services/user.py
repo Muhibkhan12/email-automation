@@ -66,6 +66,7 @@ def LoginUser(db: Session, credential : LoginSchema):
         "access_token" : access_token,
         "refresh_token" : refresh_token,
         "token_type" : "Bearer",
+        "user" : user
     }
 
 def GetCurrentUser(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db) ):
