@@ -7,15 +7,22 @@ import {
 
 import {
   getProfile,
+  loginUser,
   logoutUser,
 } from "../services/AuthServices";
 
-import type { User } from "../types/UserTypes";
+import type {
+  User,
+  UserLogin,
+} from "../types/UserTypes";
 
 
 type AuthContextType = {
   user: User | null;
   loading: boolean;
+
+  login: (data: UserLogin) => Promise<User>;
+
   logout: () => Promise<void>;
 };
 
@@ -39,41 +46,47 @@ export const AuthProvider = ({
   const [loading, setLoading] = useState(true);
 
 
-  // Check authentication when the application starts
+  // --------------------------------
+  // Check authentication on startup
+  // --------------------------------
+
   useEffect(() => {
 
-    
+    const checkAuth = async () => {
 
- const checkAuth = async () => {
-  try {
-    const token = localStorage.getItem("access_token");
+      try {
 
-    console.log("🔑 TOKEN:", token);
+        const token = localStorage.getItem("access_token");
 
-    if (!token) {
-      console.log("❌ NO TOKEN");
-      setUser(null);
-      return;
-    }
+        if (!token) {
+          
+          setUser(null);
 
-    const profile = await getProfile();
+          return;
+        }
 
-    console.log("👤 PROFILE:", profile);
-    console.log("👤 PROFILE ROLE:", profile.role);
 
-    setUser(profile);
+        const profile = await getProfile();
 
-  } catch (error) {
+        setUser(profile);
 
-    console.log("❌ PROFILE REQUEST FAILED:", error);
+      }
 
-    localStorage.removeItem("access_token");
-    setUser(null);
+      catch (error) {
 
-  } finally {
-    setLoading(false);
-  }
-};
+        localStorage.removeItem("access_token");
+
+        setUser(null);
+
+      }
+
+      finally {
+
+        setLoading(false);
+
+      }
+
+    };
 
 
     checkAuth();
@@ -81,15 +94,41 @@ export const AuthProvider = ({
   }, []);
 
 
+  // --------------------------------
+  // Login
+  // --------------------------------
+
+  const login = async (data: UserLogin): Promise<User> => {
+
+    const response = await loginUser(data);
+
+    // IMPORTANT:
+    // loginUser already stores the access token
+    // Now we also update AuthContext immediately.
+
+    setUser(response.user);
+
+    return response.user;
+
+  };
+
+
+  // --------------------------------
+  // Logout
+  // --------------------------------
+
   const logout = async () => {
 
     try {
 
       await logoutUser();
 
-    } finally {
+    }
+
+    finally {
 
       setUser(null);
+
     }
 
   };
@@ -100,6 +139,7 @@ export const AuthProvider = ({
       value={{
         user,
         loading,
+        login,
         logout,
       }}
     >

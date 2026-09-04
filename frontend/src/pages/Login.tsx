@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, Flame } from 'lucide-react'
-import { loginUser } from '../services/AuthServices'
+import { useContext, useEffect, useState } from 'react'
+import { AuthContext } from '../contexts/AuthContext'
 import type { UserLogin } from '../types/UserTypes'
 
 const STAGES = ['Queued', 'Sending', 'Delivered'] as const
@@ -35,25 +36,29 @@ const Login = () => {
     }, 2600)
     return () => clearInterval(id)
   }, [])
+  const Login = () => {
+  const navigate = useNavigate()
 
-  const onSubmit = async (data: Inputs) => {
-    setError(null)
-    setLoading(true)
-    try {
-      // loginUser already stores access_token in localStorage (see AuthServices.ts)
-      const response = await loginUser(data);
-      if(response.user.role.toLowerCase() === "admin"){
-        navigate('/admin/dashboard');
-      }else{
-        navigate('/user/dashboard');
-      }
-    } catch (err: any) {
-      const backendMessage =
-        err?.response?.data?.message || err?.message || 'Invalid email or password.'
-      setError(backendMessage)
-    } finally {
-      setLoading(false)
-    }
+  const context = useContext(AuthContext)
+
+  if (!context) {
+    throw new Error("Login must be used inside AuthProvider")
+  }
+
+  const { login } = context
+
+  // ...
+}
+
+ const user = await login(data);
+
+    console.log("LOGGED IN USER:", user);
+    console.log("LOGGED IN ROLE:", user.role);
+
+    if (user.role === "ADMIN") {
+      navigate("/admin/dashboard");
+    } else {
+      navigate("/user/dashboard");
   }
 
   return (
