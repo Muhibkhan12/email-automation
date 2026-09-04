@@ -2,11 +2,11 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 
-const ProtectedRoute = () => {
+const UserRoute = () => {
   const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error("ProtectedRoute must be used inside AuthProvider");
+    throw new Error("UserRoute must be used inside AuthProvider");
   }
 
   const { user, loading } = context;
@@ -19,7 +19,11 @@ const ProtectedRoute = () => {
     return <Navigate to="/" replace />;
   }
 
+  if (user.role !== "EMPLOYEE") {
+    return <Navigate to="/404" replace />;
+  }
+
   return <Outlet />;
 };
 
-export default ProtectedRoute;
+export default UserRoute;

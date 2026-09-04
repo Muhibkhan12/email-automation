@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useContext } from "react";
-import UsersContext from "../contexts/UsersContext";
+import { AuthContext } from "../contexts/AuthContext";
 
 const AdminRoute = () => {
   const context = useContext(AuthContext);
@@ -11,22 +11,19 @@ const AdminRoute = () => {
 
   const { user, loading } = context;
 
-  // Wait for authentication to initialize
   if (loading) {
     return <div>Loading...</div>;
   }
 
-  // Not logged in
   if (!user) {
     return <Navigate to="/" replace />;
   }
 
-  // Logged in but not an admin
+  // Don't reveal that the route exists
   if (user.role !== "ADMIN") {
-    return <Navigate to="/user/dashboard" replace />;
+    return <Navigate to="/404" replace />;
   }
 
-  // User is logged in AND is ADMIN
   return <Outlet />;
 };
 
