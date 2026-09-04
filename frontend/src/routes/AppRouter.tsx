@@ -37,6 +37,7 @@ import AdminRoute from "./AdminRoutes";
 // ================= 404 PAGE =================
 import NotFound from "../pages/NotFound";
 
+
 const AppRouter = () => {
   return (
     <Routes>
@@ -49,22 +50,21 @@ const AppRouter = () => {
 
       <Route path="/register" element={<Register />} />
 
+      <Route path="/404" element={<NotFound />} />
+
 
       {/* =================================================
           EMPLOYEE / USER ROUTES
-          
+
           Only EMPLOYEE can access these routes.
-          
-          ADMIN trying to access /user/*
-          → 404
-          
-          Not logged in
-          → /
+
+          ADMIN → /404
+          Not logged in → /
       ================================================= */}
 
       <Route element={<UserRoute />}>
 
-        <Route path="/user">
+        <Route path="user">
 
           <Route
             path="dashboard"
@@ -133,19 +133,16 @@ const AppRouter = () => {
 
       {/* =================================================
           ADMIN ROUTES
-          
+
           Only ADMIN can access these routes.
-          
-          EMPLOYEE trying to access /admin/*
-          → 404
-          
-          Not logged in
-          → /
+
+          EMPLOYEE → /404
+          Not logged in → /
       ================================================= */}
 
       <Route element={<AdminRoute />}>
 
-        <Route path="/admin">
+        <Route path="admin">
 
           <Route
             path="dashboard"
@@ -203,7 +200,9 @@ const AppRouter = () => {
 
 
       {/* =================================================
-          404 — UNKNOWN ROUTES
+          CATCH-ALL 404
+
+          Any route that doesn't exist → 404
       ================================================= */}
 
       <Route path="*" element={<NotFound />} />
@@ -211,5 +210,6 @@ const AppRouter = () => {
     </Routes>
   );
 };
+
 
 export default AppRouter;

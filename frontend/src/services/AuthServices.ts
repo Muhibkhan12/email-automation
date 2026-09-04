@@ -1,6 +1,5 @@
-import { Navigate } from "react-router-dom";
 import api from "../libs/Axios";
-import type{ User, AuthResponse, UserLogin, RegisterUser} from "../types/UserTypes"
+import type{ User, AuthResponse, UserLogin, RegisterUser, UserResponse} from "../types/UserTypes"
 
 export const loginUser = async(data : UserLogin): Promise<AuthResponse> => {
   const response = await api.post<AuthResponse>('/auth/login', data);
@@ -14,9 +13,10 @@ export const UserRegister = async(data: RegisterUser) => {
 }
 
 export const getProfile = async():Promise<User> =>{
-  const response = await api.get('/auth/profile');
-  return response.data
+  const response = await api.get<UserResponse>('/auth/profile');
+  return response.data.user
 }
+
 export const logoutUser = async() => {
   localStorage.removeItem("access_token")
   await api.post('/auth/logout');
