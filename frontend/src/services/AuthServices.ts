@@ -28,8 +28,6 @@ export const UserRegister = async(data: RegisterUser) => {
 
 export const getProfile = async (): Promise<User> => {
   const response = await api.get("/auth/profile");
-
-
   return response.data;
 };
 
