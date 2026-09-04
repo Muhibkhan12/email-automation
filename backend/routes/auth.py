@@ -48,8 +48,11 @@ def forgetPassword(credentials: ForgetSchema, db: Session  = Depends(get_db)):
 def profile(current_user : User = Depends(GetCurrentUser)):
     return{
         "user_id" : current_user.id,
-        "user_name" : current_user.username,
-        "user_email" : current_user.email,
+        "username" : current_user.username,
+        "email" : current_user.email,
+        "role" : current_user.role,
+        "created_at": current_user.created_at,
+        "updated_at": current_user.updated_at,
     }
 @router.post("/user/update/{id}")
 def update_user(credentials : UpdateUser,user_id : int, db:Session = Depends(get_db) ):

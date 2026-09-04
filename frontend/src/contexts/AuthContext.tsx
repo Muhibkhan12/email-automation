@@ -42,36 +42,38 @@ export const AuthProvider = ({
   // Check authentication when the application starts
   useEffect(() => {
 
-    const checkAuth = async () => {
+    
 
-      try {
+ const checkAuth = async () => {
+  try {
+    const token = localStorage.getItem("access_token");
 
-        const token = localStorage.getItem("access_token");
+    console.log("🔑 TOKEN:", token);
 
-        // No token means user is not logged in
-        if (!token) {
-          setUser(null);
-          return;
-        }
+    if (!token) {
+      console.log("❌ NO TOKEN");
+      setUser(null);
+      return;
+    }
 
-        // Token exists → get current user from backend
-        const profile = await getProfile();
+    const profile = await getProfile();
 
-        setUser(profile);
+    console.log("👤 PROFILE:", profile);
+    console.log("👤 PROFILE ROLE:", profile.role);
 
-      } catch (error) {
+    setUser(profile);
 
-        // Token is invalid/expired
-        localStorage.removeItem("access_token");
+  } catch (error) {
 
-        setUser(null);
+    console.log("❌ PROFILE REQUEST FAILED:", error);
 
-      } finally {
+    localStorage.removeItem("access_token");
+    setUser(null);
 
-        setLoading(false);
-
-      }
-    };
+  } finally {
+    setLoading(false);
+  }
+};
 
 
     checkAuth();

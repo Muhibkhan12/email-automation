@@ -12,10 +12,13 @@ export const UserRegister = async(data: RegisterUser) => {
   return response.data;
 }
 
-export const getProfile = async():Promise<User> =>{
-  const response = await api.get<UserResponse>('/auth/profile');
-  return response.data.user
-}
+export const getProfile = async (): Promise<User> => {
+  const response = await api.get("/auth/profile");
+
+  console.log("🔥 ACTUAL PROFILE RESPONSE:", response.data);
+
+  return response.data;
+};
 
 export const logoutUser = async() => {
   localStorage.removeItem("access_token")
