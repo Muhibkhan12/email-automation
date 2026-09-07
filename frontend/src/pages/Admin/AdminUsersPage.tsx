@@ -1,7 +1,7 @@
+// AdminUsers.tsx
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import UsersContext from "../../contexts/UsersContext";
 import type { UserWithSenderAccounts } from "../../types/UserTypes";
-
 
 type SenderAccountItem = UserWithSenderAccounts["senderAccount"][number];
 
@@ -24,10 +24,6 @@ const getSenderStatus = (status?: string): keyof typeof senderStatusColors =>
     ? status
     : "Disconnected";
 
-/* ------------------------------------------------------------------ */
-/* Small presentational pieces                                        */
-/* ------------------------------------------------------------------ */
-
 type Stat = { title: string; value: string; note?: string; accent: string };
 
 const StatCard = ({ stat }: { stat: Stat }) => (
@@ -45,7 +41,6 @@ const StatCard = ({ stat }: { stat: Stat }) => (
 const SenderAccountCard = ({ account }: { account: SenderAccountItem }) => {
   const status = getSenderStatus(account.status);
   const style = senderStatusColors[status];
-  // const usagePct = dailyLimit > 0 ? Math.min(100, Math.round((sentToday / dailyLimit) * 100)) : 0;
 
   return (
     <div className="rounded-lg border border-[#2A2E37] bg-[#171A21] px-3.5 py-3">
@@ -59,23 +54,28 @@ const SenderAccountCard = ({ account }: { account: SenderAccountItem }) => {
   );
 };
 
-/* ------------------------------------------------------------------ */
-/* Page                                                                */
-/* ------------------------------------------------------------------ */
-
 const AdminUsers = () => {
   const context = useContext(UsersContext);
+  
+  // Better error handling with console log
   if (!context) {
+    console.error("AdminUsers: Context is undefined - make sure component is wrapped in UserProvider");
     throw new Error("AdminUsers must be rendered inside a <UserProvider>");
   }
+  
   const { usersWithSenderAccounts, loading, fetchUserWithSenderAccounts } = context;
 
-  useEffect(() => {
-    fetchUserWithSenderAccounts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Debug: Log the context values
+  console.log("AdminUsers - Context:", { 
+    usersWithSenderAccounts, 
+    loading, 
+    hasFetchFunction: !!fetchUserWithSenderAccounts 
+  });
 
-  const users = usersWithSenderAccounts;
+  useEffect(() => {
+    console.log("AdminUsers: Fetching users with sender accounts...");
+    fetchUserWithSenderAccounts();
+  }, []); // Empty dependency array - only run once on mount
 
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
@@ -84,10 +84,17 @@ const AdminUsers = () => {
   const [selectedUsers, setSelectedUsers] = useState<Set<number>>(new Set());
   const [expandedUsers, setExpandedUsers] = useState<Set<number>>(new Set());
 
+  const users = usersWithSenderAccounts || []; // Ensure it's always an array
+
+  // Debug: Log users data
+  console.log("AdminUsers - Users data:", users);
+  console.log("AdminUsers - Number of users:", users.length);
+
   const totalSenderAccounts = useMemo(
     () => users.reduce((sum, u) => sum + (u.senderAccount?.length ?? 0), 0),
     [users]
   );
+  
   const connectedSenderAccounts = useMemo(
     () =>
       users.reduce(
@@ -151,10 +158,32 @@ const AdminUsers = () => {
     { title: "Sender Accounts", value: `${connectedSenderAccounts}/${totalSenderAccounts}`, note: "connected", accent: "#4FA3FF" },
   ];
 
+  // Show loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0E1013] p-4 md:p-6 lg:p-8 flex items-center justify-center">
-        <p className="text-sm text-[#8B8D94]">Loading users…</p>
+        <div className="text-center">
+          <p className="text-sm text-[#8B8D94]">Loading users…</p>
+          <p className="text-xs text-[#5C5F68] mt-2">Please wait while we fetch user data</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show empty state if no users
+  if (users.length === 0 && !loading) {
+    return (
+      <div className="min-h-screen bg-[#0E1013] p-4 md:p-6 lg:p-8 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-sm text-[#8B8D94]">No users found</p>
+          <p className="text-xs text-[#5C5F68] mt-2">Try adding some users or check your API connection</p>
+          <button 
+            onClick={() => fetchUserWithSenderAccounts()}
+            className="mt-4 rounded-lg bg-[#FF6A39] px-4 py-2 text-sm font-medium text-white hover:bg-[#e85a2c] transition"
+          >
+            Retry Fetch
+          </button>
+        </div>
       </div>
     );
   }
@@ -300,7 +329,7 @@ const AdminUsers = () => {
                             {isExpanded ? "Hide" : "Show"}
                           </button>
                         ) : (
-                          <span className="text-xs text-[#5C5F68]">No accounts</span>
+                          <span className="text-xs text-[#FF6A39] font-medium">No sender accounts attached</span>
                         )}
                       </td>
 

@@ -78,10 +78,18 @@ export const UserProvider = ({ children } : UsersProviderProps) => {
       const data = await getSenderAccountWithUserById(id);
       setUserWithSenderAccount(data);
     }
-    const fetchUserWithSenderAccounts = async() => {
-      const data = await getUsersWithSenderAccounts();
-      setUsersWithSenderAccounts(data);
-    }
+    const fetchUserWithSenderAccounts = async () => {
+  try {
+    setLoading(true);
+    const data = await getUsersWithSenderAccounts();
+    console.log('API Response:', data); // <-- Add this log
+    setUsersWithSenderAccounts(data);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchUser();
