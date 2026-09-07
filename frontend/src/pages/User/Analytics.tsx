@@ -13,7 +13,7 @@ import {
 import {
   AreaChart,
   Area,
-  XAxis,
+  XAxis,  
   YAxis,
   CartesianGrid,
   Tooltip,

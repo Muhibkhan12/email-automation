@@ -1,10 +1,11 @@
-// Upload.tsx
-import React, { useCallback, useRef, useState } from "react";
+// frontend/src/pages/User/Upload.tsx
+import React, { useCallback, useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import {
   UploadCloud, FileSpreadsheet, CheckCircle2, XCircle, Loader2,
-  X, Info, ChevronRight, Menu, ArrowRight, AlertCircle
+  X, Info, ChevronRight, Menu, ArrowRight, FileText,
+  Search, Plus, Layout, Grid3x3, Star
 } from "lucide-react";
 
 const FONT = {
@@ -13,8 +14,96 @@ const FONT = {
   mono: "'JetBrains Mono', monospace",
 };
 
-import type{ UploadFile, RecentUpload } from "../../types/UploadTypes";
+// Types
+type UploadStatus = "uploading" | "processing" | "success" | "error";
 
+interface UploadFile {
+  id: string;
+  name: string;
+  size: string;
+  progress: number;
+  status: UploadStatus;
+  rows?: number;
+  errorMsg?: string;
+  fileData?: any;
+  headers?: string[];
+  preview?: any[];
+}
+
+interface RecentUpload {
+  id: string;
+  name: string;
+  rows: number;
+  addedCount: number;
+  skippedCount: number;
+  uploadedAt: string;
+  status: "Completed" | "Failed";
+}
+
+interface Template {
+  id: string;
+  name: string;
+  subject: string;
+  preview: string;
+  thumbnail: string;
+  category: string;
+  used: number;
+  tags?: string[];
+  featured?: boolean;
+  created_at: string;
+}
+
+// Mock data
+const mockTemplates: Template[] = [
+  {
+    id: "t1",
+    name: "Newsletter Modern",
+    subject: "Weekly Newsletter - {{ date }}",
+    preview: "Modern newsletter template with hero image and responsive design...",
+    thumbnail: "📰",
+    category: "Newsletter",
+    used: 234,
+    tags: ["Modern", "Responsive", "Clean"],
+    featured: true,
+    created_at: "2024-01-15T10:30:00Z"
+  },
+  {
+    id: "t2",
+    name: "Promotional Flash Sale",
+    subject: "🔥 Flash Sale Alert! {{ discount }}% Off",
+    preview: "High-converting promotional template with countdown timer...",
+    thumbnail: "🔥",
+    category: "Promotion",
+    used: 189,
+    tags: ["Urgent", "Sales", "Conversion"],
+    featured: true,
+    created_at: "2024-02-20T14:15:00Z"
+  },
+  {
+    id: "t3",
+    name: "Welcome Series",
+    subject: "Welcome to {{ company_name }}, {{ name }}!",
+    preview: "Warm welcome email with onboarding steps and resources...",
+    thumbnail: "👋",
+    category: "Onboarding",
+    used: 567,
+    tags: ["Welcome", "Onboarding", "Friendly"],
+    featured: false,
+    created_at: "2024-01-05T09:00:00Z"
+  },
+  {
+    id: "t4",
+    name: "Event Invitation",
+    subject: "You're Invited to {{ event_name }}!",
+    preview: "Elegant event invitation template with RSVP button...",
+    thumbnail: "🎪",
+    category: "Event",
+    used: 145,
+    tags: ["Event", "Elegant", "RSVP"],
+    featured: false,
+    created_at: "2024-03-01T16:45:00Z"
+  }
+];
 
 const recentUploads: RecentUpload[] = [
   { id: "u1", name: "leads_aug.csv", rows: 1204, addedCount: 1168, skippedCount: 36, uploadedAt: "Today, 7:10 AM", status: "Completed" },
@@ -25,19 +114,148 @@ const recentUploads: RecentUpload[] = [
 
 let idCounter = 0;
 
+// Template Card Component
+interface TemplateCardProps {
+  template: Template;
+  isSelected: boolean;
+  onSelect: () => void;
+  viewMode: "grid" | "list";
+}
+
+const TemplateCard: React.FC<TemplateCardProps> = ({ template, isSelected, onSelect, viewMode }) => {
+  if (viewMode === "grid") {
+    return (
+      <div
+        onClick={onSelect}
+        className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+          isSelected
+            ? 'border-[#FF6A39] bg-[#FF6A39]/5 shadow-lg shadow-[#FF6A39]/5'
+            : 'border-[#2A2E37] bg-[#1B1E24] hover:border-[#3A3F4A]'
+        }`}
+      >
+        <div className="flex items-start gap-3">
+          <div className="text-2xl">{template.thumbnail}</div>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-[#E8E6E1] text-sm">{template.name}</h3>
+            <p className="text-xs text-[#6B727C] mt-0.5 line-clamp-2">{template.preview}</p>
+            <p className="text-xs text-[#9BA0A8] mt-1 font-mono line-clamp-1">Subject: {template.subject}</p>
+            <div className="flex flex-wrap items-center gap-2 mt-1.5">
+              <span className="text-[8px] md:text-[9px] px-1.5 py-0.5 rounded bg-[#2A2E37] text-[#9BA0A8]">
+                {template.category}
+              </span>
+              <span className="text-[8px] md:text-[9px] text-[#6B727C]">
+                Used {template.used} times
+              </span>
+              {template.tags?.slice(0, 2).map(tag => (
+                <span key={tag} className="text-[8px] px-1.5 py-0.5 rounded bg-[#FF6A39]/5 text-[#FF6A39]">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          </div>
+          {isSelected && (
+            <CheckCircle2 size={16} className="text-[#FF6A39] shrink-0" />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={onSelect}
+      className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all ${
+        isSelected
+          ? 'border-[#FF6A39] bg-[#FF6A39]/5'
+          : 'border-[#2A2E37] bg-[#1B1E24] hover:border-[#3A3F4A]'
+      }`}
+    >
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="text-2xl">{template.thumbnail}</div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-[#E8E6E1] text-sm">{template.name}</h3>
+            <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#2A2E37] text-[#9BA0A8]">
+              {template.category}
+            </span>
+            {template.featured && (
+              <span className="text-[8px] px-1.5 py-0.5 rounded bg-yellow-400/10 text-yellow-400 font-medium">
+                Featured
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-[#6B727C] truncate">{template.subject}</p>
+        </div>
+        <div className="hidden sm:flex items-center gap-3 text-xs text-[#6B727C]">
+          <span>Used {template.used}x</span>
+          {template.tags && template.tags.length > 0 && (
+            <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#FF6A39]/5 text-[#FF6A39]">
+              #{template.tags[0]}
+            </span>
+          )}
+        </div>
+      </div>
+      {isSelected && (
+        <CheckCircle2 size={18} className="text-[#FF6A39] shrink-0 ml-2" />
+      )}
+    </div>
+  );
+};
+
 const Upload = () => {
   const navigate = useNavigate();
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [uploadComplete, setUploadComplete] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [templates, setTemplates] = useState<Template[]>(mockTemplates);
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Simulate file parsing and validation
+  // Fetch templates
+  useEffect(() => {
+    fetchTemplates();
+  }, []);
+
+  const fetchTemplates = async () => {
+    setIsLoadingTemplates(true);
+    try {
+      // Using mock data
+      setTimeout(() => {
+        setTemplates(mockTemplates);
+        setIsLoadingTemplates(false);
+      }, 500);
+    } catch (error) {
+      console.error("Failed to fetch templates:", error);
+      setIsLoadingTemplates(false);
+    }
+  };
+
+  // Get unique categories
+  const categories = ["all", ...new Set(templates.map(t => t.category))];
+
+  // Filter templates
+  const filteredTemplates = templates.filter(template => {
+    const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          template.preview.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          template.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          template.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const matchesCategory = selectedCategory === "all" || template.category === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  const featuredTemplates = templates.filter(t => t.featured);
+
+  // Simulate file parsing
   const parseFile = (file: UploadFile): Promise<any> => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        // Simulate parsing CSV/Excel
         const headers = ['email', 'name', 'company', 'tags'];
         const rowCount = Math.floor(Math.random() * 3000) + 200;
         const preview = Array.from({ length: 5 }, (_, i) => ({
@@ -51,14 +269,13 @@ const Upload = () => {
           headers,
           rows: rowCount,
           preview,
-          data: preview // In real app, this would be full data
+          data: preview
         });
       }, 1500);
     });
   };
 
   const simulateUpload = async (file: UploadFile) => {
-    // Upload progress
     const interval = setInterval(() => {
       setFiles((prev) =>
         prev.map((f) => {
@@ -73,7 +290,6 @@ const Upload = () => {
       );
     }, 350);
 
-    // Parse file after upload
     setTimeout(async () => {
       clearInterval(interval);
       try {
@@ -94,11 +310,6 @@ const Upload = () => {
                 };
           })
         );
-        
-        // Check if all files are processed
-        setTimeout(() => {
-          setUploadComplete(true);
-        }, 500);
       } catch (error) {
         setFiles((prev) =>
           prev.map((f) => {
@@ -138,10 +349,14 @@ const Upload = () => {
 
   const handleStartCampaign = () => {
     const successfulFiles = files.filter(f => f.status === "success");
-    if (successfulFiles.length > 0) {
-      // Store file data in session storage or state management
+    if (successfulFiles.length > 0 && selectedTemplate) {
       sessionStorage.setItem('uploadedFileData', JSON.stringify(successfulFiles[0]));
+      sessionStorage.setItem('selectedTemplate', JSON.stringify(
+        templates.find(t => t.id === selectedTemplate)
+      ));
       navigate('/user/campaign');
+    } else if (!selectedTemplate) {
+      setShowTemplateSelector(true);
     }
   };
 
@@ -153,27 +368,6 @@ const Upload = () => {
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 1s linear infinite; }
-        
-        @keyframes slideInUp {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .slide-in-up { animation: slideInUp 0.4s ease-out; }
-
-        .mf-main-content::-webkit-scrollbar {
-          width: 6px;
-        }
-        .mf-main-content::-webkit-scrollbar-track {
-          background: #0B0E12;
-        }
-        .mf-main-content::-webkit-scrollbar-thumb {
-          background: #2A2E37;
-          border-radius: 3px;
-        }
-        .mf-main-content::-webkit-scrollbar-thumb:hover {
-          background: #3A3F4A;
-        }
-
         .sidebar-overlay {
           animation: fadeIn 0.2s ease-in-out;
         }
@@ -187,6 +381,19 @@ const Upload = () => {
         @keyframes slideIn {
           from { transform: translateX(-100%); }
           to { transform: translateX(0); }
+        }
+        .mf-main-content::-webkit-scrollbar {
+          width: 6px;
+        }
+        .mf-main-content::-webkit-scrollbar-track {
+          background: #0B0E12;
+        }
+        .mf-main-content::-webkit-scrollbar-thumb {
+          background: #2A2E37;
+          border-radius: 3px;
+        }
+        .mf-main-content::-webkit-scrollbar-thumb:hover {
+          background: #3A3F4A;
         }
       `}</style>
 
@@ -214,7 +421,6 @@ const Upload = () => {
           <div className="mf-header mb-4 md:mb-5 lg:mb-7">
             <div className="flex items-center justify-between gap-3 md:gap-4">
               <div className="flex items-center gap-3 md:gap-4">
-                {/* Mobile Menu Button */}
                 <button
                   onClick={() => setSidebarOpen(true)}
                   className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
@@ -234,11 +440,13 @@ const Upload = () => {
                 </div>
               </div>
               
-              {/* Start Campaign Button - Show when upload complete */}
               {hasSuccessfulUpload && (
                 <button
                   onClick={handleStartCampaign}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#FF6A39] hover:bg-[#e85a2c] text-white rounded-lg font-medium transition-colors text-sm"
+                  className={`flex items-center gap-2 px-4 py-2 bg-[#FF6A39] hover:bg-[#e85a2c] text-white rounded-lg font-medium transition-colors text-sm ${
+                    !selectedTemplate ? 'opacity-70 cursor-not-allowed' : ''
+                  }`}
+                  disabled={!selectedTemplate}
                 >
                   <span>Start Campaign</span>
                   <ArrowRight size={16} />
@@ -287,14 +495,209 @@ const Upload = () => {
             <p className="mf-tip-text text-[10px] md:text-xs lg:text-[13px]" style={{ color: "#C7C9CE" }}>
               Your file needs an <span style={{ fontFamily: FONT.mono }} className="font-medium text-[#FF6A39]">email</span> column at minimum.
               Optional columns: <span style={{ fontFamily: FONT.mono }} className="text-[#E8E6E1]">name</span>, <span style={{ fontFamily: FONT.mono }} className="text-[#E8E6E1]">tags</span> (comma-separated).
-              {" "}
-              <button className="font-medium underline underline-offset-2 text-[#FF6A39] hover:text-[#e85a2c]">Download sample template</button>
             </p>
+          </div>
+
+          {/* Template Selection Section */}
+          <div className="mb-4 md:mb-5 lg:mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h2 style={{ fontFamily: FONT.display }} className="text-[10px] md:text-xs lg:text-sm font-semibold text-[#E8E6E1]">
+                  Select Email Template <span className="text-[#FF6A39]">*</span>
+                </h2>
+                <p className="text-[8px] md:text-[9px] text-[#6B727C] mt-0.5">
+                  Choose a template for your campaign
+                </p>
+              </div>
+              <button
+                onClick={() => setShowTemplateSelector(!showTemplateSelector)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1B1E24] border border-[#2A2E37] hover:border-[#3A3F4A] text-[#E8E6E1] text-sm font-medium transition-all hover:bg-[#2A2E37]"
+              >
+                {showTemplateSelector ? 'Hide' : 'Browse Templates'}
+                <ChevronRight size={14} className={`transform transition-transform ${showTemplateSelector ? 'rotate-90' : ''}`} />
+              </button>
+            </div>
+
+            {/* Selected Template Display */}
+            {selectedTemplate && (
+              <div className="p-3 rounded-lg border border-[#FF6A39]/20 bg-[#FF6A39]/5 mb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="text-3xl">
+                      {templates.find(t => t.id === selectedTemplate)?.thumbnail || '📧'}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white">
+                        {templates.find(t => t.id === selectedTemplate)?.name || 'Selected Template'}
+                      </p>
+                      <p className="text-xs text-[#6B727C]">
+                        Subject: {templates.find(t => t.id === selectedTemplate)?.subject || ''}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#2A2E37] text-[#9BA0A8]">
+                          {templates.find(t => t.id === selectedTemplate)?.category}
+                        </span>
+                        <span className="text-[8px] text-[#6B727C]">
+                          Used {templates.find(t => t.id === selectedTemplate)?.used} times
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedTemplate(null)}
+                    className="text-[#6B727C] hover:text-[#E8E6E1] p-1 hover:bg-[#2A2E37] rounded-lg transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Template Selector */}
+            {showTemplateSelector && (
+              <div className="rounded-xl border border-[#2A2E37] bg-[#12151B] overflow-hidden">
+                {/* Search and Filter */}
+                <div className="p-3 border-b border-[#2A2E37]">
+                  <div className="flex flex-wrap gap-2">
+                    <div className="flex-1 min-w-[200px] relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#6B727C]" />
+                      <input
+                        type="text"
+                        placeholder="Search templates..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 bg-[#1B1E24] border border-[#2A2E37] rounded-lg text-[#E8E6E1] placeholder:text-[#6B727C] focus:border-[#FF6A39] focus:outline-none transition-colors text-sm"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="px-3 py-2 bg-[#1B1E24] border border-[#2A2E37] rounded-lg text-[#E8E6E1] text-sm focus:border-[#FF6A39] focus:outline-none transition-colors cursor-pointer"
+                      >
+                        {categories.map(cat => (
+                          <option key={cat} value={cat}>
+                            {cat === 'all' ? 'All Categories' : cat}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="flex rounded-lg overflow-hidden border border-[#2A2E37]">
+                        <button
+                          type="button"
+                          onClick={() => setViewMode('grid')}
+                          className={`p-2 transition-colors ${
+                            viewMode === 'grid' ? 'bg-[#FF6A39] text-white' : 'bg-[#1B1E24] text-[#6B727C] hover:text-[#E8E6E1]'
+                          }`}
+                        >
+                          <Grid3x3 size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setViewMode('list')}
+                          className={`p-2 transition-colors ${
+                            viewMode === 'list' ? 'bg-[#FF6A39] text-white' : 'bg-[#1B1E24] text-[#6B727C] hover:text-[#E8E6E1]'
+                          }`}
+                        >
+                          <Layout size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Templates */}
+                <div className="p-3">
+                  {isLoadingTemplates ? (
+                    <div className="text-center py-8">
+                      <Loader2 className="w-8 h-8 animate-spin text-[#FF6A39] mx-auto" />
+                      <p className="text-sm text-[#6B727C] mt-2">Loading templates...</p>
+                    </div>
+                  ) : filteredTemplates.length === 0 ? (
+                    <div className="text-center py-8">
+                      <FileText className="w-12 h-12 text-[#6B727C] mx-auto mb-2" />
+                      <p className="text-sm text-[#6B727C]">No templates found</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Featured */}
+                      {searchQuery === '' && selectedCategory === 'all' && featuredTemplates.length > 0 && (
+                        <div className="mb-4">
+                          <p className="text-xs font-medium text-[#6B727C] flex items-center gap-2 mb-2">
+                            <Star size={14} className="text-yellow-400" />
+                            Featured Templates
+                          </p>
+                          <div className={viewMode === 'grid' 
+                            ? 'grid grid-cols-1 md:grid-cols-2 gap-3' 
+                            : 'space-y-2'
+                          }>
+                            {featuredTemplates.map((template) => (
+                              <TemplateCard
+                                key={template.id}
+                                template={template}
+                                isSelected={selectedTemplate === template.id}
+                                onSelect={() => {
+                                  setSelectedTemplate(template.id);
+                                  setShowTemplateSelector(false);
+                                }}
+                                viewMode={viewMode}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* All Templates */}
+                      <div>
+                        <div className={viewMode === 'grid' 
+                          ? 'grid grid-cols-1 md:grid-cols-2 gap-3' 
+                          : 'space-y-2'
+                        }>
+                          {filteredTemplates
+                            .filter(t => !t.featured || searchQuery !== '' || selectedCategory !== 'all')
+                            .map((template) => (
+                              <TemplateCard
+                                key={template.id}
+                                template={template}
+                                isSelected={selectedTemplate === template.id}
+                                onSelect={() => {
+                                  setSelectedTemplate(template.id);
+                                  setShowTemplateSelector(false);
+                                }}
+                                viewMode={viewMode}
+                              />
+                            ))
+                          }
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="p-3 border-t border-[#2A2E37] flex items-center justify-between">
+                  <button className="text-[#6B727C] hover:text-[#E8E6E1] text-sm flex items-center gap-1">
+                    <Plus size={16} />
+                    Create New Template
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[#6B727C]">
+                      {filteredTemplates.length} templates
+                    </span>
+                    <button
+                      onClick={() => setShowTemplateSelector(false)}
+                      className="text-[#FF6A39] hover:text-[#e85a2c] text-sm font-medium"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Active uploads */}
           {files.length > 0 && (
-            <div className="mf-upload-list mb-4 md:mb-5 lg:mb-6 rounded-xl border border-[#2A2E37] bg-[#12151B] shadow-sm overflow-hidden slide-in-up">
+            <div className="mf-upload-list mb-4 md:mb-5 lg:mb-6 rounded-xl border border-[#2A2E37] bg-[#12151B] shadow-sm overflow-hidden">
               <div className="px-3 md:px-4 lg:px-5 py-2.5 md:py-3 lg:py-4 border-b border-[#2A2E37]">
                 <h2 style={{ fontFamily: FONT.display }} className="text-[10px] md:text-xs lg:text-sm font-semibold text-[#E8E6E1]">
                   Uploading {files.length} {files.length === 1 ? "file" : "files"}
@@ -352,9 +755,9 @@ const Upload = () => {
             </div>
           )}
 
-          {/* File Stats Summary - Show when upload successful */}
+          {/* File Stats Summary */}
           {hasSuccessfulUpload && (
-            <div className="mb-4 md:mb-5 lg:mb-6 p-4 rounded-xl border border-[#2A2E37] bg-[#1B1E24] slide-in-up">
+            <div className="mb-4 md:mb-5 lg:mb-6 p-4 rounded-xl border border-[#2A2E37] bg-[#1B1E24]">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-6">
                   <div>
@@ -375,12 +778,23 @@ const Upload = () => {
                       {files.find(f => f.status === "success")?.headers?.join(', ') || 'email, name, company, tags'}
                     </p>
                   </div>
+                  <div>
+                    <p className="text-xs text-[#6B727C]">Template</p>
+                    <p className="text-sm font-medium text-[#FF6A39]" style={{ fontFamily: FONT.display }}>
+                      {selectedTemplate ? templates.find(t => t.id === selectedTemplate)?.name || 'Selected' : 'Not selected'}
+                    </p>
+                  </div>
                 </div>
                 <button
                   onClick={handleStartCampaign}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-[#FF6A39] hover:bg-[#e85a2c] text-white rounded-lg font-semibold transition-colors text-sm"
+                  className={`flex items-center gap-2 px-6 py-2.5 text-white rounded-lg font-semibold transition-colors text-sm ${
+                    selectedTemplate 
+                      ? 'bg-[#FF6A39] hover:bg-[#e85a2c] cursor-pointer' 
+                      : 'bg-[#2A2E37] cursor-not-allowed opacity-50'
+                  }`}
+                  disabled={!selectedTemplate}
                 >
-                  <span>Continue to Campaign Setup</span>
+                  <span>{selectedTemplate ? 'Continue to Campaign Setup' : 'Select Template First'}</span>
                   <ArrowRight size={18} />
                 </button>
               </div>
