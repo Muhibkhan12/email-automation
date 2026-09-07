@@ -1,7 +1,6 @@
 // AdminCampaigns.tsx
 import React, { useState, useMemo, useContext } from "react";
 import { CampaignContext } from "../../contexts/CampaignContext";
-
 import AdminSidebar from "./AdminSidebar";
 import {
   Megaphone,
@@ -16,7 +15,6 @@ import {
   PauseCircle,
   AlertCircle,
   Menu,
-  X,
 } from "lucide-react";
 import {
   AreaChart,
@@ -29,16 +27,37 @@ import {
 } from "recharts";
 
 /* ---------------------------------------------------------------------- */
-/*  Types — mirrors CampaignContext's Campaign shape                       */
-/*  (ideally import this from the context file instead of redeclaring —   */
-/*  export `Campaign` there so the two never drift apart)                  */
+/*  Types                                                                  */
 /* ---------------------------------------------------------------------- */
+
+type CampaignStatus = 
+  | "DRAFT" 
+  | "READY" 
+  | "RUNNING" 
+  | "PAUSED" 
+  | "COMPLETED" 
+  | "CANCELLED";
+
+interface Campaign {
+  id: number;
+  campaign_name: string;
+  subject: string;
+  status: CampaignStatus;
+  template_id: number;
+  sender_account_id: number;
+  created_at: string;
+  updated_at: string;
+}
 
 interface StatusStyleConfig {
   bg: string;
   fg: string;
   icon: React.ElementType;
 }
+
+/* ---------------------------------------------------------------------- */
+/*  Styles & Data                                                          */
+/* ---------------------------------------------------------------------- */
 
 const STATUS_STYLE: Record<CampaignStatus, StatusStyleConfig> = {
   DRAFT: { bg: "bg-slate-500/15", fg: "text-slate-400", icon: AlertCircle },
@@ -67,7 +86,7 @@ const RANGE_DAYS: Record<(typeof RANGES)[number], number> = {
 };
 
 /* ---------------------------------------------------------------------- */
-/*  Helpers                                                                 */
+/*  Helpers                                                                */
 /* ---------------------------------------------------------------------- */
 
 const formatDate = (iso: string) =>
@@ -77,7 +96,6 @@ const formatDate = (iso: string) =>
     year: "numeric",
   });
 
-// Buckets campaigns by created_at day, for the trailing `days` window.
 const buildCreationTrend = (campaigns: Campaign[], days: number) => {
   const buckets: { day: string; count: number }[] = [];
   const today = new Date();
@@ -95,11 +113,12 @@ const buildCreationTrend = (campaigns: Campaign[], days: number) => {
 };
 
 /* ---------------------------------------------------------------------- */
-/*  Page                                                                    */
+/*  Page                                                                   */
 /* ---------------------------------------------------------------------- */
 
 const AdminCampaigns = () => {
-  const campaigns = useContext(CampaignContext);
+  const context = useContext(CampaignContext);
+  const campaigns: Campaign[] = context || [];
 
   const [range, setRange] = useState<(typeof RANGES)[number]>(RANGES[0]);
   const [filter, setFilter] = useState<"All" | CampaignStatus>("All");
@@ -110,13 +129,14 @@ const AdminCampaigns = () => {
 
   const days = RANGE_DAYS[range];
 
-  // Campaigns created within the selected range — drives stats, chart, and the table.
+  // Campaigns within range
   const campaignsInRange = useMemo(() => {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
     return campaigns.filter((c) => new Date(c.created_at) >= cutoff);
   }, [campaigns, days]);
 
+  // Stats
   const stats = useMemo(() => {
     const count = (status: CampaignStatus) =>
       campaignsInRange.filter((c) => c.status === status).length;
@@ -129,14 +149,15 @@ const AdminCampaigns = () => {
     ];
   }, [campaignsInRange]);
 
+  // Chart data
   const creationTrend = useMemo(
     () => buildCreationTrend(campaignsInRange, days),
     [campaignsInRange, days]
   );
 
-  // Space out X-axis labels so 30/90-day ranges don't get crowded.
   const tickInterval = Math.max(0, Math.floor(days / 8) - 1);
 
+  // Filtered & Sorted campaigns
   const filteredCampaigns = useMemo(() => {
     let result = campaignsInRange;
 
@@ -252,7 +273,6 @@ const AdminCampaigns = () => {
         {/* Header */}
         <div className="mb-6 md:mb-8 flex flex-wrap items-center justify-between gap-3 md:gap-4">
           <div className="flex items-center gap-3 md:gap-4">
-            {/* Mobile Menu Button */}
             <button
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
@@ -309,7 +329,7 @@ const AdminCampaigns = () => {
           })}
         </div>
 
-        {/* Creation Trend Chart */}
+        {/* Chart */}
         <div className="mb-6 rounded-xl bg-[#171A21] p-3 md:p-4 lg:p-6 border border-[#2A2E37]">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3 md:mb-4">
             <h2 className="text-sm md:text-base lg:text-lg font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
@@ -413,7 +433,7 @@ const AdminCampaigns = () => {
                     onClick={() => toggleSort("campaign_name")}
                   >
                     <span className="flex items-center gap-1">
-                      Campaign <ArrowUpDown size={10} className="md:w-[11px] md:h-[11px]" />
+                      Campaign <ArrowUpDown size={10} />
                     </span>
                   </th>
                   <th
@@ -421,7 +441,7 @@ const AdminCampaigns = () => {
                     onClick={() => toggleSort("status")}
                   >
                     <span className="flex items-center gap-1">
-                      Status <ArrowUpDown size={10} className="md:w-[11px] md:h-[11px]" />
+                      Status <ArrowUpDown size={10} />
                     </span>
                   </th>
                   <th className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Template</th>
@@ -431,7 +451,7 @@ const AdminCampaigns = () => {
                     onClick={() => toggleSort("created_at")}
                   >
                     <span className="flex items-center gap-1">
-                      Created <ArrowUpDown size={10} className="md:w-[11px] md:h-[11px]" />
+                      Created <ArrowUpDown size={10} />
                     </span>
                   </th>
                   <th
@@ -439,7 +459,7 @@ const AdminCampaigns = () => {
                     onClick={() => toggleSort("updated_at")}
                   >
                     <span className="flex items-center gap-1">
-                      Updated <ArrowUpDown size={10} className="md:w-[11px] md:h-[11px]" />
+                      Updated <ArrowUpDown size={10} />
                     </span>
                   </th>
                   <th className="px-2 md:px-3 lg:px-5 py-2 md:py-2.5 lg:py-3 font-medium w-6 md:w-8 lg:w-10" />
@@ -466,7 +486,7 @@ const AdminCampaigns = () => {
                         <span
                           className={`inline-flex items-center gap-1 md:gap-1.5 rounded-full px-1.5 md:px-2 lg:px-2.5 py-0.5 text-[8px] md:text-[9px] lg:text-[11px] font-medium ${statusStyle.bg} ${statusStyle.fg}`}
                         >
-                          <StatusIcon size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />
+                          <StatusIcon size={10} />
                           <span className="hidden xs:inline">{campaign.status}</span>
                           <span className="xs:hidden">{campaign.status.charAt(0)}</span>
                         </span>
@@ -485,7 +505,7 @@ const AdminCampaigns = () => {
                       </td>
                       <td className="px-2 md:px-3 lg:px-5 py-2.5 md:py-3 lg:py-3.5 text-right">
                         <button className="text-[#8B8D94] hover:text-[#E8E6E1] transition">
-                          <MoreHorizontal size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
+                          <MoreHorizontal size={12} />
                         </button>
                       </td>
                     </tr>

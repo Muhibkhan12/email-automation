@@ -9,6 +9,9 @@ export interface Campaign {
     created_at : string;
     updated_at : string;
 }
+export interface CampaignStatus{
+    status : | "DRAFT" | "READY" | "RUNNING" | "PAUSED" | "COMPLETED" | "CANCELLED";
+}
 
 export interface CreateCampaignData {
     campaign_name: string;
