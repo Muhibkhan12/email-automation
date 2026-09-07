@@ -13,30 +13,9 @@ const FONT = {
   mono: "'JetBrains Mono', monospace",
 };
 
-type UploadStatus = "uploading" | "processing" | "success" | "error";
 
-interface UploadFile {
-  id: string;
-  name: string;
-  size: string;
-  progress: number;
-  status: UploadStatus;
-  rows?: number;
-  errorMsg?: string;
-  fileData?: any; // Store parsed file data
-  headers?: string[];
-  preview?: any[];
-}
+import type{ UploadFile, RecentUpload } from "../../types/UploadTypes";
 
-interface RecentUpload {
-  id: string;
-  name: string;
-  rows: number;
-  addedCount: number;
-  skippedCount: number;
-  uploadedAt: string;
-  status: "Completed" | "Failed";
-}
 
 const recentUploads: RecentUpload[] = [
   { id: "u1", name: "leads_aug.csv", rows: 1204, addedCount: 1168, skippedCount: 36, uploadedAt: "Today, 7:10 AM", status: "Completed" },
