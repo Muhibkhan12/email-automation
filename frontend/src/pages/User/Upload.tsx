@@ -13,7 +13,6 @@ const FONT = {
   mono: "'JetBrains Mono', monospace",
 };
 
-
 import type{ UploadFile, RecentUpload } from "../../types/UploadTypes";
 
 
