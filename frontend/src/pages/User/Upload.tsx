@@ -1,8 +1,10 @@
+// Upload.tsx
 import React, { useCallback, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import {
   UploadCloud, FileSpreadsheet, CheckCircle2, XCircle, Loader2,
-  X, Info, ChevronRight, Menu,
+  X, Info, ChevronRight, Menu, ArrowRight, AlertCircle
 } from "lucide-react";
 
 const FONT = {
@@ -21,6 +23,9 @@ interface UploadFile {
   status: UploadStatus;
   rows?: number;
   errorMsg?: string;
+  fileData?: any; // Store parsed file data
+  headers?: string[];
+  preview?: any[];
 }
 
 interface RecentUpload {
@@ -43,12 +48,39 @@ const recentUploads: RecentUpload[] = [
 let idCounter = 0;
 
 const Upload = () => {
+  const navigate = useNavigate();
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [uploadComplete, setUploadComplete] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const simulateUpload = (file: UploadFile) => {
+  // Simulate file parsing and validation
+  const parseFile = (file: UploadFile): Promise<any> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // Simulate parsing CSV/Excel
+        const headers = ['email', 'name', 'company', 'tags'];
+        const rowCount = Math.floor(Math.random() * 3000) + 200;
+        const preview = Array.from({ length: 5 }, (_, i) => ({
+          email: `user${i+1}@example.com`,
+          name: `User ${i+1}`,
+          company: `Company ${i+1}`,
+          tags: 'tag1, tag2'
+        }));
+        
+        resolve({
+          headers,
+          rows: rowCount,
+          preview,
+          data: preview // In real app, this would be full data
+        });
+      }, 1500);
+    });
+  };
+
+  const simulateUpload = async (file: UploadFile) => {
+    // Upload progress
     const interval = setInterval(() => {
       setFiles((prev) =>
         prev.map((f) => {
@@ -63,17 +95,40 @@ const Upload = () => {
       );
     }, 350);
 
-    setTimeout(() => {
+    // Parse file after upload
+    setTimeout(async () => {
       clearInterval(interval);
-      setFiles((prev) =>
-        prev.map((f) => {
-          if (f.id !== file.id) return f;
-          const willFail = f.name.toLowerCase().includes("fail");
-          return willFail
-            ? { ...f, status: "error", errorMsg: "Missing required 'email' column" }
-            : { ...f, status: "success", rows: Math.floor(Math.random() * 3000) + 200 };
-        })
-      );
+      try {
+        const parsedData = await parseFile(file);
+        setFiles((prev) =>
+          prev.map((f) => {
+            if (f.id !== file.id) return f;
+            const willFail = f.name.toLowerCase().includes("fail");
+            return willFail
+              ? { ...f, status: "error", errorMsg: "Missing required 'email' column" }
+              : { 
+                  ...f, 
+                  status: "success", 
+                  rows: parsedData.rows,
+                  headers: parsedData.headers,
+                  preview: parsedData.preview,
+                  fileData: parsedData.data
+                };
+          })
+        );
+        
+        // Check if all files are processed
+        setTimeout(() => {
+          setUploadComplete(true);
+        }, 500);
+      } catch (error) {
+        setFiles((prev) =>
+          prev.map((f) => {
+            if (f.id !== file.id) return f;
+            return { ...f, status: "error", errorMsg: "Failed to parse file" };
+          })
+        );
+      }
     }, 2600);
   };
 
@@ -103,12 +158,29 @@ const Upload = () => {
     setFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
+  const handleStartCampaign = () => {
+    const successfulFiles = files.filter(f => f.status === "success");
+    if (successfulFiles.length > 0) {
+      // Store file data in session storage or state management
+      sessionStorage.setItem('uploadedFileData', JSON.stringify(successfulFiles[0]));
+      navigate('/user/campaign');
+    }
+  };
+
+  const hasSuccessfulUpload = files.some(f => f.status === "success");
+
   return (
     <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 1s linear infinite; }
+        
+        @keyframes slideInUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-in-up { animation: slideInUp 0.4s ease-out; }
 
         .mf-main-content::-webkit-scrollbar {
           width: 6px;
@@ -157,28 +229,43 @@ const Upload = () => {
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Main content with scrolling */}
+      {/* Main content */}
       <main className="mf-main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8" style={{ background: "#12151B", height: "100vh", width: "100%" }}>
         <div className="max-w-[1100px] mx-auto">
           {/* Header */}
           <div className="mf-header mb-4 md:mb-5 lg:mb-7">
-            <div className="flex items-center gap-3 md:gap-4">
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
-              >
-                <Menu size={20} />
-              </button>
-              <div>
-                <h1 
-                  style={{ fontFamily: FONT.display, letterSpacing: "-0.01em", color: "#FFFFFF" }} 
-                  className="text-xl md:text-2xl lg:text-3xl font-bold"
+            <div className="flex items-center justify-between gap-3 md:gap-4">
+              <div className="flex items-center gap-3 md:gap-4">
+                {/* Mobile Menu Button */}
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
                 >
-                  Upload File
-                </h1>
-                <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm" style={{ color: "#9BA0A8" }}>Import recipients from a CSV or Excel file.</p>
+                  <Menu size={20} />
+                </button>
+                <div>
+                  <h1 
+                    style={{ fontFamily: FONT.display, letterSpacing: "-0.01em", color: "#FFFFFF" }} 
+                    className="text-xl md:text-2xl lg:text-3xl font-bold"
+                  >
+                    Upload File
+                  </h1>
+                  <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm" style={{ color: "#9BA0A8" }}>
+                    Import recipients from a CSV or Excel file.
+                  </p>
+                </div>
               </div>
+              
+              {/* Start Campaign Button - Show when upload complete */}
+              {hasSuccessfulUpload && (
+                <button
+                  onClick={handleStartCampaign}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#FF6A39] hover:bg-[#e85a2c] text-white rounded-lg font-medium transition-colors text-sm"
+                >
+                  <span>Start Campaign</span>
+                  <ArrowRight size={16} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -229,7 +316,7 @@ const Upload = () => {
 
           {/* Active uploads */}
           {files.length > 0 && (
-            <div className="mf-upload-list mb-4 md:mb-5 lg:mb-6 rounded-xl border border-[#2A2E37] bg-[#12151B] shadow-sm overflow-hidden">
+            <div className="mf-upload-list mb-4 md:mb-5 lg:mb-6 rounded-xl border border-[#2A2E37] bg-[#12151B] shadow-sm overflow-hidden slide-in-up">
               <div className="px-3 md:px-4 lg:px-5 py-2.5 md:py-3 lg:py-4 border-b border-[#2A2E37]">
                 <h2 style={{ fontFamily: FONT.display }} className="text-[10px] md:text-xs lg:text-sm font-semibold text-[#E8E6E1]">
                   Uploading {files.length} {files.length === 1 ? "file" : "files"}
@@ -283,6 +370,41 @@ const Upload = () => {
                     </button>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* File Stats Summary - Show when upload successful */}
+          {hasSuccessfulUpload && (
+            <div className="mb-4 md:mb-5 lg:mb-6 p-4 rounded-xl border border-[#2A2E37] bg-[#1B1E24] slide-in-up">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-6">
+                  <div>
+                    <p className="text-xs text-[#6B727C]">Total Recipients</p>
+                    <p className="text-xl font-bold text-white" style={{ fontFamily: FONT.display }}>
+                      {files.filter(f => f.status === "success").reduce((acc, f) => acc + (f.rows || 0), 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-[#6B727C]">Files Uploaded</p>
+                    <p className="text-xl font-bold text-white" style={{ fontFamily: FONT.display }}>
+                      {files.filter(f => f.status === "success").length}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-[#6B727C]">Valid Columns</p>
+                    <p className="text-sm font-medium text-[#34D399]" style={{ fontFamily: FONT.mono }}>
+                      {files.find(f => f.status === "success")?.headers?.join(', ') || 'email, name, company, tags'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleStartCampaign}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-[#FF6A39] hover:bg-[#e85a2c] text-white rounded-lg font-semibold transition-colors text-sm"
+                >
+                  <span>Continue to Campaign Setup</span>
+                  <ArrowRight size={18} />
+                </button>
               </div>
             </div>
           )}

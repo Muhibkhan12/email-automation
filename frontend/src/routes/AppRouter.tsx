@@ -29,6 +29,7 @@ import AdminEmailLogs from "../pages/Admin/AdminEmaillogs";
 import AdminQueueMonitor from "../pages/Admin/AdminQueuemonitor";
 import AdminSettings from "../pages/Admin/AdminSettings";
 import AdminSenderAccounts from "../pages/Admin/AdminSenderAccount";
+import { UserProvider } from "../contexts/UsersContext";
 
 // ================= ROUTE GUARDS =================
 import UserRoute from "./UserRoutes";
@@ -166,7 +167,9 @@ const AppRouter = () => {
 
           <Route
             path="users"
-            element={<AdminUsers />}
+            element={<UserProvider>
+                <AdminUsers />
+              </UserProvider>}
           />
 
           <Route

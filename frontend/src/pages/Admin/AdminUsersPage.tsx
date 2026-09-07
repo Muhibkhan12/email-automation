@@ -54,342 +54,414 @@ const SenderAccountCard = ({ account }: { account: SenderAccountItem }) => {
   );
 };
 
-const AdminUsers = () => {
-  const context = useContext(UsersContext);
-  
-  // Better error handling with console log
-  if (!context) {
-    console.error("AdminUsers: Context is undefined - make sure component is wrapped in UserProvider");
-    throw new Error("AdminUsers must be rendered inside a <UserProvider>");
+// Error Boundary Component
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
   }
-  
-  const { usersWithSenderAccounts, loading, fetchUserWithSenderAccounts } = context;
 
-  // Debug: Log the context values
-  console.log("AdminUsers - Context:", { 
-    usersWithSenderAccounts, 
-    loading, 
-    hasFetchFunction: !!fetchUserWithSenderAccounts 
-  });
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
 
-  useEffect(() => {
-    console.log("AdminUsers: Fetching users with sender accounts...");
-    fetchUserWithSenderAccounts();
-  }, []); // Empty dependency array - only run once on mount
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("AdminUsers ErrorBoundary caught:", error, errorInfo);
+  }
 
-  const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("All");
-  const [sortField, setSortField] = useState<keyof UserWithSenderAccounts>("username");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [selectedUsers, setSelectedUsers] = useState<Set<number>>(new Set());
-  const [expandedUsers, setExpandedUsers] = useState<Set<number>>(new Set());
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[#0E1013] p-8 flex items-center justify-center">
+          <div className="bg-[#171A21] border border-[#2A2E37] rounded-xl p-6 max-w-2xl w-full">
+            <h2 className="text-red-400 text-xl font-bold mb-4">Something went wrong</h2>
+            <div className="bg-[#0E1013] p-4 rounded-lg mb-4">
+              <p className="text-[#E8E6E1] font-mono text-sm">{this.state.error?.message}</p>
+            </div>
+            <details className="text-[#8B8D94] text-sm">
+              <summary className="cursor-pointer hover:text-[#E8E6E1]">Stack Trace</summary>
+              <pre className="mt-2 p-4 bg-[#0E1013] rounded-lg overflow-auto text-xs">
+                {this.state.error?.stack}
+              </pre>
+            </details>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
-  const users = usersWithSenderAccounts || []; // Ensure it's always an array
+const AdminUsers = () => {
+  console.log("🚀 AdminUsers component rendering...");
 
-  // Debug: Log users data
-  console.log("AdminUsers - Users data:", users);
-  console.log("AdminUsers - Number of users:", users.length);
+  try {
+    const context = useContext(UsersContext);
+    console.log("📦 Context received:", context);
 
-  const totalSenderAccounts = useMemo(
-    () => users.reduce((sum, u) => sum + (u.senderAccount?.length ?? 0), 0),
-    [users]
-  );
-  
-  const connectedSenderAccounts = useMemo(
-    () =>
-      users.reduce(
-        (sum, u) => sum + (u.senderAccount ?? []).filter((a) => getSenderStatus(a.status) === "Connected").length,
-        0
-      ),
-    [users]
-  );
-
-  const filteredUsers = useMemo(() => {
-    let result = [...users];
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter((u) => {
-        const username = u.username?.toLowerCase() ?? "";
-        const email = u.email?.toLowerCase() ?? "";
-        const senderMatch = u.senderAccount?.some((a) => a.email?.toLowerCase().includes(q)) ?? false;
-        return username.includes(q) || email.includes(q) || senderMatch;
-      });
+    if (!context) {
+      console.error("❌ Context is undefined!");
+      return (
+        <div className="min-h-screen bg-[#0E1013] p-8 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-red-400 text-lg font-bold">Context Error</p>
+            <p className="text-[#8B8D94] mt-2">AdminUsers must be rendered inside a &lt;UserProvider&gt;</p>
+          </div>
+        </div>
+      );
     }
 
-    if (roleFilter !== "All") {
-      result = result.filter((u) => u.role === roleFilter);
-    }
-
-    result.sort((a, b) => {
-      const cmp = String(a[sortField] ?? "").localeCompare(String(b[sortField] ?? ""));
-      return sortDirection === "asc" ? cmp : -cmp;
+    const { usersWithSenderAccounts, loading, fetchUserWithSenderAccounts } = context;
+    console.log("📊 Context values:", { 
+      usersWithSenderAccounts: usersWithSenderAccounts?.length ?? 0, 
+      loading, 
+      hasFetch: !!fetchUserWithSenderAccounts 
     });
 
-    return result;
-  }, [users, search, roleFilter, sortField, sortDirection]);
+    useEffect(() => {
+      console.log("🔄 Fetching users with sender accounts...");
+      fetchUserWithSenderAccounts()
+        .then(() => console.log("✅ Fetch completed successfully"))
+        .catch((err) => console.error("❌ Fetch failed:", err));
+    }, []);
 
-  const toggleSort = (field: keyof UserWithSenderAccounts) => {
-    if (sortField === field) {
-      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortDirection("asc");
-    }
-  };
+    const [search, setSearch] = useState("");
+    const [roleFilter, setRoleFilter] = useState("All");
+    const [sortField, setSortField] = useState<keyof UserWithSenderAccounts>("username");
+    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+    const [selectedUsers, setSelectedUsers] = useState<Set<number>>(new Set());
+    const [expandedUsers, setExpandedUsers] = useState<Set<number>>(new Set());
 
-  const toggleInSet = (set: Set<number>, id: number) => {
-    const next = new Set(set);
-    next.has(id) ? next.delete(id) : next.add(id);
-    return next;
-  };
+    const users = Array.isArray(usersWithSenderAccounts) ? usersWithSenderAccounts : [];
+    console.log(`👥 Users loaded: ${users.length}`);
 
-  const toggleUserSelection = (id: number) => setSelectedUsers((prev) => toggleInSet(prev, id));
-  const toggleExpanded = (id: number) => setExpandedUsers((prev) => toggleInSet(prev, id));
-
-  const toggleAllUsers = () => {
-    setSelectedUsers(
-      selectedUsers.size === filteredUsers.length ? new Set() : new Set(filteredUsers.map((u) => u.id))
+    const totalSenderAccounts = useMemo(
+      () => users.reduce((sum, u) => sum + (u.senderAccount?.length ?? 0), 0),
+      [users]
     );
-  };
 
-  const stats: Stat[] = [
-    { title: "Total Users", value: users.length.toString(), accent: "#FF6A39" },
-    { title: "Sender Accounts", value: `${connectedSenderAccounts}/${totalSenderAccounts}`, note: "connected", accent: "#4FA3FF" },
-  ];
-
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0E1013] p-4 md:p-6 lg:p-8 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-sm text-[#8B8D94]">Loading users…</p>
-          <p className="text-xs text-[#5C5F68] mt-2">Please wait while we fetch user data</p>
-        </div>
-      </div>
+    const connectedSenderAccounts = useMemo(
+      () =>
+        users.reduce(
+          (sum, u) => sum + (u.senderAccount ?? []).filter((a) => getSenderStatus(a.status) === "Connected").length,
+          0
+        ),
+      [users]
     );
-  }
 
-  // Show empty state if no users
-  if (users.length === 0 && !loading) {
-    return (
-      <div className="min-h-screen bg-[#0E1013] p-4 md:p-6 lg:p-8 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-sm text-[#8B8D94]">No users found</p>
-          <p className="text-xs text-[#5C5F68] mt-2">Try adding some users or check your API connection</p>
-          <button 
-            onClick={() => fetchUserWithSenderAccounts()}
-            className="mt-4 rounded-lg bg-[#FF6A39] px-4 py-2 text-sm font-medium text-white hover:bg-[#e85a2c] transition"
-          >
-            Retry Fetch
-          </button>
-        </div>
-      </div>
-    );
-  }
+    const filteredUsers = useMemo(() => {
+      let result = [...users];
 
-  return (
-    <div className="min-h-screen bg-[#0E1013] p-4 md:p-6 lg:p-8">
-      {/* Header */}
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#E8E6E1]">Users</h1>
-            <span className="rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-[#FF6A39]/15 text-[#FF6A39]">
-              Admin View
-            </span>
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        result = result.filter((u) => {
+          const username = u.username?.toLowerCase() ?? "";
+          const email = u.email?.toLowerCase() ?? "";
+          const senderMatch = u.senderAccount?.some((a) => a.email?.toLowerCase().includes(q)) ?? false;
+          return username.includes(q) || email.includes(q) || senderMatch;
+        });
+      }
+
+      if (roleFilter !== "All") {
+        result = result.filter((u) => u.role === roleFilter);
+      }
+
+      result.sort((a, b) => {
+        const cmp = String(a[sortField] ?? "").localeCompare(String(b[sortField] ?? ""));
+        return sortDirection === "asc" ? cmp : -cmp;
+      });
+
+      return result;
+    }, [users, search, roleFilter, sortField, sortDirection]);
+
+    const toggleSort = (field: keyof UserWithSenderAccounts) => {
+      if (sortField === field) {
+        setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+      } else {
+        setSortField(field);
+        setSortDirection("asc");
+      }
+    };
+
+    const toggleInSet = (set: Set<number>, id: number) => {
+      const next = new Set(set);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    };
+
+    const toggleUserSelection = (id: number) => setSelectedUsers((prev) => toggleInSet(prev, id));
+    const toggleExpanded = (id: number) => setExpandedUsers((prev) => toggleInSet(prev, id));
+
+    const toggleAllUsers = () => {
+      setSelectedUsers(
+        selectedUsers.size === filteredUsers.length ? new Set() : new Set(filteredUsers.map((u) => u.id))
+      );
+    };
+
+    const stats: Stat[] = [
+      { title: "Total Users", value: users.length.toString(), accent: "#FF6A39" },
+      { title: "Sender Accounts", value: `${connectedSenderAccounts}/${totalSenderAccounts}`, note: "connected", accent: "#4FA3FF" },
+    ];
+
+    if (loading) {
+      return (
+        <div className="min-h-screen bg-[#0E1013] p-4 md:p-6 lg:p-8 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-sm text-[#8B8D94]">Loading users…</p>
+            <p className="text-xs text-[#5C5F68] mt-2">Please wait while we fetch user data</p>
           </div>
-          <p className="mt-1 text-sm text-[#8B8D94]">Manage users and the sender accounts they send campaigns from.</p>
         </div>
-        <button className="rounded-lg bg-[#FF6A39] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#e85a2c] transition">
-          Add User
-        </button>
-      </div>
+      );
+    }
 
-      {/* Stats */}
-      <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-5">
-        {stats.map((stat) => (
-          <StatCard key={stat.title} stat={stat} />
-        ))}
-      </div>
-
-      {/* Filters */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-          <input
-            placeholder="Search users..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 py-2 text-sm outline-none text-[#C7C9CE] focus:border-[#FF6A39] transition w-[200px] placeholder:text-[#8B8D94]"
-          />
-
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 py-2 text-sm text-[#C7C9CE] outline-none focus:border-[#FF6A39]"
-          >
-            {ROLES.map((r) => (
-              <option key={r}>{r}</option>
-            ))}
-          </select>
-        </div>
-
-        {selectedUsers.size > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-[#8B8D94]">{selectedUsers.size} selected</span>
-            <button className="rounded-lg border border-rose-500/30 px-3 py-1.5 text-xs font-medium text-rose-400 hover:bg-rose-500/10 transition">
-              Remove
+    if (users.length === 0 && !loading) {
+      return (
+        <div className="min-h-screen bg-[#0E1013] p-4 md:p-6 lg:p-8 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-sm text-[#8B8D94]">No users found</p>
+            <p className="text-xs text-[#5C5F68] mt-2">Try adding some users or check your API connection</p>
+            <button
+              onClick={() => fetchUserWithSenderAccounts()}
+              className="mt-4 rounded-lg bg-[#FF6A39] px-4 py-2 text-sm font-medium text-white hover:bg-[#e85a2c] transition"
+            >
+              Retry Fetch
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      );
+    }
 
-      {/* Table */}
-      <div className="rounded-xl bg-[#171A21] border border-[#2A2E37] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[780px]">
-            <thead className="text-[11px] uppercase tracking-wide text-[#8B8D94] border-b border-[#2A2E37]">
-              <tr>
-                <th className="px-5 py-3 font-medium w-10">
-                  <input
-                    type="checkbox"
-                    checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0}
-                    onChange={toggleAllUsers}
-                    className="rounded border-[#2A2E37] bg-[#0E1013] accent-[#FF6A39]"
-                  />
-                </th>
-                <th className="px-3 py-3 font-medium cursor-pointer hover:text-[#E8E6E1] transition" onClick={() => toggleSort("username")}>
-                  User {sortField === "username" ? (sortDirection === "asc" ? "(asc)" : "(desc)") : ""}
-                </th>
-                <th className="px-3 py-3 font-medium cursor-pointer hover:text-[#E8E6E1] transition" onClick={() => toggleSort("role")}>
-                  Role {sortField === "role" ? (sortDirection === "asc" ? "(asc)" : "(desc)") : ""}
-                </th>
-                <th className="px-3 py-3 font-medium">Sender Accounts</th>
-                <th className="px-3 py-3 font-medium">Campaigns</th>
-                <th
-                  className="px-3 py-3 font-medium cursor-pointer hover:text-[#E8E6E1] transition"
-                  onClick={() => toggleSort("created_at")}
-                >
-                  Created {sortField === "created_at" ? (sortDirection === "asc" ? "(asc)" : "(desc)") : ""}
-                </th>
-                <th className="px-5 py-3 font-medium w-10" />
-              </tr>
-            </thead>
+    return (
+      <div className="min-h-screen bg-[#0E1013] p-4 md:p-6 lg:p-8">
+        {/* Header */}
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#E8E6E1]">Users</h1>
+              <span className="rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-[#FF6A39]/15 text-[#FF6A39]">
+                Admin View
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-[#8B8D94]">Manage users and the sender accounts they send campaigns from.</p>
+          </div>
+          <button className="rounded-lg bg-[#FF6A39] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#e85a2c] transition">
+            Add User
+          </button>
+        </div>
 
-            <tbody>
-              {filteredUsers.map((user) => {
-                const roleStyle = roleColors[user.role] ?? roleColors.EMPLOYEE;
-                const accounts = user.senderAccount ?? [];
-                const isExpanded = expandedUsers.has(user.id);
-                const connectedCount = accounts.filter((a) => getSenderStatus(a.status) === "Connected").length;
-                const needsAttention = accounts.some((a) => {
-                  const s = getSenderStatus(a.status);
-                  return s === "Warning" || s === "Error";
-                });
+        {/* Stats */}
+        <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-5">
+          {stats.map((stat) => (
+            <StatCard key={stat.title} stat={stat} />
+          ))}
+        </div>
 
-                return (
-                  <React.Fragment key={user.id}>
-                    <tr className={`group transition border-t border-[#2A2E37] hover:bg-[#1B1E24] ${selectedUsers.has(user.id) ? "bg-[#1B1E24]" : ""}`}>
-                      <td className="px-5 py-3.5">
-                        <input
-                          type="checkbox"
-                          checked={selectedUsers.has(user.id)}
-                          onChange={() => toggleUserSelection(user.id)}
-                          className="rounded border-[#2A2E37] bg-[#0E1013] accent-[#FF6A39]"
-                        />
-                      </td>
+        {/* Filters */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+            <input
+              placeholder="Search users..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 py-2 text-sm outline-none text-[#C7C9CE] focus:border-[#FF6A39] transition w-[200px] placeholder:text-[#8B8D94]"
+            />
 
-                      <td className="px-3 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FF6A39]/20 text-[#FF6A39] text-sm font-semibold shrink-0">
-                            {user.username?.charAt(0).toUpperCase()}
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 py-2 text-sm text-[#C7C9CE] outline-none focus:border-[#FF6A39]"
+            >
+              {ROLES.map((r) => (
+                <option key={r}>{r}</option>
+              ))}
+            </select>
+          </div>
+
+          {selectedUsers.size > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#8B8D94]">{selectedUsers.size} selected</span>
+              <button className="rounded-lg border border-rose-500/30 px-3 py-1.5 text-xs font-medium text-rose-400 hover:bg-rose-500/10 transition">
+                Remove
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Table */}
+        <div className="rounded-xl bg-[#171A21] border border-[#2A2E37] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left min-w-[780px]">
+              <thead className="text-[11px] uppercase tracking-wide text-[#8B8D94] border-b border-[#2A2E37]">
+                <tr>
+                  <th className="px-5 py-3 font-medium w-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0}
+                      onChange={toggleAllUsers}
+                      className="rounded border-[#2A2E37] bg-[#0E1013] accent-[#FF6A39]"
+                    />
+                  </th>
+                  <th className="px-3 py-3 font-medium cursor-pointer hover:text-[#E8E6E1] transition" onClick={() => toggleSort("username")}>
+                    User {sortField === "username" ? (sortDirection === "asc" ? "(asc)" : "(desc)") : ""}
+                  </th>
+                  <th className="px-3 py-3 font-medium cursor-pointer hover:text-[#E8E6E1] transition" onClick={() => toggleSort("role")}>
+                    Role {sortField === "role" ? (sortDirection === "asc" ? "(asc)" : "(desc)") : ""}
+                  </th>
+                  <th className="px-3 py-3 font-medium">Sender Accounts</th>
+                  <th className="px-3 py-3 font-medium">Campaigns</th>
+                  <th
+                    className="px-3 py-3 font-medium cursor-pointer hover:text-[#E8E6E1] transition"
+                    onClick={() => toggleSort("created_at")}
+                  >
+                    Created {sortField === "created_at" ? (sortDirection === "asc" ? "(asc)" : "(desc)") : ""}
+                  </th>
+                  <th className="px-5 py-3 font-medium w-10" />
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredUsers.map((user) => {
+                  const roleStyle = roleColors[user.role] ?? roleColors.EMPLOYEE;
+                  const accounts = user.senderAccount ?? [];
+                  const isExpanded = expandedUsers.has(user.id);
+                  const connectedCount = accounts.filter((a) => getSenderStatus(a.status) === "Connected").length;
+                  const needsAttention = accounts.some((a) => {
+                    const s = getSenderStatus(a.status);
+                    return s === "Warning" || s === "Error";
+                  });
+
+                  return (
+                    <React.Fragment key={user.id}>
+                      <tr className={`group transition border-t border-[#2A2E37] hover:bg-[#1B1E24] ${selectedUsers.has(user.id) ? "bg-[#1B1E24]" : ""}`}>
+                        <td className="px-5 py-3.5">
+                          <input
+                            type="checkbox"
+                            checked={selectedUsers.has(user.id)}
+                            onChange={() => toggleUserSelection(user.id)}
+                            className="rounded border-[#2A2E37] bg-[#0E1013] accent-[#FF6A39]"
+                          />
+                        </td>
+
+                        <td className="px-3 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FF6A39]/20 text-[#FF6A39] text-sm font-semibold shrink-0">
+                              {user.username?.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[13.5px] font-medium text-[#E8E6E1] truncate">{user.username}</p>
+                              <p className="text-[11px] text-[#8B8D94] truncate">{user.email}</p>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-[13.5px] font-medium text-[#E8E6E1] truncate">{user.username}</p>
-                            <p className="text-[11px] text-[#8B8D94] truncate">{user.email}</p>
-                          </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="px-3 py-3.5">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${roleStyle.bg} ${roleStyle.text}`}>
-                          {user.role}
-                        </span>
-                      </td>
+                        <td className="px-3 py-3.5">
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${roleStyle.bg} ${roleStyle.text}`}>
+                            {user.role}
+                          </span>
+                        </td>
 
-                      <td className="px-3 py-3.5">
-                        {accounts.length > 0 ? (
-                          <button
-                            onClick={() => toggleExpanded(user.id)}
-                            aria-expanded={isExpanded}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#2A2E37] bg-[#0E1013] px-2.5 py-1.5 text-xs text-[#C7C9CE] hover:border-[#3A3F4A] hover:text-[#E8E6E1] transition"
-                          >
-                            {connectedCount}/{accounts.length}
-                            {needsAttention && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />}
-                            {isExpanded ? "Hide" : "Show"}
-                          </button>
-                        ) : (
-                          <span className="text-xs text-[#FF6A39] font-medium">No sender accounts attached</span>
-                        )}
-                      </td>
+                        <td className="px-3 py-3.5">
+                          {accounts.length > 0 ? (
+                            <button
+                              onClick={() => toggleExpanded(user.id)}
+                              aria-expanded={isExpanded}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-[#2A2E37] bg-[#0E1013] px-2.5 py-1.5 text-xs text-[#C7C9CE] hover:border-[#3A3F4A] hover:text-[#E8E6E1] transition"
+                            >
+                              {connectedCount}/{accounts.length}
+                              {needsAttention && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />}
+                              {isExpanded ? "Hide" : "Show"}
+                            </button>
+                          ) : (
+                            <span className="text-xs text-[#FF6A39] font-medium">No sender accounts attached</span>
+                          )}
+                        </td>
 
-                      <td className="px-3 py-3.5 text-[13px] text-[#C7C9CE]">—</td>
+                        <td className="px-3 py-3.5 text-[13px] text-[#C7C9CE]">—</td>
 
-                      <td className="px-3 py-3.5">
-                        <span className="text-xs text-[#8B8D94]">{new Date(user.created_at).toLocaleDateString()}</span>
-                      </td>
+                        <td className="px-3 py-3.5">
+                          <span className="text-xs text-[#8B8D94]">{new Date(user.created_at).toLocaleDateString()}</span>
+                        </td>
 
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity text-xs">
-                          <button className="text-[#8B8D94] hover:text-[#E8E6E1] transition">Edit</button>
-                          <button className="text-[#8B8D94] hover:text-[#E8E6E1] transition">Reset</button>
-                          <button className="text-[#8B8D94] hover:text-[#E8E6E1] transition">More</button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    {isExpanded && accounts.length > 0 && (
-                      <tr className="border-t border-[#2A2E37] bg-[#12141A]">
-                        <td colSpan={7} className="px-6 py-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                            {accounts.map((account) => (
-                              <SenderAccountCard key={account.id} account={account} />
-                            ))}
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity text-xs">
+                            <button className="text-[#8B8D94] hover:text-[#E8E6E1] transition">Edit</button>
+                            <button className="text-[#8B8D94] hover:text-[#E8E6E1] transition">Reset</button>
+                            <button className="text-[#8B8D94] hover:text-[#E8E6E1] transition">More</button>
                           </div>
                         </td>
                       </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })}
 
-              {filteredUsers.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-sm text-[#8B8D94]">
-                    No users found matching your filters.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                      {isExpanded && accounts.length > 0 && (
+                        <tr className="border-t border-[#2A2E37] bg-[#12141A]">
+                          <td colSpan={7} className="px-6 py-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                              {accounts.map((account) => (
+                                <SenderAccountCard key={account.id} account={account} />
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
 
-        {/* Pagination */}
-        <div className="flex flex-wrap items-center justify-between gap-2 p-5 border-t border-[#2A2E37]">
-          <span className="text-xs text-[#8B8D94]">
-            Showing {filteredUsers.length} of {users.length} users
-          </span>
-          <div className="flex items-center gap-1.5">
-            <button className="px-3 py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-xs hover:bg-[#1B1E24] transition">Prev</button>
-            <button className="px-3 py-1.5 rounded-lg bg-[#FF6A39] text-white text-xs font-medium">1</button>
-            <button className="px-3 py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-xs hover:bg-[#1B1E24] transition">2</button>
-            <button className="px-3 py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-xs hover:bg-[#1B1E24] transition">3</button>
-            <button className="px-3 py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-xs hover:bg-[#1B1E24] transition">Next</button>
+                {filteredUsers.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-12 text-center text-sm text-[#8B8D94]">
+                      No users found matching your filters.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-5 border-t border-[#2A2E37]">
+            <span className="text-xs text-[#8B8D94]">
+              Showing {filteredUsers.length} of {users.length} users
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button className="px-3 py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-xs hover:bg-[#1B1E24] transition">Prev</button>
+              <button className="px-3 py-1.5 rounded-lg bg-[#FF6A39] text-white text-xs font-medium">1</button>
+              <button className="px-3 py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-xs hover:bg-[#1B1E24] transition">2</button>
+              <button className="px-3 py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-xs hover:bg-[#1B1E24] transition">3</button>
+              <button className="px-3 py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-xs hover:bg-[#1B1E24] transition">Next</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  } catch (error) {
+    console.error("🔥 Critical error in AdminUsers:", error);
+    return (
+      <div className="min-h-screen bg-[#0E1013] p-8 flex items-center justify-center">
+        <div className="bg-[#171A21] border border-[#2A2E37] rounded-xl p-6 max-w-2xl w-full">
+          <h2 className="text-red-400 text-xl font-bold mb-4">Component Error</h2>
+          <div className="bg-[#0E1013] p-4 rounded-lg mb-4">
+            <p className="text-[#E8E6E1] font-mono text-sm">{String(error)}</p>
+          </div>
+          <details className="text-[#8B8D94] text-sm">
+            <summary className="cursor-pointer hover:text-[#E8E6E1]">Details</summary>
+            <pre className="mt-2 p-4 bg-[#0E1013] rounded-lg overflow-auto text-xs">
+              {error instanceof Error ? error.stack : String(error)}
+            </pre>
+          </details>
+        </div>
+      </div>
+    );
+  }
 };
 
-export default AdminUsers;
+// Export wrapped with ErrorBoundary
+const AdminUsersWithErrorBoundary = () => (
+  <ErrorBoundary>
+    <AdminUsers />
+  </ErrorBoundary>
+);
+
+export default AdminUsersWithErrorBoundary;
