@@ -20,8 +20,6 @@ class UserWithSenderAccountsResponse(BaseModel):
     model_config = {  
         "from_attribute" : True
     }
-    
-
 class LoginSchema(BaseModel):
     email : EmailStr
     password : str

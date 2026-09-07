@@ -10,6 +10,7 @@ export interface User{
     created_at : string
     updated_at : string
 }
+
 export interface RegisterUser {
     username : string;
     email : string;

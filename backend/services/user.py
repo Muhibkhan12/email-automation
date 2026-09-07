@@ -1,5 +1,6 @@
 from fastapi import HTTPException, status, Depends
 import asyncio
+from sqlalchemy.orm import selectinload
 
 from sqlalchemy.orm import Session
 # from datetime import datetime
@@ -98,7 +99,11 @@ def getAllUsers(db : Session):
     }
 
 def getAllUserWithSenderAccounts(db: Session):
-    userWithAcc =   db.query(User).selectinload(User.sender_accounts).all() 
+    userWithAcc = (
+        db.query(User)
+        .options(selectinload(User.sender_accounts))
+        .all()
+    )
     return {
         "users" : userWithAcc
     }
