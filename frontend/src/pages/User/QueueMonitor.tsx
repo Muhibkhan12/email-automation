@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  AlertTriangle,
   Pause,
   Play,
   Cpu,
@@ -227,7 +226,7 @@ const QueueMonitor = () => {
       `}</style>
 
       {/* Sidebar - sticky on all screen sizes */}
-      <div className="sticky top-0 h-screen flex-shrink-0">
+      <div className="sticky top-0 h-screen">
         <Sidebar />
       </div>
 
@@ -559,7 +558,7 @@ interface StatCardProps {
   spin?: boolean;
 }
 
-const StatCard = ({ title, value, description, icon: Icon, accent, spin }: StatCardProps) => {
+const StatCard = ({ title, value, description, icon: Icon, accent }: StatCardProps) => {
   const isEmber = title === "Pending Jobs";
   return (
     <div className="mf-stat-card rounded-xl border p-3 md:p-5 shadow-sm transition hover:shadow-md" style={{ borderColor: "#2A2E37", background: "#12151B" }}>
