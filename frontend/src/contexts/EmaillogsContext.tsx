@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { UpdateEmailLogsType, EmailLogs } from '../types/EmaillogsTypes'
-import { getEmaillog, updateEmailLogs } from '../services/EmailLogServices'
+import { addEmailLogs, getEmaillog, updateEmailLogs, getEmaillogById } from '../services/EmailLogServices'
 
 type EmailLogsProviderProps = {
     children: ReactNode;
@@ -8,8 +8,12 @@ type EmailLogsProviderProps = {
 
 interface EmailLogsContextType {
     emaillogs: EmailLogs[];
+    emaillog: EmailLogs | null;
     editEmailLogs: EmailLogs | null;
+    addedEmailLog: EmailLogs | null;
     editLogs: (id: number, data: UpdateEmailLogsType) => Promise<void>;
+    addLogs: (data: EmailLogs) => Promise<void>;
+    fetchEmaillog: (id: number) => Promise<void>;
     loading: boolean;
     error: string | null;
     refetch: () => Promise<void>;
@@ -19,7 +23,9 @@ export const EmailLogsContext = createContext<EmailLogsContextType | undefined>(
 
 const EmailLogsProvider = ({ children }: EmailLogsProviderProps) => {
     const [emaillogs, setEmailLogs] = useState<EmailLogs[]>([]);
+    const [emaillog, setEmailLog] = useState<EmailLogs | null>(null);
     const [editEmailLogs, setEditEmailLogs] = useState<EmailLogs | null>(null);
+    const [addedEmailLog, setAddedEmailLog] = useState<EmailLogs | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -56,12 +62,39 @@ const EmailLogsProvider = ({ children }: EmailLogsProviderProps) => {
         }
     }, []);
 
+    const addLogs = useCallback(async (data: EmailLogs) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const addData = await addEmailLogs(data);
+            setAddedEmailLog(addData);
+            setEmailLogs(prev => [...prev, addData]);
+        } catch (err: any) {
+            setError(err.message || 'Failed to add data');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const fetchEmaillog = useCallback(async (id: number) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const emailLogUsingId = await getEmaillogById(id);
+            setEmailLog(emailLogUsingId);
+        } catch (err: any) {
+            setError(err.message || 'Failed to fetch log');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         fetchEmaillogs();
     }, [fetchEmaillogs]);
 
     return (
-        <EmailLogsContext.Provider value={{ emaillogs, editEmailLogs, editLogs, loading, error, refetch: fetchEmaillogs }}>
+        <EmailLogsContext.Provider value={{ emaillogs, emaillog, editEmailLogs, addedEmailLog, editLogs, addLogs, fetchEmaillog, loading, error, refetch: fetchEmaillogs }}>
             {children}
         </EmailLogsContext.Provider>
     );
