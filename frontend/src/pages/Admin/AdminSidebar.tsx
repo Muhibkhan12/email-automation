@@ -44,7 +44,6 @@ const navGroups = [
     label: 'Management',
     items: [
       { name: 'Campaigns', path: '/admin/campaigns', icon: Megaphone },
-      { name: 'Workspaces', path: '/admin/workspaces', icon: Building2 },
       { name: 'Users', path: '/admin/users', icon: Users },
       { name: 'Templates', path: '/admin/templates', icon: FileText },
     ],
