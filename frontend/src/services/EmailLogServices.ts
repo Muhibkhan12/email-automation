@@ -9,7 +9,7 @@ export const getEmaillogById = async(id : number) => {
     const response = await axios.get(`/email-logs/${id}`)
     return response.data
 }
-export const updateEmailLogs = async(id : number, data : UpdateEmailLogsType):Promise<UpdateEmailLogsType> => {
+export const updateEmailLogs = async (id: number, data: UpdateEmailLogsType): Promise<EmailLogs> => {
     const response = await axios.patch(`/email-logs/update/${id}`, data)
     return response.data
 }
