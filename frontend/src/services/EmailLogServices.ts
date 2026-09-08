@@ -1,5 +1,5 @@
 import axios from "axios"
-import type{EmailLogs,UpdateEmailLogsType} from "../pages/User/EmailLogs";
+import type{ EmailLogs,UpdateEmailLogsType } from "../types/EmaillogsTypes";
 
 export const getEmaillog = async() => {
     const response = await axios.get('/email-logs/');
