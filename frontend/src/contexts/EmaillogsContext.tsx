@@ -1,11 +1,11 @@
 import { createContext,useState,useEffect, type ReactNode } from 'react';
 import type{ UpdateEmailLogsType,EmailLogs } from '../types/EmaillogsTypes'
 import { addEmailLogs,getEmaillog,updateEmailLogs } from '../services/EmailLogServices'
-import { create } from 'axios';
 
 type EmailLogsProvideProps = {
     children : ReactNode;
 }
+
 interface EmailLogsContextType {
     emaillogs: EmailLogs[];
     loading : boolean;
@@ -37,10 +37,10 @@ const EmaillogsProvider = ({ children }: EmailLogsProvideProps)  => {
     }, []);
 
   return (
-    <EmailLogsContext.Provider value={{fetchEmaillogs}}>
+    <EmailLogsContext.Provider value={{ emaillogs, loading, error, refetch : fetchEmaillogs}}>
         {children}
     </EmailLogsContext.Provider>
   );
 }
 
-export default EmaillogsContext
+export default EmaillogsProvider
