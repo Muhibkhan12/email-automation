@@ -1,4 +1,3 @@
-// frontend/src/context/CampaignContext.tsx
 import { createContext, useState, useEffect, useContext, type ReactNode } from "react";
 import { getCampaign } from "../services/CampaignService";
 import type { Campaign } from "../services/CampaignService";
