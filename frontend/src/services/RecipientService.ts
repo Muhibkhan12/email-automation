@@ -1,5 +1,5 @@
 import axios from "axios"
-import { UpdateRecpient } from "../types/RecipientTypes"
+import type{ UpdateRecpient } from "../types/RecipientTypes"
 
 
 export const getRecipientsService = async() => {
