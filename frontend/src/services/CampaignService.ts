@@ -1,5 +1,6 @@
 // frontend/src/services/CampaignService.ts (NOT .tsx)
-import api from "./api";
+import api from "../libs/Axios";
+
 export interface Campaign {
   id: number;
   user_id: number;
