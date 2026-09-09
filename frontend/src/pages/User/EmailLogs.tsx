@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useContext, useMemo, useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
+import { EmailLogsContext } from "../../contexts/EmaillogsContext";
 import {
   Search,
   Download,
@@ -24,8 +25,8 @@ const FONT = {
 
 type EmailStatus = "Sent" | "Delivered" | "Failed" | "Bounced";
 
-interface EmailLog {
-  id: string;
+interface NormalizedLog {
+  id: string | number;
   recipient: string;
   sender: string;
   campaign: string;
@@ -34,81 +35,122 @@ interface EmailLog {
   sentAt: string;
 }
 
-const emailLogs: EmailLog[] = [
-  {
-    id: "LOG-10241",
-    recipient: "john@example.com",
-    sender: "marketing@company.com",
-    campaign: "Summer Promotion",
-    subject: "Summer Sale — 30% Off",
-    status: "Delivered",
-    sentAt: "Today, 04:32 PM",
-  },
-  {
-    id: "LOG-10240",
-    recipient: "sarah@example.com",
-    sender: "sales@company.com",
-    campaign: "Product Launch",
-    subject: "Introducing Our New Product",
-    status: "Sent",
-    sentAt: "Today, 04:29 PM",
-  },
-  {
-    id: "LOG-10239",
-    recipient: "alex@example.com",
-    sender: "hello@company.com",
-    campaign: "August Newsletter",
-    subject: "What's New This Month?",
-    status: "Delivered",
-    sentAt: "Today, 04:21 PM",
-  },
-  {
-    id: "LOG-10238",
-    recipient: "mike@example.com",
-    sender: "marketing@company.com",
-    campaign: "Summer Promotion",
-    subject: "Summer Sale — 30% Off",
-    status: "Failed",
-    sentAt: "Today, 04:18 PM",
-  },
-  {
-    id: "LOG-10237",
-    recipient: "emma@example.com",
-    sender: "sales@company.com",
-    campaign: "Product Launch",
-    subject: "Introducing Our New Product",
-    status: "Bounced",
-    sentAt: "Today, 04:15 PM",
-  },
-];
-
 const PAGE_SIZE = 5;
 
+// EmailLogs.tsx
+const normalizeLog = (log: any): NormalizedLog => {
+    return {
+        id: log.id || 'unknown',
+        recipient: log.recipient_email || `Recipient ${log.recipient_id || ''}`,
+        sender: log.sender_email || `Sender ${log.sender_account_id || ''}`,
+        campaign: log.campaign_name || `Campaign ${log.campaign_id || ''}`,
+        subject: log.subject || 'No Subject',  // You might need to add this to your schema
+        status: (log.status || 'SENT') as EmailStatus,
+        sentAt: log.sent_at || log.created_at || '',
+    };
+};
+
+const formatSentAt = (value: string) => {
+  if (!value) return "—";
+  try {
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return value;
+    return d.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return value;
+  }
+};
+
 const EmailLogs = () => {
+  // Safely get context
+  let ctx;
+  try {
+    ctx = useContext(EmailLogsContext);
+  } catch (error) {
+    console.error("Error accessing context:", error);
+    return (
+      <div className="flex min-h-screen items-center justify-center" style={{ background: "#12151B", color: "#E8E6E1" }}>
+        <div className="text-center p-8">
+          <h2 className="text-xl font-bold text-red-400">Error Loading Page</h2>
+          <p className="mt-2 text-gray-400">Failed to load email logs. Please try again.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!ctx) {
+    return (
+      <div className="flex min-h-screen items-center justify-center" style={{ background: "#12151B", color: "#E8E6E1" }}>
+        <div className="text-center p-8">
+          <h2 className="text-xl font-bold text-yellow-400">Loading...</h2>
+          <p className="mt-2 text-gray-400">Please wait while we load your data.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { emaillogs = [], loading = false, error = null, refetch = () => {} } = ctx;
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [dateFilter, setDateFilter] = useState("All time");
   const [page, setPage] = useState(1);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Safe normalization with error handling
+  const normalizedLogs = useMemo(() => {
+    try {
+      if (!Array.isArray(emaillogs)) {
+        console.log("⚠️ emaillogs is not an array:", emaillogs);
+        return [];
+      }
+      return emaillogs.map(normalizeLog);
+    } catch (error) {
+      console.error("Error normalizing logs:", error);
+      return [];
+    }
+  }, [emaillogs]);
+
   const filteredLogs = useMemo(() => {
-    return emailLogs.filter((log) => {
-      const q = search.toLowerCase();
-      const matchesSearch =
-        log.recipient.toLowerCase().includes(q) ||
-        log.sender.toLowerCase().includes(q) ||
-        log.campaign.toLowerCase().includes(q) ||
-        log.subject.toLowerCase().includes(q);
+    try {
+      return normalizedLogs.filter((log) => {
+        const q = search.toLowerCase();
+        const matchesSearch =
+          log.recipient.toLowerCase().includes(q) ||
+          log.sender.toLowerCase().includes(q) ||
+          log.campaign.toLowerCase().includes(q) ||
+          log.subject.toLowerCase().includes(q);
 
-      const matchesStatus = statusFilter === "All" || log.status === statusFilter;
+        const matchesStatus = statusFilter === "All" || log.status === statusFilter;
 
-      return matchesSearch && matchesStatus;
-    });
-  }, [search, statusFilter]);
+        return matchesSearch && matchesStatus;
+      });
+    } catch (error) {
+      console.error("Error filtering logs:", error);
+      return [];
+    }
+  }, [normalizedLogs, search, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE));
   const paginatedLogs = filteredLogs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const stats = useMemo(() => {
+    try {
+      const total = normalizedLogs.length;
+      const delivered = normalizedLogs.filter((l) => l.status === "Delivered").length;
+      const failed = normalizedLogs.filter((l) => l.status === "Failed").length;
+      const bounced = normalizedLogs.filter((l) => l.status === "Bounced").length;
+      return { total, delivered, failed, bounced };
+    } catch {
+      return { total: 0, delivered: 0, failed: 0, bounced: 0 };
+    }
+  }, [normalizedLogs]);
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
@@ -120,14 +162,50 @@ const EmailLogs = () => {
     setPage(1);
   };
 
-  const handleCopy = (id: string) => {
-    navigator.clipboard?.writeText(id);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 1200);
+  const handleCopy = (id: string | number) => {
+    try {
+      navigator.clipboard?.writeText(String(id));
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1200);
+    } catch {
+      // Silently fail
+    }
   };
 
+  const handleRefresh = async () => {
+    try {
+      await refetch();
+    } catch (error) {
+      console.error("Error refreshing:", error);
+    }
+  };
+
+  // Debug component
+  const DebugData = () => (
+    <div className="mb-4 p-4 rounded-lg border border-yellow-500/30 bg-yellow-500/5">
+      <h3 className="text-yellow-400 font-medium mb-2">🔍 Debug: Data from Database</h3>
+      <div className="text-xs text-yellow-300/70 space-y-1">
+        <p>📊 Is Array? <span className="text-white font-bold">{Array.isArray(emaillogs) ? '✅ Yes' : '❌ No'}</span></p>
+        <p>📊 Total logs: <span className="text-white font-bold">{emaillogs?.length || 0}</span></p>
+        <p>📊 Normalized logs: <span className="text-white font-bold">{normalizedLogs.length}</span></p>
+        <p>⏳ Loading: <span className="text-white">{loading ? 'Yes' : 'No'}</span></p>
+        <p>❌ Error: <span className="text-white">{error || 'None'}</span></p>
+        {Array.isArray(emaillogs) && emaillogs.length > 0 && (
+          <details className="mt-2">
+            <summary className="cursor-pointer text-yellow-400 hover:text-yellow-300">
+              📋 Click to see raw data from database
+            </summary>
+            <pre className="mt-2 p-2 bg-black/50 rounded overflow-auto max-h-96 text-[10px] text-white">
+              {JSON.stringify(emaillogs, null, 2)}
+            </pre>
+          </details>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body }}>
+    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: "#12151B" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
@@ -178,12 +256,14 @@ const EmailLogs = () => {
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Main content with scrolling */}
+      {/* Main content */}
       <main className="mf-main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8" style={{ background: "#12151B", height: "100vh", width: "100%" }}>
+        {/* Debug section */}
+        <DebugData />
+
         {/* Header */}
         <div className="mf-header mb-5 md:mb-6 lg:mb-7 flex flex-wrap items-center justify-between gap-3 md:gap-4">
           <div className="flex items-center gap-3 md:gap-4">
-            {/* Mobile Menu Button */}
             <button
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
@@ -202,7 +282,9 @@ const EmailLogs = () => {
 
           <div className="mf-header-actions flex flex-wrap items-center gap-2 md:gap-3 w-full sm:w-auto">
             <button 
-              className="mf-header-btn flex items-center justify-center gap-1.5 md:gap-2 rounded-lg border px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium shadow-sm transition-colors flex-1 sm:flex-none"
+              onClick={handleRefresh}
+              disabled={loading}
+              className="mf-header-btn flex items-center justify-center gap-1.5 md:gap-2 rounded-lg border px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium shadow-sm transition-colors flex-1 sm:flex-none disabled:opacity-50"
               style={{ 
                 borderColor: "#2A2E37", 
                 background: "#12151B", 
@@ -217,7 +299,7 @@ const EmailLogs = () => {
                 e.currentTarget.style.color = "#C7C9CE";
               }}
             >
-              <RefreshCw size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
+              <RefreshCw size={12} className={`md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] ${loading ? "animate-spin" : ""}`} />
               <span className="hidden xs:inline">Refresh</span>
             </button>
             <button 
@@ -233,33 +315,40 @@ const EmailLogs = () => {
           </div>
         </div>
 
-        {/* Statistics - Responsive Grid */}
+        {/* Error Display */}
+        {error && (
+          <div className="mb-4 rounded-lg border px-3 md:px-4 py-2 md:py-2.5 text-[10px] md:text-xs" style={{ borderColor: "rgba(244,63,94,0.3)", background: "rgba(244,63,94,0.1)", color: "#fb7185" }}>
+            ❌ Error: {error}
+          </div>
+        )}
+
+        {/* Statistics */}
         <div className="mf-stats-grid mb-4 md:mb-5 lg:mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <StatCard
             title="Total Emails"
-            value="48,250"
+            value={String(stats.total)}
             description="All email attempts"
             icon={Inbox}
             accent="text-[#9BA0A8] bg-[#1B1E24]"
           />
           <StatCard
             title="Delivered"
-            value="47,480"
-            description="98.4% delivery rate"
+            value={String(stats.delivered)}
+            description={stats.total ? `${((stats.delivered / stats.total) * 100).toFixed(1)}% delivery rate` : "—"}
             icon={CheckCircle2}
             accent="text-emerald-400 bg-emerald-500/10"
           />
           <StatCard
             title="Failed"
-            value="520"
-            description="1.1% failure rate"
+            value={String(stats.failed)}
+            description={stats.total ? `${((stats.failed / stats.total) * 100).toFixed(1)}% failure rate` : "—"}
             icon={XCircle}
             accent="text-rose-400 bg-rose-500/10"
           />
           <StatCard
             title="Bounced"
-            value="250"
-            description="0.5% bounce rate"
+            value={String(stats.bounced)}
+            description={stats.total ? `${((stats.bounced / stats.total) * 100).toFixed(1)}% bounce rate` : "—"}
             icon={AlertTriangle}
             accent="text-amber-400 bg-amber-500/10"
           />
@@ -390,7 +479,32 @@ const EmailLogs = () => {
               </thead>
 
               <tbody className="divide-y" style={{ borderColor: "#2A2E37" }}>
-                {paginatedLogs.map((log) => (
+                {loading && normalizedLogs.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-10 text-center text-[10px] md:text-xs" style={{ color: "#6B727C" }}>
+                      Loading logs from database...
+                    </td>
+                  </tr>
+                )}
+
+                {!loading && paginatedLogs.length === 0 && !error && (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-10 text-center" style={{ color: "#6B727C" }}>
+                      <div className="flex flex-col items-center">
+                        <Inbox size={24} className="mb-2 text-[#6B727C]" />
+                        <p className="text-[10px] md:text-xs">No email logs found in database</p>
+                        <button
+                          onClick={handleRefresh}
+                          className="mt-2 text-[10px] md:text-xs text-[#FF6A39] hover:underline"
+                        >
+                          Click to refresh
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+
+                {!loading && paginatedLogs.map((log) => (
                   <tr 
                     key={log.id} 
                     className="group transition hover:bg-[#1B1E24]"
@@ -408,8 +522,8 @@ const EmailLogs = () => {
                         className="mf-log-id mt-0.5 flex items-center gap-0.5 md:gap-1 font-mono text-[7px] md:text-[8px] lg:text-[11px] hover:text-[#E8E6E1]" 
                         style={{ color: "#6B727C" }}
                       >
-                        <span className="hidden xs:inline">{log.id}</span>
-                        <span className="xs:hidden">{log.id.substring(0, 8)}</span>
+                        <span className="hidden xs:inline">ID: {log.id}</span>
+                        <span className="xs:hidden">{String(log.id).substring(0, 8)}</span>
                         <Copy size={7} className="md:w-[8px] md:h-[8px] lg:w-[9px] lg:h-[9px]" />
                         {copiedId === log.id && (
                           <span className="ml-0.5 md:ml-1 text-emerald-400 text-[7px] md:text-[8px]">✓</span>
@@ -437,7 +551,7 @@ const EmailLogs = () => {
 
                     <td className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
                       <p className="mf-timestamp whitespace-nowrap text-[7px] md:text-[8px] lg:text-sm" style={{ color: "#6B727C" }}>
-                        {log.sentAt}
+                        {formatSentAt(log.sentAt)}
                       </p>
                     </td>
 
@@ -451,19 +565,6 @@ const EmailLogs = () => {
               </tbody>
             </table>
           </div>
-
-          {/* Empty State */}
-          {filteredLogs.length === 0 && (
-            <div className="flex flex-col items-center px-4 md:px-6 py-10 md:py-12 lg:py-16 text-center">
-              <div className="mb-2 md:mb-3 flex h-8 w-8 md:h-10 md:w-10 lg:h-11 lg:w-11 items-center justify-center rounded-full" style={{ background: "#1B1E24" }}>
-                <Inbox size={14} className="md:w-[15px] md:h-[15px] lg:w-[16px] lg:h-[16px] text-[#6B727C]" />
-              </div>
-              <h3 className="text-[10px] md:text-xs lg:text-sm font-medium" style={{ color: "#E8E6E1" }}>No emails found</h3>
-              <p className="mt-0.5 md:mt-1 text-[8px] md:text-[9px] lg:text-sm" style={{ color: "#6B727C" }}>
-                Try adjusting your search or filters.
-              </p>
-            </div>
-          )}
 
           {/* Pagination */}
           {filteredLogs.length > 0 && (
@@ -593,7 +694,7 @@ const StatCard = ({ title, value, description, icon: Icon, accent }: StatCardPro
 };
 
 /* ========================= */
-/* Status Badge */
+/* Status Badge - Fixed with safety checks */
 /* ========================= */
 
 const statusConfig: Record<
@@ -607,15 +708,24 @@ const statusConfig: Record<
 };
 
 const StatusBadge = ({ status }: { status: EmailStatus }) => {
-  const { className, icon: Icon } = statusConfig[status];
+  // Safety check - if status is invalid, default to "Sent"
+  let validStatus: EmailStatus = "Sent";
+  if (status && typeof status === 'string' && status in statusConfig) {
+    validStatus = status as EmailStatus;
+  }
+  
+  const config = statusConfig[validStatus];
+  
+  // Extra safety - if config is undefined for some reason, use Sent
+  const { className, icon: Icon } = config || statusConfig.Sent;
 
   return (
     <span
       className={`mf-status-badge inline-flex items-center gap-0.5 md:gap-1.5 rounded-full px-1 md:px-2.5 py-0.5 text-[7px] md:text-[8px] lg:text-xs font-medium ${className}`}
     >
       <Icon size={8} className="md:w-[9px] md:h-[9px] lg:w-[10px] lg:h-[10px]" />
-      <span className="hidden xs:inline">{status}</span>
-      <span className="xs:hidden">{status.charAt(0)}</span>
+      <span className="hidden xs:inline">{validStatus}</span>
+      <span className="xs:hidden">{validStatus.charAt(0)}</span>
     </span>
   );
 };

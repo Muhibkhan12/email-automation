@@ -1,6 +1,7 @@
+// contexts/EmaillogsContext.tsx
 import { createContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import type { UpdateEmailLogsType, EmailLogs } from '../types/EmaillogsTypes'
-import { addEmailLogs, getEmaillog, updateEmailLogs, getEmaillogById } from '../services/EmailLogServices'
+import type { UpdateEmailLogsType, EmailLogs } from '../types/EmaillogsTypes';
+import { addEmailLogs, getEmaillog, updateEmailLogs, getEmaillogById } from '../services/EmailLogServices';
 
 type EmailLogsProviderProps = {
     children: ReactNode;
@@ -33,10 +34,22 @@ const EmailLogsProvider = ({ children }: EmailLogsProviderProps) => {
         setLoading(true);
         setError(null);
         try {
-            const data = await getEmaillog();
-            setEmailLogs(data);
+            const response = await getEmaillog();
+            console.log("📦 Full API Response:", response);
+            
+            // ✅ FIX: Extract the data array from response
+            // Your API returns { count: 4, data: [...] }
+            const logsData = response?.data || [];
+            
+            console.log("📊 Extracted logs data:", logsData);
+            console.log("📊 Number of logs:", logsData.length);
+            
+            // ✅ Set ONLY the array, not the whole response object
+            setEmailLogs(logsData);
         } catch (err: any) {
+            console.error("❌ Failed to fetch email logs:", err);
             setError(err.message || 'Failed to fetch email logs');
+            setEmailLogs([]);
         } finally {
             setLoading(false);
         }
@@ -94,10 +107,21 @@ const EmailLogsProvider = ({ children }: EmailLogsProviderProps) => {
     }, [fetchEmaillogs]);
 
     return (
-        <EmailLogsContext.Provider value={{ emaillogs, emaillog, editEmailLogs, addedEmailLog, editLogs, addLogs, fetchEmaillog, loading, error, refetch: fetchEmaillogs }}>
+        <EmailLogsContext.Provider value={{ 
+            emaillogs, 
+            emaillog, 
+            editEmailLogs, 
+            addedEmailLog, 
+            editLogs, 
+            addLogs, 
+            fetchEmaillog, 
+            loading, 
+            error, 
+            refetch: fetchEmaillogs 
+        }}>
             {children}
         </EmailLogsContext.Provider>
     );
 }
 
-export default EmailLogsProvider
+export default EmailLogsProvider;
