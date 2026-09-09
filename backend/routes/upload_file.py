@@ -45,6 +45,8 @@ def upload_campaign_file(
         original_filename=file_data["original_filename"],
         stored_filename=file_data["stored_filename"],
         file_path=file_data["file_path"],
+        file_size=file_data["file_size"],
+        mime_type=file_data.get("mime_type", file.content_type),
         total_records=0,
         processed_records=0,
         status="UPLOADED"
