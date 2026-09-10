@@ -1,5 +1,6 @@
 // AdminSenderAccounts.tsx
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useContext } from "react";
+import SenderAccountsContext from "../../contexts/SenderAccountsContext";
 import AdminSidebar from "./AdminSidebar";
 import {
   AtSign,
@@ -32,6 +33,7 @@ import {
   TrendingUp,
   TrendingDown,
   Menu,
+  ReceiptPoundSterling,
 } from "lucide-react";
 
 /* ---------------------------------------------------------------------- */
@@ -227,6 +229,8 @@ const PROVIDER_FILTERS = ["All", "Gmail", "Outlook", "Custom SMTP", "Amazon SES"
 /* ---------------------------------------------------------------------- */
 /*  Page                                                                   */
 /* ---------------------------------------------------------------------- */
+
+
 
 const AdminSenderAccounts = () => {
   const [senderAccounts, setSenderAccounts] = useState(initialSenderAccounts);
