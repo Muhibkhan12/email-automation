@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState, useEffect } from "react";
+import { useContext, useMemo, useState } from "react";
 import Sidebar from "./Sidebar";
 import { EmailLogsContext } from "../../contexts/EmaillogsContext";
 import {
@@ -17,12 +17,6 @@ import {
   Menu,
 } from "lucide-react";
 
-const FONT = {
-  display: "'Space Grotesk', sans-serif",
-  body: "'Inter', sans-serif",
-  mono: "'JetBrains Mono', monospace",
-};
-
 type EmailStatus = "Sent" | "Delivered" | "Failed" | "Bounced";
 
 interface NormalizedLog {
@@ -37,64 +31,31 @@ interface NormalizedLog {
 
 const PAGE_SIZE = 5;
 
-// EmailLogs.tsx
-const normalizeLog = (log: any): NormalizedLog => {
-    return {
-        id: log.id || 'unknown',
-        recipient: log.recipient_email || `Recipient ${log.recipient_id || ''}`,
-        sender: log.sender_email || `Sender ${log.sender_account_id || ''}`,
-        campaign: log.campaign_name || `Campaign ${log.campaign_id || ''}`,
-        subject: log.subject || 'No Subject',  // You might need to add this to your schema
-        status: (log.status || 'SENT') as EmailStatus,
-        sentAt: log.sent_at || log.created_at || '',
-    };
-};
+const normalizeLog = (log: any): NormalizedLog => ({
+  id: log.id ?? "unknown",
+  recipient: log.recipient_email || `Recipient ${log.recipient_id ?? ""}`,
+  sender: log.sender_email || `Sender ${log.sender_account_id ?? ""}`,
+  campaign: log.campaign_name || `Campaign ${log.campaign_id ?? ""}`,
+  subject: log.subject || "No Subject",
+  status: (log.status || "Sent") as EmailStatus,
+  sentAt: log.sent_at || log.created_at || "",
+});
 
 const formatSentAt = (value: string) => {
   if (!value) return "—";
-  try {
-    const d = new Date(value);
-    if (isNaN(d.getTime())) return value;
-    return d.toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return value;
-  }
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value;
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
 const EmailLogs = () => {
-  // Safely get context
-  let ctx;
-  try {
-    ctx = useContext(EmailLogsContext);
-  } catch (error) {
-    console.error("Error accessing context:", error);
-    return (
-      <div className="flex min-h-screen items-center justify-center" style={{ background: "#12151B", color: "#E8E6E1" }}>
-        <div className="text-center p-8">
-          <h2 className="text-xl font-bold text-red-400">Error Loading Page</h2>
-          <p className="mt-2 text-gray-400">Failed to load email logs. Please try again.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!ctx) {
-    return (
-      <div className="flex min-h-screen items-center justify-center" style={{ background: "#12151B", color: "#E8E6E1" }}>
-        <div className="text-center p-8">
-          <h2 className="text-xl font-bold text-yellow-400">Loading...</h2>
-          <p className="mt-2 text-gray-400">Please wait while we load your data.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const { emaillogs = [], loading = false, error = null, refetch = () => {} } = ctx;
+  // 1) Context + ALL hooks go first, no conditions above them
+  const ctx = useContext(EmailLogsContext);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -103,53 +64,41 @@ const EmailLogs = () => {
   const [copiedId, setCopiedId] = useState<string | number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Safe normalization with error handling
+  const emaillogs = ctx?.emaillogs ?? [];
+  const loading = ctx?.loading ?? false;
+  const error = ctx?.error ?? null;
+  const refetch = ctx?.refetch ?? (() => {});
+
+  // 👇 raw DB data straight from context — check this in console
+  console.log("RAW emaillogs from context:", emaillogs);
+
   const normalizedLogs = useMemo(() => {
-    try {
-      if (!Array.isArray(emaillogs)) {
-        console.log("⚠️ emaillogs is not an array:", emaillogs);
-        return [];
-      }
-      return emaillogs.map(normalizeLog);
-    } catch (error) {
-      console.error("Error normalizing logs:", error);
-      return [];
-    }
+    if (!Array.isArray(emaillogs)) return [];
+    return emaillogs.map(normalizeLog);
   }, [emaillogs]);
 
   const filteredLogs = useMemo(() => {
-    try {
-      return normalizedLogs.filter((log) => {
-        const q = search.toLowerCase();
-        const matchesSearch =
-          log.recipient.toLowerCase().includes(q) ||
-          log.sender.toLowerCase().includes(q) ||
-          log.campaign.toLowerCase().includes(q) ||
-          log.subject.toLowerCase().includes(q);
-
-        const matchesStatus = statusFilter === "All" || log.status === statusFilter;
-
-        return matchesSearch && matchesStatus;
-      });
-    } catch (error) {
-      console.error("Error filtering logs:", error);
-      return [];
-    }
+    const q = search.toLowerCase();
+    return normalizedLogs.filter((log) => {
+      const matchesSearch =
+        log.recipient.toLowerCase().includes(q) ||
+        log.sender.toLowerCase().includes(q) ||
+        log.campaign.toLowerCase().includes(q) ||
+        log.subject.toLowerCase().includes(q);
+      const matchesStatus = statusFilter === "All" || log.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
   }, [normalizedLogs, search, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE));
   const paginatedLogs = filteredLogs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const stats = useMemo(() => {
-    try {
-      const total = normalizedLogs.length;
-      const delivered = normalizedLogs.filter((l) => l.status === "Delivered").length;
-      const failed = normalizedLogs.filter((l) => l.status === "Failed").length;
-      const bounced = normalizedLogs.filter((l) => l.status === "Bounced").length;
-      return { total, delivered, failed, bounced };
-    } catch {
-      return { total: 0, delivered: 0, failed: 0, bounced: 0 };
-    }
+    const total = normalizedLogs.length;
+    const delivered = normalizedLogs.filter((l) => l.status === "Delivered").length;
+    const failed = normalizedLogs.filter((l) => l.status === "Failed").length;
+    const bounced = normalizedLogs.filter((l) => l.status === "Bounced").length;
+    return { total, delivered, failed, bounced };
   }, [normalizedLogs]);
 
   const handleSearchChange = (value: string) => {
@@ -163,244 +112,123 @@ const EmailLogs = () => {
   };
 
   const handleCopy = (id: string | number) => {
-    try {
-      navigator.clipboard?.writeText(String(id));
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 1200);
-    } catch {
-      // Silently fail
-    }
+    navigator.clipboard?.writeText(String(id));
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1200);
   };
 
-  const handleRefresh = async () => {
-    try {
-      await refetch();
-    } catch (error) {
-      console.error("Error refreshing:", error);
-    }
-  };
-
-  // Debug component
-  const DebugData = () => (
-    <div className="mb-4 p-4 rounded-lg border border-yellow-500/30 bg-yellow-500/5">
-      <h3 className="text-yellow-400 font-medium mb-2">🔍 Debug: Data from Database</h3>
-      <div className="text-xs text-yellow-300/70 space-y-1">
-        <p>📊 Is Array? <span className="text-white font-bold">{Array.isArray(emaillogs) ? '✅ Yes' : '❌ No'}</span></p>
-        <p>📊 Total logs: <span className="text-white font-bold">{emaillogs?.length || 0}</span></p>
-        <p>📊 Normalized logs: <span className="text-white font-bold">{normalizedLogs.length}</span></p>
-        <p>⏳ Loading: <span className="text-white">{loading ? 'Yes' : 'No'}</span></p>
-        <p>❌ Error: <span className="text-white">{error || 'None'}</span></p>
-        {Array.isArray(emaillogs) && emaillogs.length > 0 && (
-          <details className="mt-2">
-            <summary className="cursor-pointer text-yellow-400 hover:text-yellow-300">
-              📋 Click to see raw data from database
-            </summary>
-            <pre className="mt-2 p-2 bg-black/50 rounded overflow-auto max-h-96 text-[10px] text-white">
-              {JSON.stringify(emaillogs, null, 2)}
-            </pre>
-          </details>
-        )}
+  // 2) Now it's safe to bail out — every hook above already ran
+  if (!ctx) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#12151B] text-[#E8E6E1]">
+        <p>EmailLogsContext not found — wrap this page in &lt;EmailLogsProvider&gt;.</p>
       </div>
-    </div>
-  );
+    );
+  }
 
   return (
-    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: "#12151B" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
-        .mf-main-content::-webkit-scrollbar {
-          width: 6px;
-        }
-        .mf-main-content::-webkit-scrollbar-track {
-          background: #0B0E12;
-        }
-        .mf-main-content::-webkit-scrollbar-thumb {
-          background: #2A2E37;
-          border-radius: 3px;
-        }
-        .mf-main-content::-webkit-scrollbar-thumb:hover {
-          background: #3A3F4A;
-        }
-
-        .sidebar-overlay {
-          animation: fadeIn 0.2s ease-in-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .sidebar-slide {
-          animation: slideIn 0.25s ease-out;
-        }
-        @keyframes slideIn {
-          from { transform: translateX(-100%); }
-          to { transform: translateX(0); }
-        }
-      `}</style>
-
-      {/* Mobile Sidebar Overlay */}
+    <div className="flex min-h-screen overflow-hidden bg-[#12151B] font-sans">
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
+          className="fixed inset-0 z-40 bg-black/70 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
-      <div className={`
-        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        sidebar-slide
-      `}>
+      <div
+        className={`fixed top-0 z-50 h-screen flex-shrink-0 transition-transform duration-200 lg:sticky lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Main content */}
-      <main className="mf-main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8" style={{ background: "#12151B", height: "100vh", width: "100%" }}>
-        {/* Debug section */}
-        <DebugData />
-
+      <main className="flex-1 overflow-y-auto bg-[#12151B] p-3 md:p-6">
         {/* Header */}
-        <div className="mf-header mb-5 md:mb-6 lg:mb-7 flex flex-wrap items-center justify-between gap-3 md:gap-4">
-          <div className="flex items-center gap-3 md:gap-4">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
+              className="rounded-lg border border-[#2A2E37] bg-[#171A21] p-2 text-[#C7C9CE] hover:bg-[#1B1E24] lg:hidden"
             >
               <Menu size={20} />
             </button>
             <div>
-              <h1 className="text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight" style={{ color: "#E8E6E1" }}>
-                Email Logs
-              </h1>
-              <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm" style={{ color: "#9BA0A8" }}>
-                Track every email sent through your campaigns.
-              </p>
+              <h1 className="text-2xl font-semibold text-[#E8E6E1]">Email Logs</h1>
+              <p className="text-xs text-[#9BA0A8]">Track every email sent through your campaigns.</p>
             </div>
           </div>
 
-          <div className="mf-header-actions flex flex-wrap items-center gap-2 md:gap-3 w-full sm:w-auto">
-            <button 
-              onClick={handleRefresh}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => refetch()}
               disabled={loading}
-              className="mf-header-btn flex items-center justify-center gap-1.5 md:gap-2 rounded-lg border px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium shadow-sm transition-colors flex-1 sm:flex-none disabled:opacity-50"
-              style={{ 
-                borderColor: "#2A2E37", 
-                background: "#12151B", 
-                color: "#C7C9CE" 
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#1B1E24";
-                e.currentTarget.style.color = "#E8E6E1";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#12151B";
-                e.currentTarget.style.color = "#C7C9CE";
-              }}
+              className="flex items-center gap-2 rounded-lg border border-[#2A2E37] bg-[#12151B] px-4 py-2 text-xs font-medium text-[#C7C9CE] transition-colors hover:bg-[#1B1E24] hover:text-[#E8E6E1] disabled:opacity-50"
             >
-              <RefreshCw size={12} className={`md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] ${loading ? "animate-spin" : ""}`} />
-              <span className="hidden xs:inline">Refresh</span>
+              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+              Refresh
             </button>
-            <button 
-              className="mf-header-btn flex items-center justify-center gap-1.5 md:gap-2 rounded-lg px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-white shadow-sm transition-all hover:opacity-90 hover:scale-[1.02] flex-1 sm:flex-none"
-              style={{ 
-                background: "#FF6A39",
-                boxShadow: "0 4px 12px rgba(255,106,57,0.25)"
-              }}
-            >
-              <Download size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
-              <span className="hidden xs:inline">Export</span>
+            <button className="flex items-center gap-2 rounded-lg bg-[#FF6A39] px-4 py-2 text-xs font-medium text-white shadow-[0_4px_12px_rgba(255,106,57,0.25)] transition hover:opacity-90">
+              <Download size={14} />
+              Export
             </button>
           </div>
         </div>
 
-        {/* Error Display */}
         {error && (
-          <div className="mb-4 rounded-lg border px-3 md:px-4 py-2 md:py-2.5 text-[10px] md:text-xs" style={{ borderColor: "rgba(244,63,94,0.3)", background: "rgba(244,63,94,0.1)", color: "#fb7185" }}>
-            ❌ Error: {error}
+          <div className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-2.5 text-xs text-rose-400">
+            Error: {error}
           </div>
         )}
 
-        {/* Statistics */}
-        <div className="mf-stats-grid mb-4 md:mb-5 lg:mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          <StatCard
-            title="Total Emails"
-            value={String(stats.total)}
-            description="All email attempts"
-            icon={Inbox}
-            accent="text-[#9BA0A8] bg-[#1B1E24]"
-          />
+        {/* Stats */}
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard title="Total Emails" value={stats.total} icon={Inbox} color="text-[#FF6A39]" bg="bg-[#FF6A39]/10" />
           <StatCard
             title="Delivered"
-            value={String(stats.delivered)}
+            value={stats.delivered}
             description={stats.total ? `${((stats.delivered / stats.total) * 100).toFixed(1)}% delivery rate` : "—"}
             icon={CheckCircle2}
-            accent="text-emerald-400 bg-emerald-500/10"
+            color="text-emerald-400"
+            bg="bg-emerald-500/10"
           />
           <StatCard
             title="Failed"
-            value={String(stats.failed)}
+            value={stats.failed}
             description={stats.total ? `${((stats.failed / stats.total) * 100).toFixed(1)}% failure rate` : "—"}
             icon={XCircle}
-            accent="text-rose-400 bg-rose-500/10"
+            color="text-rose-400"
+            bg="bg-rose-500/10"
           />
           <StatCard
             title="Bounced"
-            value={String(stats.bounced)}
+            value={stats.bounced}
             description={stats.total ? `${((stats.bounced / stats.total) * 100).toFixed(1)}% bounce rate` : "—"}
             icon={AlertTriangle}
-            accent="text-amber-400 bg-amber-500/10"
+            color="text-amber-400"
+            bg="bg-amber-500/10"
           />
         </div>
 
         {/* Filters */}
-        <div className="mb-4 md:mb-5 rounded-xl border p-3 md:p-4 shadow-sm" style={{ borderColor: "#2A2E37", background: "#12151B" }}>
-          <div className="mf-filters-container flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="mf-search-input relative flex-1">
-              <Search
-                size={13}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" 
-                style={{ color: "#6B727C" }}
-              />
+        <div className="mb-5 rounded-xl border border-[#2A2E37] bg-[#12151B] p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="relative flex-1">
+              <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#6B727C]" />
               <input
                 type="text"
                 placeholder="Search recipient, sender, campaign, or subject…"
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full rounded-lg border py-1.5 md:py-2.5 pl-8 pr-3 text-[10px] md:text-xs lg:text-sm outline-none transition"
-                style={{ 
-                  borderColor: "#2A2E37", 
-                  background: "#0B0E12", 
-                  color: "#E8E6E1"
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = "#FF6A39";
-                  e.currentTarget.style.boxShadow = "0 0 0 3px rgba(255,106,57,0.1)";
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = "#2A2E37";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
+                className="w-full rounded-lg border border-[#2A2E37] bg-[#0B0E12] py-2.5 pl-8 pr-3 text-sm text-[#E8E6E1] outline-none transition focus:border-[#FF6A39] focus:ring-2 focus:ring-[#FF6A39]/20"
               />
             </div>
 
-            <div className="mf-filter-selects flex flex-wrap gap-2 md:gap-3">
+            <div className="flex flex-wrap gap-3">
               <select
                 value={statusFilter}
                 onChange={(e) => handleStatusChange(e.target.value)}
-                className="mf-filter-select rounded-lg border px-2 md:px-3.5 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm outline-none transition flex-1"
-                style={{ 
-                  borderColor: "#2A2E37", 
-                  background: "#0B0E12", 
-                  color: "#E8E6E1"
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = "#FF6A39";
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = "#2A2E37";
-                }}
+                className="flex-1 rounded-lg border border-[#2A2E37] bg-[#0B0E12] px-3.5 py-2.5 text-sm text-[#E8E6E1] outline-none transition focus:border-[#FF6A39]"
               >
                 <option value="All">All statuses</option>
                 <option value="Sent">Sent</option>
@@ -412,18 +240,7 @@ const EmailLogs = () => {
               <select
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
-                className="mf-filter-select rounded-lg border px-2 md:px-3.5 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm outline-none transition flex-1"
-                style={{ 
-                  borderColor: "#2A2E37", 
-                  background: "#0B0E12", 
-                  color: "#E8E6E1"
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = "#FF6A39";
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = "#2A2E37";
-                }}
+                className="flex-1 rounded-lg border border-[#2A2E37] bg-[#0B0E12] px-3.5 py-2.5 text-sm text-[#E8E6E1] outline-none transition focus:border-[#FF6A39]"
               >
                 <option>All time</option>
                 <option>Today</option>
@@ -434,18 +251,15 @@ const EmailLogs = () => {
           </div>
 
           {(search || statusFilter !== "All") && (
-            <div className="mt-2 md:mt-3 flex flex-wrap items-center gap-2 text-[9px] md:text-[10px] lg:text-xs" style={{ color: "#6B727C" }}>
-              <span>
-                {filteredLogs.length} result{filteredLogs.length !== 1 && "s"}
-              </span>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#6B727C]">
+              <span>{filteredLogs.length} result{filteredLogs.length !== 1 && "s"}</span>
               <button
                 onClick={() => {
                   setSearch("");
                   setStatusFilter("All");
                   setPage(1);
                 }}
-                className="font-medium underline underline-offset-2 hover:text-[#e85a2c]" 
-                style={{ color: "#FF6A39" }}
+                className="font-medium text-[#FF6A39] underline underline-offset-2 hover:text-[#e85a2c]"
               >
                 Clear filters
               </button>
@@ -453,35 +267,31 @@ const EmailLogs = () => {
           )}
         </div>
 
-        {/* Logs Table */}
-        <div className="overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: "#2A2E37", background: "#12151B" }}>
-          <div className="flex flex-wrap items-center justify-between border-b px-3 md:px-4 lg:px-6 py-2.5 md:py-3 lg:py-4 gap-2" style={{ borderColor: "#2A2E37" }}>
-            <div>
-              <h2 className="text-[10px] md:text-xs lg:text-sm font-semibold" style={{ color: "#E8E6E1" }}>Email Activity</h2>
-              <p className="mt-0.5 text-[8px] md:text-[9px] lg:text-xs" style={{ color: "#6B727C" }}>
-                {filteredLogs.length} logs matching current filters
-              </p>
-            </div>
+        {/* Table */}
+        <div className="overflow-hidden rounded-xl border border-[#2A2E37] bg-[#12151B]">
+          <div className="border-b border-[#2A2E37] px-4 py-3 lg:px-6 lg:py-4">
+            <h2 className="text-sm font-semibold text-[#E8E6E1]">Email Activity</h2>
+            <p className="mt-0.5 text-xs text-[#6B727C]">{filteredLogs.length} logs matching current filters</p>
           </div>
 
-          <div className="mf-table-wrapper overflow-x-auto">
-            <table className="w-full text-left" style={{ minWidth: "500px" }}>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[500px] text-left">
               <thead>
-                <tr className="border-b text-[8px] md:text-[9px] lg:text-xs uppercase tracking-wide" style={{ borderColor: "#2A2E37", color: "#6B727C", background: "#0B0E12" }}>
-                  <th className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Recipient</th>
-                  <th className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Campaign</th>
-                  <th className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Subject</th>
-                  <th className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Sender</th>
-                  <th className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Status</th>
-                  <th className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Sent At</th>
-                  <th className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5" />
+                <tr className="border-b border-[#2A2E37] bg-[#0B0E12] text-xs uppercase tracking-wide text-[#6B727C]">
+                  <th className="px-4 py-3.5 font-medium lg:px-6">Recipient</th>
+                  <th className="px-4 py-3.5 font-medium lg:px-6">Campaign</th>
+                  <th className="px-4 py-3.5 font-medium lg:px-6">Subject</th>
+                  <th className="px-4 py-3.5 font-medium lg:px-6">Sender</th>
+                  <th className="px-4 py-3.5 font-medium lg:px-6">Status</th>
+                  <th className="px-4 py-3.5 font-medium lg:px-6">Sent At</th>
+                  <th className="px-4 py-3.5 lg:px-6" />
                 </tr>
               </thead>
 
-              <tbody className="divide-y" style={{ borderColor: "#2A2E37" }}>
+              <tbody className="divide-y divide-[#2A2E37]">
                 {loading && normalizedLogs.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-[10px] md:text-xs" style={{ color: "#6B727C" }}>
+                    <td colSpan={7} className="px-4 py-10 text-center text-xs text-[#6B727C]">
                       Loading logs from database...
                     </td>
                   </tr>
@@ -489,14 +299,11 @@ const EmailLogs = () => {
 
                 {!loading && paginatedLogs.length === 0 && !error && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center" style={{ color: "#6B727C" }}>
+                    <td colSpan={7} className="px-4 py-10 text-center text-[#6B727C]">
                       <div className="flex flex-col items-center">
                         <Inbox size={24} className="mb-2 text-[#6B727C]" />
-                        <p className="text-[10px] md:text-xs">No email logs found in database</p>
-                        <button
-                          onClick={handleRefresh}
-                          className="mt-2 text-[10px] md:text-xs text-[#FF6A39] hover:underline"
-                        >
+                        <p className="text-xs">No email logs found in database</p>
+                        <button onClick={() => refetch()} className="mt-2 text-xs text-[#FF6A39] hover:underline">
                           Click to refresh
                         </button>
                       </div>
@@ -504,106 +311,71 @@ const EmailLogs = () => {
                   </tr>
                 )}
 
-                {!loading && paginatedLogs.map((log) => (
-                  <tr 
-                    key={log.id} 
-                    className="group transition hover:bg-[#1B1E24]"
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#1B1E24";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                    }}
-                  >
-                    <td className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
-                      <p className="mf-email-text text-[9px] md:text-[10px] lg:text-sm font-medium" style={{ color: "#E8E6E1" }}>{log.recipient}</p>
-                      <button
-                        onClick={() => handleCopy(log.id)}
-                        className="mf-log-id mt-0.5 flex items-center gap-0.5 md:gap-1 font-mono text-[7px] md:text-[8px] lg:text-[11px] hover:text-[#E8E6E1]" 
-                        style={{ color: "#6B727C" }}
-                      >
-                        <span className="hidden xs:inline">ID: {log.id}</span>
-                        <span className="xs:hidden">{String(log.id).substring(0, 8)}</span>
-                        <Copy size={7} className="md:w-[8px] md:h-[8px] lg:w-[9px] lg:h-[9px]" />
-                        {copiedId === log.id && (
-                          <span className="ml-0.5 md:ml-1 text-emerald-400 text-[7px] md:text-[8px]">✓</span>
-                        )}
-                      </button>
-                    </td>
+                {!loading &&
+                  paginatedLogs.map((log) => (
+                    <tr key={log.id} className="group transition hover:bg-[#1B1E24]">
+                      <td className="px-4 py-4 lg:px-6">
+                        <p className="text-sm font-medium text-[#E8E6E1]">{log.recipient}</p>
+                        <button
+                          onClick={() => handleCopy(log.id)}
+                          className="mt-0.5 flex items-center gap-1 font-mono text-[11px] text-[#6B727C] hover:text-[#E8E6E1]"
+                        >
+                          ID: {log.id}
+                          <Copy size={9} />
+                          {copiedId === log.id && <span className="ml-1 text-emerald-400">✓</span>}
+                        </button>
+                      </td>
 
-                    <td className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
-                      <span className="mf-campaign-tag inline-flex rounded-md px-1 md:px-2.5 py-0.5 text-[7px] md:text-[8px] lg:text-xs font-medium truncate max-w-[60px] md:max-w-[80px] lg:max-w-none" style={{ background: "#1B1E24", color: "#C7C9CE" }}>
-                        {log.campaign}
-                      </span>
-                    </td>
+                      <td className="px-4 py-4 lg:px-6">
+                        <span className="inline-flex rounded-md bg-[#1B1E24] px-2.5 py-0.5 text-xs font-medium text-[#C7C9CE]">
+                          {log.campaign}
+                        </span>
+                      </td>
 
-                    <td className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
-                      <p className="mf-subject-text truncate text-[8px] md:text-[9px] lg:text-sm" style={{ color: "#9BA0A8", maxWidth: "100px" }}>{log.subject}</p>
-                    </td>
+                      <td className="max-w-[100px] truncate px-4 py-4 text-sm text-[#9BA0A8] lg:px-6">{log.subject}</td>
 
-                    <td className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
-                      <p className="mf-email-text text-[8px] md:text-[9px] lg:text-sm truncate max-w-[80px] md:max-w-[120px] lg:max-w-none" style={{ color: "#9BA0A8" }}>{log.sender}</p>
-                    </td>
+                      <td className="px-4 py-4 text-sm text-[#9BA0A8] lg:px-6">{log.sender}</td>
 
-                    <td className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
-                      <StatusBadge status={log.status} />
-                    </td>
+                      <td className="px-4 py-4 lg:px-6">
+                        <StatusBadge status={log.status} />
+                      </td>
 
-                    <td className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
-                      <p className="mf-timestamp whitespace-nowrap text-[7px] md:text-[8px] lg:text-sm" style={{ color: "#6B727C" }}>
+                      <td className="whitespace-nowrap px-4 py-4 text-sm text-[#6B727C] lg:px-6">
                         {formatSentAt(log.sentAt)}
-                      </p>
-                    </td>
+                      </td>
 
-                    <td className="mf-table-cell-padded px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4 text-right">
-                      <button className="rounded-lg p-1 md:p-2 opacity-0 group-hover:opacity-100 transition hover:bg-[#1B1E24] hover:text-[#E8E6E1]" style={{ color: "#6B727C" }}>
-                        <MoreHorizontal size={11} className="md:w-[12px] md:h-[12px] lg:w-[14px] lg:h-[14px]" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      <td className="px-4 py-4 text-right lg:px-6">
+                        <button className="rounded-lg p-2 text-[#6B727C] opacity-0 transition hover:bg-[#1B1E24] hover:text-[#E8E6E1] group-hover:opacity-100">
+                          <MoreHorizontal size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
 
-          {/* Pagination */}
           {filteredLogs.length > 0 && (
-            <div className="mf-pagination flex flex-wrap gap-2 md:gap-3 border-t px-3 md:px-4 lg:px-6 py-2.5 md:py-3 lg:py-4 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "#2A2E37" }}>
-              <p className="mf-pagination-info text-[8px] md:text-[9px] lg:text-sm" style={{ color: "#6B727C" }}>
-                Showing {(page - 1) * PAGE_SIZE + 1}–
-                {Math.min(page * PAGE_SIZE, filteredLogs.length)} of {filteredLogs.length}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#2A2E37] px-4 py-3 lg:px-6">
+              <p className="text-xs text-[#6B727C]">
+                Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredLogs.length)} of {filteredLogs.length}
               </p>
 
-              <div className="mf-pagination-controls flex flex-wrap items-center gap-1">
+              <div className="flex flex-wrap items-center gap-1">
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="flex items-center gap-0.5 md:gap-1 rounded-lg border px-1.5 md:px-3 py-1 md:py-1.5 lg:py-2 text-[8px] md:text-[9px] lg:text-sm transition disabled:cursor-not-allowed disabled:opacity-40"
-                  style={{ 
-                    borderColor: "#2A2E37", 
-                    color: "#C7C9CE",
-                    background: "transparent"
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!e.currentTarget.disabled) {
-                      e.currentTarget.style.background = "#1B1E24";
-                      e.currentTarget.style.color = "#E8E6E1";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.color = "#C7C9CE";
-                  }}
+                  className="flex items-center gap-1 rounded-lg border border-[#2A2E37] px-3 py-1.5 text-xs text-[#C7C9CE] transition hover:bg-[#1B1E24] hover:text-[#E8E6E1] disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <ChevronLeft size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />
-                  <span className="hidden xs:inline">Prev</span>
+                  <ChevronLeft size={12} />
+                  Prev
                 </button>
 
                 {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((p) => (
                   <button
                     key={p}
                     onClick={() => setPage(p)}
-                    className={`rounded-lg border px-1.5 md:px-3.5 py-1 md:py-1.5 lg:py-2 text-[8px] md:text-[9px] lg:text-sm transition ${
+                    className={`rounded-lg border px-3.5 py-1.5 text-xs transition ${
                       p === page
                         ? "border-[#FF6A39] bg-[#FF6A39] text-white"
                         : "border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
@@ -615,10 +387,10 @@ const EmailLogs = () => {
 
                 {totalPages > 5 && (
                   <>
-                    <span style={{ color: "#6B727C" }} className="text-[8px] md:text-xs">…</span>
+                    <span className="text-xs text-[#6B727C]">…</span>
                     <button
                       onClick={() => setPage(totalPages)}
-                      className={`rounded-lg border px-1.5 md:px-3.5 py-1 md:py-1.5 lg:py-2 text-[8px] md:text-[9px] lg:text-sm transition ${
+                      className={`rounded-lg border px-3.5 py-1.5 text-xs transition ${
                         page === totalPages
                           ? "border-[#FF6A39] bg-[#FF6A39] text-white"
                           : "border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
@@ -632,25 +404,10 @@ const EmailLogs = () => {
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="flex items-center gap-0.5 md:gap-1 rounded-lg border px-1.5 md:px-3 py-1 md:py-1.5 lg:py-2 text-[8px] md:text-[9px] lg:text-sm transition disabled:cursor-not-allowed disabled:opacity-40"
-                  style={{ 
-                    borderColor: "#2A2E37", 
-                    color: "#C7C9CE",
-                    background: "transparent"
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!e.currentTarget.disabled) {
-                      e.currentTarget.style.background = "#1B1E24";
-                      e.currentTarget.style.color = "#E8E6E1";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.color = "#C7C9CE";
-                  }}
+                  className="flex items-center gap-1 rounded-lg border border-[#2A2E37] px-3 py-1.5 text-xs text-[#C7C9CE] transition hover:bg-[#1B1E24] hover:text-[#E8E6E1] disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <span className="hidden xs:inline">Next</span>
-                  <ChevronRight size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />
+                  Next
+                  <ChevronRight size={12} />
                 </button>
               </div>
             </div>
@@ -661,46 +418,33 @@ const EmailLogs = () => {
   );
 };
 
-/* ========================= */
-/* Stat Card */
-/* ========================= */
+/* ---------- Stat Card ---------- */
 
 interface StatCardProps {
   title: string;
-  value: string;
-  description: string;
+  value: number;
+  description?: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
-  accent: string;
+  color: string;
+  bg: string;
 }
 
-const StatCard = ({ title, value, description, icon: Icon, accent }: StatCardProps) => {
-  const isEmber = title === "Total Emails";
-  return (
-    <div className="mf-stat-card rounded-xl border p-3 md:p-4 lg:p-5 shadow-sm transition hover:shadow-md" style={{ borderColor: "#2A2E37", background: "#12151B" }}>
-      <div className="flex items-start justify-between">
-        <p className="text-[9px] md:text-[10px] lg:text-sm" style={{ color: "#9BA0A8" }}>{title}</p>
-        <span className={`flex h-6 w-6 md:h-7 md:w-7 lg:h-8 lg:w-8 items-center justify-center rounded-lg ${
-          isEmber ? "bg-ember-soft" : ""
-        } ${!isEmber ? accent : ""}`}
-        style={{ background: isEmber ? "rgba(255,106,57,0.12)" : undefined }}
-        >
-          <Icon size={12} className={`md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] ${isEmber ? "text-[#FF6A39]" : ""}`}  />
-        </span>
-      </div>
-      <h2 className="mf-stat-value mt-1.5 md:mt-2 lg:mt-3 text-lg md:text-xl lg:text-2xl font-semibold tracking-tight" style={{ color: "#E8E6E1" }}>{value}</h2>
-      <p className="mt-0.5 md:mt-1 text-[8px] md:text-[9px] lg:text-xs" style={{ color: "#6B727C" }}>{description}</p>
+const StatCard = ({ title, value, description, icon: Icon, color, bg }: StatCardProps) => (
+  <div className="rounded-xl border border-[#2A2E37] bg-[#12151B] p-4 shadow-sm transition hover:shadow-md lg:p-5">
+    <div className="flex items-start justify-between">
+      <p className="text-sm text-[#9BA0A8]">{title}</p>
+      <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${bg}`}>
+        <Icon size={14} className={color} />
+      </span>
     </div>
-  );
-};
+    <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#E8E6E1]">{value}</h2>
+    {description && <p className="mt-1 text-xs text-[#6B727C]">{description}</p>}
+  </div>
+);
 
-/* ========================= */
-/* Status Badge - Fixed with safety checks */
-/* ========================= */
+/* ---------- Status Badge ---------- */
 
-const statusConfig: Record<
-  EmailStatus,
-  { className: string; icon: React.ComponentType<{ size?: number; className?: string }> }
-> = {
+const statusConfig: Record<EmailStatus, { className: string; icon: React.ComponentType<{ size?: number }> }> = {
   Sent: { className: "bg-blue-500/10 text-blue-400", icon: Clock },
   Delivered: { className: "bg-emerald-500/10 text-emerald-400", icon: CheckCircle2 },
   Failed: { className: "bg-rose-500/10 text-rose-400", icon: XCircle },
@@ -708,24 +452,12 @@ const statusConfig: Record<
 };
 
 const StatusBadge = ({ status }: { status: EmailStatus }) => {
-  // Safety check - if status is invalid, default to "Sent"
-  let validStatus: EmailStatus = "Sent";
-  if (status && typeof status === 'string' && status in statusConfig) {
-    validStatus = status as EmailStatus;
-  }
-  
-  const config = statusConfig[validStatus];
-  
-  // Extra safety - if config is undefined for some reason, use Sent
-  const { className, icon: Icon } = config || statusConfig.Sent;
-
+  const config = statusConfig[status] ?? statusConfig.Sent;
+  const Icon = config.icon;
   return (
-    <span
-      className={`mf-status-badge inline-flex items-center gap-0.5 md:gap-1.5 rounded-full px-1 md:px-2.5 py-0.5 text-[7px] md:text-[8px] lg:text-xs font-medium ${className}`}
-    >
-      <Icon size={8} className="md:w-[9px] md:h-[9px] lg:w-[10px] lg:h-[10px]" />
-      <span className="hidden xs:inline">{validStatus}</span>
-      <span className="xs:hidden">{validStatus.charAt(0)}</span>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${config.className}`}>
+      <Icon size={10} />
+      {status}
     </span>
   );
 };

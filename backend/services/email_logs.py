@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from schemas import (
+from schema.email_logs import (
     AddEmailLogSchema,
     UpdateEmailLogSchema,
     EmailLogResponseSchema,
@@ -12,7 +12,7 @@ from schemas import (
     EmailLogSingleResponseSchema,
     MessageResponseSchema
 )
-from models import EmailLog
+from models.email_logs import EmailLog
 
 router = APIRouter(prefix="/email-logs", tags=["Email Logs"])
 
