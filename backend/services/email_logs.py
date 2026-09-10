@@ -1,5 +1,3 @@
-# email_logs.py (router)
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
@@ -34,7 +32,7 @@ def get_all_email_logs(db: Session = Depends(get_db)):
             "created_at": log.created_at,
             "updated_at": log.updated_at,
             # Add related data
-            "campaign_name": log.campaign.name if log.campaign else None,
+            "campaign_name": log.campaign.campaign_name if log.campaign else None,
             "recipient_email": log.recipient.email if log.recipient else None,
             "sender_email": log.sender_account.email if log.sender_account else None,
         })

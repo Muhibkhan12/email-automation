@@ -2,7 +2,6 @@ import { Routes, Route } from "react-router-dom";
 
 // ================= USER PAGES =================
 import Dashboard from "../pages/User/UserDashboard";
-import Notifications from "../pages/User/Notifications";
 import EmailLogs from "../pages/User/EmailLogs";
 import Templates from "../pages/User/Templates";
 import Settings from "../pages/User/Settings";
@@ -24,7 +23,6 @@ import EmailTemplatesAdmin from "../pages/Admin/AdminTemplates";
 import AdminCampaigns from "../pages/Admin/AdminCampaigns";
 import AdminAnalytics from "../pages/Admin/AdminAnalytics";
 import AdminUsers from "../pages/Admin/AdminUsersPage";
-import AdminNotifications from "../pages/Admin/AdminNotification";
 import AdminEmailLogs from "../pages/Admin/AdminEmaillogs";
 import AdminQueueMonitor from "../pages/Admin/AdminQueuemonitor";
 import AdminSettings from "../pages/Admin/AdminSettings";
@@ -70,11 +68,6 @@ const AppRouter = () => {
           <Route
             path="dashboard"
             element={<Dashboard />}
-          />
-
-          <Route
-            path="notifications"
-            element={<Notifications />}
           />
 
           <Route
@@ -170,11 +163,6 @@ const AppRouter = () => {
             element={<UserProvider>
                 <AdminUsers />
               </UserProvider>}
-          />
-
-          <Route
-            path="notifications"
-            element={<AdminNotifications />}
           />
 
           <Route

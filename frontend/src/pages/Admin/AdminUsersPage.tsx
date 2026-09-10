@@ -8,6 +8,7 @@ import {
   Search,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
   User,
   Mail,
   MoreHorizontal,
@@ -18,6 +19,7 @@ import {
 type SenderAccountItem = UserWithSenderAccounts["senderAccount"][number];
 
 const ROLES = ["All", "ADMIN", "EMPLOYEE"];
+const PAGE_SIZE = 10;
 
 const roleColors: Record<string, { bg: string; text: string; icon: React.ElementType }> = {
   ADMIN: { bg: "bg-purple-500/10", text: "text-purple-400", icon: Shield },
@@ -35,6 +37,15 @@ const getSenderStatus = (status?: string): keyof typeof senderStatusColors =>
   status === "Connected" || status === "Warning" || status === "Error" || status === "Disconnected"
     ? status
     : "Disconnected";
+
+// Backend doesn't send a campaigns field on the user object yet — this reads whatever
+// shape shows up (campaignsCount, or a campaigns array) without crashing if neither exists.
+const getCampaignsCount = (user: UserWithSenderAccounts): number | null => {
+  const anyUser = user as any;
+  if (typeof anyUser.campaignsCount === "number") return anyUser.campaignsCount;
+  if (Array.isArray(anyUser.campaigns)) return anyUser.campaigns.length;
+  return null;
+};
 
 type Stat = { title: string; value: string; note?: string; accent: string };
 
@@ -58,26 +69,29 @@ const AdminUsers = () => {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedUsers, setSelectedUsers] = useState<Set<number>>(new Set());
   const [expandedUsers, setExpandedUsers] = useState<Set<number>>(new Set());
+  const [page, setPage] = useState(1);
+  const [removing, setRemoving] = useState(false);
 
-  // Fix: Try both import styles
-  let context;
-  try {
-    context = useContext(UsersContext);
-  } catch (e) {
-    console.error("Context error:", e);
-    context = null;
+  // useContext never throws — a missing Provider just returns undefined. No try/catch needed.
+  const context = useContext(UsersContext);
+
+  if (!context && process.env.NODE_ENV !== "production") {
+    // Loud warning instead of silently rendering an empty table when the Provider is missing
+    // or the context file's export is wrong.
+    console.warn("AdminUsers: UsersContext is undefined — check that this page is wrapped in <UsersProvider> and that UsersContext has a valid default export.");
   }
-  
-  const { usersWithSenderAccounts, loading, fetchUserWithSenderAccounts } = context || { usersWithSenderAccounts: [], loading: false };
 
-  // Fix: Only fetch once
+  const {
+    usersWithSenderAccounts,
+    loading,
+    fetchUserWithSenderAccounts,
+    deleteUsers, // optional — only called if the context actually exposes it
+  } = context || { usersWithSenderAccounts: [], loading: false, fetchUserWithSenderAccounts: undefined, deleteUsers: undefined };
+
+  // Fetch is synchronous-trigger only, nothing to clean up before it fires.
   useEffect(() => {
-    let mounted = true;
-    if (fetchUserWithSenderAccounts && mounted) {
-      fetchUserWithSenderAccounts();
-    }
-    return () => { mounted = false; };
-  }, []); // Empty dependency array - only runs once
+    fetchUserWithSenderAccounts?.();
+  }, []);
 
   const users = Array.isArray(usersWithSenderAccounts) ? usersWithSenderAccounts : [];
 
@@ -120,6 +134,14 @@ const AdminUsers = () => {
     return result;
   }, [users, search, roleFilter, sortField, sortDirection]);
 
+  // Reset to page 1 whenever the result set changes shape, so you don't land on an empty page.
+  useEffect(() => {
+    setPage(1);
+  }, [search, roleFilter, sortField, sortDirection]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
+  const paginatedUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   const toggleSort = (field: keyof UserWithSenderAccounts) => {
     if (sortField === field) {
       setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -138,10 +160,49 @@ const AdminUsers = () => {
   const toggleUserSelection = (id: number) => setSelectedUsers((prev) => toggleInSet(prev, id));
   const toggleExpanded = (id: number) => setExpandedUsers((prev) => toggleInSet(prev, id));
 
-  const toggleAllUsers = () => {
-    setSelectedUsers(
-      selectedUsers.size === filteredUsers.length ? new Set() : new Set(filteredUsers.map((u) => u.id))
+  // Select-all now operates on the visible page, which is what the checkbox next to it implies.
+  const toggleAllOnPage = () => {
+    const pageIds = paginatedUsers.map((u) => u.id);
+    const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedUsers.has(id));
+    setSelectedUsers((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        pageIds.forEach((id) => next.delete(id));
+      } else {
+        pageIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  };
+
+  const handleBulkRemove = async () => {
+    if (selectedUsers.size === 0) return;
+
+    const ids = Array.from(selectedUsers);
+    const confirmed = window.confirm(
+      `Remove ${ids.length} user${ids.length > 1 ? "s" : ""}? This can't be undone.`
     );
+    if (!confirmed) return;
+
+    if (typeof deleteUsers !== "function") {
+      console.warn(
+        "AdminUsers: no deleteUsers method on UsersContext — wire a deleteUsers(ids) function into the context to make this button call the API."
+      );
+      window.alert("Remove isn't wired to the backend yet — no deleteUsers method found on UsersContext.");
+      return;
+    }
+
+    setRemoving(true);
+    try {
+      await deleteUsers(ids);
+      setSelectedUsers(new Set());
+      await fetchUserWithSenderAccounts?.();
+    } catch (err) {
+      console.error("Failed to remove users:", err);
+      window.alert("Something went wrong removing those users. Check the console for details.");
+    } finally {
+      setRemoving(false);
+    }
   };
 
   const stats: Stat[] = [
@@ -171,33 +232,14 @@ const AdminUsers = () => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-        .main-content::-webkit-scrollbar {
-          width: 6px;
-        }
-        .main-content::-webkit-scrollbar-track {
-          background: #0E1013;
-        }
-        .main-content::-webkit-scrollbar-thumb {
-          background: #2A2E37;
-          border-radius: 3px;
-        }
-        .main-content::-webkit-scrollbar-thumb:hover {
-          background: #3A3F4A;
-        }
-        .sidebar-overlay {
-          animation: fadeIn 0.2s ease-in-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .sidebar-slide {
-          animation: slideIn 0.25s ease-out;
-        }
-        @keyframes slideIn {
-          from { transform: translateX(-100%); }
-          to { transform: translateX(0); }
-        }
+        .main-content::-webkit-scrollbar { width: 6px; }
+        .main-content::-webkit-scrollbar-track { background: #0E1013; }
+        .main-content::-webkit-scrollbar-thumb { background: #2A2E37; border-radius: 3px; }
+        .main-content::-webkit-scrollbar-thumb:hover { background: #3A3F4A; }
+        .sidebar-overlay { animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .sidebar-slide { animation: slideIn 0.25s ease-out; }
+        @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
       `}</style>
 
       {/* Mobile Sidebar Overlay */}
@@ -219,7 +261,7 @@ const AdminUsers = () => {
 
       {/* Main Content */}
       <main className="main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8 bg-[#0E1013] h-screen w-full">
-        
+
         {/* Header */}
         <div className="mb-6 md:mb-8 flex flex-wrap items-center justify-between gap-3 md:gap-4">
           <div className="flex items-center gap-3 md:gap-4">
@@ -279,8 +321,12 @@ const AdminUsers = () => {
           {selectedUsers.size > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-[#8B8D94]">{selectedUsers.size} selected</span>
-              <button className="rounded-lg border border-rose-500/30 px-3 py-1.5 text-xs font-medium text-rose-400 hover:bg-rose-500/10 transition">
-                Remove
+              <button
+                onClick={handleBulkRemove}
+                disabled={removing}
+                className="rounded-lg border border-rose-500/30 px-3 py-1.5 text-xs font-medium text-rose-400 hover:bg-rose-500/10 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {removing ? "Removing..." : "Remove"}
               </button>
             </div>
           )}
@@ -335,12 +381,12 @@ const AdminUsers = () => {
                     <th className="px-2 md:px-3 lg:px-5 py-2 md:py-2.5 lg:py-3 font-medium w-8">
                       <input
                         type="checkbox"
-                        checked={selectedUsers.size === filteredUsers.length && filteredUsers.length > 0}
-                        onChange={toggleAllUsers}
+                        checked={paginatedUsers.length > 0 && paginatedUsers.every((u) => selectedUsers.has(u.id))}
+                        onChange={toggleAllOnPage}
                         className="rounded border-[#2A2E37] bg-[#0E1013] accent-[#FF6A39]"
                       />
                     </th>
-                    <th 
+                    <th
                       className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium cursor-pointer hover:text-[#E8E6E1] transition"
                       onClick={() => toggleSort("username")}
                     >
@@ -349,7 +395,7 @@ const AdminUsers = () => {
                         <ChevronDown size={10} className={`transition-transform ${sortField === "username" ? (sortDirection === "asc" ? "rotate-180" : "") : "opacity-30"}`} />
                       </span>
                     </th>
-                    <th 
+                    <th
                       className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium cursor-pointer hover:text-[#E8E6E1] transition"
                       onClick={() => toggleSort("role")}
                     >
@@ -360,7 +406,7 @@ const AdminUsers = () => {
                     </th>
                     <th className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Sender Accounts</th>
                     <th className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Campaigns</th>
-                    <th 
+                    <th
                       className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium cursor-pointer hover:text-[#E8E6E1] transition"
                       onClick={() => toggleSort("created_at")}
                     >
@@ -374,7 +420,7 @@ const AdminUsers = () => {
                 </thead>
 
                 <tbody>
-                  {filteredUsers.map((user) => {
+                  {paginatedUsers.map((user) => {
                     const roleStyle = roleColors[user.role] ?? roleColors.EMPLOYEE;
                     const RoleIcon = roleStyle.icon;
                     const accounts = user.senderAccount ?? [];
@@ -384,6 +430,7 @@ const AdminUsers = () => {
                       const s = getSenderStatus(a.status);
                       return s === "Warning" || s === "Error";
                     });
+                    const campaignsCount = getCampaignsCount(user);
 
                     return (
                       <React.Fragment key={user.id}>
@@ -440,7 +487,11 @@ const AdminUsers = () => {
                           </td>
 
                           <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5 text-[9px] md:text-[10px] lg:text-[13px] text-[#C7C9CE]">
-                            —
+                            {campaignsCount === null ? (
+                              <span className="text-[#8B8D94]">—</span>
+                            ) : (
+                              campaignsCount
+                            )}
                           </td>
 
                           <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5 text-[8px] md:text-[9px] lg:text-[12px] text-[#8B8D94] font-['JetBrains_Mono']">
@@ -472,23 +523,58 @@ const AdminUsers = () => {
               </table>
             </div>
 
-            {/* Pagination */}
+            {/* Pagination — now wired to real page state */}
             <div className="flex flex-wrap items-center justify-between gap-2 p-3 md:p-4 lg:p-5 border-t border-[#2A2E37]">
               <span className="text-[8px] md:text-[9px] lg:text-xs text-[#8B8D94]">
-                Showing {filteredUsers.length} of {users.length} users
+                Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length} users
               </span>
               <div className="flex items-center gap-1 md:gap-1.5">
-                <button className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[8px] md:text-[9px] lg:text-xs hover:bg-[#1B1E24] transition">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[8px] md:text-[9px] lg:text-xs hover:bg-[#1B1E24] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={10} />
                   Prev
                 </button>
-                <button className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg bg-[#FF6A39] text-white text-[8px] md:text-[9px] lg:text-xs font-medium">
-                  1
-                </button>
-                <button className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[8px] md:text-[9px] lg:text-xs hover:bg-[#1B1E24] transition">
-                  2
-                </button>
-                <button className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[8px] md:text-[9px] lg:text-xs hover:bg-[#1B1E24] transition">
+
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[8px] md:text-[9px] lg:text-xs font-medium transition ${
+                      p === page
+                        ? "bg-[#FF6A39] text-white"
+                        : "border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24]"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+
+                {totalPages > 5 && (
+                  <>
+                    <span className="text-[8px] md:text-[9px] lg:text-xs text-[#8B8D94]">…</span>
+                    <button
+                      onClick={() => setPage(totalPages)}
+                      className={`px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[8px] md:text-[9px] lg:text-xs font-medium transition ${
+                        page === totalPages
+                          ? "bg-[#FF6A39] text-white"
+                          : "border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24]"
+                      }`}
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="flex items-center gap-1 px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[8px] md:text-[9px] lg:text-xs hover:bg-[#1B1E24] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
                   Next
+                  <ChevronRight size={10} />
                 </button>
               </div>
             </div>

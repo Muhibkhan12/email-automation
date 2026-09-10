@@ -1,10 +1,10 @@
 // AdminEmailLogs.tsx
-import React, { useState, useMemo } from "react";
+import React, { useContext, useMemo, useState } from "react";
 import AdminSidebar from "./AdminSidebar";
+import { EmailLogsContext } from "../../contexts/EmaillogsContext";
 import {
   Mail,
   Search,
-  Filter,
   Download,
   RefreshCw,
   ChevronLeft,
@@ -14,15 +14,8 @@ import {
   Clock,
   AlertTriangle,
   Copy,
-  Eye,
   MoreHorizontal,
   Inbox,
-  ArrowUpRight,
-  ArrowDownRight,
-  Calendar,
-  Users,
-  Send,
-  Activity,
   Menu,
 } from "lucide-react";
 
@@ -30,10 +23,10 @@ import {
 /*  Types                                                                  */
 /* ---------------------------------------------------------------------- */
 
-type EmailStatus = "Delivered" | "Opened" | "Clicked" | "Bounced" | "Failed" | "Spam";
+type EmailStatus = "Sent" | "Delivered" | "Failed" | "Bounced";
 
-interface EmailLog {
-  id: string;
+interface NormalizedLog {
+  id: string | number;
   recipient: string;
   sender: string;
   workspace: string;
@@ -41,207 +34,155 @@ interface EmailLog {
   subject: string;
   status: EmailStatus;
   sentAt: string;
-  openedAt?: string;
-  clickedAt?: string;
-  ipAddress?: string;
-  userAgent?: string;
 }
 
+const PAGE_SIZE = 8;
+
 /* ---------------------------------------------------------------------- */
-/*  Data                                                                   */
+/*  Helpers                                                                */
 /* ---------------------------------------------------------------------- */
 
-const emailLogs: EmailLog[] = [
-  {
-    id: "LOG-10241",
-    recipient: "john.doe@example.com",
-    sender: "marketing@nimbusretail.com",
-    workspace: "Nimbus Retail",
-    campaign: "Summer Sale 2026",
-    subject: "Summer Sale — 30% Off Everything!",
-    status: "Opened",
-    sentAt: "2026-08-20 14:32:21",
-    openedAt: "2026-08-20 14:35:12",
-    ipAddress: "192.168.1.1",
-    userAgent: "Chrome/120.0.0.0",
-  },
-  {
-    id: "LOG-10240",
-    recipient: "sarah.smith@venturehub.co",
-    sender: "sales@venturehub.co",
-    workspace: "VentureHub Co",
-    campaign: "Weekly Newsletter #42",
-    subject: "What's New This Week at VentureHub",
-    status: "Delivered",
-    sentAt: "2026-08-20 14:28:15",
-    ipAddress: "10.0.0.1",
-    userAgent: "Firefox/121.0.0.0",
-  },
-  {
-    id: "LOG-10239",
-    recipient: "mike.johnson@brightpath.org",
-    sender: "hello@brightpath.org",
-    workspace: "BrightPath Org",
-    campaign: "Product Launch",
-    subject: "Introducing Our New Product Line",
-    status: "Clicked",
-    sentAt: "2026-08-20 14:22:45",
-    openedAt: "2026-08-20 14:25:30",
-    clickedAt: "2026-08-20 14:26:18",
-    ipAddress: "172.16.0.1",
-    userAgent: "Safari/17.0.0.0",
-  },
-  {
-    id: "LOG-10238",
-    recipient: "emily.wilson@driftlabs.dev",
-    sender: "dev@driftlabs.dev",
-    workspace: "Driftlabs Dev",
-    campaign: "Cart Abandonment Flow",
-    subject: "You left something behind in your cart",
-    status: "Bounced",
-    sentAt: "2026-08-20 14:18:33",
-    ipAddress: "192.168.1.2",
-    userAgent: "Chrome/120.0.0.0",
-  },
-  {
-    id: "LOG-10237",
-    recipient: "david.kim@lumenstack.io",
-    sender: "updates@lumenstack.io",
-    workspace: "Lumenstack Inc",
-    campaign: "Onboarding Sequence",
-    subject: "Welcome to Lumenstack — Let's Get Started",
-    status: "Opened",
-    sentAt: "2026-08-20 14:15:09",
-    openedAt: "2026-08-20 14:17:42",
-    ipAddress: "10.0.0.2",
-    userAgent: "Edge/120.0.0.0",
-  },
-  {
-    id: "LOG-10236",
-    recipient: "lisa.thompson@stackline.app",
-    sender: "hello@stackline.app",
-    workspace: "Stackline App",
-    campaign: "Feature Announcement",
-    subject: "New Features You'll Love",
-    status: "Failed",
-    sentAt: "2026-08-20 14:11:57",
-    ipAddress: "172.16.0.2",
-    userAgent: "Chrome/120.0.0.0",
-  },
-  {
-    id: "LOG-10235",
-    recipient: "alex.morgan@forgeworks.com",
-    sender: "team@forgeworks.com",
-    workspace: "Forgeworks",
-    campaign: "Customer Feedback Survey",
-    subject: "We'd Love Your Feedback",
-    status: "Spam",
-    sentAt: "2026-08-20 14:08:44",
-    ipAddress: "192.168.1.3",
-    userAgent: "Firefox/121.0.0.0",
-  },
-  {
-    id: "LOG-10234",
-    recipient: "priya.patel@meridiancorp.net",
-    sender: "support@meridiancorp.net",
-    workspace: "Meridian Corp",
-    campaign: "Order Confirmation",
-    subject: "Your Order #ORD-12345 is Confirmed",
-    status: "Delivered",
-    sentAt: "2026-08-20 14:05:21",
-    ipAddress: "10.0.0.3",
-    userAgent: "Safari/17.0.0.0",
-  },
-];
+const normalizeLog = (log: any): NormalizedLog => ({
+  id: log.id ?? "unknown",
+  recipient: log.recipient_email || `Recipient ${log.recipient_id ?? ""}`,
+  sender: log.sender_email || `Sender ${log.sender_account_id ?? ""}`,
+  // workspace isn't in the payload yet — falls back to "—" until the backend sends it
+  workspace: log.workspace_name || log.workspace_id || "—",
+  campaign: log.campaign_name || `Campaign ${log.campaign_id ?? ""}`,
+  subject: log.subject || "No Subject",
+  status: (log.status || "Sent") as EmailStatus,
+  sentAt: log.sent_at || log.created_at || "",
+});
 
-const stats = [
-  { title: "Total Emails", value: "48,250", change: "+12.4%", trend: "up", icon: Mail },
-  { title: "Delivered", value: "47,480", change: "+13.2%", trend: "up", icon: CheckCircle2 },
-  { title: "Failed", value: "520", change: "-4.1%", trend: "down", icon: XCircle },
-  { title: "Bounced", value: "250", change: "-2.8%", trend: "down", icon: AlertTriangle },
-];
-
-const statusConfig: Record<EmailStatus, { bg: string; text: string; icon: React.ElementType; dot: string }> = {
-  Delivered: { bg: "bg-emerald-500/15", text: "text-emerald-400", icon: CheckCircle2, dot: "bg-emerald-400" },
-  Opened: { bg: "bg-blue-500/15", text: "text-blue-400", icon: Eye, dot: "bg-blue-400" },
-  Clicked: { bg: "bg-[#FF6A39]/15", text: "text-[#FF6A39]", icon: ArrowUpRight, dot: "bg-[#FF6A39]" },
-  Bounced: { bg: "bg-amber-500/15", text: "text-amber-400", icon: AlertTriangle, dot: "bg-amber-400" },
-  Failed: { bg: "bg-rose-500/15", text: "text-rose-400", icon: XCircle, dot: "bg-rose-400" },
-  Spam: { bg: "bg-violet-500/15", text: "text-violet-400", icon: Inbox, dot: "bg-violet-400" },
+const formatSentAt = (value: string) => {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value;
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
-const STATUS_FILTERS = ["All", "Delivered", "Opened", "Clicked", "Bounced", "Failed", "Spam"];
-const WORKSPACE_FILTERS = ["All", "Nimbus Retail", "VentureHub Co", "BrightPath Org", "Driftlabs Dev", "Lumenstack Inc", "Stackline App", "Forgeworks", "Meridian Corp"];
-const RANGES = ["Last 24 hours", "Last 7 days", "Last 30 days", "Last 90 days"];
+const statusConfig: Record<EmailStatus, { bg: string; text: string; icon: React.ElementType }> = {
+  Sent: { bg: "bg-blue-500/15", text: "text-blue-400", icon: Clock },
+  Delivered: { bg: "bg-emerald-500/15", text: "text-emerald-400", icon: CheckCircle2 },
+  Bounced: { bg: "bg-amber-500/15", text: "text-amber-400", icon: AlertTriangle },
+  Failed: { bg: "bg-rose-500/15", text: "text-rose-400", icon: XCircle },
+};
+
+const STATUS_FILTERS: ("All" | EmailStatus)[] = ["All", "Sent", "Delivered", "Failed", "Bounced"];
+const RANGES = ["All time", "Today", "Last 7 days", "Last 30 days", "Last 90 days"];
 
 /* ---------------------------------------------------------------------- */
 /*  Page                                                                   */
 /* ---------------------------------------------------------------------- */
 
 const AdminEmailLogs = () => {
+  // Context + ALL hooks first, no conditional hooks
+  const ctx = useContext(EmailLogsContext);
+
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState<"All" | EmailStatus>("All");
   const [workspaceFilter, setWorkspaceFilter] = useState("All");
-  const [range, setRange] = useState(RANGES[1]);
-  const [selectedLogs, setSelectedLogs] = useState<Set<string>>(new Set());
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [range, setRange] = useState(RANGES[0]);
+  const [page, setPage] = useState(1);
+  const [selectedLogs, setSelectedLogs] = useState<Set<string | number>>(new Set());
+  const [hoveredId, setHoveredId] = useState<string | number | null>(null);
+  const [copiedId, setCopiedId] = useState<string | number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const emaillogs = ctx?.emaillogs ?? [];
+  const loading = ctx?.loading ?? false;
+  const error = ctx?.error ?? null;
+  const refetch = ctx?.refetch ?? (() => {});
+
+  const normalizedLogs = useMemo(() => {
+    if (!Array.isArray(emaillogs)) return [];
+    return emaillogs.map(normalizeLog);
+  }, [emaillogs]);
+
+  const workspaceOptions = useMemo(() => {
+    const set = new Set(normalizedLogs.map((l) => l.workspace).filter(Boolean));
+    return ["All", ...Array.from(set)];
+  }, [normalizedLogs]);
+
   const filteredLogs = useMemo(() => {
-    let result = emailLogs;
+    const q = search.toLowerCase();
+    return normalizedLogs.filter((log) => {
+      const matchesSearch =
+        !q ||
+        log.recipient.toLowerCase().includes(q) ||
+        log.sender.toLowerCase().includes(q) ||
+        log.campaign.toLowerCase().includes(q) ||
+        log.subject.toLowerCase().includes(q) ||
+        String(log.id).toLowerCase().includes(q);
+      const matchesStatus = statusFilter === "All" || log.status === statusFilter;
+      const matchesWorkspace = workspaceFilter === "All" || log.workspace === workspaceFilter;
+      return matchesSearch && matchesStatus && matchesWorkspace;
+    });
+  }, [normalizedLogs, search, statusFilter, workspaceFilter]);
 
-    if (search) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (log) =>
-          log.recipient.toLowerCase().includes(q) ||
-          log.sender.toLowerCase().includes(q) ||
-          log.campaign.toLowerCase().includes(q) ||
-          log.subject.toLowerCase().includes(q) ||
-          log.id.toLowerCase().includes(q)
-      );
-    }
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE));
+  const paginatedLogs = filteredLogs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-    if (statusFilter !== "All") {
-      result = result.filter((log) => log.status === statusFilter);
-    }
+  const stats = useMemo(() => {
+    const total = normalizedLogs.length;
+    const delivered = normalizedLogs.filter((l) => l.status === "Delivered").length;
+    const failed = normalizedLogs.filter((l) => l.status === "Failed").length;
+    const bounced = normalizedLogs.filter((l) => l.status === "Bounced").length;
+    return { total, delivered, failed, bounced };
+  }, [normalizedLogs]);
 
-    if (workspaceFilter !== "All") {
-      result = result.filter((log) => log.workspace === workspaceFilter);
-    }
+  const statCards = [
+    { title: "Total Emails", value: stats.total, icon: Mail },
+    { title: "Delivered", value: stats.delivered, icon: CheckCircle2 },
+    { title: "Failed", value: stats.failed, icon: XCircle },
+    { title: "Bounced", value: stats.bounced, icon: AlertTriangle },
+  ];
 
-    return result;
-  }, [search, statusFilter, workspaceFilter]);
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
 
-  const toggleSelection = (id: string) => {
+  const handleStatusChange = (value: "All" | EmailStatus) => {
+    setStatusFilter(value);
+    setPage(1);
+  };
+
+  const handleWorkspaceChange = (value: string) => {
+    setWorkspaceFilter(value);
+    setPage(1);
+  };
+
+  const toggleSelection = (id: string | number) => {
     setSelectedLogs((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
 
   const toggleAll = () => {
-    if (selectedLogs.size === filteredLogs.length) {
+    if (selectedLogs.size === paginatedLogs.length) {
       setSelectedLogs(new Set());
     } else {
-      setSelectedLogs(new Set(filteredLogs.map((log) => log.id)));
+      setSelectedLogs(new Set(paginatedLogs.map((log) => log.id)));
     }
   };
 
-  const handleCopy = (id: string) => {
-    navigator.clipboard?.writeText(id);
+  const handleCopy = (id: string | number) => {
+    navigator.clipboard?.writeText(String(id));
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 1200);
   };
 
   const getStatusBadge = (status: EmailStatus) => {
-    const config = statusConfig[status];
+    const config = statusConfig[status] ?? statusConfig.Sent;
     const Icon = config.icon;
     return (
       <span
@@ -254,59 +195,37 @@ const AdminEmailLogs = () => {
     );
   };
 
+  // Safe to bail out now — every hook above already ran
+  if (!ctx) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0E1013] text-[#E8E6E1]">
+        <p>EmailLogsContext not found — wrap this page in &lt;EmailLogsProvider&gt;.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen overflow-hidden bg-[#0E1013]">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
-        
-        .main-content::-webkit-scrollbar {
-          width: 6px;
-        }
-        .main-content::-webkit-scrollbar-track {
-          background: #0E1013;
-        }
-        .main-content::-webkit-scrollbar-thumb {
-          background: #2A2E37;
-          border-radius: 3px;
-        }
-        .main-content::-webkit-scrollbar-thumb:hover {
-          background: #3A3F4A;
-        }
-        .log-row:hover {
-          background-color: #1B1E24;
-        }
-        .stat-card {
-          transition: all 0.2s ease;
-        }
-        .stat-card:hover {
-          transform: translateY(-2px);
-        }
-        .sidebar-overlay {
-          animation: fadeIn 0.2s ease-in-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .sidebar-slide {
-          animation: slideIn 0.25s ease-out;
-        }
-        @keyframes slideIn {
-          from { transform: translateX(-100%); }
-          to { transform: translateX(0); }
-        }
+
+        .main-content::-webkit-scrollbar { width: 6px; }
+        .main-content::-webkit-scrollbar-track { background: #0E1013; }
+        .main-content::-webkit-scrollbar-thumb { background: #2A2E37; border-radius: 3px; }
+        .main-content::-webkit-scrollbar-thumb:hover { background: #3A3F4A; }
+        .log-row:hover { background-color: #1B1E24; }
+        .stat-card { transition: all 0.2s ease; }
+        .stat-card:hover { transform: translateY(-2px); }
+        .sidebar-overlay { animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .sidebar-slide { animation: slideIn 0.25s ease-out; }
+        @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
         @media (max-width: 480px) {
-          .filter-controls {
-            flex-direction: column;
-            width: 100%;
-          }
-          .filter-controls select {
-            width: 100%;
-          }
+          .filter-controls { flex-direction: column; width: 100%; }
+          .filter-controls select { width: 100%; }
         }
       `}</style>
 
-      {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
           className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
@@ -314,21 +233,20 @@ const AdminEmailLogs = () => {
         />
       )}
 
-      {/* Sidebar */}
-      <div className={`
+      <div
+        className={`
         fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         sidebar-slide
-      `}>
+      `}
+      >
         <AdminSidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Main Content */}
       <main className="main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8 bg-[#0E1013] h-screen w-full">
         {/* Header */}
         <div className="mb-6 md:mb-8 flex flex-wrap items-center justify-between gap-3 md:gap-4">
           <div className="flex items-center gap-3 md:gap-4">
-            {/* Mobile Menu Button */}
             <button
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
@@ -351,8 +269,12 @@ const AdminEmailLogs = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full sm:w-auto">
-            <button className="flex items-center gap-1.5 md:gap-2 rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-[#C7C9CE] hover:border-[#3A3F4A] transition flex-1 sm:flex-none justify-center">
-              <RefreshCw size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
+            <button
+              onClick={() => refetch()}
+              disabled={loading}
+              className="flex items-center gap-1.5 md:gap-2 rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-[#C7C9CE] hover:border-[#3A3F4A] transition flex-1 sm:flex-none justify-center disabled:opacity-50"
+            >
+              <RefreshCw size={12} className={`md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] ${loading ? "animate-spin" : ""}`} />
               <span className="hidden xs:inline">Refresh</span>
             </button>
             <button className="flex items-center gap-1.5 md:gap-2 rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-[#C7C9CE] hover:border-[#3A3F4A] transition flex-1 sm:flex-none justify-center">
@@ -371,9 +293,15 @@ const AdminEmailLogs = () => {
           </div>
         </div>
 
+        {error && (
+          <div className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-2.5 text-xs text-rose-400">
+            Error: {error}
+          </div>
+        )}
+
         {/* Stats */}
         <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
-          {stats.map((stat) => {
+          {statCards.map((stat) => {
             const Icon = stat.icon;
             return (
               <div
@@ -384,17 +312,9 @@ const AdminEmailLogs = () => {
                   <div className="flex h-7 w-7 md:h-8 md:w-8 lg:h-9 lg:w-9 items-center justify-center rounded-lg bg-[#FF6A39]/10">
                     <Icon size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] text-[#FF6A39]" />
                   </div>
-                  <span
-                    className={`flex items-center gap-0.5 text-[9px] md:text-[10px] lg:text-[11.5px] font-medium ${
-                      stat.trend === "up" ? "text-[#7FD98A]" : "text-[#FF5C6C]"
-                    }`}
-                  >
-                    {stat.trend === "up" ? <ArrowUpRight size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" /> : <ArrowDownRight size={10} className="md:w-[11px] md:h-[11px] lg:w-[12px] lg:h-[12px]" />}
-                    {stat.change}
-                  </span>
                 </div>
                 <h2 className="mt-2 md:mt-3 lg:mt-4 text-lg md:text-xl lg:text-2xl font-semibold tracking-tight text-[#E8E6E1] font-['JetBrains_Mono']">
-                  {stat.value}
+                  {stat.value.toLocaleString()}
                 </h2>
                 <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm text-[#C7C9CE]">{stat.title}</p>
               </div>
@@ -410,7 +330,7 @@ const AdminEmailLogs = () => {
               <input
                 placeholder="Search logs..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="bg-transparent text-[10px] md:text-xs lg:text-sm outline-none text-[#C7C9CE] w-[100px] md:w-[150px] lg:w-[200px] placeholder:text-[#8B8D94]"
               />
             </div>
@@ -418,7 +338,7 @@ const AdminEmailLogs = () => {
             <div className="filter-controls flex flex-wrap items-center gap-2 md:gap-3 w-full lg:w-auto">
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => handleStatusChange(e.target.value as "All" | EmailStatus)}
                 className="flex-1 lg:flex-none rounded-lg border border-[#2A2E37] bg-[#171A21] px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs lg:text-sm text-[#C7C9CE] outline-none focus:border-[#FF6A39]"
               >
                 {STATUS_FILTERS.map((f) => (
@@ -428,10 +348,10 @@ const AdminEmailLogs = () => {
 
               <select
                 value={workspaceFilter}
-                onChange={(e) => setWorkspaceFilter(e.target.value)}
+                onChange={(e) => handleWorkspaceChange(e.target.value)}
                 className="flex-1 lg:flex-none rounded-lg border border-[#2A2E37] bg-[#171A21] px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs lg:text-sm text-[#C7C9CE] outline-none focus:border-[#FF6A39]"
               >
-                {WORKSPACE_FILTERS.map((w) => (
+                {workspaceOptions.map((w) => (
                   <option key={w}>{w}</option>
                 ))}
               </select>
@@ -440,10 +360,24 @@ const AdminEmailLogs = () => {
             {selectedLogs.size > 0 && (
               <span className="text-[9px] md:text-xs text-[#8B8D94]">{selectedLogs.size} selected</span>
             )}
+
+            {(search || statusFilter !== "All" || workspaceFilter !== "All") && (
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setStatusFilter("All");
+                  setWorkspaceFilter("All");
+                  setPage(1);
+                }}
+                className="text-[9px] md:text-xs font-medium text-[#FF6A39] underline underline-offset-2 hover:text-[#e85a2c]"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
 
           <div className="text-[9px] md:text-xs text-[#8B8D94]">
-            Showing {filteredLogs.length} of {emailLogs.length} logs
+            Showing {filteredLogs.length} of {normalizedLogs.length} logs
           </div>
         </div>
 
@@ -456,7 +390,7 @@ const AdminEmailLogs = () => {
                   <th className="px-2 md:px-3 lg:px-5 py-2 md:py-2.5 lg:py-3 font-medium w-6 md:w-8 lg:w-10">
                     <input
                       type="checkbox"
-                      checked={selectedLogs.size === filteredLogs.length && filteredLogs.length > 0}
+                      checked={selectedLogs.size === paginatedLogs.length && paginatedLogs.length > 0}
                       onChange={toggleAll}
                       className="rounded border-[#2A2E37] bg-[#0E1013] accent-[#FF6A39]"
                     />
@@ -472,96 +406,103 @@ const AdminEmailLogs = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredLogs.map((log) => {
-                  const isHovered = hoveredId === log.id;
-                  const isCopied = copiedId === log.id;
+                {loading && normalizedLogs.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="px-3 md:px-5 py-10 md:py-16 text-center text-xs text-[#8B8D94]">
+                      Loading logs from database...
+                    </td>
+                  </tr>
+                )}
 
-                  return (
-                    <tr
-                      key={log.id}
-                      className="log-row transition border-t border-[#2A2E37]"
-                      onMouseEnter={() => setHoveredId(log.id)}
-                      onMouseLeave={() => setHoveredId(null)}
-                    >
-                      <td className="px-2 md:px-3 lg:px-5 py-2.5 md:py-3 lg:py-3.5">
-                        <input
-                          type="checkbox"
-                          checked={selectedLogs.has(log.id)}
-                          onChange={() => toggleSelection(log.id)}
-                          className="rounded border-[#2A2E37] bg-[#0E1013] accent-[#FF6A39]"
-                        />
-                      </td>
-                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
-                        <button
-                          onClick={() => handleCopy(log.id)}
-                          className="flex items-center gap-1 md:gap-1.5 font-mono text-[8px] md:text-[9px] lg:text-[11px] text-[#8B8D94] hover:text-[#E8E6E1] transition"
-                        >
-                          <span className="hidden xs:inline">{log.id}</span>
-                          <span className="xs:hidden">{log.id.substring(0, 8)}</span>
-                          <Copy size={9} className="md:w-[10px] md:h-[10px] lg:w-[10px] lg:h-[10px]" />
-                          {isCopied && (
-                            <span className="text-[#7FD98A] text-[8px] md:text-[9px] lg:text-[10px]">✓</span>
-                          )}
-                        </button>
-                      </td>
-                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
-                        <div>
-                          <p className="text-[9px] md:text-[10px] lg:text-[13px] text-[#C7C9CE] truncate max-w-[100px] md:max-w-[140px] lg:max-w-none">
-                            {log.recipient}
-                          </p>
-                          <p className="text-[7px] md:text-[8px] lg:text-[10px] text-[#8B8D94] truncate max-w-[100px] md:max-w-[140px] lg:max-w-none">
-                            {log.sender}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
-                        <p className="text-[9px] md:text-[10px] lg:text-[13px] text-[#C7C9CE] truncate max-w-[80px] md:max-w-[120px] lg:max-w-none">
-                          {log.campaign}
-                        </p>
-                      </td>
-                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
-                        <p className="text-[8px] md:text-[9px] lg:text-[12px] text-[#8B8D94] truncate max-w-[80px] md:max-w-[120px] lg:max-w-[180px]">
-                          {log.subject}
-                        </p>
-                      </td>
-                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
-                        {getStatusBadge(log.status)}
-                      </td>
-                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
-                        <span className="text-[8px] md:text-[9px] lg:text-[12px] text-[#8B8D94] truncate max-w-[80px] md:max-w-[120px] lg:max-w-none block">
-                          {log.workspace}
-                        </span>
-                      </td>
-                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
-                        <span className="text-[7px] md:text-[8px] lg:text-[11px] text-[#8B8D94] font-['JetBrains_Mono'] whitespace-nowrap">
-                          {new Date(log.sentAt).toLocaleDateString()}
-                          <span className="hidden md:inline"> {new Date(log.sentAt).toLocaleTimeString()}</span>
-                        </span>
-                      </td>
-                      <td className="px-2 md:px-3 lg:px-5 py-2.5 md:py-3 lg:py-3.5 text-right">
-                        <button
-                          className={`p-1 rounded transition ${
-                            isHovered
-                              ? "text-[#E8E6E1] hover:bg-[#2A2E37]"
-                              : "text-[#8B8D94]"
-                          }`}
-                        >
-                          <MoreHorizontal size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {!loading &&
+                  paginatedLogs.map((log) => {
+                    const isHovered = hoveredId === log.id;
+                    const isCopied = copiedId === log.id;
 
-                {filteredLogs.length === 0 && (
+                    return (
+                      <tr
+                        key={log.id}
+                        className="log-row transition border-t border-[#2A2E37]"
+                        onMouseEnter={() => setHoveredId(log.id)}
+                        onMouseLeave={() => setHoveredId(null)}
+                      >
+                        <td className="px-2 md:px-3 lg:px-5 py-2.5 md:py-3 lg:py-3.5">
+                          <input
+                            type="checkbox"
+                            checked={selectedLogs.has(log.id)}
+                            onChange={() => toggleSelection(log.id)}
+                            className="rounded border-[#2A2E37] bg-[#0E1013] accent-[#FF6A39]"
+                          />
+                        </td>
+                        <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
+                          <button
+                            onClick={() => handleCopy(log.id)}
+                            className="flex items-center gap-1 md:gap-1.5 font-mono text-[8px] md:text-[9px] lg:text-[11px] text-[#8B8D94] hover:text-[#E8E6E1] transition"
+                          >
+                            <span>{log.id}</span>
+                            <Copy size={9} className="md:w-[10px] md:h-[10px] lg:w-[10px] lg:h-[10px]" />
+                            {isCopied && (
+                              <span className="text-[#7FD98A] text-[8px] md:text-[9px] lg:text-[10px]">✓</span>
+                            )}
+                          </button>
+                        </td>
+                        <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
+                          <div>
+                            <p className="text-[9px] md:text-[10px] lg:text-[13px] text-[#C7C9CE] truncate max-w-[100px] md:max-w-[140px] lg:max-w-none">
+                              {log.recipient}
+                            </p>
+                            <p className="text-[7px] md:text-[8px] lg:text-[10px] text-[#8B8D94] truncate max-w-[100px] md:max-w-[140px] lg:max-w-none">
+                              {log.sender}
+                            </p>
+                          </div>
+                        </td>
+                        <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
+                          <p className="text-[9px] md:text-[10px] lg:text-[13px] text-[#C7C9CE] truncate max-w-[80px] md:max-w-[120px] lg:max-w-none">
+                            {log.campaign}
+                          </p>
+                        </td>
+                        <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
+                          <p className="text-[8px] md:text-[9px] lg:text-[12px] text-[#8B8D94] truncate max-w-[80px] md:max-w-[120px] lg:max-w-[180px]">
+                            {log.subject}
+                          </p>
+                        </td>
+                        <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">{getStatusBadge(log.status)}</td>
+                        <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
+                          <span className="text-[8px] md:text-[9px] lg:text-[12px] text-[#8B8D94] truncate max-w-[80px] md:max-w-[120px] lg:max-w-none block">
+                            {log.workspace}
+                          </span>
+                        </td>
+                        <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
+                          <span className="text-[7px] md:text-[8px] lg:text-[11px] text-[#8B8D94] font-['JetBrains_Mono'] whitespace-nowrap">
+                            {formatSentAt(log.sentAt)}
+                          </span>
+                        </td>
+                        <td className="px-2 md:px-3 lg:px-5 py-2.5 md:py-3 lg:py-3.5 text-right">
+                          <button
+                            className={`p-1 rounded transition ${
+                              isHovered ? "text-[#E8E6E1] hover:bg-[#2A2E37]" : "text-[#8B8D94]"
+                            }`}
+                          >
+                            <MoreHorizontal size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                {!loading && paginatedLogs.length === 0 && (
                   <tr>
                     <td colSpan={9} className="px-3 md:px-5 py-10 md:py-16 text-center">
                       <div className="flex flex-col items-center">
                         <div className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-full bg-[#2A2E37] mb-2 md:mb-3">
                           <Inbox size={16} className="md:w-[18px] md:h-[18px] lg:w-[20px] lg:h-[20px] text-[#8B8D94]" />
                         </div>
-                        <p className="text-xs md:text-sm text-[#8B8D94]">No logs found</p>
-                        <p className="text-[9px] md:text-xs text-[#6B727C] mt-1">Try adjusting your filters</p>
+                        <p className="text-xs md:text-sm text-[#8B8D94]">
+                          {error ? "Could not load logs" : "No logs found"}
+                        </p>
+                        <p className="text-[9px] md:text-xs text-[#6B727C] mt-1">
+                          {error ? "Try refreshing the page" : "Try adjusting your filters"}
+                        </p>
                       </div>
                     </td>
                   </tr>
@@ -571,28 +512,61 @@ const AdminEmailLogs = () => {
           </div>
 
           {/* Pagination */}
-          <div className="flex flex-wrap items-center justify-between gap-2 p-3 md:p-4 lg:p-5 border-t border-[#2A2E37]">
-            <span className="text-[9px] md:text-[10px] lg:text-xs text-[#8B8D94]">
-              Showing 1-{Math.min(filteredLogs.length, 10)} of {filteredLogs.length} logs
-            </span>
-            <div className="flex items-center gap-1 md:gap-1.5">
-              <button className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[9px] md:text-xs hover:bg-[#1B1E24] transition disabled:opacity-40 disabled:cursor-not-allowed">
-                <ChevronLeft size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
-              </button>
-              <button className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg bg-[#FF6A39] text-white text-[9px] md:text-xs font-medium">
-                1
-              </button>
-              <button className="hidden sm:inline-block px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[9px] md:text-xs hover:bg-[#1B1E24] transition">
-                2
-              </button>
-              <button className="hidden sm:inline-block px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[9px] md:text-xs hover:bg-[#1B1E24] transition">
-                3
-              </button>
-              <button className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[9px] md:text-xs hover:bg-[#1B1E24] transition">
-                <ChevronRight size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
-              </button>
+          {filteredLogs.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 md:p-4 lg:p-5 border-t border-[#2A2E37]">
+              <span className="text-[9px] md:text-[10px] lg:text-xs text-[#8B8D94]">
+                Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredLogs.length)} of{" "}
+                {filteredLogs.length} logs
+              </span>
+              <div className="flex items-center gap-1 md:gap-1.5">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[9px] md:text-xs hover:bg-[#1B1E24] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
+                </button>
+
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[9px] md:text-xs font-medium transition ${
+                      p === page
+                        ? "bg-[#FF6A39] text-white"
+                        : "border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24]"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+
+                {totalPages > 5 && (
+                  <>
+                    <span className="text-[9px] md:text-xs text-[#8B8D94]">…</span>
+                    <button
+                      onClick={() => setPage(totalPages)}
+                      className={`px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-[9px] md:text-xs font-medium transition ${
+                        page === totalPages
+                          ? "bg-[#FF6A39] text-white"
+                          : "border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24]"
+                      }`}
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[9px] md:text-xs hover:bg-[#1B1E24] transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
     </div>
