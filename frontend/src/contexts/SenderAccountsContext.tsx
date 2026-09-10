@@ -139,4 +139,4 @@ const SenderAccountsContext = ({ children }: SenderAccountProp) => {
 };
 
 
-export default SenderAccountsContext;
+export default SenderAccContext;
