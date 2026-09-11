@@ -69,9 +69,6 @@ const EmailLogs = () => {
   const error = ctx?.error ?? null;
   const refetch = ctx?.refetch ?? (() => {});
 
-  // 👇 raw DB data straight from context — check this in console
-  console.log("RAW emaillogs from context:", emaillogs);
-
   const normalizedLogs = useMemo(() => {
     if (!Array.isArray(emaillogs)) return [];
     return emaillogs.map(normalizeLog);
