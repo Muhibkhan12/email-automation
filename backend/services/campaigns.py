@@ -32,6 +32,22 @@ def get_campaign_by_id(db: Session, id: int):
 
     return campaign
 
+def get_my_campaigns(
+    db: Session,
+    current_user: User
+):
+    # EMPLOYEE
+    campaigns = (
+        db.query(Campaign)
+        .filter(Campaign.user_id == current_user.id)
+        .all()
+    )
+
+    return {
+        "message": "Your campaigns fetched successfully",
+        "count": len(campaigns),
+        "data": campaigns
+    }
 
 def add_campaign(
     db: Session,

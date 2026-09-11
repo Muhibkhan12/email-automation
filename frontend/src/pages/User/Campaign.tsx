@@ -20,39 +20,35 @@ const STATUS_STYLES: Record<Campaign['status'], { bg: string; text: string; labe
   CANCELLED: { bg: 'rgba(239,68,68,0.1)',  text: '#EF4444', label: 'Cancelled' },
 };
 
-interface UserCampaignsProps {
-  userId: number;
-}
-
-const UserCampaigns: React.FC<UserCampaignsProps> = ({ userId }) => {
+const UserCampaigns: React.FC = () => {
   const navigate = useNavigate();
   const { campaigns, loading, error, refetch } = useCampaigns();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | Campaign['status']>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // getCampaign() has no params, so the context loads everything on mount.
-  // Scope to this user client-side. (If the backend already scopes results
-  // to the authenticated user, this filter is a harmless no-op.)
-  const userCampaigns = useMemo(
-    () => campaigns.filter((c) => c.user_id === userId),
-    [campaigns, userId]
-  );
-
+  // getMyCampaigns() already hits /campaigns/me, so the backend returns
+  // only this user's campaigns — no client-side user_id filtering needed.
   const filteredCampaigns = useMemo(
     () =>
-      userCampaigns.filter((c) => {
+      campaigns.filter((c) => {
         const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
         const matchesSearch =
           c.campaign_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           c.subject.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesStatus && matchesSearch;
       }),
-    [userCampaigns, statusFilter, searchQuery]
+    [campaigns, statusFilter, searchQuery]
   );
 
   const statusOptions: Array<'all' | Campaign['status']> = [
-    'all', 'DRAFT', 'READY', 'RUNNING', 'PAUSED', 'COMPLETED', 'CANCELLED',
+    'all',
+    'DRAFT',
+    'READY',
+    'RUNNING',
+    'PAUSED',
+    'COMPLETED',
+    'CANCELLED',
   ];
 
   return (

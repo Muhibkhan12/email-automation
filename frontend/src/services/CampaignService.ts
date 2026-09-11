@@ -1,14 +1,14 @@
-// frontend/src/services/CampaignService.ts (NOT .tsx)
 import api from "../libs/Axios";
 
 export interface Campaign {
   id: number;
   user_id: number;
-  name: string;
+  campaign_name: string;
+  subject: string;
   template_id: number;
-  status: 'draft' | 'running' | 'completed' | 'completed_with_errors' | 'failed';
+  status: 'DRAFT' | 'READY' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
   created_at: string;
-  updated_at?: string;
+  updated_at: string;
 }
 
 export const getCampaign = async (): Promise<Campaign[]> => {
@@ -17,6 +17,16 @@ export const getCampaign = async (): Promise<Campaign[]> => {
     return response.data;
   } catch (error) {
     console.error('Error fetching campaigns:', error);
+    return [];
+  }
+};
+
+export const getMyCampaigns = async (): Promise<Campaign[]> => {
+  try {
+    const response = await api.get('/campaigns/me');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching campaigns', error);
     return [];
   }
 };
@@ -57,10 +67,11 @@ export const getCampaignProgress = async (id: number): Promise<any> => {
 
 export default {
   getCampaign,
+  getMyCampaigns,
   getCampaignById,
   createCampaign,
   updateCampaign,
   deleteCampaign,
   startCampaign,
-  getCampaignProgress
+  getCampaignProgress,
 };

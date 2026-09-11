@@ -27,6 +27,18 @@ router = APIRouter(
 # ADMIN ONLY
 # =========================================================
 
+@router.get("/my")
+def get_my_campaigns(
+    db: Session = Depends(get_db),
+    current_user = Depends(GetCurrentUser)
+):
+    return campaign_service.get_my_campaigns(
+        db,
+        current_user
+    )
+
+
+
 @router.get(
     "/",
     dependencies=[Depends(require_admin)]

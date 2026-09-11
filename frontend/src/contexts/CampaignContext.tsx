@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useContext, type ReactNode } from "react";
-import { getCampaign } from "../services/CampaignService";
+import { getMyCampaigns } from "../services/CampaignService";
 import type { Campaign } from "../services/CampaignService";
 
 type CampaignProviderProps = {
@@ -24,7 +24,7 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getCampaign();
+      const data = await getMyCampaigns();
       setCampaigns(data);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch campaigns');
