@@ -155,11 +155,10 @@ def deleteUser(db:Session, user_id : int):
     }
 
 def require_admin(current_user : User = Depends(GetCurrentUser)):
-
     if current_user.role != "ADMIN":
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED:
-            detail="Admin Access required"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Admin Access required",
         )
 
     return current_user
