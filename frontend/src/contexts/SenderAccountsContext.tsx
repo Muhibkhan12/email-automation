@@ -42,7 +42,7 @@ export const SenderAccContext =
   createContext<SenderAccountContextType | undefined>(undefined);
 
 
-const SenderAccountsContext = ({ children }: SenderAccountProp) => {
+export const SenderAccountsContext = ({ children }: SenderAccountProp) => {
 
   const [senderAcc, setSenderAcc] = useState<SenderAccount[]>([]);
   const [loading, setLoading] = useState(false);
@@ -139,4 +139,4 @@ const SenderAccountsContext = ({ children }: SenderAccountProp) => {
 };
 
 
-export default SenderAccContext;
+export default SenderAccountsContext;

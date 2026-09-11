@@ -1,4 +1,3 @@
-// contexts/EmaillogsContext.tsx
 import { createContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { UpdateEmailLogsType, EmailLogs } from '../types/EmaillogsTypes';
 import { addEmailLogs, getEmaillog, updateEmailLogs, getEmaillogById } from '../services/EmailLogServices';
@@ -22,7 +21,7 @@ interface EmailLogsContextType {
 
 export const EmailLogsContext = createContext<EmailLogsContextType | undefined>(undefined);
 
-const EmailLogsProvider = ({ children }: EmailLogsProviderProps) => {
+export const EmailLogsProvider = ({ children }: EmailLogsProviderProps) => {
     const [emaillogs, setEmailLogs] = useState<EmailLogs[]>([]);
     const [emaillog, setEmailLog] = useState<EmailLogs | null>(null);
     const [editEmailLogs, setEditEmailLogs] = useState<EmailLogs | null>(null);
@@ -35,19 +34,9 @@ const EmailLogsProvider = ({ children }: EmailLogsProviderProps) => {
         setError(null);
         try {
             const response = await getEmaillog();
-            console.log("📦 Full API Response:", response);
-            
-            // ✅ FIX: Extract the data array from response
-            // Your API returns { count: 4, data: [...] }
-            const logsData = response?.data || [];
-            
-            console.log("📊 Extracted logs data:", logsData);
-            console.log("📊 Number of logs:", logsData.length);
-            
-            // ✅ Set ONLY the array, not the whole response object
+            const logsData = response?.data || [];            
             setEmailLogs(logsData);
         } catch (err: any) {
-            console.error("❌ Failed to fetch email logs:", err);
             setError(err.message || 'Failed to fetch email logs');
             setEmailLogs([]);
         } finally {
