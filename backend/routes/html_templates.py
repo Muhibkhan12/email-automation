@@ -1,31 +1,83 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from schema.html_templates import (AddHTMLSchema, UpdateHtmlTemplateSchema, DeleteHtmlTemplateSchema)
-from services.html_templates import (upload_html_template, delete_html_template, edit_html_template, get_template_by_id, get_all_templates)
 from database import get_db
-
-router = APIRouter(
-    prefix="/html_templates",
-    tags=["html_templates"]
+from schema.html_templates import (
+    AddHTMLSchema,
+    UpdateHtmlTemplateSchema
 )
 
-@router.get("/")
-def get_html_template(db : Session = Depends(get_db)):
-    get_all_templates(db)
+from services.html_templates import (
+    get_all_templates,
+    get_template_by_id,
+    upload_html_template,
+    edit_html_template,
+    delete_html_template
+)
 
-@router.get("/{id}")
-def get_template_using_id(id : int, db : Session = Depends(get_db)):
+from services.user import GetCurrentUser, require_admin
+
+router = APIRouter(
+    prefix="/html-templates",
+    tags=["HTML Templates"]
+)
+
+
+# ADMIN + EMPLOYEE
+@router.get(
+    "/",
+    dependencies=[Depends(GetCurrentUser)]
+)
+def get_templates(
+    db: Session = Depends(get_db)
+):
+    return get_all_templates(db)
+
+
+# ADMIN + EMPLOYEE
+@router.get(
+    "/{id}",
+    dependencies=[Depends(GetCurrentUser)]
+)
+def get_template(
+    id: int,
+    db: Session = Depends(get_db)
+):
     return get_template_by_id(db, id)
 
-@router.post("/add")
-def add_html_template(credentials : AddHTMLSchema ,db : Session = Depends(get_db)):
-    return upload_html_template(db,credentials)
 
-@router.patch("/update/{id}")
-def update_html_template(id : int,credentials : UpdateHtmlTemplateSchema, db : Session = Depends(get_db)):
-    return edit_html_template(db,id,credentials)
+# ADMIN ONLY
+@router.post(
+    "/",
+    dependencies=[Depends(require_admin)]
+)
+def create_template(
+    credentials: AddHTMLSchema,
+    db: Session = Depends(get_db)
+):
+    return upload_html_template(db, credentials)
 
-@router.delete("/delete/{id}")
-def delete_html_temp(id : int, db:Session = Depends(get_db)):
+
+# ADMIN ONLY
+@router.put(
+    "/{id}",
+    dependencies=[Depends(require_admin)]
+)
+def update_template(
+    id: int,
+    credentials: UpdateHtmlTemplateSchema,
+    db: Session = Depends(get_db)
+):
+    return edit_html_template(db, id, credentials)
+
+
+# ADMIN ONLY
+@router.delete(
+    "/{id}",
+    dependencies=[Depends(require_admin)]
+)
+def remove_template(
+    id: int,
+    db: Session = Depends(get_db)
+):
     return delete_html_template(db, id)
