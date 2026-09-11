@@ -13,11 +13,6 @@ export const loginUser = async (data: UserLogin): Promise<AuthResponse> => {
     response.data.access_token
   );
 
-  console.log(
-    "TOKEN AFTER LOGIN:",
-    localStorage.getItem("access_token")
-  );
-
   return response.data;
 };
 
