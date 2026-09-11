@@ -96,7 +96,7 @@ def get_account_by_id(id : int, db):
                detail="Account doesn't exist"
           )
      return {
-          "message":"User Exist",
+          "message":"Account Exist",
           "account" : data
      }
      

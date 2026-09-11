@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from schema.sender_account import addSenderAccountSchema, updateSenderAccout
 from database import get_db
-from services.sender_accounts import  add_sender_account, update_sender_account, delete_sender_account, get_account_by_id, get_all_sender_accounts
+from services.sender_accounts import add_sender_account, update_sender_account, delete_sender_account, get_account_by_id, get_all_sender_accounts
 
 router = APIRouter(
     prefix="/sender-accounts",
