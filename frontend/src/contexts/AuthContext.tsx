@@ -26,7 +26,6 @@ type AuthContextType = {
   logout: () => Promise<void>;
 };
 
-
 type AuthProviderProps = {
   children: ReactNode;
 };
@@ -45,47 +44,25 @@ export const AuthProvider = ({
 
   const [loading, setLoading] = useState(true);
 
-
-  // --------------------------------
-  // Check authentication on startup
-  // --------------------------------
-
   useEffect(() => {
 
     const checkAuth = async () => {
-
       try {
-
         const token = localStorage.getItem("access_token");
-
         if (!token) {
-          
           setUser(null);
-
           return;
         }
-
-
         const profile = await getProfile();
-
         setUser(profile);
-
       }
-
       catch (error) {
-
-        localStorage.removeItem("access_token");
-
+        console.error("Auth initialization Failed: ", error);
         setUser(null);
-
       }
-
       finally {
-
         setLoading(false);
-
       }
-
     };
 
 
@@ -107,9 +84,7 @@ export const AuthProvider = ({
     // Now we also update AuthContext immediately.
 
     setUser(response.user);
-
     return response.user;
-
   };
 
 

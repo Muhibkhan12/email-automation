@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     DB_PASSWORD : str
     SECRET_KEY : str
     ALGORITHM : str = "HS256"
-    JWT_TOKEN_EXPIRY : int = 30
+    JWT_TOKEN_EXPIRY : int = 7
     MS_CLIENT_ID : str
     MS_CLIENT_SECRET : str
     MS_TENANT_ID : str

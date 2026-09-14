@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 from schema.user import (RegisterSchema, LoginSchema, ForgetSchema, UpdateUser)
 from database import get_db
@@ -24,12 +24,24 @@ def registerUser(credentials : RegisterSchema , db: Session = Depends(get_db)):
 @router.post("/login")
 def login(
     credentials: LoginSchema,
+    response : Response,
     db: Session = Depends(get_db)
 ):
-    return LoginUser(
+    result = LoginUser(
         db=db,
         credential=credentials
     )
+
+    response.set_cookie(
+        key="refresh_token",
+        value=result["refresh_token"],
+        httponly=True,
+        secure=False,       # localhost pe HTTP hai, isliye False. Production me True karna (HTTPS required)
+        samesite="lax",     # agar frontend/backend alag port pe hain but same domain (localhost) hai to "lax" chalega
+        max_age= 7 * 7 * 30 * 30, # 7 days, refresh token expiry se match karo
+        path="/auth/refresh",  # sirf refresh endpoint ko cookie milega
+    )
+    return result
 
 @router.post("/refresh")
 def refresh_token_endpoint(request: Request):
