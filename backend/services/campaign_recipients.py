@@ -11,13 +11,6 @@ from schema.campaign_recipients import (
 )
 
 
-# =========================================================
-# GET ALL RECIPIENTS
-# ADMIN ONLY
-#
-# Router already protects this route with require_admin.
-# =========================================================
-
 def get_all_recipients(db: Session):
     data = db.query(CampaignRecipient).all()
 
@@ -26,15 +19,6 @@ def get_all_recipients(db: Session):
         "count": len(data),
         "data": data
     }
-
-
-# =========================================================
-# GET RECIPIENT BY ID
-# ADMIN + EMPLOYEE
-#
-# Employee → only recipient belonging to their campaign
-# Admin    → any recipient
-# =========================================================
 
 def get_recipients_by_id(
     id: int,
@@ -73,14 +57,6 @@ def get_recipients_by_id(
         "message": "Recipient found successfully",
         "recipient": recipient
     }
-
-
-# =========================================================
-# CREATE RECIPIENT
-# ADMIN + EMPLOYEE
-#
-# Employee → can only add recipient to their own campaign
-# =========================================================
 
 def add_recipients_data(
     db: Session,
@@ -130,14 +106,6 @@ def add_recipients_data(
         "message": "Data added to DB successfully",
         "data": upload_recipient
     }
-
-
-# =========================================================
-# UPDATE RECIPIENT
-# ADMIN + EMPLOYEE
-#
-# Employee → only recipient from their own campaign
-# =========================================================
 
 def updated_recipients_data(
     id: int,
@@ -191,14 +159,6 @@ def updated_recipients_data(
         "message": "Recipient updated successfully",
         "data": recipient
     }
-
-
-# =========================================================
-# DELETE RECIPIENT
-# ADMIN + EMPLOYEE
-#
-# Employee → only recipient from their own campaign
-# =========================================================
 
 def delete_recipient_data(
     id: int,
