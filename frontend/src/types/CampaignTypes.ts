@@ -5,12 +5,12 @@ export interface Campaign {
     subject : string;
     template_id : number;
     sender_accout_id : number;
-    status : | "DRAFT" | "READY" | "RUNNING" | "PAUSED" | "COMPLETED" | "CANCELLED";
+    status : | "Draft" | "Ready" | "Running" | "Paused" | "Completed" | "Cancelled" 
     created_at : string;
     updated_at : string;
 }
 export interface CampaignStatus{
-    status : | "DRAFT" | "READY" | "RUNNING" | "PAUSED" | "COMPLETED" | "CANCELLED";
+    status : | "Draft" | "Ready" | "Running" | "Paused" | "Completed" | "Cancelled" 
 }
 
 export interface CreateCampaignData {

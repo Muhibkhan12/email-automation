@@ -12,12 +12,12 @@ const FONT = {
 };
 
 const STATUS_STYLES: Record<Campaign['status'], { bg: string; text: string; label: string }> = {
-  DRAFT:     { bg: '#2A2E37',              text: '#9BA0A8', label: 'Draft' },
-  READY:     { bg: 'rgba(59,130,246,0.1)', text: '#3B82F6', label: 'Ready' },
-  RUNNING:   { bg: 'rgba(34,197,94,0.1)',  text: '#22C55E', label: 'Running' },
-  PAUSED:    { bg: 'rgba(234,179,8,0.1)',  text: '#EAB308', label: 'Paused' },
-  COMPLETED: { bg: 'rgba(139,92,246,0.1)', text: '#8B5CF6', label: 'Completed' },
-  CANCELLED: { bg: 'rgba(239,68,68,0.1)',  text: '#EF4444', label: 'Cancelled' },
+  Draft:     { bg: '#2A2E37',              text: '#9BA0A8', label: 'Draft' },
+  Ready:     { bg: 'rgba(59,130,246,0.1)', text: '#3B82F6', label: 'Ready' },
+  Running:   { bg: 'rgba(34,197,94,0.1)',  text: '#22C55E', label: 'Running' },
+  Paused:    { bg: 'rgba(234,179,8,0.1)',  text: '#EAB308', label: 'Paused' },
+  Completed: { bg: 'rgba(139,92,246,0.1)', text: '#8B5CF6', label: 'Completed' },
+  Cancelled: { bg: 'rgba(239,68,68,0.1)',  text: '#EF4444', label: 'Cancelled' },
 };
 
 const UserCampaigns: React.FC = () => {
