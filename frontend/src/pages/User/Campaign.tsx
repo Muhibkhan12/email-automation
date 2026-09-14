@@ -43,12 +43,12 @@ const UserCampaigns: React.FC = () => {
 
   const statusOptions: Array<'all' | Campaign['status']> = [
     'all',
-    'DRAFT',
-    'READY',
-    'RUNNING',
-    'PAUSED',
-    'COMPLETED',
-    'CANCELLED',
+    'Draft',
+    'Ready',
+    'Running',
+    'Paused',
+    'Completed',
+    'Cancelled',
   ];
 
   return (

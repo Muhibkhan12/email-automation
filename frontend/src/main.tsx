@@ -10,7 +10,6 @@ import "./index.css";
 import App from "./App.tsx";
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
     <BrowserRouter>
       <EmailLogsProvider>
         <AuthProvider>
@@ -22,5 +21,4 @@ createRoot(document.getElementById("root")!).render(
         </AuthProvider>
       </EmailLogsProvider>
     </BrowserRouter>
-  </StrictMode>
 );
