@@ -6,7 +6,6 @@ from schema.campaigns import AddCampaignSchema, UpdateCampaignSchema
 from models.user import User
 from models.user import UserRole
 
-
 def get_all_campaigns(db: Session):
     data = db.query(Campaign).all()
 

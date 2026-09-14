@@ -23,7 +23,7 @@ export const getCampaign = async (): Promise<Campaign[]> => {
 
 export const getMyCampaigns = async (): Promise<Campaign[]> => {
   try {
-    const response = await api.get('/campaigns/me');
+    const response = await api.get('/campaigns/my');
     return response.data;
   } catch (error) {
     console.error('Error fetching campaigns', error);
