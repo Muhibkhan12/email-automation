@@ -8,7 +8,7 @@ import Settings from "../pages/User/Settings";
 import Profile from "../pages/User/Profile";
 import SenderAccount from "../pages/User/SenderAccount";
 import QueueMonitor from "../pages/User/QueueMonitor";
-import Campaign from "../pages/User/Campaign";
+import Campaign from "../pages/User/Campaign/Campaign";
 import Upload from "../pages/User/Upload";
 import Recipients from "../pages/User/Recipients";
 import Analytics from "../pages/User/Analytics";

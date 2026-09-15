@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from models.campaigns import Campaign
 from schema.campaigns import AddCampaignSchema, UpdateCampaignSchema
@@ -14,7 +14,6 @@ def get_all_campaigns(db: Session):
         "count": len(data),
         "data": data
     }
-
 
 def get_campaign_by_id(db: Session, id: int):
     campaign = (
@@ -35,9 +34,16 @@ def get_my_campaigns(
     db: Session,
     current_user: User
 ):
-    # EMPLOYEE
     campaigns = (
         db.query(Campaign)
+        .options(
+            selectinload(Campaign.user),
+            selectinload(Campaign.template),
+            selectinload(Campaign.sender_account),
+            selectinload(Campaign.recipients),
+            selectinload(Campaign.uploads),
+            selectinload(Campaign.email_logs),
+        )
         .filter(Campaign.user_id == current_user.id)
         .all()
     )
@@ -77,7 +83,6 @@ def add_campaign(
         "campaign": campaign
     }
 
-
 def update_campaign(
     db: Session,
     id: int,
@@ -113,7 +118,6 @@ def update_campaign(
         "message": "Campaign updated successfully",
         "campaign": campaign
     }
-
 
 def delete_campaign(
     db: Session,

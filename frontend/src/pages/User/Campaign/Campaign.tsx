@@ -1,9 +1,10 @@
 // UserCampaigns.tsx
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCampaigns } from '../../contexts/CampaignContext';
-import type { Campaign } from '../../services/CampaignService';
-import Sidebar from './Sidebar';
+import { useCampaigns } from '../../../contexts/CampaignContext';
+import type { Campaign } from '../../../services/CampaignService';
+import Sidebar from '../Sidebar';
+import CampaignModal from './CampaignModel';
 
 const FONT = {
   display: "'Space Grotesk', sans-serif",
@@ -26,6 +27,7 @@ const UserCampaigns: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | Campaign['status']>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
 
   // getMyCampaigns() already hits /campaigns/me, so the backend returns
   // only this user's campaigns — no client-side user_id filtering needed.
@@ -170,7 +172,7 @@ const UserCampaigns: React.FC = () => {
                 return (
                   <div
                     key={campaign.id}
-                    onClick={() => navigate(`/user/campaigns/${campaign.id}`)}
+                    onClick={() => setSelectedCampaign(campaign)}
                     className="fade-in-up flex items-center justify-between p-3 md:p-4 rounded-xl border border-[#2A2E37] bg-[#12151B] hover:border-[#3A3F4A] cursor-pointer transition-colors"
                   >
                     <div className="min-w-0">
@@ -197,6 +199,13 @@ const UserCampaigns: React.FC = () => {
           )}
         </div>
       </main>
+
+      {selectedCampaign && (
+        <CampaignModal
+          campaign={selectedCampaign}
+          onClose={() => setSelectedCampaign(null)}
+        />
+      )}
     </div>
   );
 };
