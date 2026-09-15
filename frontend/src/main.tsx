@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext.tsx";
 import {EmailLogsProvider} from "./contexts/EmaillogsContext.tsx";
 import {SenderAccountsContext} from "./contexts/SenderAccountsContext.tsx";
+import HtmlTemplatesProvider from "./contexts/HtmlTemplatesContext.tsx";
 
 import { CampaignProvider } from "./contexts/CampaignContext.tsx";
 import "./index.css";
@@ -15,7 +16,9 @@ createRoot(document.getElementById("root")!).render(
         <AuthProvider>
           <SenderAccountsContext>
             <CampaignProvider>
-            <App />
+              <HtmlTemplatesProvider>
+                <App />
+              </HtmlTemplatesProvider>
             </CampaignProvider>
           </SenderAccountsContext>
         </AuthProvider>

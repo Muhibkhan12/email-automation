@@ -8,7 +8,7 @@ export const getHTMLTemplates = async(): Promise<HtmlTemplates[]> => {
 
 export const getHTMLTemplatesById = async(id : number) => {
     const response = await axios.get(`/html_tempaltes/${id}`);
-    return response
+    return response.data
 };
 
 export const editHtmlTemplates = async(id : number, data : updateHtmlTemplates):Promise<updateHtmlTemplates> => {
