@@ -2,6 +2,12 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, selectinload
 
 from models.campaigns import Campaign
+from models.sender_account import SenderAccount
+from models.html_templates import HTMLTemplate
+from models.email_logs import EmailLog
+from models.upload_file import Upload
+from models.campaign_recipients import CampaignRecipient
+
 from schema.campaigns import AddCampaignSchema, UpdateCampaignSchema
 from models.user import User
 from models.user import UserRole
@@ -37,12 +43,28 @@ def get_my_campaigns(
     campaigns = (
         db.query(Campaign)
         .options(
-            selectinload(Campaign.user),
-            selectinload(Campaign.template),
-            selectinload(Campaign.sender_account),
-            selectinload(Campaign.recipients),
-            selectinload(Campaign.uploads),
-            selectinload(Campaign.email_logs),
+            selectinload(Campaign.user).load_only(User.email, User.username),
+            selectinload(Campaign.template).load_only(HTMLTemplate.html_content, HTMLTemplate.name),
+            selectinload(Campaign.sender_account).load_only(SenderAccount.display_name, SenderAccount.email),
+            selectinload(Campaign.recipients).load_only(
+                CampaignRecipient.id,
+                CampaignRecipient.name,
+                CampaignRecipient.email,
+                CampaignRecipient.status,
+            ),
+            selectinload(Campaign.uploads).load_only(
+                Upload.id,
+                Upload.original_filename,
+                Upload.status,
+                Upload.total_records,
+                Upload.processed_records,
+            ),
+            selectinload(Campaign.email_logs).load_only(
+                EmailLog.id,
+                EmailLog.status,
+                EmailLog.sent_at,
+                EmailLog.recipient_id,
+            ),
         )
         .filter(Campaign.user_id == current_user.id)
         .all()
