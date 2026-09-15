@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+} from "react";
 import type { HtmlTemplates } from "../types/HtmlTemplatesTypes";
 import { getHTMLTemplates } from "../services/TemplateService";
 
@@ -14,7 +20,24 @@ type HtmlTemplatesProp = {
   children: ReactNode;
 };
 
-const HtmlTemplatesContext = createContext<HtmlTemplatesContextType | undefined>(undefined);
+const HtmlTemplatesContext = createContext<HtmlTemplatesContextType | undefined>(
+  undefined
+);
+
+/** Normalizes whatever the API returns into a flat array. */
+const normalizeTemplates = (raw: unknown): HtmlTemplates[] => {
+  if (Array.isArray(raw)) return raw as HtmlTemplates[];
+
+  if (raw && typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    // try the most common wrapper keys
+    for (const key of ["data", "results", "templates", "items", "rows"]) {
+      if (Array.isArray(obj[key])) return obj[key] as HtmlTemplates[];
+    }
+  }
+
+  return [];
+};
 
 const HtmlTemplatesProvider = ({ children }: HtmlTemplatesProp) => {
   const [templates, setTemplates] = useState<HtmlTemplates[]>([]);
@@ -29,14 +52,26 @@ const HtmlTemplatesProvider = ({ children }: HtmlTemplatesProp) => {
       try {
         setLoading(true);
         setError(null);
-        const data = await getHTMLTemplates();
+
+        const raw = await getHTMLTemplates();
+
+        // 🔍 Debug: remove once things work
+        console.log("[HtmlTemplates] raw response:", raw);
+        console.log("[HtmlTemplates] isArray:", Array.isArray(raw));
+
+        const data = normalizeTemplates(raw);
+
+        console.log("[HtmlTemplates] normalized count:", data.length);
+
         if (isMounted) {
           setTemplates(data);
         }
       } catch (err) {
         console.error("Failed to fetch HTML templates:", err);
         if (isMounted) {
-          setError("Failed to load templates.");
+          setError(
+            err instanceof Error ? err.message : "Failed to load templates."
+          );
         }
       } finally {
         if (isMounted) {
@@ -67,11 +102,12 @@ const HtmlTemplatesProvider = ({ children }: HtmlTemplatesProp) => {
   );
 };
 
-// Hook usi file mein — koi extra file nahi
 export const useHtmlTemplates = () => {
   const context = useContext(HtmlTemplatesContext);
   if (!context) {
-    throw new Error("useHtmlTemplates must be used within a HtmlTemplatesProvider");
+    throw new Error(
+      "useHtmlTemplates must be used within a HtmlTemplatesProvider"
+    );
   }
   return context;
 };
