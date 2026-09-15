@@ -79,7 +79,6 @@ const Templates = () => {
         .mf-main-content::-webkit-scrollbar-thumb:hover {
           background: #3A3F4A;
         }
-
         .sidebar-overlay {
           animation: fadeIn 0.2s ease-in-out;
         }

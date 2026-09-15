@@ -14,7 +14,6 @@ def get_all_templates(db: Session):
         "data": data
     }
 
-
 def get_template_by_id(db: Session, id: int):
     data = (
         db.query(HTMLTemplate)
@@ -29,7 +28,6 @@ def get_template_by_id(db: Session, id: int):
         )
 
     return data
-
 
 def upload_html_template(
     db: Session,
@@ -51,7 +49,6 @@ def upload_html_template(
         "message": "Template Uploaded Successfully",
         "template": template
     }
-
 
 def edit_html_template(
     db: Session,
@@ -77,7 +74,6 @@ def edit_html_template(
         "message": "Template Updated Successfully",
         "template": template
     }
-
 
 def delete_html_template(
     db: Session,
