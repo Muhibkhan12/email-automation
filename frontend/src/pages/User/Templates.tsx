@@ -147,21 +147,6 @@ const Templates = () => {
               </p>
             </div>
           </div>
-
-          <button
-            className="mf-create-btn flex items-center justify-center gap-1.5 rounded-lg px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-white transition-all hover:opacity-90 hover:scale-[1.02] w-full sm:w-auto"
-            style={{
-              background: "#FF6A39",
-              boxShadow: "0 4px 12px rgba(255,106,57,0.25)",
-            }}
-          >
-            <Plus
-              size={14}
-              className="md:w-[15px] md:h-[15px] lg:w-[16px] lg:h-[16px]"
-            />
-            <span className="hidden xs:inline">Create template</span>
-            <span className="xs:hidden">Create</span>
-          </button>
         </div>
 
         {/* Stats */}

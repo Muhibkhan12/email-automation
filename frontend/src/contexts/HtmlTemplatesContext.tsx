@@ -54,8 +54,6 @@ const HtmlTemplatesProvider = ({ children }: HtmlTemplatesProp) => {
         setError(null);
 
         const raw = await getHTMLTemplates();
-
-        // 🔍 Debug: remove once things work
         console.log("[HtmlTemplates] raw response:", raw);
         console.log("[HtmlTemplates] isArray:", Array.isArray(raw));
 

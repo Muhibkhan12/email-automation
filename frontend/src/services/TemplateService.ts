@@ -1,22 +1,22 @@
-import axios from 'axios'
+import api from '../libs/Axios';
 import type { HtmlTemplates,updateHtmlTemplates, } from '../types/HtmlTemplatesTypes';
 
 export const getHTMLTemplates = async(): Promise<HtmlTemplates[]> => {
-    const response = await axios.get("/html_tempaltes");
+    const response = await api.get("/html-templates");
     return response.data.data
 };
 
 export const getHTMLTemplatesById = async(id : number) => {
-    const response = await axios.get(`/html_tempaltes/${id}`);
+    const response = await api.get(`/html-tempaltes/${id}`);
     return response.data.data
 };
 
 export const editHtmlTemplates = async(id : number, data : updateHtmlTemplates):Promise<updateHtmlTemplates> => {
-    const resposne = await axios.put(`/html_tempaltes/update/${id}`, data);
+    const resposne = await api.put(`/html-tempaltes/${id}`, data);
     return resposne.data
 };
 
 export const deleteHtmlTemplates = async(id : number) => {
-    const response = await axios.delete(`/html_templates/delete/${id}`)
+    const response = await api.delete(`/html-templates/${id}`)
     return response.data
 };
