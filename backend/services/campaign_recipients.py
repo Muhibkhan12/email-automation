@@ -11,13 +11,37 @@ from schema.campaign_recipients import (
 )
 
 
-def get_all_recipients(db: Session):
-    data = db.query(CampaignRecipient).all()
+def get_all_recipients(
+    db: Session,
+    page: int = 1,
+    limit: int = 20
+):
+    # Pagination calculation
+    offset = (page - 1) * limit
+
+    # Total number of recipients
+    total = db.query(CampaignRecipient).count()
+
+    # Fetch only required page
+    data = (
+        db.query(CampaignRecipient)
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+    # Calculate total pages
+    total_pages = (total + limit - 1) // limit
 
     return {
         "message": "Recipients fetched successfully",
-        "count": len(data),
-        "data": data
+        "data": data,
+        "pagination": {
+            "page": page,
+            "limit": limit,
+            "total": total,
+            "total_pages": total_pages
+        }
     }
 
 def get_recipients_by_id(

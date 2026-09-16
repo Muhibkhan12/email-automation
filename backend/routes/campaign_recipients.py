@@ -8,7 +8,7 @@ from schema.campaign_recipients import (
     RecipientsResponse,
     UpdateRecipientsSchema
 )
-
+from models.campaign_recipients import CampaignRecipient
 import services.campaign_recipients as recipient_service
 
 from services.user import (
@@ -22,14 +22,17 @@ router = APIRouter(
     tags=["recipients"]
 )
 
-@router.get(
-    "/all",
-    dependencies=[Depends(require_admin)]
-)
-def get_all_recipients(
+@router.get("/")
+def get_recipients(
+    page: int = 1,
+    limit: int = 20,
     db: Session = Depends(get_db)
 ):
-    return recipient_service.get_all_recipients(db)
+    return recipient_service.get_all_recipients(
+        db=db,
+        page=page,
+        limit=limit
+    )
 
 
 # =========================================================
@@ -107,3 +110,10 @@ def delete_recipient(
         db,
         current_user
     )
+
+@router.get("/{campaign_id}/recipients")
+def get_recipient(campaign_id : int, db : Session = Depends(get_db)):
+    recipients = (
+        db.query(CampaignRecipient).filter(CampaignRecipient.campaign_id).all()
+    )
+    return  recipients

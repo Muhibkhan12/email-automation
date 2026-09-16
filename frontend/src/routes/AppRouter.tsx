@@ -43,12 +43,15 @@ const AppRouter = () => {
 
       {/* =================================================
           PUBLIC ROUTES
+          Full path: /
       ================================================= */}
 
       <Route path="/" element={<Login />} />
 
+      {/* Full path: /register */}
       <Route path="/register" element={<Register />} />
 
+      {/* Full path: /404 */}
       <Route path="/404" element={<NotFound />} />
 
 
@@ -56,69 +59,52 @@ const AppRouter = () => {
           EMPLOYEE / USER ROUTES
 
           Only EMPLOYEE can access these routes.
-
           ADMIN → /404
           Not logged in → /
+
+          NOTE: All routes below are nested under "user",
+          so their real browser URL is /user/<path>, NOT
+          just /<path>. e.g. Recipients page lives at:
+          /user/recipients  (NOT /recipients)
       ================================================= */}
 
       <Route element={<UserRoute />}>
 
         <Route path="user">
 
-          <Route
-            path="dashboard"
-            element={<Dashboard />}
-          />
+          {/* Full path: /user/dashboard */}
+          <Route path="dashboard" element={<Dashboard />} />
 
-          <Route
-            path="emaillogs"
-            element={<EmailLogs />}
-          />
+          {/* Full path: /user/emaillogs */}
+          <Route path="emaillogs" element={<EmailLogs />} />
 
-          <Route
-            path="templates"
-            element={<Templates />}
-          />
+          {/* Full path: /user/templates */}
+          <Route path="templates" element={<Templates />} />
 
-          <Route
-            path="settings"
-            element={<Settings />}
-          />
+          {/* Full path: /user/settings */}
+          <Route path="settings" element={<Settings />} />
 
-          <Route
-            path="profile"
-            element={<Profile />}
-          />
+          {/* Full path: /user/profile */}
+          <Route path="profile" element={<Profile />} />
 
-          <Route
-            path="sender-account"
-            element={<SenderAccount />}
-          />
+          {/* Full path: /user/sender-account */}
+          <Route path="sender-account" element={<SenderAccount />} />
 
-          <Route
-            path="queuemonitor"
-            element={<QueueMonitor />}
-          />
+          {/* Full path: /user/queuemonitor */}
+          <Route path="queuemonitor" element={<QueueMonitor />} />
 
-          <Route
-            path="campaign"
-            element={<Campaign />}
-          />
+          {/* Full path: /user/campaign */}
+          <Route path="campaign" element={<Campaign />} />
 
-          <Route
-            path="upload"
-            element={<Upload />}
-          />
+          {/* Full path: /user/upload */}
+          <Route path="upload" element={<Upload />} />
 
-          <Route
-            path="analytics"
-            element={<Analytics />}
-          />
+          {/* Full path: /user/analytics */}
+          <Route path="analytics" element={<Analytics />} />
 
-          <Route
-            path="recipients"
-            element={<Recipients />}
-          />
+          {/* Full path: /user/recipients
+              Usage example: /user/recipients?campaignId=2 */}
+          <Route path="recipients" element={<Recipients />} />
 
         </Route>
 
@@ -129,61 +115,50 @@ const AppRouter = () => {
           ADMIN ROUTES
 
           Only ADMIN can access these routes.
-
           EMPLOYEE → /404
           Not logged in → /
+
+          NOTE: All routes below are nested under "admin",
+          so real browser URL is /admin/<path>.
       ================================================= */}
 
       <Route element={<AdminRoute />}>
 
         <Route path="admin">
 
-          <Route
-            path="dashboard"
-            element={<AdminDashboard />}
-          />
+          {/* Full path: /admin/dashboard */}
+          <Route path="dashboard" element={<AdminDashboard />} />
 
-          <Route
-            path="analytics"
-            element={<AdminAnalytics />}
-          />
+          {/* Full path: /admin/analytics */}
+          <Route path="analytics" element={<AdminAnalytics />} />
 
-          <Route
-            path="templates"
-            element={<EmailTemplatesAdmin />}
-          />
+          {/* Full path: /admin/templates */}
+          <Route path="templates" element={<EmailTemplatesAdmin />} />
 
-          <Route
-            path="campaigns"
-            element={<AdminCampaigns />}
-          />
+          {/* Full path: /admin/campaigns */}
+          <Route path="campaigns" element={<AdminCampaigns />} />
 
+          {/* Full path: /admin/users */}
           <Route
             path="users"
-            element={<UserProvider>
+            element={
+              <UserProvider>
                 <AdminUsers />
-              </UserProvider>}
+              </UserProvider>
+            }
           />
 
-          <Route
-            path="emaillogs"
-            element={<AdminEmailLogs />}
-          />
+          {/* Full path: /admin/emaillogs */}
+          <Route path="emaillogs" element={<AdminEmailLogs />} />
 
-          <Route
-            path="queuemonitor"
-            element={<AdminQueueMonitor />}
-          />
+          {/* Full path: /admin/queuemonitor */}
+          <Route path="queuemonitor" element={<AdminQueueMonitor />} />
 
-          <Route
-            path="settings"
-            element={<AdminSettings />}
-          />
+          {/* Full path: /admin/settings */}
+          <Route path="settings" element={<AdminSettings />} />
 
-          <Route
-            path="senders-account"
-            element={<AdminSenderAccounts />}
-          />
+          {/* Full path: /admin/senders-account */}
+          <Route path="senders-account" element={<AdminSenderAccounts />} />
 
         </Route>
 
@@ -192,7 +167,6 @@ const AppRouter = () => {
 
       {/* =================================================
           CATCH-ALL 404
-
           Any route that doesn't exist → 404
       ================================================= */}
 
@@ -201,6 +175,5 @@ const AppRouter = () => {
     </Routes>
   );
 };
-
 
 export default AppRouter;
