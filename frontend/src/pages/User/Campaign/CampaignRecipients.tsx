@@ -1,11 +1,11 @@
-// pages/User/Recipients.tsx — GLOBAL recipients page
-import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+// CampaignRecipients.tsx — recipients for ONE campaign (route: /campaigns/:id/recipients)
+import React, { useMemo, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import { getRecipientsService } from "../../services/RecipientService";
+import { useCampaigns } from "../../contexts/CampaignContext";
 import type { RecipientStatus } from "../../types/CampaignTypes";
 import {
-  Search, Users, MailCheck, MailX, MailWarning, Menu,
+  Search, Users, MailCheck, MailX, MailWarning, Menu, ArrowLeft,
 } from "lucide-react";
 
 const FONT = {
@@ -24,51 +24,29 @@ const STATUS_STYLES: Record<RecipientStatus, { bg: string; fg: string }> = {
 
 const FILTERS: ("All" | RecipientStatus)[] = ["All", "Pending", "Queued", "Sending", "Sent", "Failed"];
 
-// Shape we expect from GET /recipient/all — adjust to match your backend.
-type ApiRecipient = {
-  id: number;
-  name: string;
-  email: string;
-  status: RecipientStatus;
-  created_at?: string;
-  updated_at?: string;
-};
-
-const Recipients = () => {
+const CampaignRecipients = () => {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-
-  const [recipients, setRecipients] = useState<ApiRecipient[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { campaigns, loading, error } = useCampaigns();
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"All" | RecipientStatus>("All");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getRecipientsService();
-        // Backend may return an array directly, or { data: [...] } — handle both.
-        const list: ApiRecipient[] = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.data)
-          ? data.data
-          : [];
-        if (!cancelled) setRecipients(list);
-      } catch (e: any) {
-        if (!cancelled) setError(e?.message ?? "Failed to load recipients.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const activeCampaign = useMemo(
+    () => campaigns.find((c) => String(c.id) === id) ?? null,
+    [campaigns, id]
+  );
+
+  const emailLogByRecipientId = useMemo(() => {
+    const map = new Map<number, { status: string; sent_at: string | null }>();
+    activeCampaign?.email_logs.forEach((l) => {
+      map.set(l.recipient_id, { status: l.status, sent_at: l.sent_at ?? null });
+    });
+    return map;
+  }, [activeCampaign]);
+
+  const recipients = activeCampaign?.recipients ?? [];
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
@@ -133,16 +111,25 @@ const Recipients = () => {
               <Menu size={20} />
             </button>
             <div>
+              <button
+                onClick={() => navigate("/recipients")}
+                className="inline-flex items-center gap-1 text-[10px] md:text-xs text-[#9BA0A8] hover:text-[#FF6A39] transition-colors mb-1"
+              >
+                <ArrowLeft size={12} /> All recipients
+              </button>
               <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-[#E8E6E1] tracking-tight">
                 Recipients
               </h1>
               <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm text-[#9BA0A8]">
-                All recipients in your account.
+                {activeCampaign
+                  ? `Recipients for "${activeCampaign.campaign_name}"`
+                  : "Campaign not found."}
               </p>
             </div>
           </div>
         </div>
 
+        {/* Loading */}
         {loading && (
           <div className="text-center py-12">
             <div className="w-8 h-8 border-2 border-[#FF6A39] border-t-transparent rounded-full animate-spin mx-auto" />
@@ -150,27 +137,43 @@ const Recipients = () => {
           </div>
         )}
 
+        {/* Error */}
         {!loading && error && (
           <div className="text-center py-12 rounded-xl border border-red-500/20 bg-red-500/5">
             <p className="text-sm text-red-400">{error}</p>
           </div>
         )}
 
-        {!loading && !error && recipients.length === 0 && (
+        {/* Not found */}
+        {!loading && !error && !activeCampaign && (
           <div className="text-center py-16 rounded-xl border border-[#2A2E37] bg-[#1B1E24]">
-            <Users size={28} className="mx-auto mb-2 text-[#6B727C]" />
-            <p className="text-sm text-[#9BA0A8] mb-3">No recipients yet.</p>
+            <p className="text-sm text-[#9BA0A8] mb-3">Campaign not found.</p>
             <button
-              onClick={() => navigate("/user/campaign")}
+              onClick={() => navigate("/campaigns")}
               className="text-[#FF6A39] hover:text-[#e85a2c] text-sm font-medium"
             >
-              Create a campaign →
+              Go to My Campaigns →
             </button>
           </div>
         )}
 
-        {!loading && !error && recipients.length > 0 && (
+        {/* Content */}
+        {!loading && !error && activeCampaign && (
           <>
+            {/* Filter banner */}
+            <div className="flex items-center justify-between mb-3 md:mb-4 px-3 py-2 rounded-lg border border-[#FF6A39]/30 bg-[#FF6A39]/10">
+              <p className="text-xs text-[#E8E6E1] truncate">
+                Showing recipients for{" "}
+                <span className="font-semibold">{activeCampaign.campaign_name}</span>
+              </p>
+              <button
+                onClick={() => navigate("/recipients")}
+                className="text-xs text-[#FF6A39] hover:underline font-medium flex-shrink-0 ml-3"
+              >
+                View all
+              </button>
+            </div>
+
             {/* Summary cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-3 lg:gap-5 mb-3 md:mb-4 lg:mb-6">
               {[
@@ -246,15 +249,22 @@ const Recipients = () => {
                 <table className="w-full text-left min-w-[500px] md:min-w-[600px]">
                   <thead>
                     <tr className="text-[8px] md:text-[9px] lg:text-[11px] uppercase tracking-wider text-[#6B727C]">
-                      <th className="px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-2.5 font-medium">Name</th>
-                      <th className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Status</th>
+                      <th className="px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-2.5 font-medium">
+                        Name
+                      </th>
+                      <th className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">
+                        Status
+                      </th>
+                      <th className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">
+                        Sent at
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={2}
+                          colSpan={3}
                           className="px-2 md:px-3 lg:px-5 py-6 md:py-8 lg:py-12 text-center text-[9px] md:text-xs lg:text-sm text-[#6B727C]"
                         >
                           No recipients match.
@@ -263,6 +273,7 @@ const Recipients = () => {
                     ) : (
                       filtered.map((r) => {
                         const style = STATUS_STYLES[r.status];
+                        const log = emailLogByRecipientId.get(r.id);
                         return (
                           <tr
                             key={r.id}
@@ -284,6 +295,11 @@ const Recipients = () => {
                                 {r.status}
                               </span>
                             </td>
+                            <td className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3 text-[7px] md:text-[8px] lg:text-[12.5px] font-mono text-[#6B727C]">
+                              {log?.sent_at
+                                ? new Date(log.sent_at).toLocaleString()
+                                : "—"}
+                            </td>
                           </tr>
                         );
                       })
@@ -299,4 +315,4 @@ const Recipients = () => {
   );
 };
 
-export default Recipients;
+export default CampaignRecipients;
