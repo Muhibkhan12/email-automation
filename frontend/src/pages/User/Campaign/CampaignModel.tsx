@@ -67,7 +67,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
     if (id === 'recipients') {
       // Recipients has its own page — navigate there filtered to this campaign
       // instead of duplicating the list inside the modal.
-      navigate(`/recipients?campaignId=${campaign.id}`);
+      navigate(`/user/recipients?campaignId=${campaign.id}`);
       onClose();
       return;
     }
