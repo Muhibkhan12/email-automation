@@ -1,8 +1,8 @@
-// pages/User/Recipients.tsx — GLOBAL recipients page
+// pages/User/Recipients.tsx — recipients for the logged-in user only
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import { getRecipientsService } from "../../services/RecipientService";
+import { getRecipientsServiceById } from "../../services/RecipientService";
 import type { RecipientStatus } from "../../types/CampaignTypes";
 import {
   Search, Users, MailCheck, MailX, MailWarning, Menu,
@@ -24,7 +24,7 @@ const STATUS_STYLES: Record<RecipientStatus, { bg: string; fg: string }> = {
 
 const FILTERS: ("All" | RecipientStatus)[] = ["All", "Pending", "Queued", "Sending", "Sent", "Failed"];
 
-// Shape we expect from GET /recipient/all — adjust to match your backend.
+// Shape we expect from GET /recipient/:id — adjust to match your backend.
 type ApiRecipient = {
   id: number;
   name: string;
@@ -32,6 +32,26 @@ type ApiRecipient = {
   status: RecipientStatus;
   created_at?: string;
   updated_at?: string;
+};
+
+/**
+ * Resolve the logged-in user's id.
+ * TODO: If you already have an AuthContext / useAuth() hook, replace this
+ * function's body with `return user.id;` from that hook instead.
+ */
+const getCurrentUserId = (): number | null => {
+  try {
+    const raw =
+      localStorage.getItem("user") ??
+      localStorage.getItem("auth_user") ??
+      localStorage.getItem("currentUser");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const id = parsed?.id ?? parsed?.user?.id ?? parsed?.userId;
+    return id != null ? Number(id) : null;
+  } catch {
+    return null;
+  }
 };
 
 const Recipients = () => {
@@ -51,12 +71,24 @@ const Recipients = () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await getRecipientsService();
-        // Backend may return an array directly, or { data: [...] } — handle both.
+
+        const userId = getCurrentUserId();
+        if (userId == null) {
+          if (!cancelled) {
+            setError("Could not determine logged-in user.");
+            setRecipients([]);
+          }
+          return;
+        }
+
+        const data = await getRecipientsServiceById(userId);
+        // Backend may return an array directly, a single object, or { data: [...] } — handle all.
         const list: ApiRecipient[] = Array.isArray(data)
           ? data
           : Array.isArray(data?.data)
           ? data.data
+          : data
+          ? [data]
           : [];
         if (!cancelled) setRecipients(list);
       } catch (e: any) {
@@ -77,7 +109,8 @@ const Recipients = () => {
       const matchesQuery =
         !q ||
         r.name.toLowerCase().includes(q) ||
-        r.email.toLowerCase().includes(q);
+        r.email.toLowerCase().includes(q) ||
+        String(r.id).includes(q);
       return matchesFilter && matchesQuery;
     });
   }, [recipients, query, filter]);
@@ -137,7 +170,7 @@ const Recipients = () => {
                 Recipients
               </h1>
               <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm text-[#9BA0A8]">
-                All recipients in your account.
+                Recipients belonging to your account.
               </p>
             </div>
           </div>
@@ -213,7 +246,7 @@ const Recipients = () => {
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search by name or email…"
+                  placeholder="Search by name, email, or ID…"
                   className="w-full bg-transparent text-[10px] md:text-xs lg:text-sm outline-none text-[#E8E6E1] placeholder:text-[#6B727C]"
                 />
               </div>
@@ -243,9 +276,10 @@ const Recipients = () => {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-left min-w-[500px] md:min-w-[600px]">
+                <table className="w-full text-left min-w-[600px] md:min-w-[700px]">
                   <thead>
                     <tr className="text-[8px] md:text-[9px] lg:text-[11px] uppercase tracking-wider text-[#6B727C]">
+                      <th className="px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-2.5 font-medium">ID</th>
                       <th className="px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-2.5 font-medium">Name</th>
                       <th className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Status</th>
                     </tr>
@@ -254,7 +288,7 @@ const Recipients = () => {
                     {filtered.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={2}
+                          colSpan={3}
                           className="px-2 md:px-3 lg:px-5 py-6 md:py-8 lg:py-12 text-center text-[9px] md:text-xs lg:text-sm text-[#6B727C]"
                         >
                           No recipients match.
@@ -268,6 +302,11 @@ const Recipients = () => {
                             key={r.id}
                             className="border-t border-[#2A2E37] hover:bg-[#1B1E24] transition-colors"
                           >
+                            <td className="px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-3">
+                              <span className="text-[9px] md:text-[10px] lg:text-[13px] font-mono text-[#9BA0A8]">
+                                #{r.id}
+                              </span>
+                            </td>
                             <td className="px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-3">
                               <p className="text-[9px] md:text-[10px] lg:text-[13.5px] font-medium text-[#D1D5DB] truncate">
                                 {r.name}

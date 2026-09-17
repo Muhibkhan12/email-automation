@@ -7,6 +7,8 @@ import {
   CheckCircle2,
   XCircle,
   Menu,
+  Eye,
+  X,
 } from "lucide-react";
 import { useHtmlTemplates } from "../../contexts/HtmlTemplatesContext";
 
@@ -28,6 +30,7 @@ const Templates = () => {
   const [status, setStatus] = useState<StatusFilter>("All");
   const [query, setQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<any | null>(null);
 
   // Defensive accessors — never crash on undefined fields
   const getName = (t: any) => String(t?.name ?? t?.title ?? "");
@@ -80,7 +83,7 @@ const Templates = () => {
     >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
-        .mf-card { transition: box-shadow 0.15s ease, transform 0.15s ease; cursor: pointer; }
+        .mf-card { transition: box-shadow 0.15s ease, transform 0.15s ease; }
         .mf-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
         .mf-main-content::-webkit-scrollbar { width: 6px; }
         .mf-main-content::-webkit-scrollbar-track { background: #0B0E12; }
@@ -90,6 +93,9 @@ const Templates = () => {
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .sidebar-slide { animation: slideIn 0.25s ease-out; }
         @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+        .mf-modal-overlay { animation: fadeIn 0.15s ease-in-out; }
+        .mf-modal-panel { animation: modalPop 0.18s ease-out; }
+        @keyframes modalPop { from { opacity: 0; transform: scale(0.97) translateY(6px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         @media (max-width: 640px) {
           .mf-main-content { padding: 0.75rem !important; }
           .mf-preview-card { height: 120px !important; }
@@ -285,7 +291,7 @@ const Templates = () => {
                   style={{ border: "1px solid #2A2E37", background: "#12151B" }}
                 >
                   <div
-                    className="mf-preview-card relative flex flex-col gap-1.5 md:gap-2 rounded-lg p-2.5 md:p-3 lg:p-4 overflow-hidden"
+                    className="mf-preview-card relative flex flex-col gap-1.5 md:gap-2 rounded-lg p-2.5 md:p-3 lg:p-4 overflow-hidden group"
                     style={{
                       background: "#0B0E12",
                       height: "clamp(110px, 20vw, 168px)",
@@ -311,6 +317,21 @@ const Templates = () => {
                     >
                       {stripHtml(getHtml(t)) || "No preview content"}
                     </p>
+
+                    {/* Hover overlay with Preview button */}
+                    <button
+                      onClick={() => setPreviewTemplate(t)}
+                      className="absolute inset-0 flex items-center justify-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: "rgba(11,14,18,0.78)" }}
+                    >
+                      <span
+                        className="flex items-center gap-1.5 rounded-lg px-2.5 md:px-3 py-1 md:py-1.5 text-[9px] md:text-[10px] lg:text-xs font-medium"
+                        style={{ background: "#FF6A39", color: "#FFFFFF" }}
+                      >
+                        <Eye size={12} />
+                        Preview
+                      </span>
+                    </button>
                   </div>
 
                   <div className="mt-2 md:mt-3 lg:mt-4 flex items-start justify-between gap-2">
@@ -346,6 +367,15 @@ const Templates = () => {
                     >
                       {active ? "Active" : "Inactive"}
                     </span>
+
+                    <button
+                      onClick={() => setPreviewTemplate(t)}
+                      className="flex items-center gap-1 rounded-lg px-1.5 md:px-2 lg:px-2.5 py-0.5 md:py-1 text-[8px] md:text-[9px] lg:text-xs font-medium transition-colors"
+                      style={{ color: "#FF6A39", background: "rgba(255,106,57,0.1)" }}
+                    >
+                      <Eye size={11} />
+                      Preview
+                    </button>
                   </div>
                 </div>
               );
@@ -382,6 +412,72 @@ const Templates = () => {
           </div>
         )}
       </main>
+
+      {/* Preview Modal */}
+      {previewTemplate && (
+        <div
+          className="mf-modal-overlay fixed inset-0 z-[60] flex items-center justify-center p-3 md:p-6 lg:p-10"
+          style={{ background: "rgba(0,0,0,0.75)" }}
+          onClick={() => setPreviewTemplate(null)}
+        >
+          <div
+            className="mf-modal-panel w-full max-w-5xl h-full max-h-[88vh] rounded-xl overflow-hidden flex flex-col"
+            style={{ background: "#12151B", border: "1px solid #2A2E37" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div
+              className="flex items-center justify-between gap-3 px-3 md:px-4 lg:px-5 py-2.5 md:py-3 lg:py-4 border-b"
+              style={{ borderColor: "#2A2E37" }}
+            >
+              <div className="min-w-0 flex-1">
+                <p
+                  className="text-xs md:text-sm lg:text-base font-medium truncate"
+                  style={{ color: "#E8E6E1" }}
+                >
+                  {getName(previewTemplate) || "Untitled template"}
+                </p>
+                <p
+                  className="mt-0.5 text-[9px] md:text-[10px] lg:text-xs truncate"
+                  style={{ color: "#6B727C" }}
+                >
+                  {getDesc(previewTemplate) || "No description"}
+                </p>
+              </div>
+
+              <span
+                className="rounded-full px-1.5 md:px-2 lg:px-2.5 py-0.5 text-[8px] md:text-[9px] lg:text-xs font-medium whitespace-nowrap"
+                style={{
+                  background: isActive(previewTemplate)
+                    ? "rgba(52,211,153,0.12)"
+                    : "rgba(107,114,124,0.12)",
+                  color: isActive(previewTemplate) ? "#34D399" : "#9BA0A8",
+                }}
+              >
+                {isActive(previewTemplate) ? "Active" : "Inactive"}
+              </span>
+
+              <button
+                onClick={() => setPreviewTemplate(null)}
+                className="p-1.5 md:p-2 rounded-lg transition-colors flex-shrink-0"
+                style={{ background: "#1B1E24", color: "#C7C9CE" }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Rendered HTML, bigger scale */}
+            <div className="flex-1 overflow-hidden" style={{ background: "#FFFFFF" }}>
+              <iframe
+                title="template-preview"
+                srcDoc={getHtml(previewTemplate) || "<p style='font-family:sans-serif;color:#888;padding:24px;'>No preview content</p>"}
+                sandbox=""
+                className="w-full h-full border-0"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

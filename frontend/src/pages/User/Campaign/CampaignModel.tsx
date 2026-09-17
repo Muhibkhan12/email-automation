@@ -63,15 +63,15 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
     { id: 'template', label: 'Template' },
   ];
 
-  const handleTabClick = (id: Tab) => {
-    if (id === 'recipients') {
-      // Recipients has its own page — navigate there filtered to this campaign
-      // instead of duplicating the list inside the modal.
-      navigate(`/user/recipients?campaignId=${campaign.id}`);
+  const handleTabClick = (tabId: Tab) => {
+    if (tabId === 'recipients') {
+      // Recipients has its own page — navigate to CampaignRecipients,
+      // scoped to this campaign, instead of duplicating the list in the modal.
+      navigate(`/user/campaigns/${campaign.id}/recipients`);
       onClose();
       return;
     }
-    setTab(id);
+    setTab(tabId);
   };
 
   return (

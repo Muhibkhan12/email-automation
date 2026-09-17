@@ -12,6 +12,7 @@ import Campaign from "../pages/User/Campaign/Campaign";
 import Upload from "../pages/User/Upload";
 import Recipients from "../pages/User/Recipients";
 import Analytics from "../pages/User/Analytics";
+import CampaignRecipients from "../pages/User/Campaign/CampaignRecipients";
 
 // ================= PUBLIC PAGES =================
 import Login from "../pages/Login";
@@ -95,6 +96,7 @@ const AppRouter = () => {
 
           {/* Full path: /user/campaign */}
           <Route path="campaign" element={<Campaign />} />
+          <Route path="campaigns/:id/recipients" element={<CampaignRecipients />} />
 
           {/* Full path: /user/upload */}
           <Route path="upload" element={<Upload />} />
