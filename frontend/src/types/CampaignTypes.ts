@@ -1,5 +1,5 @@
 
-export type RecipientStatus = 'Pending' | 'Queued' | 'Sending' | 'Sent' | 'Failed';
+import type{ RecipientStatus } from "./RecipientTypes";
 
 export type EmailLogStatus = 'Pending' | 'Sent' | 'Failed';
 
