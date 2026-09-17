@@ -5,6 +5,8 @@ export const getRecipientsService = async() => {
     const response =await api.get('/recipient/all')
     return  response.data
 }
+
+
 export const getRecipientsByCampaign = async (campaignId: number) => {
   const response = await api.get(`/recipient/${campaignId}/recipients`)
   return response.data

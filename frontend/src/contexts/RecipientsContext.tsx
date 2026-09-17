@@ -1,6 +1,6 @@
 import { createContext, useState, type ReactNode } from "react";
 import type { CampaignRecipient } from "../types/CampaignTypes";
-import { getCampaignById } from "../services/CampaignService";
+import { getRecipientsByCampaign } from "../services/RecipientService";
 
 interface RecipientProviderProps {
     children: ReactNode;
@@ -9,8 +9,8 @@ interface RecipientProviderProps {
 interface RecipientsType {
     recipients: CampaignRecipient[];
     loading: boolean;
-    error: string;
-    getCampaignUsingId: (id: number) => Promise<void>;
+    error: string | null;
+    getCampaignUsingCampaignId: (id: number) => Promise<void>;
 }
 
 const RecipientsContext = createContext<RecipientsType | undefined>(
@@ -24,12 +24,12 @@ const RecipientsContextProvider = ({
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
-    const getCampaignUsingId = async (id: number) => {
+    const getCampaignUsingCampaignId = async (campaign_id: number) => {
         try {
             setLoading(true);
             setError(null);
 
-            const data = await getCampaignById(id);
+            const data = await getRecipientsByCampaign(campaign_id);
 
             setRecipients(data);
         } catch (err: any) {
@@ -45,7 +45,7 @@ const RecipientsContextProvider = ({
                 recipients,
                 loading,
                 error,
-                getCampaignUsingId,
+                getCampaignUsingCampaignId,
             }}
         >
             {children}
