@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import Sidebar from "./Sidebar";
 import {
   Mail,
@@ -18,8 +18,11 @@ import {
   RotateCcw,
   Wifi,
   Menu,
+  Loader2,
 } from "lucide-react";
 
+// ⚠️ adjust this path to wherever your context file actually lives
+import { SenderAccContext } from "../../contexts/SenderAccountsContext";
 const FONT = {
   display: "'Space Grotesk', sans-serif",
   body: "'Inter', sans-serif",
@@ -29,70 +32,6 @@ const FONT = {
 type AccountStatus = "Active" | "Warning" | "Disconnected";
 type Provider = "Gmail" | "Outlook" | "Custom SMTP";
 
-interface SenderAccount {
-  id: number;
-  email: string;
-  name: string;
-  provider: Provider;
-  status: AccountStatus;
-  dailyLimit: number;
-  sentToday: number;
-  hourlyLimit: number;
-  sentThisHour: number;
-  campaigns: number;
-}
-
-const senderAccounts: SenderAccount[] = [
-  {
-    id: 1,
-    email: "marketing@company.com",
-    name: "Marketing",
-    provider: "Gmail",
-    status: "Active",
-    dailyLimit: 500,
-    sentToday: 342,
-    hourlyLimit: 100,
-    sentThisHour: 64,
-    campaigns: 12,
-  },
-  {
-    id: 2,
-    email: "sales@company.com",
-    name: "Sales",
-    provider: "Outlook",
-    status: "Active",
-    dailyLimit: 500,
-    sentToday: 286,
-    hourlyLimit: 100,
-    sentThisHour: 72,
-    campaigns: 8,
-  },
-  {
-    id: 3,
-    email: "hello@company.com",
-    name: "General",
-    provider: "Custom SMTP",
-    status: "Warning",
-    dailyLimit: 300,
-    sentToday: 274,
-    hourlyLimit: 60,
-    sentThisHour: 57,
-    campaigns: 5,
-  },
-  {
-    id: 4,
-    email: "support@company.com",
-    name: "Support",
-    provider: "Gmail",
-    status: "Disconnected",
-    dailyLimit: 500,
-    sentToday: 0,
-    hourlyLimit: 100,
-    sentThisHour: 0,
-    campaigns: 0,
-  },
-];
-
 const providerColors: Record<Provider, string> = {
   Gmail: "bg-rose-500",
   Outlook: "bg-blue-500",
@@ -100,17 +39,28 @@ const providerColors: Record<Provider, string> = {
 };
 
 const SenderAccountsPage = () => {
+  const ctx = useContext(SenderAccContext);
   const [showAddAccount, setShowAddAccount] = useState(false);
   const [search, setSearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const filteredAccounts = senderAccounts.filter(
+  if (!ctx) {
+    throw new Error(
+      "SenderAccountsPage must be used inside a <SenderAccountsContext> provider."
+    );
+  }
+
+  const { senderAcc, loading } = ctx;
+
+  const filteredAccounts = senderAcc.filter(
     (a) =>
       a.email.toLowerCase().includes(search.toLowerCase()) ||
       a.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const activeCount = senderAccounts.filter((a) => a.status === "Active").length;
+  const activeCount = senderAcc.filter((a) => a.status === "Active").length;
+  const emailsToday = senderAcc.reduce((sum, a) => sum + a.sentToday, 0);
+  const dailyCapacity = senderAcc.reduce((sum, a) => sum + a.dailyLimit, 0);
 
   return (
     <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body }}>
@@ -144,6 +94,13 @@ const SenderAccountsPage = () => {
         @keyframes slideIn {
           from { transform: translateX(-100%); }
           to { transform: translateX(0); }
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        .mf-spin {
+          animation: spin 0.8s linear infinite;
         }
       `}</style>
 
@@ -207,7 +164,7 @@ const SenderAccountsPage = () => {
         <div className="mf-stats-grid mb-4 md:mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-3 lg:gap-4">
           <StatCard
             title="Total Accounts"
-            value={String(senderAccounts.length)}
+            value={String(senderAcc.length)}
             description="Connected sender accounts"
             icon={Layers}
             accent="text-[#9BA0A8] bg-[#1B1E24]"
@@ -223,7 +180,7 @@ const SenderAccountsPage = () => {
           />
           <StatCard
             title="Emails Today"
-            value="902"
+            value={emailsToday.toLocaleString()}
             description="Across all senders"
             icon={Mail}
             accent="text-blue-400 bg-blue-500/10"
@@ -231,7 +188,7 @@ const SenderAccountsPage = () => {
           />
           <StatCard
             title="Daily Capacity"
-            value="1,800"
+            value={dailyCapacity.toLocaleString()}
             description="Configured sending limit"
             icon={Gauge}
             accent="text-violet-400 bg-violet-500/10"
@@ -276,11 +233,25 @@ const SenderAccountsPage = () => {
           </div>
 
           <div className="divide-y" style={{ borderColor: "#2A2E37" }}>
-            {filteredAccounts.map((account) => (
-              <SenderAccountCard key={account.id} account={account} />
-            ))}
+            {loading && senderAcc.length === 0 && (
+              <div className="flex items-center justify-center gap-2 p-8 md:p-10 text-[10px] md:text-xs lg:text-sm" style={{ color: "#6B727C" }}>
+                <Loader2 size={14} className="mf-spin" />
+                Loading sender accounts…
+              </div>
+            )}
 
-            {filteredAccounts.length === 0 && (
+            {!loading &&
+              filteredAccounts.map((account) => (
+                <SenderAccountCard key={account.id} account={account} />
+              ))}
+
+            {!loading && senderAcc.length === 0 && (
+              <div className="p-6 md:p-8 lg:p-10 text-center text-[10px] md:text-xs lg:text-sm" style={{ color: "#6B727C" }}>
+                No sender accounts yet. Add one to start sending campaigns.
+              </div>
+            )}
+
+            {!loading && senderAcc.length > 0 && filteredAccounts.length === 0 && (
               <div className="p-6 md:p-8 lg:p-10 text-center text-[10px] md:text-xs lg:text-sm" style={{ color: "#6B727C" }}>
                 No accounts match "{search}".
               </div>
@@ -360,6 +331,21 @@ const StatCard = ({ title, value, description, icon: Icon, accent, isEmber }: St
 /* ========================================================= */
 /* Sender Account Card */
 /* ========================================================= */
+
+// ⚠️ replace this with `import type { SenderAccount } from "../types/SenderAccount";`
+// if the shape matches; kept local so this file still type-checks standalone.
+interface SenderAccount {
+  id: number;
+  email: string;
+  name: string;
+  provider: Provider;
+  status: AccountStatus;
+  dailyLimit: number;
+  sentToday: number;
+  hourlyLimit: number;
+  sentThisHour: number;
+  campaigns: number;
+}
 
 const SenderAccountCard = ({ account }: { account: SenderAccount }) => {
   const dailyPercentage = Math.round((account.sentToday / account.dailyLimit) * 100);
@@ -576,7 +562,31 @@ const SettingCard = ({ icon: Icon, title, description, enabled }: SettingCardPro
 /* ========================================================= */
 
 const AddAccountModal = ({ onClose }: { onClose: () => void }) => {
+  const ctx = useContext(SenderAccContext);
   const [provider, setProvider] = useState<Provider>("Gmail");
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [smtpHost, setSmtpHost] = useState("");
+  const [smtpPort, setSmtpPort] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!ctx) return;
+    try {
+      setSaving(true);
+      await ctx.addSenderAccount({
+        email,
+        name,
+        provider,
+        ...(provider === "Custom SMTP"
+          ? { smtpHost, smtpPort: Number(smtpPort) }
+          : {}),
+      } as any); // ⚠️ replace `as any` with your real CreateSenderAccountInput shape
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B0E12]/80 p-3 md:p-4 backdrop-blur-sm">
@@ -609,6 +619,8 @@ const AddAccountModal = ({ onClose }: { onClose: () => void }) => {
             <input
               type="email"
               placeholder="marketing@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-lg border px-2.5 md:px-3 lg:px-4 py-1.5 md:py-2 lg:py-2.5 text-[10px] md:text-xs lg:text-sm outline-none transition"
               style={{ 
                 borderColor: "#2A2E37", 
@@ -631,6 +643,8 @@ const AddAccountModal = ({ onClose }: { onClose: () => void }) => {
             <input
               type="text"
               placeholder="Marketing"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="w-full rounded-lg border px-2.5 md:px-3 lg:px-4 py-1.5 md:py-2 lg:py-2.5 text-[10px] md:text-xs lg:text-sm outline-none transition"
               style={{ 
                 borderColor: "#2A2E37", 
@@ -679,6 +693,8 @@ const AddAccountModal = ({ onClose }: { onClose: () => void }) => {
                 <input
                   type="text"
                   placeholder="smtp.company.com"
+                  value={smtpHost}
+                  onChange={(e) => setSmtpHost(e.target.value)}
                   className="w-full rounded-lg border px-2 md:px-2.5 lg:px-4 py-1 md:py-1.5 lg:py-2.5 text-[9px] md:text-xs lg:text-sm outline-none transition"
                   style={{ 
                     borderColor: "#2A2E37", 
@@ -700,6 +716,8 @@ const AddAccountModal = ({ onClose }: { onClose: () => void }) => {
                 <input
                   type="number"
                   placeholder="587"
+                  value={smtpPort}
+                  onChange={(e) => setSmtpPort(e.target.value)}
                   className="w-full rounded-lg border px-2 md:px-2.5 lg:px-4 py-1 md:py-1.5 lg:py-2.5 text-[9px] md:text-xs lg:text-sm outline-none transition"
                   style={{ 
                     borderColor: "#2A2E37", 
@@ -738,13 +756,15 @@ const AddAccountModal = ({ onClose }: { onClose: () => void }) => {
             Cancel
           </button>
           <button 
-            className="rounded-lg px-4 md:px-5 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-white transition-all hover:opacity-90 hover:scale-[1.02]"
+            onClick={handleSubmit}
+            disabled={saving || !email || !name}
+            className="rounded-lg px-4 md:px-5 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-white transition-all hover:opacity-90 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
             style={{ 
               background: "#FF6A39",
               boxShadow: "0 4px 12px rgba(255,106,57,0.25)"
             }}
           >
-            Connect Account
+            {saving ? "Connecting…" : "Connect Account"}
           </button>
         </div>
       </div>

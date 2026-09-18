@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from services.security import hash_password
 from schema.sender_account import addSenderAccountSchema, updateSenderAccout
 from models.sender_account import SenderAccount
+from models.user import User
 
 def add_sender_account(db : Session ,credentials : addSenderAccountSchema):
         existing_data = db.query(SenderAccount).filter(credentials.email == SenderAccount.email).first()
@@ -88,7 +89,7 @@ def delete_sender_account(id : int, db : Session):
     }
 
 def get_account_by_id(id : int, db):
-     data = db.query(SenderAccount).filter(SenderAccount.id == id).first()
+     data = db.query(SenderAccount).filter(User.id == id).first()
 
      if not data:
           raise HTTPException(
