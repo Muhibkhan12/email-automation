@@ -4,7 +4,6 @@ import AdminSidebar from "./AdminSidebar";
 import {
   Plus,
   Search,
-  Copy,
   Trash2,
   CheckCircle2,
   Clock,
@@ -17,7 +16,6 @@ import {
   FileCode,
   Braces,
   LayoutTemplate,
-  Undo2,
   Inbox,
   Check,
   Menu,
@@ -25,7 +23,12 @@ import {
   Wand2,
   AlertCircle,
   ArrowLeft,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
+
+import { useHtmlTemplates } from "../../contexts/HtmlTemplatesContext";
+import type { HtmlTemplates } from "../../types/HtmlTemplatesTypes";
 
 /* ---------------------------------------------------------------------- */
 /*  Design tokens — MailForge system (iron / ember)                       */
@@ -89,7 +92,30 @@ const variableDescriptions: Record<string, string> = {
   "{{unsubscribe_link}}": "Unsubscribe link",
 };
 
-// Enhanced template generators with better HTML
+/* ---------------------------------------------------------------------- */
+/*  Adapter: map the API shape (HtmlTemplates) -> local Template shape    */
+/* ---------------------------------------------------------------------- */
+/**
+ * The API row is `HtmlTemplates` — its fields depend on your types file.
+ * This adapter tries the most common field names and falls back to safe
+ * defaults so a missing field never crashes the page.
+ *
+ * Adjust the field names here to match your actual HtmlTemplates type.
+ */
+const mapApiTemplate = (raw: HtmlTemplates, index: number): Template => {
+  const r = raw as any;
+  return {
+    id: typeof r.id === "number" ? r.id : index,
+    name: r.name ?? r.title ?? r.template_name ?? "Untitled Template",
+    subject: r.subject ?? r.subject_line ?? "",
+    category: (r.category as Category) ?? "Welcome",
+    status: (r.status as Status) ?? "Draft",
+    updatedAt: r.updated_at ?? r.updatedAt ?? "—",
+    html: r.html ?? r.body ?? r.content ?? "",
+  };
+};
+
+// Enhanced template generators with better HTML (unchanged)
 const starterHtml = (category: Category) => {
   const base = (body: string, bgColor: string = "#f4f4f5") => `<!DOCTYPE html>
 <html>
@@ -208,49 +234,10 @@ ${body}
   return base(rows[category]);
 };
 
-const initialTemplates: Template[] = [
-  {
-    id: 1,
-    name: "Welcome Series — Email 1",
-    subject: "Welcome to {{company}} 👋",
-    category: "Welcome",
-    status: "Published",
-    updatedAt: "2 days ago",
-    html: starterHtml("Welcome"),
-  },
-  {
-    id: 2,
-    name: "Summer Sale Blast",
-    subject: "30% off — ends tonight",
-    category: "Promotional",
-    status: "Published",
-    updatedAt: "5 days ago",
-    html: starterHtml("Promotional"),
-  },
-  {
-    id: 3,
-    name: "August Newsletter",
-    subject: "What's new this month",
-    category: "Newsletter",
-    status: "Draft",
-    updatedAt: "1 hour ago",
-    html: starterHtml("Newsletter"),
-  },
-  {
-    id: 4,
-    name: "Order Confirmation",
-    subject: "Your order is confirmed",
-    category: "Transactional",
-    status: "Published",
-    updatedAt: "2 weeks ago",
-    html: starterHtml("Transactional"),
-  },
-];
-
 const nextId = (list: Template[]) => (list.length ? Math.max(...list.map((t) => t.id)) + 1 : 1);
 
 /* ========================================================= */
-/* Template Editor Page - Full Screen */
+/* Template Editor Page - Full Screen (unchanged)            */
 /* ========================================================= */
 
 interface TemplateEditorProps {
@@ -315,7 +302,6 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
       {/* Editor Header */}
       <div className="flex-shrink-0 p-3 md:p-4" style={{ background: COLOR.surface, borderBottom: `1px solid ${COLOR.border}` }}>
         <div className="flex flex-col gap-3 md:gap-4">
-          {/* Top Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2 md:gap-3">
               <button
@@ -389,7 +375,6 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
             </div>
           </div>
 
-          {/* Subject & Variables */}
           <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
             <input
               value={template.subject}
@@ -420,9 +405,7 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
         </div>
       </div>
 
-      {/* Editor Body - Full width code + preview */}
       <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-2">
-        {/* Code Area */}
         <div className="flex flex-col h-full">
           <div
             className="flex items-center justify-between px-3 md:px-4 py-2 md:py-2.5"
@@ -446,7 +429,6 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
           />
         </div>
 
-        {/* Preview Area */}
         <div className="flex flex-col h-full">
           <div
             className="flex items-center justify-between px-3 md:px-4 py-2 md:py-2.5"
@@ -493,7 +475,6 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && onDelete && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: "rgba(14,16,19,0.7)" }}>
           <div className="w-full max-w-md rounded-2xl shadow-2xl" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
@@ -528,11 +509,14 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
 };
 
 /* ========================================================= */
-/* Main List Page */
+/* Main List Page — NOW USES CONTEXT                         */
 /* ========================================================= */
 
 const EmailTemplatesAdmin = () => {
-  const [templates, setTemplates] = useState<Template[]>(initialTemplates);
+  const { templates: apiTemplates, loading, error, refetch } = useHtmlTemplates();
+
+  // Local working copy — lets the editor mutate without touching the context
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<Category | "All">("All");
   const [statusFilter, setStatusFilter] = useState<"All" | "Published" | "Draft">("All");
@@ -541,6 +525,12 @@ const EmailTemplatesAdmin = () => {
   const [showAIGenerate, setShowAIGenerate] = useState(false);
   const [generationPrompt, setGenerationPrompt] = useState("");
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+
+  // Hydrate local state from context whenever the API data changes
+  useEffect(() => {
+    if (!apiTemplates) return;
+    setTemplates(apiTemplates.map(mapApiTemplate));
+  }, [apiTemplates]);
 
   const filtered = templates.filter((t) => {
     const matchesSearch =
@@ -580,7 +570,7 @@ const EmailTemplatesAdmin = () => {
 
   const handleAIGenerate = () => {
     if (!generationPrompt.trim()) return;
-    
+
     const newHtml = `<!DOCTYPE html>
 <html>
 <head>
@@ -622,7 +612,7 @@ const EmailTemplatesAdmin = () => {
   </table>
 </body>
 </html>`;
-    
+
     const newId = nextId(templates);
     const aiTemplate: Template = {
       id: newId,
@@ -658,23 +648,15 @@ const EmailTemplatesAdmin = () => {
           border-color: ${COLOR.primary} !important;
           box-shadow: 0 0 0 3px ${COLOR.primarySoft};
         }
-        .sidebar-overlay {
-          animation: fadeIn 0.2s ease-in-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .sidebar-slide {
-          animation: slideIn 0.25s ease-out;
-        }
-        @keyframes slideIn {
-          from { transform: translateX(-100%); }
-          to { transform: translateX(0); }
-        }
+        .sidebar-overlay { animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .sidebar-slide { animation: slideIn 0.25s ease-out; }
+        @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .mf-spin { animation: spin 0.8s linear infinite; }
       `}</style>
 
-      {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
           className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
@@ -682,7 +664,6 @@ const EmailTemplatesAdmin = () => {
         />
       )}
 
-      {/* Sidebar */}
       <div className={`
         fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -691,7 +672,6 @@ const EmailTemplatesAdmin = () => {
         <AdminSidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Main content */}
       <main className="main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8 h-screen w-full" style={{ background: COLOR.bg }}>
         {/* Header */}
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -722,6 +702,14 @@ const EmailTemplatesAdmin = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full sm:w-auto">
+            <button
+              onClick={refetch}
+              className="flex items-center justify-center gap-1.5 md:gap-2 rounded-lg px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium transition hover:opacity-90 flex-1 sm:flex-none"
+              style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
+            >
+              <Loader2 size={14} className={loading ? "mf-spin" : ""} />
+              <span className="hidden xs:inline">Refresh</span>
+            </button>
             <button
               onClick={() => setShowAIGenerate(true)}
               className="flex items-center justify-center gap-1.5 md:gap-2 rounded-lg px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium transition hover:opacity-90 flex-1 sm:flex-none"
@@ -781,7 +769,6 @@ const EmailTemplatesAdmin = () => {
 
         {/* Filters & List */}
         <div className="rounded-xl" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-          {/* Filters */}
           <div className="p-3 md:p-4" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
             <div className="relative mb-2.5 md:mb-3">
               <Search
@@ -818,13 +805,54 @@ const EmailTemplatesAdmin = () => {
 
           {/* Template Grid */}
           <div className="p-3 md:p-4">
-            {filtered.length === 0 ? (
+            {/* Loading */}
+            {loading && templates.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-8 md:py-12 text-center">
+                <Loader2 size={28} className="mf-spin mb-3" style={{ color: COLOR.textMuted }} />
+                <p className="text-sm" style={{ color: COLOR.textMuted }}>Loading templates…</p>
+              </div>
+            )}
+
+            {/* Error */}
+            {!loading && error && templates.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-8 md:py-12 text-center">
+                <AlertTriangle size={28} className="mb-3" style={{ color: COLOR.danger }} />
+                <p className="text-sm font-medium" style={{ color: COLOR.danger }}>
+                  Couldn't load templates
+                </p>
+                <p className="text-xs mt-1 mb-3" style={{ color: COLOR.textMuted }}>{error}</p>
+                <button
+                  onClick={refetch}
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium transition hover:opacity-90"
+                  style={{ background: COLOR.primary, color: COLOR.bg }}
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+
+            {/* Empty (no data at all) */}
+            {!loading && !error && templates.length === 0 && (
               <div className="flex flex-col items-center justify-center py-8 md:py-12 text-center">
                 <Inbox size={32} style={{ color: COLOR.textMuted }} className="mb-3" />
-                <p className="text-sm" style={{ color: COLOR.textMuted }}>No templates found</p>
-                <p className="text-xs mt-1" style={{ color: COLOR.textMuted }}>Try adjusting your filters</p>
+                <p className="text-sm" style={{ color: COLOR.textMuted }}>No templates yet</p>
+                <p className="text-xs mt-1" style={{ color: COLOR.textMuted }}>
+                  Create your first template to get started.
+                </p>
               </div>
-            ) : (
+            )}
+
+            {/* Empty (filtered out) */}
+            {!loading && !error && templates.length > 0 && filtered.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-8 md:py-12 text-center">
+                <Inbox size={32} style={{ color: COLOR.textMuted }} className="mb-3" />
+                <p className="text-sm" style={{ color: COLOR.textMuted }}>No templates match your filters</p>
+                <p className="text-xs mt-1" style={{ color: COLOR.textMuted }}>Try adjusting your search or filters</p>
+              </div>
+            )}
+
+            {/* Grid */}
+            {filtered.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
                 {filtered.map((t) => (
                   <button
@@ -839,7 +867,7 @@ const EmailTemplatesAdmin = () => {
                           {t.name}
                         </p>
                         <p className="text-[8px] md:text-[9px] truncate mt-0.5" style={{ color: COLOR.textMuted }}>
-                          {t.subject}
+                          {t.subject || "(no subject)"}
                         </p>
                       </div>
                       <span
@@ -866,12 +894,10 @@ const EmailTemplatesAdmin = () => {
           </div>
         </div>
 
-        {/* New Template Modal */}
         {showNewModal && (
           <NewTemplateModal onClose={() => setShowNewModal(false)} onCreate={handleCreate} />
         )}
 
-        {/* AI Generate Modal */}
         {showAIGenerate && (
           <AIGenerateModal
             onClose={() => setShowAIGenerate(false)}
@@ -881,7 +907,6 @@ const EmailTemplatesAdmin = () => {
           />
         )}
 
-        {/* Full Screen Template Editor */}
         {editingTemplate && (
           <TemplateEditor
             template={editingTemplate}
@@ -896,7 +921,7 @@ const EmailTemplatesAdmin = () => {
 };
 
 /* ========================================================= */
-/* Stat Card */
+/* Stat Card (unchanged)                                     */
 /* ========================================================= */
 
 interface StatCardProps {
@@ -927,7 +952,7 @@ const StatCard = ({ title, value, description, icon: Icon, accent, accentSoft }:
 );
 
 /* ========================================================= */
-/* Filter Chips */
+/* Filter Chips (unchanged)                                  */
 /* ========================================================= */
 
 const FilterChip = ({
@@ -975,7 +1000,7 @@ const FilterChipSmall = ({
 );
 
 /* ========================================================= */
-/* New Template Modal */
+/* New Template Modal (unchanged)                            */
 /* ========================================================= */
 
 const NewTemplateModal = ({
@@ -1004,11 +1029,7 @@ const NewTemplateModal = ({
               <p className="text-[10px] md:text-xs" style={{ color: COLOR.textMuted }}>Start from a category-matched boilerplate.</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 md:p-2 transition"
-            style={{ color: COLOR.textMuted }}
-          >
+          <button onClick={onClose} className="rounded-lg p-1.5 md:p-2 transition" style={{ color: COLOR.textMuted }}>
             <X size={14} />
           </button>
         </div>
@@ -1088,7 +1109,7 @@ const NewTemplateModal = ({
 };
 
 /* ========================================================= */
-/* AI Generate Modal */
+/* AI Generate Modal (unchanged)                             */
 /* ========================================================= */
 
 const AIGenerateModal = ({
@@ -1116,11 +1137,7 @@ const AIGenerateModal = ({
             <p className="text-[10px] md:text-xs" style={{ color: COLOR.textMuted }}>Describe what you want and AI will generate it</p>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-lg p-1.5 md:p-2 transition"
-          style={{ color: COLOR.textMuted }}
-        >
+        <button onClick={onClose} className="rounded-lg p-1.5 md:p-2 transition" style={{ color: COLOR.textMuted }}>
           <X size={14} />
         </button>
       </div>
@@ -1189,7 +1206,7 @@ const AIGenerateModal = ({
           }}
         >
           <Wand2 size={14} />
-          Generate Template 
+          Generate Template
         </button>
       </div>
     </div>

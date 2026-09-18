@@ -54,12 +54,9 @@ const HtmlTemplatesProvider = ({ children }: HtmlTemplatesProp) => {
         setError(null);
 
         const raw = await getHTMLTemplates();
-        console.log("[HtmlTemplates] raw response:", raw);
-        console.log("[HtmlTemplates] isArray:", Array.isArray(raw));
 
         const data = normalizeTemplates(raw);
 
-        console.log("[HtmlTemplates] normalized count:", data.length);
 
         if (isMounted) {
           setTemplates(data);

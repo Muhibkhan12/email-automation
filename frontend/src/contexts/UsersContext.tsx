@@ -92,7 +92,6 @@ export const UserProvider = ({ children } : UsersProviderProps) => {
 };
 
   useEffect(() => {
-    fetchUser();
   }, []);
 
   return (
