@@ -1,11 +1,11 @@
 // pages/User/Recipients.tsx — recipients for the logged-in user only
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import { getRecipientsServiceById } from "../../services/RecipientService";
-import type { RecipientStatus } from "../../types/CampaignTypes";
+import { useRecipients } from "../../contexts/RecipientsContext";
+import type { RecipientStatus } from "../../types/RecipientTypes";
 import {
-  Search, Users, MailCheck, MailX, MailWarning, Menu,
+  Search, Users, MailCheck, MailX, MailWarning, Menu, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
 const FONT = {
@@ -24,84 +24,22 @@ const STATUS_STYLES: Record<RecipientStatus, { bg: string; fg: string }> = {
 
 const FILTERS: ("All" | RecipientStatus)[] = ["All", "Pending", "Queued", "Sending", "Sent", "Failed"];
 
-// Shape we expect from GET /recipient/:id — adjust to match your backend.
-type ApiRecipient = {
-  id: number;
-  name: string;
-  email: string;
-  status: RecipientStatus;
-  created_at?: string;
-  updated_at?: string;
-};
-
-/**
- * Resolve the logged-in user's id.
- * TODO: If you already have an AuthContext / useAuth() hook, replace this
- * function's body with `return user.id;` from that hook instead.
- */
-const getCurrentUserId = (): number | null => {
-  try {
-    const raw =
-      localStorage.getItem("user") ??
-      localStorage.getItem("auth_user") ??
-      localStorage.getItem("currentUser");
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    const id = parsed?.id ?? parsed?.user?.id ?? parsed?.userId;
-    return id != null ? Number(id) : null;
-  } catch {
-    return null;
-  }
-};
-
 const Recipients = () => {
   const navigate = useNavigate();
-
-  const [recipients, setRecipients] = useState<ApiRecipient[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { recipients, loading, error, getAllRecipients, total, page, limit } = useRecipients();
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"All" | RecipientStatus>("All");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const userId = getCurrentUserId();
-        if (userId == null) {
-          if (!cancelled) {
-            setError("Could not determine logged-in user.");
-            setRecipients([]);
-          }
-          return;
-        }
-
-        const data = await getRecipientsServiceById(userId);
-        // Backend may return an array directly, a single object, or { data: [...] } — handle all.
-        const list: ApiRecipient[] = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.data)
-          ? data.data
-          : data
-          ? [data]
-          : [];
-        if (!cancelled) setRecipients(list);
-      } catch (e: any) {
-        if (!cancelled) setError(e?.message ?? "Failed to load recipients.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    getAllRecipients(1, 20);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // NOTE: filtering only applies to the current page's data, since pagination
+  // is server-side. Search/filter across ALL recipients would need a backend
+  // search param instead — flag if you want that instead of per-page filtering.
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
     return recipients.filter((r) => {
@@ -115,6 +53,8 @@ const Recipients = () => {
     });
   }, [recipients, query, filter]);
 
+  // NOTE: these summary counts only reflect the current page, not the full dataset,
+  // since we only ever hold one page of recipients in state at a time.
   const summary = useMemo(() => {
     const sent = recipients.filter((r) => r.status === "Sent").length;
     const failed = recipients.filter((r) => r.status === "Failed").length;
@@ -123,6 +63,13 @@ const Recipients = () => {
     ).length;
     return { total: recipients.length, sent, failed, pending };
   }, [recipients]);
+
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  const goToPage = (p: number) => {
+    if (p < 1 || p > totalPages) return;
+    getAllRecipients(p, limit);
+  };
 
   return (
     <div
@@ -207,7 +154,7 @@ const Recipients = () => {
             {/* Summary cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-3 lg:gap-5 mb-3 md:mb-4 lg:mb-6">
               {[
-                { label: "Total recipients", value: summary.total, icon: Users },
+                { label: "This page", value: summary.total, icon: Users },
                 { label: "Sent", value: summary.sent, icon: MailCheck },
                 { label: "Pending / queued", value: summary.pending, icon: MailWarning },
                 { label: "Failed", value: summary.failed, icon: MailX },
@@ -246,7 +193,7 @@ const Recipients = () => {
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search by name, email, or ID…"
+                  placeholder="Search this page by name, email, or ID…"
                   className="w-full bg-transparent text-[10px] md:text-xs lg:text-sm outline-none text-[#E8E6E1] placeholder:text-[#6B727C]"
                 />
               </div>
@@ -271,8 +218,11 @@ const Recipients = () => {
             <div className="rounded-xl border border-[#2A2E37] bg-[#12151B] shadow-sm overflow-hidden">
               <div className="flex flex-wrap items-center justify-between px-3 md:px-4 lg:px-5 py-2.5 md:py-3 lg:py-4 border-b border-[#2A2E37] gap-2">
                 <h2 className="text-[10px] md:text-xs lg:text-sm font-semibold text-[#E8E6E1]">
-                  {filtered.length} {filtered.length === 1 ? "recipient" : "recipients"}
+                  {filtered.length} {filtered.length === 1 ? "recipient" : "recipients"} on this page
                 </h2>
+                <span className="text-[9px] md:text-[10px] lg:text-xs text-[#6B727C]">
+                  {total} total
+                </span>
               </div>
 
               <div className="overflow-x-auto">
@@ -329,6 +279,31 @@ const Recipients = () => {
                     )}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Pagination controls */}
+              <div className="flex items-center justify-between px-3 md:px-4 lg:px-5 py-2.5 md:py-3 border-t border-[#2A2E37]">
+                <span className="text-[9px] md:text-[10px] lg:text-xs text-[#9BA0A8]">
+                  Page {page} of {totalPages}
+                </span>
+                <div className="flex items-center gap-1.5 md:gap-2">
+                  <button
+                    onClick={() => goToPage(page - 1)}
+                    disabled={page <= 1 || loading}
+                    className="flex items-center gap-1 rounded-lg px-2 md:px-3 py-1 md:py-1.5 text-[9px] md:text-[10px] lg:text-xs font-medium border border-[#2A2E37] bg-[#12151B] text-[#C7C9CE] hover:bg-[#1B1E24] hover:text-[#E8E6E1] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft size={12} />
+                    Prev
+                  </button>
+                  <button
+                    onClick={() => goToPage(page + 1)}
+                    disabled={page >= totalPages || loading}
+                    className="flex items-center gap-1 rounded-lg px-2 md:px-3 py-1 md:py-1.5 text-[9px] md:text-[10px] lg:text-xs font-medium border border-[#2A2E37] bg-[#12151B] text-[#C7C9CE] hover:bg-[#1B1E24] hover:text-[#E8E6E1] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                    <ChevronRight size={12} />
+                  </button>
+                </div>
               </div>
             </div>
           </>

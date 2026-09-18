@@ -71,11 +71,6 @@ const Templates = () => {
     },
   ];
 
-  // 🔍 Debug — remove once things work
-  console.log("[Templates] loading:", loading, "error:", error);
-  console.log("[Templates] templates:", safeTemplates);
-  console.log("[Templates] filtered:", filtered);
-
   return (
     <div
       className="flex min-h-screen overflow-hidden"

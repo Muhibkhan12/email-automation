@@ -5,6 +5,7 @@ import { AuthProvider } from "./contexts/AuthContext.tsx";
 import {EmailLogsProvider} from "./contexts/EmaillogsContext.tsx";
 import {SenderAccountsContext} from "./contexts/SenderAccountsContext.tsx";
 import HtmlTemplatesProvider from "./contexts/HtmlTemplatesContext.tsx";
+import RecipientsContextProvider from "./contexts/RecipientsContext.tsx";
 
 import { CampaignProvider } from "./contexts/CampaignContext.tsx";
 import "./index.css";
@@ -17,7 +18,9 @@ createRoot(document.getElementById("root")!).render(
           <SenderAccountsContext>
             <CampaignProvider>
               <HtmlTemplatesProvider>
-                <App />
+                <RecipientsContextProvider>
+                  <App />
+                </RecipientsContextProvider>
               </HtmlTemplatesProvider>
             </CampaignProvider>
           </SenderAccountsContext>
