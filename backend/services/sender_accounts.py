@@ -116,10 +116,7 @@ def get_account_by_id(id: int, user_id: int, db: Session):
 # GET /sender-accounts/all  -> all accounts of the logged-in user
 def get_all_sender_accounts(user_id: int, db: Session):
     data = (
-        db.query(SenderAccount)
-        .filter(SenderAccount.user_id == user_id)
-        .order_by(SenderAccount.id.desc())
-        .all()
+        db.query(SenderAccount).all()
     )
     return {"accounts": data}
 

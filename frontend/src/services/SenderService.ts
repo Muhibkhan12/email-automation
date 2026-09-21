@@ -5,6 +5,19 @@ import type {
   UpdateSenderAccountInput,
 } from "../types/SenderAccount";
 
+// maps raw backend row -> safe frontend shape (drops tokens)
+const mapSenderAccount = (a: any) => ({
+  id: a.id,
+  email: a.email,
+  name: a.display_name ?? a.name,
+  provider: a.provider,
+  status: a.status,
+  dailyLimit: a.daily_limit ?? a.dailyLimit,
+  hourlyLimit: a.hourly_limit ?? a.hourlyLimit,
+  sentToday: a.emails_sent_today ?? a.sentToday,
+  sentThisHour: a.emails_sent_hour ?? a.sentThisHour,
+});
+
 /* Backend response shapes (FastAPI):
    GET    /sender-accounts/all   -> { accounts: SenderAccount[] }
    GET    /sender-accounts/{id}  -> { message, account: SenderAccount }
@@ -41,12 +54,20 @@ export const deleteSenderAccount = async (id: number) => {
   return response.data;
 };
 
-// GET /sender-accounts/all
-export const getAllSenderAccounts = async (): Promise<SenderAccount[]> => {
-  const response = await api.get<{ accounts: SenderAccount[] }>(
-    `/sender-accounts/all`
-  );
-  return response.data.accounts ?? [];
+export const getAllSenderAccounts = async () => {
+  const response = await api.get("/sender-accounts/all");
+  console.log("[SenderService] raw:", response.data);
+
+  const raw = response.data;
+  const rows = Array.isArray(raw)
+    ? raw
+    : Array.isArray(raw?.accounts)
+    ? raw.accounts
+    : Array.isArray(raw?.data)
+    ? raw.data
+    : [];
+
+  return rows.map(mapSenderAccount);
 };
 
 // POST /sender-accounts/
