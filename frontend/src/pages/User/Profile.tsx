@@ -263,12 +263,6 @@ const Profile = () => {
           {/* Senders */}
           <section className="rounded-xl border border-[#2A2E37] bg-[#12151B]">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 md:gap-3 lg:gap-4 px-3 md:px-4 lg:px-6 py-2.5 md:py-3 lg:py-5 border-b border-[#2A2E37]">
-              <div>
-                <h2 className="text-xs md:text-sm lg:text-base font-semibold text-[#E8E6E1]">Connected sender accounts</h2>
-                <p className="mt-0.5 md:mt-1 text-[9px] md:text-[10px] lg:text-sm text-[#9BA0A8]">
-                  Email accounts used to send your campaigns.
-                </p>
-              </div>
 
               <button className="flex items-center justify-center gap-1.5 rounded-lg px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium text-white bg-[#FF6A39] hover:opacity-90 transition w-full sm:w-auto">
                 <Plus size={12} className="md:w-[13px] md:h-[13px] lg:w-[13px] lg:h-[13px]" />
@@ -277,55 +271,6 @@ const Profile = () => {
               </button>
             </div>
 
-            <div>
-              {senderAccounts.map((sender, i) => {
-                const p = PROVIDER_STYLE[sender.provider];
-                return (
-                  <div
-                    key={sender.email}
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 md:gap-3 lg:gap-4 px-3 md:px-4 lg:px-6 py-2.5 md:py-3 lg:py-5 border-t border-[#2A2E37] hover:bg-[#1B1E24] transition"
-                  >
-                    <div className="flex items-center gap-2 md:gap-3 lg:gap-4">
-                      <div
-                        className="flex h-7 w-7 md:h-9 md:w-9 lg:h-11 lg:w-11 items-center justify-center rounded-xl text-[9px] md:text-xs lg:text-sm font-semibold shrink-0"
-                        style={{ background: p.soft, color: p.accent }}
-                      >
-                        {p.label}
-                      </div>
-
-                      <div className="min-w-0">
-                        <p className="text-[10px] md:text-xs lg:text-sm font-medium truncate text-[#E8E6E1]">
-                          {sender.email}
-                        </p>
-                        <div className="mt-0.5 md:mt-1 flex flex-wrap items-center gap-1 md:gap-1.5 lg:gap-2 text-[8px] md:text-[9px] lg:text-xs text-[#6B727C]">
-                          <span>{sender.provider}</span>
-                          <span className="text-[#2A2E37]">•</span>
-                          <span className="font-mono">{sender.sent.toLocaleString()} emails sent</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
-                      <span
-                        className="rounded-full px-1.5 md:px-2 lg:px-3 py-0.5 md:py-1 lg:py-1.5 text-[8px] md:text-[9px] lg:text-xs font-medium whitespace-nowrap"
-                        style={{
-                          background: sender.status === "Active" ? "rgba(52,211,153,0.12)" : "rgba(248,113,113,0.12)",
-                          color: sender.status === "Active" ? "#34D399" : "#F87171",
-                        }}
-                      >
-                        <span className="hidden xs:inline">{sender.status}</span>
-                        <span className="xs:hidden">{sender.status.charAt(0)}</span>
-                      </span>
-
-                      <button className="rounded-lg border border-[#2A2E37] px-2 md:px-2.5 lg:px-3 py-1 md:py-1.5 lg:py-2 text-[8px] md:text-[9px] lg:text-sm font-medium text-[#C7C9CE] bg-transparent hover:bg-[#1B1E24] hover:text-[#E8E6E1] transition">
-                        <span className="hidden xs:inline">Manage</span>
-                        <span className="xs:hidden">⚙</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           </section>
 
           {/* Danger Zone */}

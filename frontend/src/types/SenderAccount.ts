@@ -10,7 +10,7 @@
 
 export interface SenderAccount {
   id: number
-  user_id: string
+  user_id ?: string
   display_name: string
   email: string
   provider: string

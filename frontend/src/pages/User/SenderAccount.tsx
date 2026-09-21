@@ -1,4 +1,4 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import {
   Mail,
@@ -27,6 +27,8 @@ import type {
   SenderAccount,
   CreateSenderAccountInput,
 } from "../../types/SenderAccount";
+import { getSenderAccount } from "../../services/SenderService";
+import { id } from "zod/locales";
 
 const FONT = {
   display: "'Space Grotesk', sans-serif",
@@ -72,7 +74,6 @@ const SenderAccountsPage = () => {
       "SenderAccountsPage must be used inside a <SenderAccountsContext> provider."
     );
   }
-
   const { senderAcc: rawAccounts, loading, deleteSenderAccount } = ctx;
 
   // Safety net: never let a non-array crash the page
@@ -695,11 +696,8 @@ const AddAccountModal = ({ onClose }: { onClose: () => void }) => {
   const handleSubmit = async () => {
     if (!ctx) return;
 
-    // ⚠️ TODO: replace "" with the logged-in user's id from your AuthContext
-    // e.g. const { user } = useContext(AuthContext); ... user_id: String(user.id)
-    // (If your backend reads the user from the auth token, it may ignore this.)
+    // user_id is set by the backend from the logged-in user's token
     const payload: CreateSenderAccountInput = {
-      user_id: "",
       display_name: name.trim(),
       email: email.trim(),
       provider,
