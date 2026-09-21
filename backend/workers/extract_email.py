@@ -18,9 +18,7 @@ from workers.sending_emails import send_email_task
 @celery.task(queue="extract_emails_queue")
 def extract_emails(upload_id : int):
         db =  SessionLocal()
-
         recipients = []
-
         try:
             # get upload using uplod-id
             upload = db.query(Upload).filter(Upload.id == upload_id).first()

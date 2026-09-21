@@ -14,15 +14,13 @@ import type {
   UpdateSenderAccountInput,
 } from "../types/SenderAccount";
 
-
 type SenderAccountProp = {
   children: ReactNode;
 };
 
-
 type SenderAccountContextType = {
   senderAcc: SenderAccount[];
-  loading: boolean;                                               
+  loading: boolean;
 
   fetchSenderAccount: (id: number) => Promise<void>;
   fetchAllSenderAccounts: () => Promise<void>;
@@ -37,89 +35,69 @@ type SenderAccountContextType = {
   deleteSenderAccount: (id: number) => Promise<void>;
 };
 
-
 export const SenderAccContext =
   createContext<SenderAccountContextType | undefined>(undefined);
 
+// API might return an array, null, or { data: [...] } — always end up with an array
+const toArray = (payload: unknown): SenderAccount[] => {
+  if (Array.isArray(payload)) return payload as SenderAccount[];
+  const inner = (payload as { data?: unknown } | null)?.data;
+  return Array.isArray(inner) ? (inner as SenderAccount[]) : [];
+};
 
 export const SenderAccountsContext = ({ children }: SenderAccountProp) => {
-
   const [senderAcc, setSenderAcc] = useState<SenderAccount[]>([]);
   const [loading, setLoading] = useState(false);
-
 
   const fetchSenderAccount = async (id: number) => {
     try {
       setLoading(true);
-
       const data = await getSenderAccount(id);
-
-      setSenderAcc([data]);
-
+      setSenderAcc(data ? [data] : []);
+    } catch (err) {
+      console.error("Failed to fetch sender account:", err);
+      setSenderAcc([]);
     } finally {
       setLoading(false);
     }
   };
-
 
   const fetchAllSenderAccounts = async () => {
     try {
       setLoading(true);
-
       const data = await getAllSenderAccounts();
-
-      setSenderAcc(data);
-
+      setSenderAcc(toArray(data));
+    } catch (err) {
+      console.error("Failed to fetch sender accounts:", err);
+      setSenderAcc([]);
     } finally {
       setLoading(false);
     }
   };
 
-
-  const addSenderAccountHandler = async (
-    data: CreateSenderAccountInput
-  ) => {
-
+  const addSenderAccountHandler = async (data: CreateSenderAccountInput) => {
     const newAccount = await addSenderAccount(data);
-
-    setSenderAcc(prev => [
-      ...prev,
-      newAccount,
-    ]);
+    setSenderAcc((prev) => [...prev, newAccount]);
   };
-
 
   const updateSenderAccountHandler = async (
     id: number,
     data: UpdateSenderAccountInput
   ) => {
-
-    const updatedAccount = await   updateSenderAccount(id, data);
-
-    setSenderAcc(prev =>
-      prev.map(account =>
-        account.id === id
-          ? updatedAccount
-          : account
-      )
+    const updatedAccount = await updateSenderAccount(id, data);
+    setSenderAcc((prev) =>
+      prev.map((account) => (account.id === id ? updatedAccount : account))
     );
   };
-
 
   const deleteSenderAccountHandler = async (id: number) => {
-
     await deleteSenderAccount(id);
-
-    setSenderAcc(prev =>
-      prev.filter(account => account.id !== id)
-    );
+    setSenderAcc((prev) => prev.filter((account) => account.id !== id));
   };
-
 
   useEffect(() => {
     fetchAllSenderAccounts();
   }, []);
-
 
   return (
     <SenderAccContext.Provider
@@ -137,6 +115,5 @@ export const SenderAccountsContext = ({ children }: SenderAccountProp) => {
     </SenderAccContext.Provider>
   );
 };
-
 
 export default SenderAccountsContext;

@@ -89,3 +89,7 @@ def get_send_acc_with_users( db : Session = Depends(get_db)):
 @router.get("/user/sender-account/{id}")
 def get_send_acc_with_user_id(user_id : int, db : Session = Depends(get_db)):
     return userByIdWithSenAcc(db, user_id)
+
+@router.delete("users/delete/{id}")
+def delete_user(user_id : int, db : Session = Depends(get_db) ):
+    return deleteUser(user_id, db)

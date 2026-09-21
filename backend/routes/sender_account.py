@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from schema.sender_account import addSenderAccountSchema, updateSenderAccout
+from services.user import GetCurrentUser
 from database import get_db
 from services.sender_accounts import add_sender_account, update_sender_account, delete_sender_account, get_account_by_id, get_all_sender_accounts
 
@@ -11,8 +12,8 @@ router = APIRouter(
 )
 
 @router.get("/{id}")
-def getAccount(id : int, db : Session = Depends(get_db)):
-    return get_account_by_id(id, db)
+def getAccount(current_user : User = Depends(GetCurrentUser), db : Session = Depends(get_db)):
+    return get_account_by_id(current_user, db)
 
 @router.get("/all")
 def getAllSenderAccounts(db : Session = Depends(get_db)):

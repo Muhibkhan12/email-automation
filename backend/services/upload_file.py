@@ -26,7 +26,6 @@ def add_upload_file(
 
     return upload
 
-
 def get_upload_by_campaign(
     db: Session,
     campaign_id: int
@@ -45,7 +44,6 @@ def get_upload_by_campaign(
         )
 
     return upload
-
 
 def delete_upload_file(
     db: Session,

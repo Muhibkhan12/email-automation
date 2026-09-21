@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from services.security import hash_password
 from schema.sender_account import addSenderAccountSchema, updateSenderAccout
 from models.sender_account import SenderAccount
+from services.user import GetCurrentUser
 from models.user import User
 
 def add_sender_account(db : Session ,credentials : addSenderAccountSchema):
@@ -88,8 +89,8 @@ def delete_sender_account(id : int, db : Session):
          "message" : "Account Deleted Successfully"
     }
 
-def get_account_by_id(id : int, db):
-     data = db.query(SenderAccount).filter(User.id == id).first()
+def get_account_by_id(user_id : int, db):
+     data = db.query(SenderAccount).filter(SenderAccount.user_id == user_id).all()
 
      if not data:
           raise HTTPException(
