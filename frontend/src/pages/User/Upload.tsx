@@ -4,9 +4,9 @@ import Sidebar from "./Sidebar";
 import {
   UploadCloud, FileSpreadsheet, CheckCircle2, XCircle, Loader2,
   X, Info, ChevronRight, Menu, ArrowRight, FileText,
-  Search, Plus, Layout, Grid3x3, Star
+  Search, Plus, Layout, Grid3x3, Star, Users, Sparkles, Clock, TrendingUp,
 } from "lucide-react";
-import type{ UploadedFile } from "../../types/UploadTypes";
+import type { UploadedFile } from "../../types/UploadTypes";
 import { useUpload } from "../../contexts/UploadContext";
 
 const FONT = {
@@ -15,12 +15,11 @@ const FONT = {
   mono: "'JetBrains Mono', monospace",
 };
 
-// Types
 type UploadStatus = "uploading" | "processing" | "success" | "error";
 
 interface UploadFile {
   id: string;
-  nam: string;
+  name: string;
   size: string;
   progress: number;
   status: UploadStatus;
@@ -54,61 +53,63 @@ interface Template {
   created_at: string;
 }
 
-// Mock templates (unchanged)
 const mockTemplates: Template[] = [
-  {
-    id: "t1",
-    name: "Newsletter Modern",
-    subject: "Weekly Newsletter - {{ date }}",
-    preview: "Modern newsletter template with hero image and responsive design...",
-    thumbnail: "📰",
-    category: "Newsletter",
-    used: 234,
-    tags: ["Modern", "Responsive", "Clean"],
-    featured: true,
-    created_at: "2024-01-15T10:30:00Z"
-  },
-  {
-    id: "t2",
-    name: "Promotional Flash Sale",
-    subject: "🔥 Flash Sale Alert! {{ discount }}% Off",
-    preview: "High-converting promotional template with countdown timer...",
-    thumbnail: "🔥",
-    category: "Promotion",
-    used: 189,
-    tags: ["Urgent", "Sales", "Conversion"],
-    featured: true,
-    created_at: "2024-02-20T14:15:00Z"
-  },
-  {
-    id: "t3",
-    name: "Welcome Series",
-    subject: "Welcome to {{ company_name }}, {{ name }}!",
-    preview: "Warm welcome email with onboarding steps and resources...",
-    thumbnail: "👋",
-    category: "Onboarding",
-    used: 567,
-    tags: ["Welcome", "Onboarding", "Friendly"],
-    featured: false,
-    created_at: "2024-01-05T09:00:00Z"
-  },
-  {
-    id: "t4",
-    name: "Event Invitation",
-    subject: "You're Invited to {{ event_name }}!",
-    preview: "Elegant event invitation template with RSVP button...",
-    thumbnail: "🎪",
-    category: "Event",
-    used: 145,
-    tags: ["Event", "Elegant", "RSVP"],
-    featured: false,
-    created_at: "2024-03-01T16:45:00Z"
-  }
+  { id: "t1", name: "Newsletter Modern", subject: "Weekly Newsletter - {{ date }}", preview: "Modern newsletter template with hero image and responsive design...", thumbnail: "📰", category: "Newsletter", used: 234, tags: ["Modern", "Responsive", "Clean"], featured: true, created_at: "2024-01-15T10:30:00Z" },
+  { id: "t2", name: "Promotional Flash Sale", subject: "🔥 Flash Sale Alert! {{ discount }}% Off", preview: "High-converting promotional template with countdown timer...", thumbnail: "🔥", category: "Promotion", used: 189, tags: ["Urgent", "Sales", "Conversion"], featured: true, created_at: "2024-02-20T14:15:00Z" },
+  { id: "t3", name: "Welcome Series", subject: "Welcome to {{ company_name }}, {{ name }}!", preview: "Warm welcome email with onboarding steps and resources...", thumbnail: "👋", category: "Onboarding", used: 567, tags: ["Welcome", "Onboarding", "Friendly"], featured: false, created_at: "2024-01-05T09:00:00Z" },
+  { id: "t4", name: "Event Invitation", subject: "You're Invited to {{ event_name }}!", preview: "Elegant event invitation template with RSVP button...", thumbnail: "🎪", category: "Event", used: 145, tags: ["Event", "Elegant", "RSVP"], featured: false, created_at: "2024-03-01T16:45:00Z" },
 ];
 
 let idCounter = 0;
 
-// Template Card Component (unchanged)
+const formatDate = (iso?: string) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleString(undefined, {
+    month: "short", day: "numeric", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+};
+
+/* ─────────────────────────────────────────────────────────
+   Shared primitives
+   ───────────────────────────────────────────────────────── */
+
+const SectionLabel: React.FC<{ icon?: React.ReactNode; children: React.ReactNode; hint?: string }> = ({ icon, children, hint }) => (
+  <div className="flex items-end justify-between gap-3 mb-3 md:mb-4">
+    <div>
+      <h2 style={{ fontFamily: FONT.display }} className="flex items-center gap-2 text-sm md:text-base font-semibold text-[#E8E6E1] tracking-tight">
+        {icon}
+        {children}
+      </h2>
+      {hint && <p className="text-[11px] md:text-xs text-[#6B727C] mt-1">{hint}</p>}
+    </div>
+  </div>
+);
+
+const StatusPill: React.FC<{ tone: "success" | "danger" | "warn" | "info" | "muted"; children: React.ReactNode }> = ({ tone, children }) => {
+  const map = {
+    success: { bg: "rgba(52,211,153,0.10)", fg: "#34D399", ring: "rgba(52,211,153,0.20)" },
+    danger: { bg: "rgba(248,113,113,0.10)", fg: "#F87171", ring: "rgba(248,113,113,0.20)" },
+    warn: { bg: "rgba(251,191,36,0.10)", fg: "#FBBF24", ring: "rgba(251,191,36,0.20)" },
+    info: { bg: "rgba(255,106,57,0.10)", fg: "#FF6A39", ring: "rgba(255,106,57,0.20)" },
+    muted: { bg: "rgba(155,160,168,0.10)", fg: "#9BA0A8", ring: "rgba(155,160,168,0.20)" },
+  }[tone];
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] md:text-[11px] font-medium"
+      style={{ backgroundColor: map.bg, color: map.fg, boxShadow: `inset 0 0 0 1px ${map.ring}` }}
+    >
+      {children}
+    </span>
+  );
+};
+
+/* ─────────────────────────────────────────────────────────
+   Template card
+   ───────────────────────────────────────────────────────── */
+
 interface TemplateCardProps {
   template: Template;
   isSelected: boolean;
@@ -116,104 +117,90 @@ interface TemplateCardProps {
   viewMode: "grid" | "list";
 }
 
-const formatDate = (iso?: string) => {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return d.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-
 const TemplateCard: React.FC<TemplateCardProps> = ({ template, isSelected, onSelect, viewMode }) => {
+  const base = `group relative cursor-pointer rounded-2xl transition-all duration-200 ${
+    isSelected
+      ? "bg-[#FF6A39]/5 ring-1 ring-[#FF6A39]/60 shadow-[0_8px_30px_-12px_rgba(255,106,57,0.35)]"
+      : "bg-[#141821] ring-1 ring-[#232833] hover:ring-[#333A48] hover:bg-[#161B25]"
+  }`;
+
   if (viewMode === "grid") {
     return (
-      <div
-        onClick={onSelect}
-        className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-          isSelected
-            ? 'border-[#FF6A39] bg-[#FF6A39]/5 shadow-lg shadow-[#FF6A39]/5'
-            : 'border-[#2A2E37] bg-[#1B1E24] hover:border-[#3A3F4A]'
-        }`}
-      >
+      <div onClick={onSelect} className={`${base} p-3.5 md:p-4`}>
         <div className="flex items-start gap-3">
-          <div className="text-2xl">{template.thumbnail}</div>
+          <div className="shrink-0 w-11 h-11 md:w-12 md:h-12 rounded-xl flex items-center justify-center text-2xl bg-gradient-to-br from-[#1F242E] to-[#151922] ring-1 ring-[#2A2E37]">
+            {template.thumbnail}
+          </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-[#E8E6E1] text-sm">{template.name}</h3>
-            <p className="text-xs text-[#6B727C] mt-0.5 line-clamp-2">{template.preview}</p>
-            <p className="text-xs text-[#9BA0A8] mt-1 font-mono line-clamp-1">Subject: {template.subject}</p>
-            <div className="flex flex-wrap items-center gap-2 mt-1.5">
-              <span className="text-[8px] md:text-[9px] px-1.5 py-0.5 rounded bg-[#2A2E37] text-[#9BA0A8]">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-[#E8E6E1] text-sm truncate">{template.name}</h3>
+              {template.featured && (
+                <span className="shrink-0 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium bg-amber-400/10 text-amber-300">
+                  <Sparkles size={9} /> Featured
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-[#6B727C] mt-0.5 line-clamp-2 leading-relaxed">{template.preview}</p>
+            <p className="text-[10px] text-[#9BA0A8] mt-1.5 font-mono truncate">Subject · {template.subject}</p>
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[#1F242E] text-[#9BA0A8] ring-1 ring-[#2A2E37]">
                 {template.category}
               </span>
-              <span className="text-[8px] md:text-[9px] text-[#6B727C]">
-                Used {template.used} times
+              <span className="text-[10px] text-[#6B727C] inline-flex items-center gap-1">
+                <TrendingUp size={10} /> {template.used}
               </span>
               {template.tags?.slice(0, 2).map(tag => (
-                <span key={tag} className="text-[8px] px-1.5 py-0.5 rounded bg-[#FF6A39]/5 text-[#FF6A39]">
+                <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-md bg-[#FF6A39]/8 text-[#FF6A39]/90">
                   #{tag}
                 </span>
               ))}
             </div>
           </div>
-          {isSelected && (
-            <CheckCircle2 size={16} className="text-[#FF6A39] shrink-0" />
-          )}
+          <div className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center transition-all ${
+            isSelected ? "bg-[#FF6A39] text-white" : "bg-[#1F242E] ring-1 ring-[#2A2E37] group-hover:ring-[#3A3F4A]"
+          }`}>
+            {isSelected && <CheckCircle2 size={12} />}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      onClick={onSelect}
-      className={`flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all ${
-        isSelected
-          ? 'border-[#FF6A39] bg-[#FF6A39]/5'
-          : 'border-[#2A2E37] bg-[#1B1E24] hover:border-[#3A3F4A]'
-      }`}
-    >
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="text-2xl">{template.thumbnail}</div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-[#E8E6E1] text-sm">{template.name}</h3>
-            <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#2A2E37] text-[#9BA0A8]">
-              {template.category}
-            </span>
-            {template.featured && (
-              <span className="text-[8px] px-1.5 py-0.5 rounded bg-yellow-400/10 text-yellow-400 font-medium">
-                Featured
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-[#6B727C] truncate">{template.subject}</p>
-        </div>
-        <div className="hidden sm:flex items-center gap-3 text-xs text-[#6B727C]">
-          <span>Used {template.used}x</span>
-          {template.tags && template.tags.length > 0 && (
-            <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#FF6A39]/5 text-[#FF6A39]">
-              #{template.tags[0]}
+    <div onClick={onSelect} className={`${base} flex items-center gap-3 p-3`}>
+      <div className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-xl bg-gradient-to-br from-[#1F242E] to-[#151922] ring-1 ring-[#2A2E37]">
+        {template.thumbnail}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-[#E8E6E1] text-sm truncate">{template.name}</h3>
+          <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-md bg-[#1F242E] text-[#9BA0A8] ring-1 ring-[#2A2E37]">
+            {template.category}
+          </span>
+          {template.featured && (
+            <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-400/10 text-amber-300 font-medium">
+              Featured
             </span>
           )}
         </div>
+        <p className="text-[11px] text-[#6B727C] truncate mt-0.5">{template.subject}</p>
       </div>
       {isSelected && (
-        <CheckCircle2 size={18} className="text-[#FF6A39] shrink-0 ml-2" />
+        <span className="shrink-0 w-5 h-5 rounded-full bg-[#FF6A39] text-white flex items-center justify-center">
+          <CheckCircle2 size={12} />
+        </span>
       )}
     </div>
   );
 };
 
+/* ─────────────────────────────────────────────────────────
+   Main Upload page
+   ───────────────────────────────────────────────────────── */
+
 const Upload = () => {
   const navigate = useNavigate();
 
-  // ----- Per-user files from the backend -----
   const {
     files: uploadedFiles,
     loading: uploadingLoading,
@@ -221,7 +208,6 @@ const Upload = () => {
     fetchAllFiles,
   } = useUpload();
 
-  // ----- Local UI state -----
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -234,17 +220,9 @@ const Upload = () => {
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch templates (mock)
-  useEffect(() => {
-    fetchTemplates();
-  }, []);
+  useEffect(() => { fetchTemplates(); }, []);
+  useEffect(() => { fetchAllFiles(); }, [fetchAllFiles]);
 
-  // Re-fetch this user's uploaded files on mount
-  useEffect(() => {
-    fetchAllFiles();
-  }, [fetchAllFiles]);
-
-  // 👇 PRINT THE USER'S FILES (this is the main thing you asked for)
   useEffect(() => {
     if (uploadingLoading) return;
     if (uploadError) {
@@ -274,9 +252,7 @@ const Upload = () => {
                           template.preview.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           template.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           template.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-
     const matchesCategory = selectedCategory === "all" || template.category === selectedCategory;
-
     return matchesSearch && matchesCategory;
   });
 
@@ -288,18 +264,12 @@ const Upload = () => {
         const headers = ['email', 'name', 'company', 'tags'];
         const rowCount = Math.floor(Math.random() * 3000) + 200;
         const preview = Array.from({ length: 5 }, (_, i) => ({
-          email: `user${i+1}@example.com`,
-          name: `User ${i+1}`,
-          company: `Company ${i+1}`,
+          email: `user${i + 1}@example.com`,
+          name: `User ${i + 1}`,
+          company: `Company ${i + 1}`,
           tags: 'tag1, tag2'
         }));
-
-        resolve({
-          headers,
-          rows: rowCount,
-          preview,
-          data: preview
-        });
+        resolve({ headers, rows: rowCount, preview, data: preview });
       }, 1500);
     });
   };
@@ -335,7 +305,7 @@ const Upload = () => {
                   rows: parsedData.rows,
                   headers: parsedData.headers,
                   preview: parsedData.preview,
-                  fileData: parsedData.data
+                  fileData: parsedData.data,
                 };
           })
         );
@@ -352,9 +322,7 @@ const Upload = () => {
 
   const addFiles = useCallback((fileList: FileList | null) => {
     if (!fileList) return;
-    const accepted = Array.from(fileList).filter((f) =>
-      /\.(csv|xlsx|xls)$/i.test(f.name)
-    );
+    const accepted = Array.from(fileList).filter((f) => /\.(csv|xlsx|xls)$/i.test(f.name));
     const newFiles: UploadFile[] = accepted.map((f) => ({
       id: `f${idCounter++}`,
       name: f.name,
@@ -372,9 +340,7 @@ const Upload = () => {
     addFiles(e.dataTransfer.files);
   };
 
-  const removeFile = (id: string) => {
-    setFiles((prev) => prev.filter((f) => f.id !== id));
-  };
+  const removeFile = (id: string) => setFiles((prev) => prev.filter((f) => f.id !== id));
 
   const handleStartCampaign = () => {
     const successfulFiles = files.filter(f => f.status === "success");
@@ -391,193 +357,224 @@ const Upload = () => {
 
   const hasSuccessfulUpload = files.some(f => f.status === "success");
 
-// Map backend UploadedFile → RecentUpload for the table
-const recentUploads: RecentUpload[] = (uploadedFiles || []).map((u: any) => {
-  const total = u.total_records ?? 0;
-  const processed = u.processed_records ?? 0;
+  const recentUploads: RecentUpload[] = (uploadedFiles || []).map((u: any) => {
+    const total = u.total_records ?? 0;
+    const processed = u.processed_records ?? 0;
+    return {
+      id: String(u.id),
+      name: u.original_filename ?? u.stored_filename ?? "Unnamed file",
+      rows: total,
+      addedCount: processed,
+      skippedCount: Math.max(total - processed, 0),
+      uploadedAt: formatDate(u.created_at ?? u.updated_at),
+      status:
+        (u.status ?? "").toLowerCase() === "failed" ||
+        (u.status ?? "").toLowerCase() === "error"
+          ? "Failed"
+          : "Completed",
+    };
+  });
 
-  return {
-    id: String(u.id),
-    name: u.original_filename ?? u.stored_filename ?? "Unnamed file",
-    rows: total,
-    addedCount: processed,
-    skippedCount: Math.max(total - processed, 0),
-    uploadedAt: formatDate(u.created_at ?? u.updated_at),
-    status:
-      (u.status ?? "").toLowerCase() === "failed" ||
-      (u.status ?? "").toLowerCase() === "error"
-        ? "Failed"
-        : "Completed",
-  };
-});
   useEffect(() => {
-  if (uploadedFiles && uploadedFiles.length > 0) {
-    console.log("🔎 FIRST FILE RAW:", uploadedFiles[0]);
-    console.log("🔎 KEYS:", Object.keys(uploadedFiles[0] as any));
-  }
-}, [uploadedFiles]);
+    if (uploadedFiles && uploadedFiles.length > 0) {
+      console.log("🔎 FIRST FILE RAW:", uploadedFiles[0]);
+      console.log("🔎 KEYS:", Object.keys(uploadedFiles[0] as any));
+    }
+  }, [uploadedFiles]);
+
+  /* ─────────────────────── RENDER ─────────────────────── */
 
   return (
-    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body }}>
+    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: "#0D1015" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 1s linear infinite; }
-        .sidebar-overlay { animation: fadeIn 0.2s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .sidebar-slide { animation: slideIn 0.25s ease-out; }
-        @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
-        .mf-main-content::-webkit-scrollbar { width: 6px; }
-        .mf-main-content::-webkit-scrollbar-track { background: #0B0E12; }
-        .mf-main-content::-webkit-scrollbar-thumb { background: #2A2E37; border-radius: 3px; }
-        .mf-main-content::-webkit-scrollbar-thumb:hover { background: #3A3F4A; }
+        @keyframes pulse-ring {
+          0%   { transform: scale(0.95); opacity: 0.6; }
+          70%  { transform: scale(1.15); opacity: 0; }
+          100% { transform: scale(1.15); opacity: 0; }
+        }
+        .drag-ring::after {
+          content: ""; position: absolute; inset: -2px; border-radius: 1.25rem;
+          border: 1px solid #FF6A39; animation: pulse-ring 1.4s ease-out infinite;
+          pointer-events: none;
+        }
+        .mf-main::-webkit-scrollbar { width: 8px; }
+        .mf-main::-webkit-scrollbar-track { background: transparent; }
+        .mf-main::-webkit-scrollbar-thumb { background: #232833; border-radius: 8px; }
+        .mf-main::-webkit-scrollbar-thumb:hover { background: #333A48; }
+        .fade-in { animation: fadeIn 0.25s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
       `}</style>
 
+      {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
       )}
 
-      <div className={`
-        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        sidebar-slide
-      `}>
+      {/* Sidebar */}
+      <div className={`fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      <main className="mf-main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8" style={{ background: "#12151B", height: "100vh", width: "100%" }}>
-        <div className="max-w-[1100px] mx-auto">
-          {/* Header */}
-          <div className="mf-header mb-4 md:mb-5 lg:mb-7">
-            <div className="flex items-center justify-between gap-3 md:gap-4">
-              <div className="flex items-center gap-3 md:gap-4">
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
-                >
-                  <Menu size={20} />
-                </button>
-                <div>
-                  <h1
-                    style={{ fontFamily: FONT.display, letterSpacing: "-0.01em", color: "#FFFFFF" }}
-                    className="text-xl md:text-2xl lg:text-3xl font-bold"
-                  >
-                    Upload File
-                  </h1>
-                  <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm" style={{ color: "#9BA0A8" }}>
-                    Import recipients from a CSV or Excel file.
-                  </p>
+      {/* Main */}
+      <main className="mf-main flex-1 overflow-y-auto" style={{ background: "#0D1015", height: "100vh", width: "100%" }}>
+        <div className="max-w-[1180px] mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10">
+
+          {/* ── Header ───────────────────────────────── */}
+          <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-10">
+            <div className="flex items-start gap-3 md:gap-4">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden mt-1 p-2 rounded-xl bg-[#141821] ring-1 ring-[#232833] text-[#C7C9CE] hover:bg-[#1B1F29] transition-colors"
+              >
+                <Menu size={18} />
+              </button>
+              <div>
+                <div className="inline-flex items-center gap-2 mb-2">
+                  <span className="text-[10px] font-medium tracking-widest uppercase text-[#6B727C]">Campaigns</span>
+                  <ChevronRight size={10} className="text-[#3A3F4A]" />
+                  <span className="text-[10px] font-medium tracking-widest uppercase text-[#FF6A39]">New upload</span>
                 </div>
-              </div>
-
-              {hasSuccessfulUpload && (
-                <button
-                  onClick={handleStartCampaign}
-                  className={`flex items-center gap-2 px-4 py-2 bg-[#FF6A39] hover:bg-[#e85a2c] text-white rounded-lg font-medium transition-colors text-sm ${
-                    !selectedTemplate ? 'opacity-70 cursor-not-allowed' : ''
-                  }`}
-                  disabled={!selectedTemplate}
+                <h1
+                  style={{ fontFamily: FONT.display, letterSpacing: "-0.02em" }}
+                  className="text-2xl md:text-3xl lg:text-[2.25rem] font-bold text-white leading-tight"
                 >
-                  <span>Start Campaign</span>
-                  <ArrowRight size={16} />
-                </button>
-              )}
+                  Import your recipients
+                </h1>
+                <p className="mt-1.5 text-[13px] md:text-sm text-[#9BA0A8] max-w-xl">
+                  Drop a CSV or Excel file, pick a template, and we'll take care of the rest.
+                </p>
+              </div>
             </div>
-          </div>
 
-          {/* Dropzone */}
+            {hasSuccessfulUpload && (
+              <button
+                onClick={handleStartCampaign}
+                disabled={!selectedTemplate}
+                className={`group inline-flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all ${
+                  selectedTemplate
+                    ? "bg-[#FF6A39] hover:bg-[#e85a2c] text-white shadow-[0_10px_30px_-10px_rgba(255,106,57,0.6)]"
+                    : "bg-[#1A1E27] text-[#6B727C] ring-1 ring-[#232833] cursor-not-allowed"
+                }`}
+              >
+                Start campaign
+                <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+              </button>
+            )}
+          </header>
+
+          {/* ── Dropzone ─────────────────────────────── */}
           <div
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
             onClick={() => inputRef.current?.click()}
-            className="mf-dropzone mb-4 md:mb-5 lg:mb-6 flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 md:p-6 lg:p-12 text-center cursor-pointer transition-colors"
-            style={{
-              borderColor: isDragging ? "#FF6A39" : "#2A2E37",
-              background: isDragging ? "rgba(255,106,57,0.05)" : "#12151B",
-            }}
+            className={`relative mb-4 md:mb-5 rounded-2xl cursor-pointer transition-all duration-200 overflow-hidden ${
+              isDragging
+                ? "bg-[#FF6A39]/5 ring-1 ring-[#FF6A39]/60 drag-ring"
+                : "bg-[#141821] ring-1 ring-[#232833] hover:ring-[#333A48]"
+            }`}
           >
-            <input
-              ref={inputRef}
-              type="file"
-              multiple
-              accept=".csv,.xlsx,.xls"
-              className="hidden"
-              onChange={(e) => addFiles(e.target.files)}
+            <div
+              className="absolute inset-0 opacity-40 pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(600px 120px at 50% 0%, rgba(255,106,57,0.08), transparent 60%)",
+              }}
             />
-            <div className="mf-dropzone-icon w-10 h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 rounded-2xl flex items-center justify-center mb-2 md:mb-3 lg:mb-4" style={{ background: "rgba(255,106,57,0.12)" }}>
-              <UploadCloud size={18} className="md:w-[20px] md:h-[20px] lg:w-[20px] lg:h-[20px] text-[#FF6A39]" />
+            <div className="relative px-6 py-10 md:py-14 lg:py-16 flex flex-col items-center text-center">
+              <input
+                ref={inputRef}
+                type="file"
+                multiple
+                accept=".csv,.xlsx,.xls"
+                className="hidden"
+                onChange={(e) => addFiles(e.target.files)}
+              />
+
+              <div className={`w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center mb-4 transition-transform ${isDragging ? "scale-110" : ""}`}
+                style={{ background: "linear-gradient(135deg, rgba(255,106,57,0.22), rgba(255,106,57,0.06))", boxShadow: "inset 0 0 0 1px rgba(255,106,57,0.25)" }}>
+                <UploadCloud size={26} className="text-[#FF6A39]" />
+              </div>
+
+              <p style={{ fontFamily: FONT.display }} className="text-lg md:text-xl font-semibold text-white">
+                {isDragging ? "Drop your file to begin" : "Drag & drop your file"}
+              </p>
+              <p className="mt-1.5 text-sm text-[#9BA0A8]">
+                or{" "}
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FF6A39]/10 text-[#FF6A39] font-medium ring-1 ring-[#FF6A39]/20">
+                  browse files
+                </span>
+              </p>
+
+              <div className="mt-5 flex items-center gap-3 text-[11px] text-[#6B727C]">
+                <span className="inline-flex items-center gap-1.5"><FileText size={12} /> CSV</span>
+                <span className="w-px h-3 bg-[#232833]" />
+                <span className="inline-flex items-center gap-1.5"><FileSpreadsheet size={12} /> XLSX / XLS</span>
+                <span className="w-px h-3 bg-[#232833]" />
+                <span className="inline-flex items-center gap-1.5"><Clock size={12} /> up to 25 MB</span>
+              </div>
             </div>
-            <p className="mf-dropzone-title font-semibold" style={{ fontFamily: FONT.display, color: "#E8E6E1", fontSize: "clamp(0.8rem, 2vw, 1rem)" }}>
-              Drag and drop your file here
-            </p>
-            <p className="mf-dropzone-subtitle text-[10px] md:text-xs lg:text-sm mt-1" style={{ color: "#9BA0A8" }}>
-              or <span className="text-[#FF6A39] font-medium">browse</span> from your computer
-            </p>
-            <p className="mf-dropzone-hint mt-2 md:mt-3 lg:mt-4" style={{ fontFamily: FONT.mono, color: "#6B727C", fontSize: "clamp(0.5rem, 0.8vw, 0.75rem)" }}>
-              Supports .csv, .xlsx, .xls — up to 25 MB
+          </div>
+
+          {/* ── Tip ──────────────────────────────────── */}
+          <div className="mb-6 md:mb-10 flex items-start gap-3 rounded-2xl bg-[#141821] ring-1 ring-[#232833] px-4 py-3">
+            <div className="shrink-0 mt-0.5 w-6 h-6 rounded-lg flex items-center justify-center bg-[#FF6A39]/10 ring-1 ring-[#FF6A39]/20">
+              <Info size={12} className="text-[#FF6A39]" />
+            </div>
+            <p className="text-xs md:text-[13px] leading-relaxed text-[#C7C9CE]">
+              Required column: <span className="font-mono text-[#FF6A39]">email</span>. Optional:{" "}
+              <span className="font-mono text-[#E8E6E1]">name</span>,{" "}
+              <span className="font-mono text-[#E8E6E1]">company</span>,{" "}
+              <span className="font-mono text-[#E8E6E1]">tags</span> (comma-separated).
             </p>
           </div>
 
-          {/* Format tip */}
-          <div className="mf-tip mb-4 md:mb-5 lg:mb-6 flex items-start gap-1.5 md:gap-2 lg:gap-3 rounded-xl border px-2.5 md:px-3 lg:px-4 py-2 md:py-2.5 lg:py-3" style={{ borderColor: "rgba(255,106,57,0.2)", background: "rgba(255,106,57,0.05)" }}>
-            <Info size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] text-[#FF6A39] shrink-0 mt-0.5" />
-            <p className="mf-tip-text text-[10px] md:text-xs lg:text-[13px]" style={{ color: "#C7C9CE" }}>
-              Your file needs an <span style={{ fontFamily: FONT.mono }} className="font-medium text-[#FF6A39]">email</span> column at minimum.
-              Optional columns: <span style={{ fontFamily: FONT.mono }} className="text-[#E8E6E1]">name</span>, <span style={{ fontFamily: FONT.mono }} className="text-[#E8E6E1]">tags</span> (comma-separated).
-            </p>
-          </div>
-
-          {/* Template Selection Section */}
-          <div className="mb-4 md:mb-5 lg:mb-6">
-            <div className="flex items-center justify-between mb-3">
+          {/* ── Template selection ───────────────────── */}
+          <section className="mb-6 md:mb-10">
+            <div className="flex items-end justify-between gap-3 mb-3 md:mb-4">
               <div>
-                <h2 style={{ fontFamily: FONT.display }} className="text-[10px] md:text-xs lg:text-sm font-semibold text-[#E8E6E1]">
-                  Select Email Template <span className="text-[#FF6A39]">*</span>
+                <h2 style={{ fontFamily: FONT.display }} className="flex items-center gap-2 text-sm md:text-base font-semibold text-[#E8E6E1] tracking-tight">
+                  Email template <span className="text-[#FF6A39]">*</span>
                 </h2>
-                <p className="text-[8px] md:text-[9px] text-[#6B727C] mt-0.5">
-                  Choose a template for your campaign
-                </p>
+                <p className="text-[11px] md:text-xs text-[#6B727C] mt-1">Pick a starting point for your campaign.</p>
               </div>
               <button
                 onClick={() => setShowTemplateSelector(!showTemplateSelector)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1B1E24] border border-[#2A2E37] hover:border-[#3A3F4A] text-[#E8E6E1] text-sm font-medium transition-all hover:bg-[#2A2E37]"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#141821] ring-1 ring-[#232833] hover:ring-[#333A48] hover:bg-[#161B25] text-[#E8E6E1] text-xs md:text-sm font-medium transition-all"
               >
-                {showTemplateSelector ? 'Hide' : 'Browse Templates'}
+                {showTemplateSelector ? 'Hide' : 'Browse'}
                 <ChevronRight size={14} className={`transform transition-transform ${showTemplateSelector ? 'rotate-90' : ''}`} />
               </button>
             </div>
 
             {selectedTemplate && (
-              <div className="p-3 rounded-lg border border-[#FF6A39]/20 bg-[#FF6A39]/5 mb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="text-3xl">
-                      {templates.find(t => t.id === selectedTemplate)?.thumbnail || '📧'}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-white">
-                        {templates.find(t => t.id === selectedTemplate)?.name || 'Selected Template'}
-                      </p>
-                      <p className="text-xs text-[#6B727C]">
-                        Subject: {templates.find(t => t.id === selectedTemplate)?.subject || ''}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#2A2E37] text-[#9BA0A8]">
-                          {templates.find(t => t.id === selectedTemplate)?.category}
-                        </span>
-                        <span className="text-[8px] text-[#6B727C]">
-                          Used {templates.find(t => t.id === selectedTemplate)?.used} times
-                        </span>
-                      </div>
+              <div className="rounded-2xl bg-[#FF6A39]/5 ring-1 ring-[#FF6A39]/25 p-3 md:p-4 mb-3 fade-in">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <div className="shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center text-2xl md:text-3xl bg-gradient-to-br from-[#1F242E] to-[#151922] ring-1 ring-[#2A2E37]">
+                    {templates.find(t => t.id === selectedTemplate)?.thumbnail || '📧'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm md:text-[15px] font-semibold text-white truncate">
+                      {templates.find(t => t.id === selectedTemplate)?.name || 'Selected template'}
+                    </p>
+                    <p className="text-[11px] md:text-xs text-[#9BA0A8] font-mono truncate">
+                      {templates.find(t => t.id === selectedTemplate)?.subject || ''}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[#1F242E] text-[#9BA0A8] ring-1 ring-[#2A2E37]">
+                        {templates.find(t => t.id === selectedTemplate)?.category}
+                      </span>
+                      <span className="text-[10px] text-[#6B727C] inline-flex items-center gap-1">
+                        <TrendingUp size={10} /> Used {templates.find(t => t.id === selectedTemplate)?.used} times
+                      </span>
                     </div>
                   </div>
                   <button
                     onClick={() => setSelectedTemplate(null)}
-                    className="text-[#6B727C] hover:text-[#E8E6E1] p-1 hover:bg-[#2A2E37] rounded-lg transition-colors"
+                    className="shrink-0 p-1.5 rounded-lg text-[#6B727C] hover:text-[#E8E6E1] hover:bg-[#232833] transition-colors"
                   >
                     <X size={16} />
                   </button>
@@ -586,87 +583,70 @@ const recentUploads: RecentUpload[] = (uploadedFiles || []).map((u: any) => {
             )}
 
             {showTemplateSelector && (
-              <div className="rounded-xl border border-[#2A2E37] bg-[#12151B] overflow-hidden">
-                <div className="p-3 border-b border-[#2A2E37]">
+              <div className="rounded-2xl bg-[#141821] ring-1 ring-[#232833] overflow-hidden fade-in">
+                {/* Search + filter */}
+                <div className="p-3 md:p-4 border-b border-[#1F242E]">
                   <div className="flex flex-wrap gap-2">
                     <div className="flex-1 min-w-[200px] relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#6B727C]" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B727C]" />
                       <input
                         type="text"
-                        placeholder="Search templates..."
+                        placeholder="Search templates…"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 bg-[#1B1E24] border border-[#2A2E37] rounded-lg text-[#E8E6E1] placeholder:text-[#6B727C] focus:border-[#FF6A39] focus:outline-none transition-colors text-sm"
+                        className="w-full pl-9 pr-4 py-2.5 bg-[#0F131A] ring-1 ring-[#232833] rounded-xl text-[#E8E6E1] placeholder:text-[#6B727C] focus:ring-[#FF6A39]/60 focus:outline-none text-sm transition-all"
                       />
                     </div>
-                    <div className="flex gap-2">
-                      <select
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="px-3 py-2 bg-[#1B1E24] border border-[#2A2E37] rounded-lg text-[#E8E6E1] text-sm focus:border-[#FF6A39] focus:outline-none transition-colors cursor-pointer"
-                      >
-                        {categories.map(cat => (
-                          <option key={cat} value={cat}>
-                            {cat === 'all' ? 'All Categories' : cat}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="flex rounded-lg overflow-hidden border border-[#2A2E37]">
-                        <button
-                          type="button"
-                          onClick={() => setViewMode('grid')}
-                          className={`p-2 transition-colors ${
-                            viewMode === 'grid' ? 'bg-[#FF6A39] text-white' : 'bg-[#1B1E24] text-[#6B727C] hover:text-[#E8E6E1]'
-                          }`}
-                        >
-                          <Grid3x3 size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setViewMode('list')}
-                          className={`p-2 transition-colors ${
-                            viewMode === 'list' ? 'bg-[#FF6A39] text-white' : 'bg-[#1B1E24] text-[#6B727C] hover:text-[#E8E6E1]'
-                          }`}
-                        >
-                          <Layout size={16} />
-                        </button>
-                      </div>
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="px-3 py-2.5 bg-[#0F131A] ring-1 ring-[#232833] rounded-xl text-[#E8E6E1] text-sm focus:ring-[#FF6A39]/60 focus:outline-none cursor-pointer transition-all"
+                    >
+                      {categories.map(cat => (
+                        <option key={cat} value={cat}>{cat === 'all' ? 'All categories' : cat}</option>
+                      ))}
+                    </select>
+                    <div className="flex rounded-xl overflow-hidden ring-1 ring-[#232833]">
+                      <button type="button" onClick={() => setViewMode('grid')}
+                        className={`p-2.5 transition-colors ${viewMode === 'grid' ? 'bg-[#FF6A39] text-white' : 'bg-[#0F131A] text-[#6B727C] hover:text-[#E8E6E1]'}`}>
+                        <Grid3x3 size={16} />
+                      </button>
+                      <button type="button" onClick={() => setViewMode('list')}
+                        className={`p-2.5 transition-colors ${viewMode === 'list' ? 'bg-[#FF6A39] text-white' : 'bg-[#0F131A] text-[#6B727C] hover:text-[#E8E6E1]'}`}>
+                        <Layout size={16} />
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-3">
+                {/* Templates list */}
+                <div className="p-3 md:p-4 max-h-[420px] overflow-y-auto mf-main">
                   {isLoadingTemplates ? (
-                    <div className="text-center py-8">
-                      <Loader2 className="w-8 h-8 animate-spin text-[#FF6A39] mx-auto" />
-                      <p className="text-sm text-[#6B727C] mt-2">Loading templates...</p>
+                    <div className="text-center py-12">
+                      <Loader2 className="w-7 h-7 animate-spin text-[#FF6A39] mx-auto" />
+                      <p className="text-xs text-[#6B727C] mt-2">Loading templates…</p>
                     </div>
                   ) : filteredTemplates.length === 0 ? (
-                    <div className="text-center py-8">
-                      <FileText className="w-12 h-12 text-[#6B727C] mx-auto mb-2" />
-                      <p className="text-sm text-[#6B727C]">No templates found</p>
+                    <div className="text-center py-12">
+                      <div className="w-12 h-12 mx-auto mb-3 rounded-2xl flex items-center justify-center bg-[#1F242E] ring-1 ring-[#2A2E37]">
+                        <FileText className="w-5 h-5 text-[#6B727C]" />
+                      </div>
+                      <p className="text-sm text-[#9BA0A8]">No templates found</p>
                     </div>
                   ) : (
                     <>
                       {searchQuery === '' && selectedCategory === 'all' && featuredTemplates.length > 0 && (
-                        <div className="mb-4">
-                          <p className="text-xs font-medium text-[#6B727C] flex items-center gap-2 mb-2">
-                            <Star size={14} className="text-yellow-400" />
-                            Featured Templates
+                        <div className="mb-5">
+                          <p className="text-[11px] font-medium text-[#6B727C] flex items-center gap-1.5 mb-2.5 uppercase tracking-wider">
+                            <Star size={12} className="text-amber-400" /> Featured
                           </p>
-                          <div className={viewMode === 'grid'
-                            ? 'grid grid-cols-1 md:grid-cols-2 gap-3'
-                            : 'space-y-2'
-                          }>
+                          <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-3' : 'space-y-2'}>
                             {featuredTemplates.map((template) => (
                               <TemplateCard
                                 key={template.id}
                                 template={template}
                                 isSelected={selectedTemplate === template.id}
-                                onSelect={() => {
-                                  setSelectedTemplate(template.id);
-                                  setShowTemplateSelector(false);
-                                }}
+                                onSelect={() => { setSelectedTemplate(template.id); setShowTemplateSelector(false); }}
                                 viewMode={viewMode}
                               />
                             ))}
@@ -674,235 +654,206 @@ const recentUploads: RecentUpload[] = (uploadedFiles || []).map((u: any) => {
                         </div>
                       )}
 
-                      <div>
-                        <div className={viewMode === 'grid'
-                          ? 'grid grid-cols-1 md:grid-cols-2 gap-3'
-                          : 'space-y-2'
-                        }>
-                          {filteredTemplates
-                            .filter(t => !t.featured || searchQuery !== '' || selectedCategory !== 'all')
-                            .map((template) => (
-                              <TemplateCard
-                                key={template.id}
-                                template={template}
-                                isSelected={selectedTemplate === template.id}
-                                onSelect={() => {
-                                  setSelectedTemplate(template.id);
-                                  setShowTemplateSelector(false);
-                                }}
-                                viewMode={viewMode}
-                              />
-                            ))
-                          }
-                        </div>
+                      <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-3' : 'space-y-2'}>
+                        {filteredTemplates
+                          .filter(t => !t.featured || searchQuery !== '' || selectedCategory !== 'all')
+                          .map((template) => (
+                            <TemplateCard
+                              key={template.id}
+                              template={template}
+                              isSelected={selectedTemplate === template.id}
+                              onSelect={() => { setSelectedTemplate(template.id); setShowTemplateSelector(false); }}
+                              viewMode={viewMode}
+                            />
+                          ))}
                       </div>
                     </>
                   )}
                 </div>
 
-                <div className="p-3 border-t border-[#2A2E37] flex items-center justify-between">
-                  <button className="text-[#6B727C] hover:text-[#E8E6E1] text-sm flex items-center gap-1">
-                    <Plus size={16} />
-                    Create New Template
+                {/* Footer */}
+                <div className="p-3 md:p-4 border-t border-[#1F242E] flex items-center justify-between">
+                  <button className="inline-flex items-center gap-1.5 text-[#9BA0A8] hover:text-[#E8E6E1] text-xs md:text-sm font-medium transition-colors">
+                    <Plus size={14} /> Create new template
                   </button>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-[#6B727C]">
-                      {filteredTemplates.length} templates
-                    </span>
-                    <button
-                      onClick={() => setShowTemplateSelector(false)}
-                      className="text-[#FF6A39] hover:text-[#e85a2c] text-sm font-medium"
-                    >
-                      Close
-                    </button>
-                  </div>
+                  <span className="text-[11px] text-[#6B727C]">{filteredTemplates.length} templates</span>
                 </div>
               </div>
             )}
-          </div>
+          </section>
 
-          {/* Active uploads (local session) */}
+          {/* ── Active uploads ───────────────────────── */}
           {files.length > 0 && (
-            <div className="mf-upload-list mb-4 md:mb-5 lg:mb-6 rounded-xl border border-[#2A2E37] bg-[#12151B] shadow-sm overflow-hidden">
-              <div className="px-3 md:px-4 lg:px-5 py-2.5 md:py-3 lg:py-4 border-b border-[#2A2E37]">
-                <h2 style={{ fontFamily: FONT.display }} className="text-[10px] md:text-xs lg:text-sm font-semibold text-[#E8E6E1]">
-                  Uploading {files.length} {files.length === 1 ? "file" : "files"}
-                </h2>
-              </div>
-              <div className="divide-y divide-[#2A2E37]">
-                {files.map((f) => (
-                  <div key={f.id} className="mf-upload-item flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 px-3 md:px-4 lg:px-5 py-2.5 md:py-3 lg:py-4">
-                    <div className="mf-upload-item-left flex items-center gap-2 md:gap-3 w-full sm:w-auto">
-                      <div className="w-6 h-6 md:w-7 md:h-7 lg:h-9 lg:w-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(255,106,57,0.08)" }}>
-                        <FileSpreadsheet size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] text-[#FF6A39]" />
+            <section className="mb-6 md:mb-10">
+              <SectionLabel icon={<FileSpreadsheet size={14} className="text-[#FF6A39]" />} hint="Files currently being processed in this session.">
+                Active uploads
+              </SectionLabel>
+              <div className="rounded-2xl bg-[#141821] ring-1 ring-[#232833] overflow-hidden">
+                <div className="divide-y divide-[#1F242E]">
+                  {files.map((f) => (
+                    <div key={f.id} className="flex items-center gap-3 px-4 md:px-5 py-3.5">
+                      <div className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center bg-[#FF6A39]/10 ring-1 ring-[#FF6A39]/15">
+                        <FileSpreadsheet size={15} className="text-[#FF6A39]" />
                       </div>
+
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center justify-between gap-1">
-                          <p className="mf-upload-name text-[10px] md:text-xs lg:text-[13.5px] font-medium truncate" style={{ color: "#E8E6E1" }}>{f.name}</p>
-                          <span className="mf-upload-size shrink-0 ml-1 md:ml-2" style={{ fontFamily: FONT.mono, color: "#6B727C", fontSize: "clamp(0.5rem, 0.8vw, 0.75rem)" }}>
-                            {f.size}
-                          </span>
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-[13px] font-medium text-[#E8E6E1] truncate">{f.name}</p>
+                          <span className="shrink-0 text-[11px] font-mono text-[#6B727C]">{f.size}</span>
                         </div>
 
                         {f.status === "uploading" && (
-                          <div className="h-1 w-full rounded-full overflow-hidden mt-1" style={{ background: "#2A2E37" }}>
-                            <div
-                              className="h-full rounded-full transition-all"
-                              style={{ width: `${f.progress}%`, background: "#FF6A39" }}
-                            />
+                          <div className="mt-2 flex items-center gap-2">
+                            <div className="flex-1 h-1 rounded-full bg-[#1F242E] overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-[#FF6A39] to-[#FF8A5C] transition-all duration-300"
+                                style={{ width: `${f.progress}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] font-mono text-[#6B727C] w-8 text-right">{Math.round(f.progress)}%</span>
                           </div>
                         )}
                         {f.status === "processing" && (
-                          <p className="mf-upload-status flex items-center gap-1 md:gap-1.5 text-[9px] md:text-[10px] lg:text-[12px]" style={{ color: "#FBBF24" }}>
-                            <Loader2 size={9} className="md:w-[10px] md:h-[10px] lg:w-[10px] lg:h-[10px] spin" />
-                            Validating rows…
+                          <p className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-amber-400">
+                            <Loader2 size={11} className="spin" /> Validating rows…
                           </p>
                         )}
                         {f.status === "success" && (
-                          <p className="mf-upload-status flex items-center gap-1 md:gap-1.5" style={{ fontFamily: FONT.mono, color: "#34D399", fontSize: "clamp(0.5rem, 0.8vw, 0.75rem)" }}>
-                            <CheckCircle2 size={10} className="md:w-[11px] md:h-[11px] lg:w-[11px] lg:h-[11px]" />
-                            {f.rows?.toLocaleString()} recipients imported
+                          <p className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-mono text-emerald-400">
+                            <CheckCircle2 size={11} /> {f.rows?.toLocaleString()} recipients imported
                           </p>
                         )}
                         {f.status === "error" && (
-                          <p className="mf-upload-status flex items-center gap-1 md:gap-1.5 text-[9px] md:text-[10px] lg:text-[12px]" style={{ color: "#F87171" }}>
-                            <XCircle size={10} className="md:w-[11px] md:h-[11px] lg:w-[11px] lg:h-[11px]" />
-                            {f.errorMsg}
+                          <p className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] text-red-400">
+                            <XCircle size={11} /> {f.errorMsg}
                           </p>
                         )}
                       </div>
+
+                      <button
+                        onClick={() => removeFile(f.id)}
+                        className="shrink-0 p-1.5 rounded-lg text-[#6B727C] hover:text-[#E8E6E1] hover:bg-[#232833] transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
                     </div>
-                    <button onClick={() => removeFile(f.id)} className="text-[#6B727C] hover:text-[#E8E6E1] shrink-0 self-end sm:self-center p-1">
-                      <X size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* File Stats Summary */}
-          {hasSuccessfulUpload && (
-            <div className="mb-4 md:mb-5 lg:mb-6 p-4 rounded-xl border border-[#2A2E37] bg-[#1B1E24]">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-6">
-                  <div>
-                    <p className="text-xs text-[#6B727C]">Total Recipients</p>
-                    <p className="text-xl font-bold text-white" style={{ fontFamily: FONT.display }}>
-                      {files.filter(f => f.status === "success").reduce((acc, f) => acc + (f.rows || 0), 0).toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-[#6B727C]">Files Uploaded</p>
-                    <p className="text-xl font-bold text-white" style={{ fontFamily: FONT.display }}>
-                      {files.filter(f => f.status === "success").length}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-[#6B727C]">Valid Columns</p>
-                    <p className="text-sm font-medium text-[#34D399]" style={{ fontFamily: FONT.mono }}>
-                      {files.find(f => f.status === "success")?.headers?.join(', ') || 'email, name, company, tags'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-[#6B727C]">Template</p>
-                    <p className="text-sm font-medium text-[#FF6A39]" style={{ fontFamily: FONT.display }}>
-                      {selectedTemplate ? templates.find(t => t.id === selectedTemplate)?.name || 'Selected' : 'Not selected'}
-                    </p>
-                  </div>
+                  ))}
                 </div>
-                <button
-                  onClick={handleStartCampaign}
-                  className={`flex items-center gap-2 px-6 py-2.5 text-white rounded-lg font-semibold transition-colors text-sm ${
-                    selectedTemplate
-                      ? 'bg-[#FF6A39] hover:bg-[#e85a2c] cursor-pointer'
-                      : 'bg-[#2A2E37] cursor-not-allowed opacity-50'
-                  }`}
-                  disabled={!selectedTemplate}
-                >
-                  <span>{selectedTemplate ? 'Continue to Campaign Setup' : 'Select Template First'}</span>
-                  <ArrowRight size={18} />
-                </button>
               </div>
-            </div>
+            </section>
           )}
 
-          {/* Recent uploads (from backend, per user) */}
-          <div className="rounded-xl border border-[#2A2E37] bg-[#12151B] shadow-sm overflow-hidden">
-            <div className="mf-recent-header flex flex-wrap items-center justify-between px-3 md:px-4 lg:px-5 py-2.5 md:py-3 lg:py-4 border-b border-[#2A2E37] gap-2">
-              <h2 style={{ fontFamily: FONT.display }} className="text-[10px] md:text-xs lg:text-sm font-semibold text-[#E8E6E1]">
-                Recent uploads
-              </h2>
-            </div>
-            <div className="mf-table-wrapper overflow-x-auto">
+          {/* ── Stats summary ────────────────────────── */}
+          {hasSuccessfulUpload && (
+            <section className="mb-6 md:mb-10">
+              <div className="rounded-2xl bg-gradient-to-br from-[#141821] to-[#10141B] ring-1 ring-[#232833] p-5 md:p-6">
+                <div className="flex flex-wrap items-center justify-between gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10 flex-1">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest text-[#6B727C] mb-1.5">Recipients</p>
+                      <p className="text-2xl font-bold text-white" style={{ fontFamily: FONT.display }}>
+                        {files.filter(f => f.status === "success").reduce((acc, f) => acc + (f.rows || 0), 0).toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest text-[#6B727C] mb-1.5">Files</p>
+                      <p className="text-2xl font-bold text-white" style={{ fontFamily: FONT.display }}>
+                        {files.filter(f => f.status === "success").length}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-[10px] uppercase tracking-widest text-[#6B727C] mb-1.5">Columns</p>
+                      <p className="text-xs font-mono text-emerald-400 truncate">
+                        {files.find(f => f.status === "success")?.headers?.join(", ") || "email, name, company, tags"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleStartCampaign}
+                    disabled={!selectedTemplate}
+                    className={`shrink-0 inline-flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all ${
+                      selectedTemplate
+                        ? "bg-[#FF6A39] hover:bg-[#e85a2c] text-white shadow-[0_10px_30px_-10px_rgba(255,106,57,0.6)]"
+                        : "bg-[#1A1E27] text-[#6B727C] ring-1 ring-[#232833] cursor-not-allowed"
+                    }`}
+                  >
+                    {selectedTemplate ? "Continue to campaign" : "Select a template first"}
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* ── Recent uploads ───────────────────────── */}
+          <section>
+            <SectionLabel icon={<Clock size={14} className="text-[#FF6A39]" />} hint="Every file you've imported, most recent first.">
+              Recent uploads
+            </SectionLabel>
+
+            <div className="rounded-2xl bg-[#141821] ring-1 ring-[#232833] overflow-hidden">
               {uploadingLoading ? (
-                <div className="text-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-[#FF6A39] mx-auto" />
+                <div className="text-center py-14">
+                  <Loader2 className="w-7 h-7 animate-spin text-[#FF6A39] mx-auto" />
                   <p className="text-xs text-[#6B727C] mt-2">Loading your uploads…</p>
                 </div>
               ) : uploadError ? (
-                <div className="text-center py-8">
-                  <XCircle className="w-6 h-6 text-[#F87171] mx-auto mb-2" />
-                  <p className="text-xs text-[#F87171]">{uploadError}</p>
+                <div className="text-center py-14">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-2xl flex items-center justify-center bg-red-500/10 ring-1 ring-red-500/20">
+                    <XCircle className="w-5 h-5 text-red-400" />
+                  </div>
+                  <p className="text-xs text-red-400">{uploadError}</p>
                 </div>
               ) : recentUploads.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileText className="w-8 h-8 text-[#6B727C] mx-auto mb-2" />
-                  <p className="text-xs text-[#6B727C]">No uploads yet for this user.</p>
+                <div className="text-center py-14">
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-2xl flex items-center justify-center bg-[#1F242E] ring-1 ring-[#2A2E37]">
+                    <Users className="w-6 h-6 text-[#6B727C]" />
+                  </div>
+                  <p className="text-sm text-[#9BA0A8]">No uploads yet</p>
+                  <p className="text-xs text-[#6B727C] mt-1">Upload a CSV to get started.</p>
                 </div>
               ) : (
-                <table className="w-full text-left" style={{ minWidth: "500px" }}>
-                  <thead>
-                    <tr className="text-[8px] md:text-[9px] lg:text-[11px] uppercase tracking-wider" style={{ color: "#6B727C" }}>
-                      <th className="mf-table-cell-padded px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-2.5 font-medium">File</th>
-                      <th className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Rows</th>
-                      <th className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Added</th>
-                      <th className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Skipped</th>
-                      <th className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Status</th>
-                      <th className="mf-table-cell-padded px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-2.5 font-medium text-right">Uploaded</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentUploads.map((u) => (
-                      <tr key={u.id} className="border-t border-[#2A2E37] hover:bg-[#1B1E24] transition-colors">
-                        <td className="mf-table-cell-padded px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-3">
-                          <div className="flex items-center gap-1.5 md:gap-2 lg:gap-2.5">
-                            <FileSpreadsheet size={11} className="md:w-[12px] md:h-[12px] lg:w-[13px] lg:h-[13px] text-[#6B727C]" />
-                            <span className="mf-file-name text-[9px] md:text-[10px] lg:text-[13.5px] font-medium truncate max-w-[80px] md:max-w-[120px] lg:max-w-none" style={{ color: "#E8E6E1" }}>{u.name}</span>
-                          </div>
-                        </td>
-                        <td className="mf-file-stats px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3 text-[8px] md:text-[9px] lg:text-[13px]" style={{ fontFamily: FONT.mono, color: "#9BA0A8" }}>
-                          {u.rows.toLocaleString()}
-                        </td>
-                        <td className="mf-file-stats px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3 text-[8px] md:text-[9px] lg:text-[13px]" style={{ fontFamily: FONT.mono, color: "#34D399" }}>
-                          {u.addedCount.toLocaleString()}
-                        </td>
-                        <td className="mf-file-stats px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3 text-[8px] md:text-[9px] lg:text-[13px]" style={{ fontFamily: FONT.mono, color: "#6B727C" }}>
-                          {u.skippedCount.toLocaleString()}
-                        </td>
-                        <td className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3">
-                          <span
-                            className="mf-status-badge inline-flex items-center gap-0.5 md:gap-1 rounded-full px-1 md:px-1.5 lg:px-2 py-0.5 text-[7px] md:text-[8px] lg:text-[11.5px] font-medium whitespace-nowrap"
-                            style={{
-                              backgroundColor: u.status === "Completed" ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
-                              color: u.status === "Completed" ? "#34D399" : "#F87171"
-                            }}
-                          >
-                            {u.status === "Completed" ? <CheckCircle2 size={7} className="md:w-[8px] md:h-[8px] lg:w-[9px] lg:h-[9px]" /> : <XCircle size={7} className="md:w-[8px] md:h-[8px] lg:w-[9px] lg:h-[9px]" />}
-                            <span className="hidden xs:inline">{u.status}</span>
-                            <span className="xs:hidden">{u.status.charAt(0)}</span>
-                          </span>
-                        </td>
-                        <td className="mf-timestamp px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-3 text-[7px] md:text-[8px] lg:text-[12.5px] text-right whitespace-nowrap" style={{ color: "#6B727C" }}>
-                          {u.uploadedAt}
-                        </td>
+                <div className="overflow-x-auto mf-main">
+                  <table className="w-full text-left" style={{ minWidth: "640px" }}>
+                    <thead className="sticky top-0 bg-[#141821] z-10">
+                      <tr className="text-[10px] uppercase tracking-widest text-[#6B727C]">
+                        <th className="px-4 md:px-6 py-3 font-medium">File</th>
+                        <th className="px-3 py-3 font-medium text-right">Rows</th>
+                        <th className="px-3 py-3 font-medium text-right">Added</th>
+                        <th className="px-3 py-3 font-medium text-right">Skipped</th>
+                        <th className="px-3 py-3 font-medium">Status</th>
+                        <th className="px-4 md:px-6 py-3 font-medium text-right">Uploaded</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {recentUploads.map((u) => (
+                        <tr key={u.id} className="border-t border-[#1F242E] hover:bg-[#161B25] transition-colors">
+                          <td className="px-4 md:px-6 py-3.5">
+                            <div className="flex items-center gap-2.5">
+                              <div className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center bg-[#1F242E] ring-1 ring-[#2A2E37]">
+                                <FileSpreadsheet size={13} className="text-[#9BA0A8]" />
+                              </div>
+                              <span className="text-[13px] font-medium text-[#E8E6E1] truncate max-w-[220px]">{u.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3.5 text-right text-[12px] font-mono text-[#9BA0A8]">{u.rows.toLocaleString()}</td>
+                          <td className="px-3 py-3.5 text-right text-[12px] font-mono text-emerald-400">{u.addedCount.toLocaleString()}</td>
+                          <td className="px-3 py-3.5 text-right text-[12px] font-mono text-[#6B727C]">{u.skippedCount.toLocaleString()}</td>
+                          <td className="px-3 py-3.5">
+                            {u.status === "Completed"
+                              ? <StatusPill tone="success"><CheckCircle2 size={10} /> Completed</StatusPill>
+                              : <StatusPill tone="danger"><XCircle size={10} /> Failed</StatusPill>}
+                          </td>
+                          <td className="px-4 md:px-6 py-3.5 text-right text-[11px] text-[#6B727C] whitespace-nowrap font-mono">{u.uploadedAt}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
-          </div>
+          </section>
         </div>
       </main>
     </div>

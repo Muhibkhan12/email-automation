@@ -2,19 +2,9 @@ import { useContext, useMemo, useState } from "react";
 import Sidebar from "./Sidebar";
 import { EmailLogsContext } from "../../contexts/EmaillogsContext";
 import {
-  Search,
-  Download,
-  RefreshCw,
-  ChevronLeft,
-  ChevronRight,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  AlertTriangle,
-  Copy,
-  Inbox,
-  MoreHorizontal,
-  Menu,
+  Search, Download, RefreshCw, ChevronLeft, ChevronRight,
+  CheckCircle2, XCircle, Clock, AlertTriangle, Copy, Inbox,
+  MoreHorizontal, Menu, Send, TrendingUp, Mail,
 } from "lucide-react";
 
 type EmailStatus = "Sent" | "Delivered" | "Failed" | "Bounced";
@@ -28,6 +18,12 @@ interface NormalizedLog {
   status: EmailStatus;
   sentAt: string;
 }
+
+const FONT = {
+  display: "'Space Grotesk', sans-serif",
+  body: "'Inter', sans-serif",
+  mono: "'JetBrains Mono', monospace",
+};
 
 const PAGE_SIZE = 5;
 
@@ -46,10 +42,7 @@ const formatSentAt = (value: string) => {
   const d = new Date(value);
   if (isNaN(d.getTime())) return value;
   return d.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
   });
 };
 
@@ -95,18 +88,12 @@ const EmailLogs = () => {
     const delivered = normalizedLogs.filter((l) => l.status === "Delivered").length;
     const failed = normalizedLogs.filter((l) => l.status === "Failed").length;
     const bounced = normalizedLogs.filter((l) => l.status === "Bounced").length;
-    return { total, delivered, failed, bounced };
+    const sent = normalizedLogs.filter((l) => l.status === "Sent").length;
+    return { total, delivered, failed, bounced, sent };
   }, [normalizedLogs]);
 
-  const handleSearchChange = (value: string) => {
-    setSearch(value);
-    setPage(1);
-  };
-
-  const handleStatusChange = (value: string) => {
-    setStatusFilter(value);
-    setPage(1);
-  };
+  const handleSearchChange = (value: string) => { setSearch(value); setPage(1); };
+  const handleStatusChange = (value: string) => { setStatusFilter(value); setPage(1); };
 
   const handleCopy = (id: string | number) => {
     navigator.clipboard?.writeText(String(id));
@@ -114,345 +101,458 @@ const EmailLogs = () => {
     setTimeout(() => setCopiedId(null), 1200);
   };
 
+  const hasActiveFilters = !!search || statusFilter !== "All";
+
   // 2) Now it's safe to bail out — every hook above already ran
   if (!ctx) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#12151B] text-[#E8E6E1]">
+      <div className="flex min-h-screen items-center justify-center" style={{ background: "#0D1015", color: "#E8E6E1", fontFamily: FONT.body }}>
         <p>EmailLogsContext not found — wrap this page in &lt;EmailLogsProvider&gt;.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen overflow-hidden bg-[#12151B] font-sans">
+    <div className="flex min-h-screen overflow-hidden" style={{ background: "#0D1015", fontFamily: FONT.body }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        .el-main::-webkit-scrollbar { width: 8px; }
+        .el-main::-webkit-scrollbar-track { background: transparent; }
+        .el-main::-webkit-scrollbar-thumb { background: #232833; border-radius: 8px; }
+        .el-main::-webkit-scrollbar-thumb:hover { background: #333A48; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in-up { animation: fadeInUp 0.25s ease-out; }
+        select option { background: #141821; color: #E8E6E1; }
+      `}</style>
+
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/70 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <div
-        className={`fixed top-0 z-50 h-screen flex-shrink-0 transition-transform duration-200 lg:sticky lg:translate-x-0 ${
+        className={`fixed top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out lg:sticky lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      <main className="flex-1 overflow-y-auto bg-[#12151B] p-3 md:p-6">
-        {/* Header */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="rounded-lg border border-[#2A2E37] bg-[#171A21] p-2 text-[#C7C9CE] hover:bg-[#1B1E24] lg:hidden"
-            >
-              <Menu size={20} />
-            </button>
-            <div>
-              <h1 className="text-2xl font-semibold text-[#E8E6E1]">Email Logs</h1>
-              <p className="text-xs text-[#9BA0A8]">Track every email sent through your campaigns.</p>
-            </div>
-          </div>
+      <main className="el-main flex-1 overflow-y-auto" style={{ background: "#0D1015", height: "100vh", width: "100%" }}>
+        <div className="max-w-[1180px] mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10">
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => refetch()}
-              disabled={loading}
-              className="flex items-center gap-2 rounded-lg border border-[#2A2E37] bg-[#12151B] px-4 py-2 text-xs font-medium text-[#C7C9CE] transition-colors hover:bg-[#1B1E24] hover:text-[#E8E6E1] disabled:opacity-50"
-            >
-              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-              Refresh
-            </button>
-            <button className="flex items-center gap-2 rounded-lg bg-[#FF6A39] px-4 py-2 text-xs font-medium text-white shadow-[0_4px_12px_rgba(255,106,57,0.25)] transition hover:opacity-90">
-              <Download size={14} />
-              Export
-            </button>
-          </div>
-        </div>
-
-        {error && (
-          <div className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-2.5 text-xs text-rose-400">
-            Error: {error}
-          </div>
-        )}
-
-        {/* Stats */}
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard title="Total Emails" value={stats.total} icon={Inbox} color="text-[#FF6A39]" bg="bg-[#FF6A39]/10" />
-          <StatCard
-            title="Delivered"
-            value={stats.delivered}
-            description={stats.total ? `${((stats.delivered / stats.total) * 100).toFixed(1)}% delivery rate` : "—"}
-            icon={CheckCircle2}
-            color="text-emerald-400"
-            bg="bg-emerald-500/10"
-          />
-          <StatCard
-            title="Failed"
-            value={stats.failed}
-            description={stats.total ? `${((stats.failed / stats.total) * 100).toFixed(1)}% failure rate` : "—"}
-            icon={XCircle}
-            color="text-rose-400"
-            bg="bg-rose-500/10"
-          />
-          <StatCard
-            title="Bounced"
-            value={stats.bounced}
-            description={stats.total ? `${((stats.bounced / stats.total) * 100).toFixed(1)}% bounce rate` : "—"}
-            icon={AlertTriangle}
-            color="text-amber-400"
-            bg="bg-amber-500/10"
-          />
-        </div>
-
-        {/* Filters */}
-        <div className="mb-5 rounded-xl border border-[#2A2E37] bg-[#12151B] p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative flex-1">
-              <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#6B727C]" />
-              <input
-                type="text"
-                placeholder="Search recipient, sender, campaign, or subject…"
-                value={search}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full rounded-lg border border-[#2A2E37] bg-[#0B0E12] py-2.5 pl-8 pr-3 text-sm text-[#E8E6E1] outline-none transition focus:border-[#FF6A39] focus:ring-2 focus:ring-[#FF6A39]/20"
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <select
-                value={statusFilter}
-                onChange={(e) => handleStatusChange(e.target.value)}
-                className="flex-1 rounded-lg border border-[#2A2E37] bg-[#0B0E12] px-3.5 py-2.5 text-sm text-[#E8E6E1] outline-none transition focus:border-[#FF6A39]"
-              >
-                <option value="All">All statuses</option>
-                <option value="Sent">Sent</option>
-                <option value="Delivered">Delivered</option>
-                <option value="Failed">Failed</option>
-                <option value="Bounced">Bounced</option>
-              </select>
-
-              <select
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                className="flex-1 rounded-lg border border-[#2A2E37] bg-[#0B0E12] px-3.5 py-2.5 text-sm text-[#E8E6E1] outline-none transition focus:border-[#FF6A39]"
-              >
-                <option>All time</option>
-                <option>Today</option>
-                <option>Last 7 days</option>
-                <option>Last 30 days</option>
-              </select>
-            </div>
-          </div>
-
-          {(search || statusFilter !== "All") && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#6B727C]">
-              <span>{filteredLogs.length} result{filteredLogs.length !== 1 && "s"}</span>
+          {/* ── Header ─────────────────────────────── */}
+          <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-10">
+            <div className="flex items-start gap-3 md:gap-4">
               <button
-                onClick={() => {
-                  setSearch("");
-                  setStatusFilter("All");
-                  setPage(1);
-                }}
-                className="font-medium text-[#FF6A39] underline underline-offset-2 hover:text-[#e85a2c]"
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden mt-1 p-2 rounded-xl bg-[#141821] ring-1 ring-[#232833] text-[#C7C9CE] hover:bg-[#1B1F29] transition-colors"
               >
-                Clear filters
+                <Menu size={18} />
+              </button>
+              <div>
+                <div className="inline-flex items-center gap-2 mb-2">
+                  <span className="text-[10px] font-medium tracking-widest uppercase text-[#6B727C]">Activity</span>
+                  <ChevronRight size={10} className="text-[#3A3F4A]" />
+                  <span className="text-[10px] font-medium tracking-widest uppercase text-[#FF6A39]">Email logs</span>
+                </div>
+                <h1
+                  style={{ fontFamily: FONT.display, letterSpacing: "-0.02em" }}
+                  className="text-2xl md:text-3xl lg:text-[2.25rem] font-bold text-white leading-tight"
+                >
+                  Email logs
+                </h1>
+                <p className="mt-1.5 text-[13px] md:text-sm text-[#9BA0A8]">
+                  Every email sent through your campaigns, in one place.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => refetch()}
+                disabled={loading}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#141821] ring-1 ring-[#232833] hover:ring-[#333A48] text-[#E8E6E1] text-xs md:text-sm font-medium transition-all disabled:opacity-50"
+              >
+                <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+              <button className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm bg-[#FF6A39] hover:bg-[#e85a2c] text-white transition-all shadow-[0_10px_30px_-10px_rgba(255,106,57,0.6)]">
+                <Download size={15} />
+                Export
               </button>
             </div>
-          )}
-        </div>
+          </header>
 
-        {/* Table */}
-        <div className="overflow-hidden rounded-xl border border-[#2A2E37] bg-[#12151B]">
-          <div className="border-b border-[#2A2E37] px-4 py-3 lg:px-6 lg:py-4">
-            <h2 className="text-sm font-semibold text-[#E8E6E1]">Email Activity</h2>
-            <p className="mt-0.5 text-xs text-[#6B727C]">{filteredLogs.length} logs matching current filters</p>
+          {/* ── Error ──────────────────────────────── */}
+          {error && (
+            <div className="mb-6 flex items-start gap-3 rounded-2xl bg-rose-500/5 ring-1 ring-rose-500/20 px-4 py-3">
+              <div className="shrink-0 mt-0.5 w-6 h-6 rounded-lg flex items-center justify-center bg-rose-500/10 ring-1 ring-rose-500/20">
+                <AlertTriangle size={12} className="text-rose-400" />
+              </div>
+              <p className="text-xs md:text-[13px] text-rose-400">{error}</p>
+            </div>
+          )}
+
+          {/* ── Stats ──────────────────────────────── */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+            <StatCard
+              title="Total emails"
+              value={stats.total}
+              icon={Inbox}
+              accent="#FF6A39"
+            />
+            <StatCard
+              title="Delivered"
+              value={stats.delivered}
+              rate={stats.total ? (stats.delivered / stats.total) * 100 : 0}
+              rateLabel="delivery"
+              icon={CheckCircle2}
+              accent="#34D399"
+            />
+            <StatCard
+              title="Failed"
+              value={stats.failed}
+              rate={stats.total ? (stats.failed / stats.total) * 100 : 0}
+              rateLabel="failure"
+              icon={XCircle}
+              accent="#F87171"
+            />
+            <StatCard
+              title="Bounced"
+              value={stats.bounced}
+              rate={stats.total ? (stats.bounced / stats.total) * 100 : 0}
+              rateLabel="bounce"
+              icon={AlertTriangle}
+              accent="#FBBF24"
+            />
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[500px] text-left">
-              <thead>
-                <tr className="border-b border-[#2A2E37] bg-[#0B0E12] text-xs uppercase tracking-wide text-[#6B727C]">
-                  <th className="px-4 py-3.5 font-medium lg:px-6">Recipient</th>
-                  <th className="px-4 py-3.5 font-medium lg:px-6">Campaign</th>
-                  <th className="px-4 py-3.5 font-medium lg:px-6">Subject</th>
-                  <th className="px-4 py-3.5 font-medium lg:px-6">Sender</th>
-                  <th className="px-4 py-3.5 font-medium lg:px-6">Status</th>
-                  <th className="px-4 py-3.5 font-medium lg:px-6">Sent At</th>
-                  <th className="px-4 py-3.5 lg:px-6" />
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-[#2A2E37]">
-                {loading && normalizedLogs.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-xs text-[#6B727C]">
-                      Loading logs from database...
-                    </td>
-                  </tr>
+          {/* ── Filters ────────────────────────────── */}
+          <div className="mb-5 md:mb-6 rounded-2xl bg-[#141821] ring-1 ring-[#232833] p-4">
+            <div className="flex flex-col lg:flex-row gap-3">
+              <div className="flex items-center gap-2 rounded-xl bg-[#0F131A] ring-1 ring-[#232833] focus-within:ring-[#FF6A39]/50 px-3 py-2.5 flex-1 min-w-0 transition-all">
+                <Search size={14} className="text-[#6B727C] shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search recipient, sender, campaign, or subject…"
+                  value={search}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="w-full bg-transparent text-sm outline-none text-[#E8E6E1] placeholder:text-[#6B727C]"
+                />
+                {search && (
+                  <button
+                    onClick={() => handleSearchChange("")}
+                    className="shrink-0 text-[10px] text-[#6B727C] hover:text-[#E8E6E1] px-1.5 py-0.5 rounded hover:bg-[#232833] transition-colors"
+                  >
+                    Clear
+                  </button>
                 )}
+              </div>
 
-                {!loading && paginatedLogs.length === 0 && !error && (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-[#6B727C]">
-                      <div className="flex flex-col items-center">
-                        <Inbox size={24} className="mb-2 text-[#6B727C]" />
-                        <p className="text-xs">No email logs found in database</p>
-                        <button onClick={() => refetch()} className="mt-2 text-xs text-[#FF6A39] hover:underline">
-                          Click to refresh
-                        </button>
-                      </div>
-                    </td>
+              <div className="flex flex-wrap gap-2">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  className="px-3 py-2.5 rounded-xl bg-[#0F131A] ring-1 ring-[#232833] text-[#E8E6E1] text-sm focus:ring-[#FF6A39]/50 focus:outline-none cursor-pointer transition-all"
+                >
+                  <option value="All">All statuses</option>
+                  <option value="Sent">Sent</option>
+                  <option value="Delivered">Delivered</option>
+                  <option value="Failed">Failed</option>
+                  <option value="Bounced">Bounced</option>
+                </select>
+
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="px-3 py-2.5 rounded-xl bg-[#0F131A] ring-1 ring-[#232833] text-[#E8E6E1] text-sm focus:ring-[#FF6A39]/50 focus:outline-none cursor-pointer transition-all"
+                >
+                  <option>All time</option>
+                  <option>Today</option>
+                  <option>Last 7 days</option>
+                  <option>Last 30 days</option>
+                </select>
+              </div>
+            </div>
+
+            {hasActiveFilters && (
+              <div className="mt-3 flex items-center justify-between gap-3">
+                <p className="text-xs text-[#6B727C]">
+                  <span className="text-[#E8E6E1] font-medium">{filteredLogs.length}</span>{" "}
+                  {filteredLogs.length === 1 ? "result" : "results"} matching filters
+                </p>
+                <button
+                  onClick={() => { setSearch(""); setStatusFilter("All"); setPage(1); }}
+                  className="text-xs font-medium text-[#FF6A39] hover:text-[#e85a2c] transition-colors"
+                >
+                  Clear filters
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* ── Table ──────────────────────────────── */}
+          <div className="rounded-2xl bg-[#141821] ring-1 ring-[#232833] overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#1F242E] px-4 md:px-6 py-3.5">
+              <div>
+                <h2 className="text-sm font-semibold text-[#E8E6E1]">Email activity</h2>
+                <p className="mt-0.5 text-[11px] text-[#6B727C]">
+                  {filteredLogs.length} log{filteredLogs.length !== 1 && "s"} matching current filters
+                </p>
+              </div>
+              {loading && (
+                <span className="inline-flex items-center gap-1.5 text-[11px] text-[#6B727C]">
+                  <RefreshCw size={11} className="animate-spin" /> Syncing…
+                </span>
+              )}
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left" style={{ minWidth: "840px" }}>
+                <thead className="sticky top-0 bg-[#141821] z-10">
+                  <tr className="border-b border-[#1F242E] text-[10px] uppercase tracking-widest text-[#6B727C]">
+                    <th className="px-4 md:px-6 py-3 font-medium">Recipient</th>
+                    <th className="px-4 md:px-6 py-3 font-medium">Campaign</th>
+                    <th className="px-4 md:px-6 py-3 font-medium">Subject</th>
+                    <th className="px-4 md:px-6 py-3 font-medium">Sender</th>
+                    <th className="px-4 md:px-6 py-3 font-medium">Status</th>
+                    <th className="px-4 md:px-6 py-3 font-medium">Sent at</th>
+                    <th className="px-4 md:px-6 py-3" />
                   </tr>
-                )}
+                </thead>
 
-                {!loading &&
-                  paginatedLogs.map((log) => (
-                    <tr key={log.id} className="group transition hover:bg-[#1B1E24]">
-                      <td className="px-4 py-4 lg:px-6">
-                        <p className="text-sm font-medium text-[#E8E6E1]">{log.recipient}</p>
+                <tbody>
+                  {loading && normalizedLogs.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-16 text-center">
+                        <div className="w-7 h-7 border-2 border-[#FF6A39] border-t-transparent rounded-full animate-spin mx-auto" />
+                        <p className="mt-3 text-xs text-[#6B727C]">Loading logs…</p>
+                      </td>
+                    </tr>
+                  )}
+
+                  {!loading && paginatedLogs.length === 0 && !error && (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-16 text-center">
+                        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center bg-[#1F242E] ring-1 ring-[#2A2E37]">
+                          <Inbox className="w-6 h-6 text-[#6B727C]" />
+                        </div>
+                        <p className="text-sm text-[#E8E6E1] font-medium">No email logs yet</p>
+                        <p className="mt-1 text-xs text-[#6B727C]">
+                          Once you launch a campaign, activity will show up here.
+                        </p>
                         <button
-                          onClick={() => handleCopy(log.id)}
-                          className="mt-0.5 flex items-center gap-1 font-mono text-[11px] text-[#6B727C] hover:text-[#E8E6E1]"
+                          onClick={() => refetch()}
+                          className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#141821] ring-1 ring-[#232833] hover:ring-[#333A48] text-[#E8E6E1] text-xs font-medium transition-all"
                         >
-                          ID: {log.id}
-                          <Copy size={9} />
-                          {copiedId === log.id && <span className="ml-1 text-emerald-400">✓</span>}
-                        </button>
-                      </td>
-
-                      <td className="px-4 py-4 lg:px-6">
-                        <span className="inline-flex rounded-md bg-[#1B1E24] px-2.5 py-0.5 text-xs font-medium text-[#C7C9CE]">
-                          {log.campaign}
-                        </span>
-                      </td>
-
-                      <td className="max-w-[100px] truncate px-4 py-4 text-sm text-[#9BA0A8] lg:px-6">{log.subject}</td>
-
-                      <td className="px-4 py-4 text-sm text-[#9BA0A8] lg:px-6">{log.sender}</td>
-
-                      <td className="px-4 py-4 lg:px-6">
-                        <StatusBadge status={log.status} />
-                      </td>
-
-                      <td className="whitespace-nowrap px-4 py-4 text-sm text-[#6B727C] lg:px-6">
-                        {formatSentAt(log.sentAt)}
-                      </td>
-
-                      <td className="px-4 py-4 text-right lg:px-6">
-                        <button className="rounded-lg p-2 text-[#6B727C] opacity-0 transition hover:bg-[#1B1E24] hover:text-[#E8E6E1] group-hover:opacity-100">
-                          <MoreHorizontal size={14} />
+                          <RefreshCw size={13} /> Refresh
                         </button>
                       </td>
                     </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
+                  )}
 
-          {filteredLogs.length > 0 && (
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#2A2E37] px-4 py-3 lg:px-6">
-              <p className="text-xs text-[#6B727C]">
-                Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredLogs.length)} of {filteredLogs.length}
-              </p>
+                  {!loading &&
+                    paginatedLogs.map((log) => {
+                      const initial = (log.recipient?.trim()?.[0] || "?").toUpperCase();
+                      return (
+                        <tr
+                          key={log.id}
+                          className="group fade-in-up border-t border-[#1F242E] hover:bg-[#161B25] transition-colors"
+                        >
+                          <td className="px-4 md:px-6 py-3.5">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-[13px] font-semibold text-white bg-gradient-to-br from-[#FF6A39]/30 to-[#FF6A39]/10 ring-1 ring-[#FF6A39]/20">
+                                {initial}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[13.5px] font-medium text-[#E8E6E1] truncate">
+                                  {log.recipient}
+                                </p>
+                                <button
+                                  onClick={() => handleCopy(log.id)}
+                                  className="mt-0.5 inline-flex items-center gap-1 font-mono text-[11px] text-[#6B727C] hover:text-[#E8E6E1] transition-colors"
+                                >
+                                  #{log.id}
+                                  <Copy size={10} />
+                                  {copiedId === log.id && <span className="text-emerald-400">✓</span>}
+                                </button>
+                              </div>
+                            </div>
+                          </td>
 
-              <div className="flex flex-wrap items-center gap-1">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="flex items-center gap-1 rounded-lg border border-[#2A2E37] px-3 py-1.5 text-xs text-[#C7C9CE] transition hover:bg-[#1B1E24] hover:text-[#E8E6E1] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <ChevronLeft size={12} />
-                  Prev
-                </button>
+                          <td className="px-4 md:px-6 py-3.5">
+                            <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#0F131A] ring-1 ring-[#232833] px-2.5 py-1 text-[11px] font-medium text-[#C7C9CE]">
+                              <Send size={10} className="text-[#6B727C]" />
+                              <span className="truncate max-w-[140px]">{log.campaign}</span>
+                            </span>
+                          </td>
 
-                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPage(p)}
-                    className={`rounded-lg border px-3.5 py-1.5 text-xs transition ${
-                      p === page
-                        ? "border-[#FF6A39] bg-[#FF6A39] text-white"
-                        : "border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
+                          <td className="px-4 md:px-6 py-3.5 max-w-[220px]">
+                            <span className="block text-[12.5px] text-[#9BA0A8] truncate" title={log.subject}>
+                              {log.subject}
+                            </span>
+                          </td>
 
-                {totalPages > 5 && (
-                  <>
-                    <span className="text-xs text-[#6B727C]">…</span>
-                    <button
-                      onClick={() => setPage(totalPages)}
-                      className={`rounded-lg border px-3.5 py-1.5 text-xs transition ${
-                        page === totalPages
-                          ? "border-[#FF6A39] bg-[#FF6A39] text-white"
-                          : "border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
-                      }`}
-                    >
-                      {totalPages}
-                    </button>
-                  </>
-                )}
+                          <td className="px-4 md:px-6 py-3.5">
+                            <span className="text-[12.5px] text-[#9BA0A8] font-mono truncate max-w-[180px] inline-block">
+                              {log.sender}
+                            </span>
+                          </td>
 
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="flex items-center gap-1 rounded-lg border border-[#2A2E37] px-3 py-1.5 text-xs text-[#C7C9CE] transition hover:bg-[#1B1E24] hover:text-[#E8E6E1] disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Next
-                  <ChevronRight size={12} />
-                </button>
-              </div>
+                          <td className="px-4 md:px-6 py-3.5">
+                            <StatusBadge status={log.status} />
+                          </td>
+
+                          <td className="px-4 md:px-6 py-3.5 whitespace-nowrap">
+                            <span className="text-[11.5px] text-[#6B727C] font-mono">
+                              {formatSentAt(log.sentAt)}
+                            </span>
+                          </td>
+
+                          <td className="px-4 md:px-6 py-3.5 text-right">
+                            <button className="rounded-lg p-2 text-[#6B727C] opacity-0 transition hover:bg-[#232833] hover:text-[#E8E6E1] group-hover:opacity-100">
+                              <MoreHorizontal size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
             </div>
-          )}
+
+            {/* Pagination */}
+            {filteredLogs.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#1F242E] px-4 md:px-6 py-3.5">
+                <p className="text-xs text-[#6B727C] font-mono">
+                  Showing{" "}
+                  <span className="text-[#E8E6E1]">
+                    {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredLogs.length)}
+                  </span>{" "}
+                  of <span className="text-[#E8E6E1]">{filteredLogs.length}</span>
+                </p>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium bg-[#0F131A] ring-1 ring-[#232833] text-[#C7C9CE] hover:ring-[#333A48] hover:text-[#E8E6E1] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:ring-[#232833] transition-all"
+                  >
+                    <ChevronLeft size={13} /> Prev
+                  </button>
+
+                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((p) => {
+                    const active = p === page;
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p)}
+                        className={`rounded-xl px-3.5 py-2 text-xs font-medium transition-all ${
+                          active
+                            ? "bg-[#FF6A39] text-white ring-1 ring-[#FF6A39] shadow-[0_6px_20px_-8px_rgba(255,106,57,0.6)]"
+                            : "bg-[#0F131A] text-[#C7C9CE] ring-1 ring-[#232833] hover:ring-[#333A48] hover:text-[#E8E6E1]"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
+
+                  {totalPages > 5 && (
+                    <>
+                      <span className="text-xs text-[#6B727C] px-1">…</span>
+                      <button
+                        onClick={() => setPage(totalPages)}
+                        className={`rounded-xl px-3.5 py-2 text-xs font-medium transition-all ${
+                          page === totalPages
+                            ? "bg-[#FF6A39] text-white ring-1 ring-[#FF6A39] shadow-[0_6px_20px_-8px_rgba(255,106,57,0.6)]"
+                            : "bg-[#0F131A] text-[#C7C9CE] ring-1 ring-[#232833] hover:ring-[#333A48] hover:text-[#E8E6E1]"
+                        }`}
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium bg-[#0F131A] ring-1 ring-[#232833] text-[#C7C9CE] hover:ring-[#333A48] hover:text-[#E8E6E1] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:ring-[#232833] transition-all"
+                  >
+                    Next <ChevronRight size={13} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>
   );
 };
 
-/* ---------- Stat Card ---------- */
+/* ────────────────────── Stat Card ────────────────────── */
 
 interface StatCardProps {
   title: string;
   value: number;
-  description?: string;
+  rate?: number;
+  rateLabel?: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
-  color: string;
-  bg: string;
+  accent: string;
 }
 
-const StatCard = ({ title, value, description, icon: Icon, color, bg }: StatCardProps) => (
-  <div className="rounded-xl border border-[#2A2E37] bg-[#12151B] p-4 shadow-sm transition hover:shadow-md lg:p-5">
-    <div className="flex items-start justify-between">
-      <p className="text-sm text-[#9BA0A8]">{title}</p>
-      <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${bg}`}>
-        <Icon size={14} className={color} />
-      </span>
+const StatCard = ({ title, value, rate, rateLabel, icon: Icon, accent }: StatCardProps) => (
+  <div className="rounded-2xl bg-[#141821] ring-1 ring-[#232833] p-4 md:p-5 transition-colors hover:ring-[#333A48]">
+    <div className="flex items-start justify-between mb-3">
+      <div
+        className="w-9 h-9 rounded-xl flex items-center justify-center"
+        style={{ background: `${accent}1A`, boxShadow: `inset 0 0 0 1px ${accent}33` }}
+      >
+        <Icon size={15} className="text-white" />
+      </div>
+      {rate !== undefined && rateLabel && (
+        <span className="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-medium text-[#9BA0A8] bg-[#0F131A] ring-1 ring-[#232833]">
+          <TrendingUp size={10} />
+          {rate.toFixed(1)}%
+        </span>
+      )}
     </div>
-    <h2 className="mt-3 text-2xl font-semibold tracking-tight text-[#E8E6E1]">{value}</h2>
-    {description && <p className="mt-1 text-xs text-[#6B727C]">{description}</p>}
+    <p className="text-2xl md:text-[26px] font-bold tracking-tight text-white font-mono leading-none">
+      {value.toLocaleString()}
+    </p>
+    <p className="text-[11px] text-[#9BA0A8] mt-1.5">{title}</p>
+    {rateLabel && rate !== undefined && (
+      <p className="text-[10px] text-[#6B727C] mt-0.5">
+        {rate.toFixed(1)}% {rateLabel} rate
+      </p>
+    )}
   </div>
 );
 
-/* ---------- Status Badge ---------- */
+/* ────────────────────── Status Badge ────────────────────── */
 
-const statusConfig: Record<EmailStatus, { className: string; icon: React.ComponentType<{ size?: number }> }> = {
-  Sent: { className: "bg-blue-500/10 text-blue-400", icon: Clock },
-  Delivered: { className: "bg-emerald-500/10 text-emerald-400", icon: CheckCircle2 },
-  Failed: { className: "bg-rose-500/10 text-rose-400", icon: XCircle },
-  Bounced: { className: "bg-amber-500/10 text-amber-400", icon: AlertTriangle },
+const statusConfig: Record<
+  EmailStatus,
+  { bg: string; fg: string; ring: string; icon: React.ComponentType<{ size?: number }> }
+> = {
+  Sent:      { bg: "rgba(59,130,246,0.10)",  fg: "#60A5FA", ring: "rgba(59,130,246,0.22)",  icon: Clock },
+  Delivered: { bg: "rgba(34,197,94,0.10)",   fg: "#34D399", ring: "rgba(34,197,94,0.22)",   icon: CheckCircle2 },
+  Failed:    { bg: "rgba(239,68,68,0.10)",   fg: "#F87171", ring: "rgba(239,68,68,0.22)",   icon: XCircle },
+  Bounced:   { bg: "rgba(234,179,8,0.10)",   fg: "#FBBF24", ring: "rgba(234,179,8,0.22)",   icon: AlertTriangle },
 };
 
 const StatusBadge = ({ status }: { status: EmailStatus }) => {
   const config = statusConfig[status] ?? statusConfig.Sent;
   const Icon = config.icon;
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${config.className}`}>
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium whitespace-nowrap"
+      style={{ backgroundColor: config.bg, color: config.fg, boxShadow: `inset 0 0 0 1px ${config.ring}` }}
+    >
       <Icon size={10} />
       {status}
     </span>
