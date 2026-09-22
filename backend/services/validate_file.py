@@ -20,7 +20,6 @@ def validate_file(file: UploadFile):
             detail="Only CSV and XLSX files are allow"
         )
 
-    
 def save_file_to_storage(file: UploadFile):
     os.makedirs(
         UPLOAD_DIR,
@@ -37,8 +36,11 @@ def save_file_to_storage(file: UploadFile):
     with open(file_path, "wb") as reader:
         reader.write(file.file.read())
 
+    file_size = os.path.getsize(file_path)
     return {
         "original_filename" : file.filename,
         "stored_filename" : stored_filename,
-        "file_path"  : file_path 
+        "file_path"  : file_path,
+        "file_size" : file_size,
+        "mime_type" : file.content_type,
     }

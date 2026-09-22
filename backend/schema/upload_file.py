@@ -14,7 +14,9 @@ class UploadFileSchema(BaseModel):
     original_filename: str
     stored_filename: str
     file_path: str
+    file_size : int
     total_records: int = 0
+    mime_type : str
     processed_records: int = 0
     status : UploadStatus = UploadStatus.UPLOADED
 

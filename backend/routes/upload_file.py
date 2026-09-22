@@ -30,13 +30,10 @@ campaign_upload_router = APIRouter(
     tags=["Uploads"],
 )
 
-
-
 upload_file_crud = APIRouter(
     prefix="/uploads",
     tags=["Uploads"],
 )
-
 
 @campaign_upload_router.post("/{campaign_id}/upload")
 def upload_campaign_file(
@@ -49,6 +46,7 @@ def upload_campaign_file(
 
     # Save file physically
     file_data = save_file_to_storage(file)
+    print("FILE SIZE", file_data),
 
     # Create upload schema
     upload = UploadFileSchema(
@@ -57,6 +55,7 @@ def upload_campaign_file(
         stored_filename=file_data["stored_filename"],
         file_path=file_data["file_path"],
         file_size=file_data["file_size"],
+
         mime_type=file_data.get(
             "mime_type",
             file.content_type,
