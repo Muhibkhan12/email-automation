@@ -19,13 +19,7 @@ class UploadFileSchema(BaseModel):
     status : UploadStatus = UploadStatus.UPLOADED
 
 class UploadedFileUpdateSchema(BaseModel):
-    campaign_id: int | None = None
     original_filename: str | None = None
-    stored_filename: str | None = None
-    file_path: str | None = None
-    total_records: int | None = None
-    processed_records: int | None = None
-    status: UploadStatus | None = None
 
 class DeleteFileSchema(BaseModel):
     id : int
