@@ -1,4 +1,3 @@
-// frontend/src/pages/User/Upload.tsx
 import React, { useCallback, useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
@@ -7,6 +6,8 @@ import {
   X, Info, ChevronRight, Menu, ArrowRight, FileText,
   Search, Plus, Layout, Grid3x3, Star
 } from "lucide-react";
+import type{ UploadedFile } from "../../types/UploadTypes";
+import { useUpload } from "../../contexts/UploadContext";
 
 const FONT = {
   display: "'Space Grotesk', sans-serif",
@@ -19,7 +20,7 @@ type UploadStatus = "uploading" | "processing" | "success" | "error";
 
 interface UploadFile {
   id: string;
-  name: string;
+  nam: string;
   size: string;
   progress: number;
   status: UploadStatus;
@@ -53,7 +54,7 @@ interface Template {
   created_at: string;
 }
 
-// Mock data
+// Mock templates (unchanged)
 const mockTemplates: Template[] = [
   {
     id: "t1",
@@ -105,22 +106,29 @@ const mockTemplates: Template[] = [
   }
 ];
 
-const recentUploads: RecentUpload[] = [
-  { id: "u1", name: "leads_aug.csv", rows: 1204, addedCount: 1168, skippedCount: 36, uploadedAt: "Today, 7:10 AM", status: "Completed" },
-  { id: "u2", name: "newsletter_subs.csv", rows: 3420, addedCount: 3298, skippedCount: 122, uploadedAt: "Aug 5, 4:32 PM", status: "Completed" },
-  { id: "u3", name: "webinar_attendees.xlsx", rows: 540, addedCount: 0, skippedCount: 540, uploadedAt: "Aug 4, 11:05 AM", status: "Failed" },
-  { id: "u4", name: "contacts_may.csv", rows: 2140, addedCount: 2104, skippedCount: 36, uploadedAt: "Aug 1, 9:20 AM", status: "Completed" },
-];
-
 let idCounter = 0;
 
-// Template Card Component
+// Template Card Component (unchanged)
 interface TemplateCardProps {
   template: Template;
   isSelected: boolean;
   onSelect: () => void;
   viewMode: "grid" | "list";
 }
+
+const formatDate = (iso?: string) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 
 const TemplateCard: React.FC<TemplateCardProps> = ({ template, isSelected, onSelect, viewMode }) => {
   if (viewMode === "grid") {
@@ -204,6 +212,16 @@ const TemplateCard: React.FC<TemplateCardProps> = ({ template, isSelected, onSel
 
 const Upload = () => {
   const navigate = useNavigate();
+
+  // ----- Per-user files from the backend -----
+  const {
+    files: uploadedFiles,
+    loading: uploadingLoading,
+    error: uploadError,
+    fetchAllFiles,
+  } = useUpload();
+
+  // ----- Local UI state -----
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -216,15 +234,29 @@ const Upload = () => {
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch templates
+  // Fetch templates (mock)
   useEffect(() => {
     fetchTemplates();
   }, []);
 
+  // Re-fetch this user's uploaded files on mount
+  useEffect(() => {
+    fetchAllFiles();
+  }, [fetchAllFiles]);
+
+  // 👇 PRINT THE USER'S FILES (this is the main thing you asked for)
+  useEffect(() => {
+    if (uploadingLoading) return;
+    if (uploadError) {
+      console.error("❌ Failed to load user uploads:", uploadError);
+      return;
+    }
+    console.log("📁 Uploaded files for this user:", uploadedFiles);
+  }, [uploadedFiles, uploadingLoading, uploadError]);
+
   const fetchTemplates = async () => {
     setIsLoadingTemplates(true);
     try {
-      // Using mock data
       setTimeout(() => {
         setTemplates(mockTemplates);
         setIsLoadingTemplates(false);
@@ -235,24 +267,21 @@ const Upload = () => {
     }
   };
 
-  // Get unique categories
   const categories = ["all", ...new Set(templates.map(t => t.category))];
 
-  // Filter templates
   const filteredTemplates = templates.filter(template => {
     const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           template.preview.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           template.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           template.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+
     const matchesCategory = selectedCategory === "all" || template.category === selectedCategory;
-    
+
     return matchesSearch && matchesCategory;
   });
 
   const featuredTemplates = templates.filter(t => t.featured);
 
-  // Simulate file parsing
   const parseFile = (file: UploadFile): Promise<any> => {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -264,7 +293,7 @@ const Upload = () => {
           company: `Company ${i+1}`,
           tags: 'tag1, tag2'
         }));
-        
+
         resolve({
           headers,
           rows: rowCount,
@@ -300,9 +329,9 @@ const Upload = () => {
             const willFail = f.name.toLowerCase().includes("fail");
             return willFail
               ? { ...f, status: "error", errorMsg: "Missing required 'email' column" }
-              : { 
-                  ...f, 
-                  status: "success", 
+              : {
+                  ...f,
+                  status: "success",
                   rows: parsedData.rows,
                   headers: parsedData.headers,
                   preview: parsedData.preview,
@@ -362,42 +391,48 @@ const Upload = () => {
 
   const hasSuccessfulUpload = files.some(f => f.status === "success");
 
+// Map backend UploadedFile → RecentUpload for the table
+const recentUploads: RecentUpload[] = (uploadedFiles || []).map((u: any) => {
+  const total = u.total_records ?? 0;
+  const processed = u.processed_records ?? 0;
+
+  return {
+    id: String(u.id),
+    name: u.original_filename ?? u.stored_filename ?? "Unnamed file",
+    rows: total,
+    addedCount: processed,
+    skippedCount: Math.max(total - processed, 0),
+    uploadedAt: formatDate(u.created_at ?? u.updated_at),
+    status:
+      (u.status ?? "").toLowerCase() === "failed" ||
+      (u.status ?? "").toLowerCase() === "error"
+        ? "Failed"
+        : "Completed",
+  };
+});
+  useEffect(() => {
+  if (uploadedFiles && uploadedFiles.length > 0) {
+    console.log("🔎 FIRST FILE RAW:", uploadedFiles[0]);
+    console.log("🔎 KEYS:", Object.keys(uploadedFiles[0] as any));
+  }
+}, [uploadedFiles]);
+
   return (
     <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 1s linear infinite; }
-        .sidebar-overlay {
-          animation: fadeIn 0.2s ease-in-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .sidebar-slide {
-          animation: slideIn 0.25s ease-out;
-        }
-        @keyframes slideIn {
-          from { transform: translateX(-100%); }
-          to { transform: translateX(0); }
-        }
-        .mf-main-content::-webkit-scrollbar {
-          width: 6px;
-        }
-        .mf-main-content::-webkit-scrollbar-track {
-          background: #0B0E12;
-        }
-        .mf-main-content::-webkit-scrollbar-thumb {
-          background: #2A2E37;
-          border-radius: 3px;
-        }
-        .mf-main-content::-webkit-scrollbar-thumb:hover {
-          background: #3A3F4A;
-        }
+        .sidebar-overlay { animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .sidebar-slide { animation: slideIn 0.25s ease-out; }
+        @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+        .mf-main-content::-webkit-scrollbar { width: 6px; }
+        .mf-main-content::-webkit-scrollbar-track { background: #0B0E12; }
+        .mf-main-content::-webkit-scrollbar-thumb { background: #2A2E37; border-radius: 3px; }
+        .mf-main-content::-webkit-scrollbar-thumb:hover { background: #3A3F4A; }
       `}</style>
 
-      {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
           className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
@@ -405,7 +440,6 @@ const Upload = () => {
         />
       )}
 
-      {/* Sidebar */}
       <div className={`
         fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -414,7 +448,6 @@ const Upload = () => {
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Main content */}
       <main className="mf-main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8" style={{ background: "#12151B", height: "100vh", width: "100%" }}>
         <div className="max-w-[1100px] mx-auto">
           {/* Header */}
@@ -428,8 +461,8 @@ const Upload = () => {
                   <Menu size={20} />
                 </button>
                 <div>
-                  <h1 
-                    style={{ fontFamily: FONT.display, letterSpacing: "-0.01em", color: "#FFFFFF" }} 
+                  <h1
+                    style={{ fontFamily: FONT.display, letterSpacing: "-0.01em", color: "#FFFFFF" }}
                     className="text-xl md:text-2xl lg:text-3xl font-bold"
                   >
                     Upload File
@@ -439,7 +472,7 @@ const Upload = () => {
                   </p>
                 </div>
               </div>
-              
+
               {hasSuccessfulUpload && (
                 <button
                   onClick={handleStartCampaign}
@@ -518,7 +551,6 @@ const Upload = () => {
               </button>
             </div>
 
-            {/* Selected Template Display */}
             {selectedTemplate && (
               <div className="p-3 rounded-lg border border-[#FF6A39]/20 bg-[#FF6A39]/5 mb-3">
                 <div className="flex items-center justify-between">
@@ -553,10 +585,8 @@ const Upload = () => {
               </div>
             )}
 
-            {/* Template Selector */}
             {showTemplateSelector && (
               <div className="rounded-xl border border-[#2A2E37] bg-[#12151B] overflow-hidden">
-                {/* Search and Filter */}
                 <div className="p-3 border-b border-[#2A2E37]">
                   <div className="flex flex-wrap gap-2">
                     <div className="flex-1 min-w-[200px] relative">
@@ -605,7 +635,6 @@ const Upload = () => {
                   </div>
                 </div>
 
-                {/* Templates */}
                 <div className="p-3">
                   {isLoadingTemplates ? (
                     <div className="text-center py-8">
@@ -619,15 +648,14 @@ const Upload = () => {
                     </div>
                   ) : (
                     <>
-                      {/* Featured */}
                       {searchQuery === '' && selectedCategory === 'all' && featuredTemplates.length > 0 && (
                         <div className="mb-4">
                           <p className="text-xs font-medium text-[#6B727C] flex items-center gap-2 mb-2">
                             <Star size={14} className="text-yellow-400" />
                             Featured Templates
                           </p>
-                          <div className={viewMode === 'grid' 
-                            ? 'grid grid-cols-1 md:grid-cols-2 gap-3' 
+                          <div className={viewMode === 'grid'
+                            ? 'grid grid-cols-1 md:grid-cols-2 gap-3'
                             : 'space-y-2'
                           }>
                             {featuredTemplates.map((template) => (
@@ -646,10 +674,9 @@ const Upload = () => {
                         </div>
                       )}
 
-                      {/* All Templates */}
                       <div>
-                        <div className={viewMode === 'grid' 
-                          ? 'grid grid-cols-1 md:grid-cols-2 gap-3' 
+                        <div className={viewMode === 'grid'
+                          ? 'grid grid-cols-1 md:grid-cols-2 gap-3'
                           : 'space-y-2'
                         }>
                           {filteredTemplates
@@ -673,7 +700,6 @@ const Upload = () => {
                   )}
                 </div>
 
-                {/* Footer */}
                 <div className="p-3 border-t border-[#2A2E37] flex items-center justify-between">
                   <button className="text-[#6B727C] hover:text-[#E8E6E1] text-sm flex items-center gap-1">
                     <Plus size={16} />
@@ -695,7 +721,7 @@ const Upload = () => {
             )}
           </div>
 
-          {/* Active uploads */}
+          {/* Active uploads (local session) */}
           {files.length > 0 && (
             <div className="mf-upload-list mb-4 md:mb-5 lg:mb-6 rounded-xl border border-[#2A2E37] bg-[#12151B] shadow-sm overflow-hidden">
               <div className="px-3 md:px-4 lg:px-5 py-2.5 md:py-3 lg:py-4 border-b border-[#2A2E37]">
@@ -788,8 +814,8 @@ const Upload = () => {
                 <button
                   onClick={handleStartCampaign}
                   className={`flex items-center gap-2 px-6 py-2.5 text-white rounded-lg font-semibold transition-colors text-sm ${
-                    selectedTemplate 
-                      ? 'bg-[#FF6A39] hover:bg-[#e85a2c] cursor-pointer' 
+                    selectedTemplate
+                      ? 'bg-[#FF6A39] hover:bg-[#e85a2c] cursor-pointer'
                       : 'bg-[#2A2E37] cursor-not-allowed opacity-50'
                   }`}
                   disabled={!selectedTemplate}
@@ -801,68 +827,80 @@ const Upload = () => {
             </div>
           )}
 
-          {/* Recent uploads */}
+          {/* Recent uploads (from backend, per user) */}
           <div className="rounded-xl border border-[#2A2E37] bg-[#12151B] shadow-sm overflow-hidden">
             <div className="mf-recent-header flex flex-wrap items-center justify-between px-3 md:px-4 lg:px-5 py-2.5 md:py-3 lg:py-4 border-b border-[#2A2E37] gap-2">
               <h2 style={{ fontFamily: FONT.display }} className="text-[10px] md:text-xs lg:text-sm font-semibold text-[#E8E6E1]">
                 Recent uploads
               </h2>
-              <button className="mf-view-all flex items-center gap-0.5 md:gap-1 text-[9px] md:text-[10px] lg:text-[12.5px] font-medium text-[#FF6A39] hover:text-[#e85a2c]">
-                <span className="hidden xs:inline">View all history</span>
-                <span className="xs:hidden">History</span>
-                <ChevronRight size={10} className="md:w-[11px] md:h-[11px] lg:w-[11px] lg:h-[11px]" />
-              </button>
             </div>
             <div className="mf-table-wrapper overflow-x-auto">
-              <table className="w-full text-left" style={{ minWidth: "500px" }}>
-                <thead>
-                  <tr className="text-[8px] md:text-[9px] lg:text-[11px] uppercase tracking-wider" style={{ color: "#6B727C" }}>
-                    <th className="mf-table-cell-padded px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-2.5 font-medium">File</th>
-                    <th className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Rows</th>
-                    <th className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Added</th>
-                    <th className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Skipped</th>
-                    <th className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Status</th>
-                    <th className="mf-table-cell-padded px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-2.5 font-medium text-right">Uploaded</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentUploads.map((u) => (
-                    <tr key={u.id} className="border-t border-[#2A2E37] hover:bg-[#1B1E24] transition-colors">
-                      <td className="mf-table-cell-padded px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-3">
-                        <div className="flex items-center gap-1.5 md:gap-2 lg:gap-2.5">
-                          <FileSpreadsheet size={11} className="md:w-[12px] md:h-[12px] lg:w-[13px] lg:h-[13px] text-[#6B727C]" />
-                          <span className="mf-file-name text-[9px] md:text-[10px] lg:text-[13.5px] font-medium truncate max-w-[80px] md:max-w-[120px] lg:max-w-none" style={{ color: "#E8E6E1" }}>{u.name}</span>
-                        </div>
-                      </td>
-                      <td className="mf-file-stats px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3 text-[8px] md:text-[9px] lg:text-[13px]" style={{ fontFamily: FONT.mono, color: "#9BA0A8" }}>
-                        {u.rows.toLocaleString()}
-                      </td>
-                      <td className="mf-file-stats px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3 text-[8px] md:text-[9px] lg:text-[13px]" style={{ fontFamily: FONT.mono, color: "#34D399" }}>
-                        {u.addedCount.toLocaleString()}
-                      </td>
-                      <td className="mf-file-stats px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3 text-[8px] md:text-[9px] lg:text-[13px]" style={{ fontFamily: FONT.mono, color: "#6B727C" }}>
-                        {u.skippedCount.toLocaleString()}
-                      </td>
-                      <td className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3">
-                        <span
-                          className="mf-status-badge inline-flex items-center gap-0.5 md:gap-1 rounded-full px-1 md:px-1.5 lg:px-2 py-0.5 text-[7px] md:text-[8px] lg:text-[11.5px] font-medium whitespace-nowrap"
-                          style={{
-                            backgroundColor: u.status === "Completed" ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
-                            color: u.status === "Completed" ? "#34D399" : "#F87171"
-                          }}
-                        >
-                          {u.status === "Completed" ? <CheckCircle2 size={7} className="md:w-[8px] md:h-[8px] lg:w-[9px] lg:h-[9px]" /> : <XCircle size={7} className="md:w-[8px] md:h-[8px] lg:w-[9px] lg:h-[9px]" />}
-                          <span className="hidden xs:inline">{u.status}</span>
-                          <span className="xs:hidden">{u.status.charAt(0)}</span>
-                        </span>
-                      </td>
-                      <td className="mf-timestamp px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-3 text-[7px] md:text-[8px] lg:text-[12.5px] text-right whitespace-nowrap" style={{ color: "#6B727C" }}>
-                        {u.uploadedAt}
-                      </td>
+              {uploadingLoading ? (
+                <div className="text-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-[#FF6A39] mx-auto" />
+                  <p className="text-xs text-[#6B727C] mt-2">Loading your uploads…</p>
+                </div>
+              ) : uploadError ? (
+                <div className="text-center py-8">
+                  <XCircle className="w-6 h-6 text-[#F87171] mx-auto mb-2" />
+                  <p className="text-xs text-[#F87171]">{uploadError}</p>
+                </div>
+              ) : recentUploads.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="w-8 h-8 text-[#6B727C] mx-auto mb-2" />
+                  <p className="text-xs text-[#6B727C]">No uploads yet for this user.</p>
+                </div>
+              ) : (
+                <table className="w-full text-left" style={{ minWidth: "500px" }}>
+                  <thead>
+                    <tr className="text-[8px] md:text-[9px] lg:text-[11px] uppercase tracking-wider" style={{ color: "#6B727C" }}>
+                      <th className="mf-table-cell-padded px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-2.5 font-medium">File</th>
+                      <th className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Rows</th>
+                      <th className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Added</th>
+                      <th className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Skipped</th>
+                      <th className="mf-table-cell px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-2.5 font-medium">Status</th>
+                      <th className="mf-table-cell-padded px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-2.5 font-medium text-right">Uploaded</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {recentUploads.map((u) => (
+                      <tr key={u.id} className="border-t border-[#2A2E37] hover:bg-[#1B1E24] transition-colors">
+                        <td className="mf-table-cell-padded px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-3">
+                          <div className="flex items-center gap-1.5 md:gap-2 lg:gap-2.5">
+                            <FileSpreadsheet size={11} className="md:w-[12px] md:h-[12px] lg:w-[13px] lg:h-[13px] text-[#6B727C]" />
+                            <span className="mf-file-name text-[9px] md:text-[10px] lg:text-[13.5px] font-medium truncate max-w-[80px] md:max-w-[120px] lg:max-w-none" style={{ color: "#E8E6E1" }}>{u.name}</span>
+                          </div>
+                        </td>
+                        <td className="mf-file-stats px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3 text-[8px] md:text-[9px] lg:text-[13px]" style={{ fontFamily: FONT.mono, color: "#9BA0A8" }}>
+                          {u.rows.toLocaleString()}
+                        </td>
+                        <td className="mf-file-stats px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3 text-[8px] md:text-[9px] lg:text-[13px]" style={{ fontFamily: FONT.mono, color: "#34D399" }}>
+                          {u.addedCount.toLocaleString()}
+                        </td>
+                        <td className="mf-file-stats px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3 text-[8px] md:text-[9px] lg:text-[13px]" style={{ fontFamily: FONT.mono, color: "#6B727C" }}>
+                          {u.skippedCount.toLocaleString()}
+                        </td>
+                        <td className="px-1.5 md:px-2 lg:px-3 py-1.5 md:py-2 lg:py-3">
+                          <span
+                            className="mf-status-badge inline-flex items-center gap-0.5 md:gap-1 rounded-full px-1 md:px-1.5 lg:px-2 py-0.5 text-[7px] md:text-[8px] lg:text-[11.5px] font-medium whitespace-nowrap"
+                            style={{
+                              backgroundColor: u.status === "Completed" ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
+                              color: u.status === "Completed" ? "#34D399" : "#F87171"
+                            }}
+                          >
+                            {u.status === "Completed" ? <CheckCircle2 size={7} className="md:w-[8px] md:h-[8px] lg:w-[9px] lg:h-[9px]" /> : <XCircle size={7} className="md:w-[8px] md:h-[8px] lg:w-[9px] lg:h-[9px]" />}
+                            <span className="hidden xs:inline">{u.status}</span>
+                            <span className="xs:hidden">{u.status.charAt(0)}</span>
+                          </span>
+                        </td>
+                        <td className="mf-timestamp px-2 md:px-3 lg:px-5 py-1.5 md:py-2 lg:py-3 text-[7px] md:text-[8px] lg:text-[12.5px] text-right whitespace-nowrap" style={{ color: "#6B727C" }}>
+                          {u.uploadedAt}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </div>

@@ -6,6 +6,7 @@ import { SenderAccountsContext } from "./contexts/SenderAccountsContext.tsx";
 import HtmlTemplatesProvider from "./contexts/HtmlTemplatesContext.tsx";
 import RecipientsContextProvider from "./contexts/RecipientsContext.tsx";
 import { CampaignProvider } from "./contexts/CampaignContext.tsx";
+import { UploadProvider } from "./contexts/UploadContext.tsx";
 import ErrorBoundary from "./components/ErrorBoundry.tsx";
 import "./index.css";
 import App from "./App.tsx";
@@ -19,7 +20,9 @@ createRoot(document.getElementById("root")!).render(
             <CampaignProvider>
               <HtmlTemplatesProvider>
                 <RecipientsContextProvider>
-                  <App />
+                  <UploadProvider >
+                    <App />
+                  </UploadProvider >
                 </RecipientsContextProvider>
               </HtmlTemplatesProvider>
             </CampaignProvider>

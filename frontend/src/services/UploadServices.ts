@@ -1,15 +1,13 @@
-import axios from "axios";
 import api from "../libs/Axios";
-import { UploadedFile } from "../types/UploadTypes";
+import type{ UploadedFile } from "../types/UploadTypes";
 
-// export const campaignStart = async(id : number) => {
-//     const response = axios.post(`/campaigns/${id}/upload`);
-//     return response.data.data
-// }
-
-export const getAllUploadedFiles = async():Promise<UploadedFile> => {
+export const uploadFile = async(campaign_id : number) => {
+    const response = await api.post(`campaigns/${campaign_id}/upload`);
+    return response.data;
+}
+export const getAllUploadedFiles = async():Promise<UploadedFile[]> => {
     const response = await api.get("uploads/all");
-    return  response.data
+    return  response.data.data
 }
 export const getUploadedFilesById = async(id : number):Promise<UploadedFile> => {
     const response = await api.get(`uploads/${id}`)
