@@ -90,7 +90,6 @@ def update_sender_account(
         "account": sender_account,
     }
 
-
 def delete_sender_account(id: int, db: Session, user_id: int):
     existing_account = _get_owned_account(id, user_id, db)
 
@@ -103,7 +102,6 @@ def delete_sender_account(id: int, db: Session, user_id: int):
 
     return {"message": "Account Deleted Successfully"}
 
-
 # GET /sender-accounts/{id}  -> ONE account by its id
 def get_account_by_id(id: int, user_id: int, db: Session):
     account = _get_owned_account(id, user_id, db)
@@ -111,7 +109,6 @@ def get_account_by_id(id: int, user_id: int, db: Session):
         "message": "Account Exist",
         "account": account,
     }
-
 
 # GET /sender-accounts/all  -> all accounts of the logged-in user
 def get_all_sender_accounts(user_id: int, db: Session):

@@ -2,22 +2,29 @@ from fastapi import (
     APIRouter,
     UploadFile,
     File,
-    Depends
+    Depends,
+    HTTPException,
+    status
 )
 from sqlalchemy.orm import Session
 from database import get_db
-from schema.upload_file import UploadFileSchema
+from schema.upload_file import UploadFileSchema, UploadedFileUpdateSchema, DeleteFileSchema
+from models.upload_file import Upload
+from models.user import User
 from services.validate_file import (
     validate_file,
     save_file_to_storage
 )
+from database import get_db
 from services.upload_file import (
     add_upload_file
 )
+
 router = APIRouter(
     prefix="/campaigns",
     tags=["Uploads"]
 )
+
 @router.post("/{campaign_id}/upload")
 def upload_campaign_file(
     campaign_id: int,
