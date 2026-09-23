@@ -1,38 +1,17 @@
 // EmailTemplatesAdmin.tsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AdminSidebar from "./AdminSidebar";
 import {
-  Plus,
-  Search,
-  Trash2,
-  CheckCircle2,
-  Clock,
-  Code2,
-  Eye,
-  Save,
-  X,
-  Monitor,
-  Smartphone,
-  FileCode,
-  Braces,
-  LayoutTemplate,
-  Inbox,
-  Check,
-  Menu,
-  Sparkles,
-  Wand2,
-  AlertCircle,
-  ArrowLeft,
-  Loader2,
-  AlertTriangle,
+  Plus, Search, Trash2, CheckCircle2, Clock, Code2, Eye, Save, X,
+  Monitor, Smartphone, Tablet, FileCode, Braces, LayoutTemplate,
+  Inbox, Check, Menu, Sparkles, Wand2, AlertCircle, ArrowLeft,
+  Loader2, AlertTriangle, RefreshCw, ChevronRight, Tag,
 } from "lucide-react";
 
 import { useHtmlTemplates } from "../../contexts/HtmlTemplatesContext";
 import type { HtmlTemplates } from "../../types/HtmlTemplatesTypes";
 
-/* ---------------------------------------------------------------------- */
-/*  Design tokens — MailForge system (iron / ember)                       */
-/* ---------------------------------------------------------------------- */
+/* ─────────────── Tokens ─────────────── */
 
 const FONT = {
   display: "'Space Grotesk', sans-serif",
@@ -42,22 +21,28 @@ const FONT = {
 
 const COLOR = {
   primary: "#FF6A39",
-  primarySoft: "rgba(255,106,57,0.12)",
-  success: "#7FD98A",
-  successSoft: "rgba(127,217,138,0.12)",
-  warning: "#FFC24B",
-  warningSoft: "rgba(255,194,75,0.12)",
-  danger: "#FF5C6C",
-  dangerSoft: "rgba(255,92,108,0.12)",
-  neutral: "#8B8D94",
-  neutralSoft: "rgba(139,141,148,0.12)",
-  dark: "#E8E6E1",
-  bg: "#0E1013",
-  surface: "#171A21",
-  surfaceHover: "#1B1E24",
-  border: "#2A2E37",
-  borderHover: "#3A3F4A",
-  textMuted: "#8B8D94",
+  primarySoft: "rgba(255,106,57,0.10)",
+  primaryRing: "rgba(255,106,57,0.22)",
+  success: "#34D399",
+  successSoft: "rgba(52,211,153,0.10)",
+  successRing: "rgba(52,211,153,0.22)",
+  warning: "#FBBF24",
+  warningSoft: "rgba(251,191,36,0.10)",
+  warningRing: "rgba(251,191,36,0.22)",
+  danger: "#F87171",
+  dangerSoft: "rgba(248,113,113,0.10)",
+  dangerRing: "rgba(248,113,113,0.22)",
+  neutral: "#9BA0A8",
+  neutralSoft: "rgba(155,160,168,0.10)",
+  neutralRing: "rgba(155,160,168,0.22)",
+  dark: "#F2F0EB",
+  bg: "#0B0E13",
+  surface: "#141821",
+  surfaceHover: "#11151E",
+  inner: "#0F131C",
+  border: "#1A1F2B",
+  borderHover: "#232938",
+  textMuted: "#7A8092",
   textBody: "#C7C9CE",
 };
 
@@ -92,16 +77,8 @@ const variableDescriptions: Record<string, string> = {
   "{{unsubscribe_link}}": "Unsubscribe link",
 };
 
-/* ---------------------------------------------------------------------- */
-/*  Adapter: map the API shape (HtmlTemplates) -> local Template shape    */
-/* ---------------------------------------------------------------------- */
-/**
- * The API row is `HtmlTemplates` — its fields depend on your types file.
- * This adapter tries the most common field names and falls back to safe
- * defaults so a missing field never crashes the page.
- *
- * Adjust the field names here to match your actual HtmlTemplates type.
- */
+/* ─────────────── Adapter ─────────────── */
+
 const mapApiTemplate = (raw: HtmlTemplates, index: number): Template => {
   const r = raw as any;
   return {
@@ -115,7 +92,8 @@ const mapApiTemplate = (raw: HtmlTemplates, index: number): Template => {
   };
 };
 
-// Enhanced template generators with better HTML (unchanged)
+/* ─────────────── Starter HTML ─────────────── */
+
 const starterHtml = (category: Category) => {
   const base = (body: string, bgColor: string = "#f4f4f5") => `<!DOCTYPE html>
 <html>
@@ -236,9 +214,9 @@ ${body}
 
 const nextId = (list: Template[]) => (list.length ? Math.max(...list.map((t) => t.id)) + 1 : 1);
 
-/* ========================================================= */
-/* Template Editor Page - Full Screen (unchanged)            */
-/* ========================================================= */
+/* ─────────────── Editor (fullscreen) ─────────────── */
+
+type Device = "desktop" | "tablet" | "mobile";
 
 interface TemplateEditorProps {
   template: Template;
@@ -249,16 +227,14 @@ interface TemplateEditorProps {
 
 const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }: TemplateEditorProps) => {
   const [template, setTemplate] = useState<Template>(initialTemplate);
-  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const [device, setDevice] = useState<Device>("desktop");
   const [savedFlash, setSavedFlash] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const isDirty = JSON.stringify(initialTemplate) !== JSON.stringify(template);
 
-  const updateTemplate = (patch: Partial<Template>) => {
-    setTemplate((prev) => ({ ...prev, ...patch }));
-  };
+  const updateTemplate = (patch: Partial<Template>) => setTemplate((prev) => ({ ...prev, ...patch }));
 
   const insertVariable = (variable: string) => {
     const el = textareaRef.current;
@@ -292,131 +268,157 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
         e.preventDefault();
         handleSave();
       }
+      if (e.key === "Escape" && !showDeleteConfirm) onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [template, isDirty]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template, isDirty, showDeleteConfirm]);
+
+  const statusMeta =
+    template.status === "Published"
+      ? { fg: COLOR.success, bg: COLOR.successSoft, ring: COLOR.successRing }
+      : { fg: COLOR.warning, bg: COLOR.warningSoft, ring: COLOR.warningRing };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: COLOR.bg }}>
-      {/* Editor Header */}
-      <div className="flex-shrink-0 p-3 md:p-4" style={{ background: COLOR.surface, borderBottom: `1px solid ${COLOR.border}` }}>
-        <div className="flex flex-col gap-3 md:gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 md:gap-3">
-              <button
-                onClick={onClose}
-                className="flex items-center gap-1.5 md:gap-2 rounded-lg px-2.5 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-medium transition hover:opacity-80"
-                style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
-              >
-                <ArrowLeft size={14} />
-                <span className="hidden xs:inline">Back</span>
-              </button>
-              <div className="flex items-center gap-2 md:gap-3">
-                <input
-                  value={template.name}
-                  onChange={(e) => updateTemplate({ name: e.target.value })}
-                  className="mf-title-input rounded-lg border border-transparent px-2 py-1 text-sm md:text-base lg:text-lg font-semibold outline-none transition"
-                  style={{ fontFamily: FONT.display, color: COLOR.dark, background: 'transparent', maxWidth: '300px' }}
-                  placeholder="Template name"
-                />
-                {isDirty && (
-                  <span className="text-[9px] md:text-xs font-medium" style={{ color: COLOR.warning }}>
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: COLOR.bg, fontFamily: FONT.body }}>
+      {/* ── Top bar ─────────────────────────── */}
+      <div
+        className="flex-shrink-0 px-3 md:px-5 py-3"
+        style={{ background: COLOR.surface, borderBottom: `1px solid ${COLOR.border}` }}
+      >
+        <div className="flex flex-wrap items-center gap-3 md:gap-4">
+          <button
+            onClick={onClose}
+            className="inline-flex items-center gap-1.5 rounded-2xl px-3 py-2 text-[12.5px] font-medium transition-colors"
+            style={{ background: COLOR.inner, color: COLOR.textBody, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+          >
+            <ArrowLeft size={14} />
+            <span className="hidden sm:inline">Back</span>
+          </button>
+
+          <div className="flex-1 min-w-0">
+            <input
+              value={template.name}
+              onChange={(e) => updateTemplate({ name: e.target.value })}
+              placeholder="Template name"
+              className="w-full bg-transparent outline-none truncate text-[16px] md:text-[18px] font-bold tracking-tight"
+              style={{ fontFamily: FONT.display, color: COLOR.dark }}
+            />
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[11px]" style={{ color: COLOR.textMuted, fontFamily: FONT.mono }}>
+                {template.updatedAt}
+              </span>
+              {isDirty && (
+                <>
+                  <span style={{ color: COLOR.border }}>·</span>
+                  <span className="text-[11px] font-medium" style={{ color: COLOR.warning }}>
                     ● Unsaved
                   </span>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
-              <select
-                value={template.category}
-                onChange={(e) => updateTemplate({ category: e.target.value as Category })}
-                className="rounded-lg px-2 md:px-3 py-1 md:py-1.5 text-[9px] md:text-xs font-medium outline-none transition"
-                style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
-              >
-                {categories.map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
-
-              <button
-                onClick={() => updateTemplate({ status: template.status === "Published" ? "Draft" : "Published" })}
-                className="rounded-lg px-2 md:px-3 py-1 md:py-1.5 text-[9px] md:text-xs font-medium transition hover:opacity-90"
-                style={{
-                  background: template.status === "Published" ? COLOR.successSoft : COLOR.warningSoft,
-                  color: template.status === "Published" ? COLOR.success : COLOR.warning,
-                }}
-              >
-                {template.status}
-              </button>
-
-              <button
-                onClick={handleSave}
-                disabled={!isDirty}
-                className="flex items-center gap-1 md:gap-1.5 rounded-lg px-3 md:px-4 py-1 md:py-1.5 text-[9px] md:text-xs font-medium transition"
-                style={{
-                  background: isDirty ? COLOR.primary : COLOR.border,
-                  color: isDirty ? COLOR.bg : COLOR.textMuted,
-                  cursor: isDirty ? "pointer" : "not-allowed",
-                }}
-              >
-                {savedFlash ? <Check size={12} /> : <Save size={12} />}
-                {savedFlash ? "Saved" : isDirty ? "Save" : "Saved"}
-              </button>
-
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="rounded-lg px-2 md:px-3 py-1 md:py-1.5 text-[9px] md:text-xs font-medium transition hover:opacity-90"
-                style={{ background: COLOR.dangerSoft, color: COLOR.danger }}
-              >
-                <Trash2 size={12} />
-              </button>
+                </>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={template.category}
+              onChange={(e) => updateTemplate({ category: e.target.value as Category })}
+              className="rounded-2xl px-3 py-2 text-[12px] outline-none cursor-pointer"
+              style={{ background: COLOR.inner, color: COLOR.textBody, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+            >
+              {categories.map((c) => <option key={c}>{c}</option>)}
+            </select>
+
+            <button
+              onClick={() =>
+                updateTemplate({ status: template.status === "Published" ? "Draft" : "Published" })
+              }
+              className="inline-flex items-center gap-1.5 rounded-2xl px-3 py-2 text-[12px] font-medium transition-colors whitespace-nowrap"
+              style={{
+                background: statusMeta.bg,
+                color: statusMeta.fg,
+                boxShadow: `inset 0 0 0 1px ${statusMeta.ring}`,
+              }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusMeta.fg, boxShadow: `0 0 6px ${statusMeta.fg}` }} />
+              {template.status}
+            </button>
+
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              aria-label="Delete template"
+              className="inline-flex items-center justify-center rounded-2xl p-2.5 transition-colors"
+              style={{ background: COLOR.dangerSoft, color: COLOR.danger, boxShadow: `inset 0 0 0 1px ${COLOR.dangerRing}` }}
+            >
+              <Trash2 size={13} />
+            </button>
+
+            <button
+              onClick={handleSave}
+              disabled={!isDirty}
+              className="inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold text-white transition-all disabled:opacity-60 disabled:cursor-not-allowed hover:-translate-y-0.5 disabled:hover:translate-y-0"
+              style={{
+                background: isDirty ? COLOR.primary : COLOR.inner,
+                color: isDirty ? "#fff" : COLOR.textMuted,
+                boxShadow: isDirty ? "0 12px 30px -12px rgba(255,106,57,0.6)" : `inset 0 0 0 1px ${COLOR.border}`,
+              }}
+            >
+              {savedFlash ? <Check size={13} /> : <Save size={13} />}
+              {savedFlash ? "Saved" : "Save"}
+            </button>
+          </div>
+        </div>
+
+        {/* ── Subject + variables row ───────── */}
+        <div className="mt-3 flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
+          <div
+            className="flex items-center gap-2 rounded-2xl px-3.5 py-2.5 flex-1 min-w-0 transition-all"
+            style={{ background: COLOR.inner, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+          >
+            <Tag size={13} style={{ color: COLOR.textMuted }} className="shrink-0" />
             <input
               value={template.subject}
               onChange={(e) => updateTemplate({ subject: e.target.value })}
               placeholder="Subject line"
-              className="mf-input flex-1 rounded-lg px-2.5 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs outline-none transition"
-              style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
+              className="w-full bg-transparent outline-none text-[13px]"
+              style={{ color: COLOR.textBody }}
             />
+          </div>
 
-            <div className="flex flex-wrap items-center gap-0.5 md:gap-1">
-              <span className="mr-0.5 md:mr-1 flex items-center gap-0.5 md:gap-1 text-[9px] md:text-[10px] font-medium" style={{ color: COLOR.textMuted }}>
-                <Braces size={10} />
-                <span className="hidden xs:inline">Insert:</span>
-              </span>
-              {variables.map((v) => (
-                <button
-                  key={v}
-                  onClick={() => insertVariable(v)}
-                  className="rounded-md px-1 md:px-1.5 py-0.5 text-[8px] md:text-[9px] transition"
-                  style={{ fontFamily: FONT.mono, background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
-                  title={variableDescriptions[v]}
-                >
-                  {v}
-                </button>
-              ))}
-            </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 text-[11px] mr-1" style={{ color: COLOR.textMuted, fontFamily: FONT.mono }}>
+              <Braces size={11} /> insert
+            </span>
+            {variables.map((v) => (
+              <button
+                key={v}
+                onClick={() => insertVariable(v)}
+                title={variableDescriptions[v]}
+                className="rounded-lg px-2 py-1 text-[10.5px] transition-colors"
+                style={{ fontFamily: FONT.mono, background: COLOR.inner, color: COLOR.textBody, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+              >
+                {v}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-2">
-        <div className="flex flex-col h-full">
+      {/* ── Body: HTML + preview ─────────────── */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 overflow-hidden">
+        {/* Code pane */}
+        <div className="flex flex-col h-full min-h-0">
           <div
-            className="flex items-center justify-between px-3 md:px-4 py-2 md:py-2.5"
-            style={{ background: COLOR.bg, borderBottom: `1px solid ${COLOR.border}`, borderRight: `1px solid ${COLOR.border}` }}
+            className="flex items-center justify-between px-4 py-2.5 flex-shrink-0"
+            style={{ background: COLOR.bg, borderBottom: `1px solid ${COLOR.border}` }}
           >
-            <div className="flex items-center gap-1.5 md:gap-2">
-              <Code2 size={12} style={{ color: COLOR.textMuted }} />
-              <span style={{ color: COLOR.textMuted }} className="text-[10px] md:text-xs font-medium">HTML</span>
+            <div className="flex items-center gap-2">
+              <Code2 size={13} style={{ color: COLOR.textMuted }} />
+              <span className="text-[11.5px] font-medium uppercase tracking-widest" style={{ color: COLOR.textMuted }}>HTML</span>
             </div>
-            <span className="text-[8px] md:text-[9px]" style={{ color: COLOR.textMuted }}>
-              {template.html.length} chars
+            <span className="text-[11px]" style={{ color: COLOR.textMuted, fontFamily: FONT.mono }}>
+              {template.html.length.toLocaleString()} chars
             </span>
           </div>
           <textarea
@@ -424,81 +426,108 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
             value={template.html}
             onChange={(e) => updateTemplate({ html: e.target.value })}
             spellCheck={false}
-            className="flex-1 w-full resize-none p-3 md:p-4 text-[10px] md:text-[12px] leading-relaxed outline-none"
-            style={{ fontFamily: FONT.mono, background: COLOR.bg, color: COLOR.textBody, borderRight: `1px solid ${COLOR.border}` }}
+            className="flex-1 w-full resize-none p-4 text-[12px] leading-relaxed outline-none"
+            style={{ fontFamily: FONT.mono, background: COLOR.bg, color: COLOR.textBody }}
           />
         </div>
 
-        <div className="flex flex-col h-full">
+        {/* Preview pane */}
+        <div className="flex flex-col h-full min-h-0" style={{ borderLeft: `1px solid ${COLOR.border}` }}>
           <div
-            className="flex items-center justify-between px-3 md:px-4 py-2 md:py-2.5"
+            className="flex items-center justify-between px-4 py-2.5 flex-shrink-0"
             style={{ background: COLOR.bg, borderBottom: `1px solid ${COLOR.border}` }}
           >
-            <div className="flex items-center gap-1.5 md:gap-2">
-              <Eye size={12} style={{ color: COLOR.textMuted }} />
-              <span style={{ color: COLOR.textMuted }} className="text-[10px] md:text-xs font-medium">Preview</span>
+            <div className="flex items-center gap-2">
+              <Eye size={13} style={{ color: COLOR.textMuted }} />
+              <span className="text-[11.5px] font-medium uppercase tracking-widest" style={{ color: COLOR.textMuted }}>Preview</span>
             </div>
-            <div className="flex items-center gap-0.5 rounded-lg p-0.5" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-              <button
-                onClick={() => setDevice("desktop")}
-                className="rounded-md p-1 md:p-1.5 transition"
-                style={{
-                  background: device === "desktop" ? COLOR.primary : "transparent",
-                  color: device === "desktop" ? COLOR.bg : COLOR.textMuted,
-                }}
-              >
-                <Monitor size={12} />
-              </button>
-              <button
-                onClick={() => setDevice("mobile")}
-                className="rounded-md p-1 md:p-1.5 transition"
-                style={{
-                  background: device === "mobile" ? COLOR.primary : "transparent",
-                  color: device === "mobile" ? COLOR.bg : COLOR.textMuted,
-                }}
-              >
-                <Smartphone size={12} />
-              </button>
+
+            <div
+              className="inline-flex items-center gap-1 p-1 rounded-2xl"
+              style={{ background: COLOR.surface, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+            >
+              {([
+                { id: "desktop", icon: Monitor },
+                { id: "tablet", icon: Tablet },
+                { id: "mobile", icon: Smartphone },
+              ] as { id: Device; icon: React.ElementType }[]).map(({ id, icon: Icon }) => {
+                const active = device === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setDevice(id)}
+                    className="rounded-xl p-1.5 transition-all"
+                    style={{
+                      background: active ? "#1B2130" : "transparent",
+                      color: active ? COLOR.dark : COLOR.textMuted,
+                      boxShadow: active ? "inset 0 0 0 1px rgba(255,255,255,0.05)" : "none",
+                    }}
+                    aria-label={`${id} preview`}
+                  >
+                    <Icon size={13} />
+                  </button>
+                );
+              })}
             </div>
           </div>
-          <div className="flex-1 overflow-auto p-3 md:p-4" style={{ background: COLOR.bg }}>
+
+          <div className="flex-1 overflow-auto p-4 flex items-start justify-center" style={{ background: COLOR.inner }}>
             <iframe
               title="Template preview"
               srcDoc={template.html}
               sandbox=""
-              className={`h-full rounded-lg bg-white shadow-lg transition-all mx-auto ${
-                device === "mobile" ? "w-[280px] md:w-[375px]" : "w-full max-w-[600px]"
-              }`}
-              style={{ border: `1px solid ${COLOR.border}` }}
+              className="w-full h-full rounded-2xl bg-white transition-all"
+              style={{
+                border: `1px solid ${COLOR.border}`,
+                boxShadow: "0 30px 60px -20px rgba(0,0,0,0.6)",
+                maxWidth: device === "mobile" ? 390 : device === "tablet" ? 768 : "100%",
+              }}
             />
           </div>
         </div>
       </div>
 
+      {/* ── Delete confirm ─────────────────── */}
       {showDeleteConfirm && onDelete && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: "rgba(14,16,19,0.7)" }}>
-          <div className="w-full max-w-md rounded-2xl shadow-2xl" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-            <div className="p-4 md:p-6" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
-              <h3 className="text-base md:text-lg font-semibold" style={{ color: COLOR.dark }}>Delete Template?</h3>
-              <p className="text-[10px] md:text-sm" style={{ color: COLOR.textMuted }}>This action cannot be undone.</p>
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-3xl overflow-hidden soft-ring modal-pop"
+            style={{ background: COLOR.surface }}
+          >
+            <div className="p-5 md:p-6 border-b" style={{ borderColor: COLOR.border }}>
+              <div className="flex items-start gap-3.5">
+                <div
+                  className="shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
+                  style={{ background: COLOR.dangerSoft, boxShadow: `inset 0 0 0 1px ${COLOR.dangerRing}` }}
+                >
+                  <Trash2 size={18} style={{ color: COLOR.danger }} />
+                </div>
+                <div className="min-w-0">
+                  <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-bold text-white">Delete template?</h3>
+                  <p className="text-[12.5px] mt-0.5" style={{ color: COLOR.textMuted }}>
+                    This action cannot be undone.
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-end gap-2 md:gap-3 p-4 md:p-6">
+            <div className="flex items-center justify-end gap-2 p-4 md:p-5">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="rounded-lg px-3 md:px-4 py-1.5 md:py-2 text-[10px] md:text-sm font-medium transition hover:opacity-90"
-                style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
+                className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-colors"
+                style={{ background: COLOR.inner, color: COLOR.textBody, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
               >
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  onDelete();
-                  onClose();
-                }}
-                className="rounded-lg px-3 md:px-4 py-1.5 md:py-2 text-[10px] md:text-sm font-medium transition hover:opacity-90"
-                style={{ background: COLOR.danger, color: COLOR.bg }}
+                onClick={() => { onDelete(); onClose(); }}
+                className="inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold"
+                style={{ background: COLOR.danger, color: "#0B0E13", boxShadow: "0 12px 30px -12px rgba(248,113,113,0.55)" }}
               >
-                Delete
+                <Trash2 size={13} /> Delete
               </button>
             </div>
           </div>
@@ -508,14 +537,55 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
   );
 };
 
-/* ========================================================= */
-/* Main List Page — NOW USES CONTEXT                         */
-/* ========================================================= */
+/* ─────────────── Stat tile ─────────────── */
+
+const StatCard: React.FC<{
+  title: string;
+  value: string;
+  description: string;
+  icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>;
+  accent: string;
+  accentSoft: string;
+  accentRing: string;
+}> = ({ title, value, description, icon: Icon, accent, accentSoft, accentRing }) => (
+  <div className="rounded-3xl p-4 md:p-5 soft-ring" style={{ background: "linear-gradient(180deg, #141821 0%, #10141D 100%)" }}>
+    <div className="flex items-start justify-between mb-3">
+      <div
+        className="w-9 h-9 rounded-xl flex items-center justify-center"
+        style={{ background: accentSoft, boxShadow: `inset 0 0 0 1px ${accentRing}` }}
+      >
+        <Icon size={15} style={{ color: accent }} />
+      </div>
+    </div>
+    <p className="text-[26px] font-bold leading-none tracking-tight" style={{ fontFamily: FONT.mono, color: COLOR.dark }}>
+      {value}
+    </p>
+    <p className="text-[12.5px] mt-2" style={{ color: COLOR.textBody }}>{title}</p>
+    <p className="text-[11px] mt-0.5" style={{ color: COLOR.textMuted }}>{description}</p>
+  </div>
+);
+
+/* ─────────────── Filter pill ─────────────── */
+
+const FilterPill: React.FC<{ label: string; active: boolean; onClick: () => void; small?: boolean }> = ({ label, active, onClick, small }) => (
+  <button
+    onClick={onClick}
+    className={`rounded-full px-3 ${small ? "py-1 text-[11px]" : "py-1.5 text-[12px]"} font-medium transition-all`}
+    style={{
+      background: active ? "#1B2130" : COLOR.inner,
+      color: active ? COLOR.dark : COLOR.textMuted,
+      boxShadow: active ? "inset 0 0 0 1px rgba(255,255,255,0.05)" : `inset 0 0 0 1px ${COLOR.border}`,
+    }}
+  >
+    {label}
+  </button>
+);
+
+/* ─────────────── Main page ─────────────── */
 
 const EmailTemplatesAdmin = () => {
   const { templates: apiTemplates, loading, error, refetch } = useHtmlTemplates();
 
-  // Local working copy — lets the editor mutate without touching the context
   const [templates, setTemplates] = useState<Template[]>([]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<Category | "All">("All");
@@ -526,20 +596,23 @@ const EmailTemplatesAdmin = () => {
   const [generationPrompt, setGenerationPrompt] = useState("");
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
 
-  // Hydrate local state from context whenever the API data changes
   useEffect(() => {
     if (!apiTemplates) return;
     setTemplates(apiTemplates.map(mapApiTemplate));
   }, [apiTemplates]);
 
-  const filtered = templates.filter((t) => {
-    const matchesSearch =
-      t.name.toLowerCase().includes(search.toLowerCase()) ||
-      t.subject.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = categoryFilter === "All" || t.category === categoryFilter;
-    const matchesStatus = statusFilter === "All" || t.status === statusFilter;
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
+  const filtered = useMemo(
+    () =>
+      templates.filter((t) => {
+        const matchesSearch =
+          t.name.toLowerCase().includes(search.toLowerCase()) ||
+          t.subject.toLowerCase().includes(search.toLowerCase());
+        const matchesCategory = categoryFilter === "All" || t.category === categoryFilter;
+        const matchesStatus = statusFilter === "All" || t.status === statusFilter;
+        return matchesSearch && matchesCategory && matchesStatus;
+      }),
+    [templates, search, categoryFilter, statusFilter]
+  );
 
   const handleCreate = (name: string, subject: string, category: Category) => {
     const newId = nextId(templates);
@@ -557,15 +630,12 @@ const EmailTemplatesAdmin = () => {
     setEditingTemplate(created);
   };
 
-  const handleSaveTemplate = (saved: Template) => {
+  const handleSaveTemplate = (saved: Template) =>
     setTemplates((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
-  };
 
   const handleDeleteTemplate = (id: number) => {
     setTemplates((prev) => prev.filter((t) => t.id !== id));
-    if (editingTemplate?.id === id) {
-      setEditingTemplate(null);
-    }
+    if (editingTemplate?.id === id) setEditingTemplate(null);
   };
 
   const handleAIGenerate = () => {
@@ -616,7 +686,7 @@ const EmailTemplatesAdmin = () => {
     const newId = nextId(templates);
     const aiTemplate: Template = {
       id: newId,
-      name: `AI Generated: ${generationPrompt.substring(0, 30)}${generationPrompt.length > 30 ? '...' : ''}`,
+      name: `AI Generated: ${generationPrompt.substring(0, 30)}${generationPrompt.length > 30 ? "…" : ""}`,
       subject: generationPrompt,
       category: "Promotional",
       status: "Draft",
@@ -634,449 +704,412 @@ const EmailTemplatesAdmin = () => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-        .main-content::-webkit-scrollbar { width: 6px; }
-        .main-content::-webkit-scrollbar-track { background: transparent; }
-        .main-content::-webkit-scrollbar-thumb { background: ${COLOR.border}; border-radius: 3px; }
-        .main-content::-webkit-scrollbar-thumb:hover { background: ${COLOR.borderHover}; }
+        @keyframes ping { 75%, 100% { transform: scale(2.4); opacity: 0; } }
+        .ping { animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite; }
+        @keyframes floatIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .float-in { animation: floatIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        @keyframes modalPop { from { opacity: 0; transform: scale(0.98) translateY(6px); } to { opacity: 1; transform: none; } }
+        .modal-pop { animation: modalPop 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
 
-        .mf-card { transition: border-color 0.15s ease; }
-        .mf-card:hover { border-color: ${COLOR.borderHover}; }
-        .mf-row-btn { transition: background-color 0.12s ease; }
-        .mf-row-btn:hover { background-color: ${COLOR.surfaceHover}; }
-        .mf-input::placeholder { color: ${COLOR.textMuted}; }
-        .mf-input:focus, .mf-title-input:focus, .mf-select:focus {
-          border-color: ${COLOR.primary} !important;
-          box-shadow: 0 0 0 3px ${COLOR.primarySoft};
+        .etm-main::-webkit-scrollbar { width: 10px; }
+        .etm-main::-webkit-scrollbar-track { background: transparent; }
+        .etm-main::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 10px; border: 2px solid #0B0E13; }
+        .etm-main::-webkit-scrollbar-thumb:hover { background: #2A2F3B; }
+
+        .soft-ring { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 1px 0 rgba(255,255,255,0.02); }
+        .glow-top {
+          background:
+            radial-gradient(900px 240px at 50% -80px, rgba(255,106,57,0.10), transparent 70%),
+            radial-gradient(700px 200px at 20% -60px, rgba(52,211,153,0.06), transparent 70%);
         }
-        .sidebar-overlay { animation: fadeIn 0.2s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .sidebar-slide { animation: slideIn 0.25s ease-out; }
-        @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+        select option { background: #141821; color: #E8E6E1; }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .mf-spin { animation: spin 0.8s linear infinite; }
+        textarea::-webkit-scrollbar { width: 10px; }
+        textarea::-webkit-scrollbar-track { background: transparent; }
+        textarea::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 8px; }
       `}</style>
 
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
+          className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <div className={`
-        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        sidebar-slide
       `}>
         <AdminSidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      <main className="main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8 h-screen w-full" style={{ background: COLOR.bg }}>
-        {/* Header */}
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3 md:gap-4">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
-            >
-              <Menu size={20} />
-            </button>
-            <div>
-              <p
-                style={{ fontFamily: FONT.mono, color: COLOR.textMuted }}
-                className="text-[10px] md:text-[11px] font-medium uppercase tracking-wider"
-              >
-                Content
-              </p>
-              <h1
-                style={{ fontFamily: FONT.display, color: COLOR.dark, letterSpacing: "-0.01em" }}
-                className="mt-0.5 md:mt-1 text-lg md:text-xl lg:text-2xl font-semibold"
-              >
-                Email Templates
-              </h1>
-              <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm" style={{ color: COLOR.textMuted }}>
-                Build and manage the HTML templates used across your campaigns.
-              </p>
-            </div>
-          </div>
+      <main className="etm-main flex-1 overflow-y-auto" style={{ background: COLOR.bg, height: "100vh", width: "100%" }}>
+        <div className="glow-top">
+          <div className="max-w-[1320px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
 
-          <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full sm:w-auto">
-            <button
-              onClick={refetch}
-              className="flex items-center justify-center gap-1.5 md:gap-2 rounded-lg px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium transition hover:opacity-90 flex-1 sm:flex-none"
-              style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
-            >
-              <Loader2 size={14} className={loading ? "mf-spin" : ""} />
-              <span className="hidden xs:inline">Refresh</span>
-            </button>
-            <button
-              onClick={() => setShowAIGenerate(true)}
-              className="flex items-center justify-center gap-1.5 md:gap-2 rounded-lg px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium transition hover:opacity-90 flex-1 sm:flex-none"
-              style={{ background: COLOR.warningSoft, color: COLOR.warning }}
-            >
-              <Sparkles size={14} />
-              <span className="hidden xs:inline">AI Generate</span>
-              <span className="xs:hidden">AI</span>
-            </button>
-            <button
-              onClick={() => setShowNewModal(true)}
-              className="flex items-center justify-center gap-1.5 md:gap-2 rounded-lg px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium transition hover:opacity-90 flex-1 sm:flex-none"
-              style={{ background: COLOR.primary, color: COLOR.bg }}
-            >
-              <Plus size={14} />
-              <span className="hidden xs:inline">New Template</span>
-              <span className="xs:hidden">New</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="mb-6 grid grid-cols-1 gap-2.5 md:gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            title="Total Templates"
-            value={String(templates.length)}
-            description="Across all categories"
-            icon={LayoutTemplate}
-            accent={COLOR.neutral}
-            accentSoft={COLOR.neutralSoft}
-          />
-          <StatCard
-            title="Published"
-            value={String(templates.filter((t) => t.status === "Published").length)}
-            description="Live and in use"
-            icon={CheckCircle2}
-            accent={COLOR.success}
-            accentSoft={COLOR.successSoft}
-          />
-          <StatCard
-            title="Drafts"
-            value={String(templates.filter((t) => t.status === "Draft").length)}
-            description="Not yet published"
-            icon={Clock}
-            accent={COLOR.warning}
-            accentSoft={COLOR.warningSoft}
-          />
-          <StatCard
-            title="Categories"
-            value={String(categories.length)}
-            description="Welcome, Promo, News, Txn"
-            icon={FileCode}
-            accent={COLOR.primary}
-            accentSoft={COLOR.primarySoft}
-          />
-        </div>
-
-        {/* Filters & List */}
-        <div className="rounded-xl" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-          <div className="p-3 md:p-4" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
-            <div className="relative mb-2.5 md:mb-3">
-              <Search
-                size={13}
-                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2"
-                style={{ color: COLOR.textMuted }}
-              />
-              <input
-                type="text"
-                placeholder="Search templates…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="mf-input w-full rounded-lg py-1.5 md:py-2 pl-7 md:pl-8 pr-2.5 md:pr-3 text-[10px] md:text-xs outline-none transition"
-                style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
-              />
-            </div>
-            <div className="flex flex-wrap gap-1">
-              <FilterChip label="All" active={categoryFilter === "All"} onClick={() => setCategoryFilter("All")} />
-              {categories.map((c) => (
-                <FilterChip
-                  key={c}
-                  label={c}
-                  active={categoryFilter === c}
-                  onClick={() => setCategoryFilter(c)}
-                />
-              ))}
-            </div>
-            <div className="flex gap-1 mt-2">
-              <FilterChipSmall label="All" active={statusFilter === "All"} onClick={() => setStatusFilter("All")} />
-              <FilterChipSmall label="Published" active={statusFilter === "Published"} onClick={() => setStatusFilter("Published")} />
-              <FilterChipSmall label="Draft" active={statusFilter === "Draft"} onClick={() => setStatusFilter("Draft")} />
-            </div>
-          </div>
-
-          {/* Template Grid */}
-          <div className="p-3 md:p-4">
-            {/* Loading */}
-            {loading && templates.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-8 md:py-12 text-center">
-                <Loader2 size={28} className="mf-spin mb-3" style={{ color: COLOR.textMuted }} />
-                <p className="text-sm" style={{ color: COLOR.textMuted }}>Loading templates…</p>
+            {/* ── Header ─────────────────────────── */}
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
+              <div className="flex items-start gap-3 md:gap-4">
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden mt-1 p-2 rounded-2xl text-[#C7C9CE] transition-colors soft-ring"
+                  style={{ background: COLOR.surface }}
+                >
+                  <Menu size={18} />
+                </button>
+                <div>
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <span className="text-[10px] font-medium tracking-widest uppercase" style={{ color: COLOR.textMuted }}>Content</span>
+                    <ChevronRight size={10} style={{ color: "#3A3F4A" }} />
+                    <span className="text-[10px] font-medium tracking-widest uppercase" style={{ color: COLOR.primary }}>Templates</span>
+                  </div>
+                  <h1
+                    style={{ fontFamily: FONT.display, letterSpacing: "-0.025em" }}
+                    className="text-[28px] md:text-[34px] lg:text-[40px] font-bold leading-[1.05]"
+                  >
+                    <span style={{ color: COLOR.dark }}>Email templates</span>
+                  </h1>
+                  <p className="mt-2 text-[14px] md:text-[15px] max-w-lg" style={{ color: COLOR.textMuted }}>
+                    Build and manage the HTML templates used across every campaign.
+                  </p>
+                </div>
               </div>
-            )}
 
-            {/* Error */}
-            {!loading && error && templates.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-8 md:py-12 text-center">
-                <AlertTriangle size={28} className="mb-3" style={{ color: COLOR.danger }} />
-                <p className="text-sm font-medium" style={{ color: COLOR.danger }}>
-                  Couldn't load templates
-                </p>
-                <p className="text-xs mt-1 mb-3" style={{ color: COLOR.textMuted }}>{error}</p>
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={refetch}
-                  className="rounded-lg px-3 py-1.5 text-xs font-medium transition hover:opacity-90"
-                  style={{ background: COLOR.primary, color: COLOR.bg }}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-[13px] font-medium transition-all soft-ring hover:-translate-y-0.5"
+                  style={{ background: COLOR.surface, color: COLOR.textBody }}
                 >
-                  Try again
+                  <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+                  <span className="hidden sm:inline">Refresh</span>
+                </button>
+                <button
+                  onClick={() => setShowAIGenerate(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-[13px] font-semibold transition-all hover:-translate-y-0.5"
+                  style={{
+                    background: COLOR.warningSoft,
+                    color: COLOR.warning,
+                    boxShadow: `inset 0 0 0 1px ${COLOR.warningRing}`,
+                  }}
+                >
+                  <Sparkles size={14} />
+                  <span className="hidden sm:inline">AI generate</span>
+                </button>
+                <button
+                  onClick={() => setShowNewModal(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5"
+                  style={{ background: COLOR.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.65)" }}
+                >
+                  <Plus size={14} /> New template
                 </button>
               </div>
-            )}
+            </header>
 
-            {/* Empty (no data at all) */}
-            {!loading && !error && templates.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-8 md:py-12 text-center">
-                <Inbox size={32} style={{ color: COLOR.textMuted }} className="mb-3" />
-                <p className="text-sm" style={{ color: COLOR.textMuted }}>No templates yet</p>
-                <p className="text-xs mt-1" style={{ color: COLOR.textMuted }}>
-                  Create your first template to get started.
-                </p>
-              </div>
-            )}
+            {/* ── Stats ──────────────────────────── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+              <StatCard title="Total templates" value={String(templates.length)} description="Across all categories" icon={LayoutTemplate} accent={COLOR.neutral} accentSoft={COLOR.neutralSoft} accentRing={COLOR.neutralRing} />
+              <StatCard title="Published"       value={String(templates.filter((t) => t.status === "Published").length)} description="Live and in use" icon={CheckCircle2} accent={COLOR.success} accentSoft={COLOR.successSoft} accentRing={COLOR.successRing} />
+              <StatCard title="Drafts"          value={String(templates.filter((t) => t.status === "Draft").length)} description="Not yet published" icon={Clock} accent={COLOR.warning} accentSoft={COLOR.warningSoft} accentRing={COLOR.warningRing} />
+              <StatCard title="Categories"      value={String(categories.length)} description="Welcome · Promo · News · Txn" icon={FileCode} accent={COLOR.primary} accentSoft={COLOR.primarySoft} accentRing={COLOR.primaryRing} />
+            </div>
 
-            {/* Empty (filtered out) */}
-            {!loading && !error && templates.length > 0 && filtered.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-8 md:py-12 text-center">
-                <Inbox size={32} style={{ color: COLOR.textMuted }} className="mb-3" />
-                <p className="text-sm" style={{ color: COLOR.textMuted }}>No templates match your filters</p>
-                <p className="text-xs mt-1" style={{ color: COLOR.textMuted }}>Try adjusting your search or filters</p>
-              </div>
-            )}
-
-            {/* Grid */}
-            {filtered.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
-                {filtered.map((t) => (
+            {/* ── Filters ────────────────────────── */}
+            <div className="rounded-3xl p-3 md:p-4 mb-6 md:mb-8 soft-ring" style={{ background: COLOR.surface }}>
+              <div
+                className="flex items-center gap-2 rounded-2xl px-3.5 py-2.5 transition-all"
+                style={{ background: COLOR.inner, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+                onFocusCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px rgba(255,106,57,0.5), 0 0 0 4px rgba(255,106,57,0.10)`)}
+                onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${COLOR.border}`)}
+              >
+                <Search size={14} style={{ color: COLOR.textMuted }} className="shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search templates by name or subject…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full bg-transparent text-[13.5px] outline-none"
+                  style={{ color: COLOR.textBody }}
+                />
+                {search && (
                   <button
-                    key={t.id}
-                    onClick={() => setEditingTemplate(t)}
-                    className="mf-card rounded-xl p-3 md:p-4 text-left transition"
-                    style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}` }}
+                    onClick={() => setSearch("")}
+                    className="shrink-0 text-[10px] px-1.5 py-0.5 rounded transition-colors hover:bg-[#1B2130]"
+                    style={{ color: COLOR.textMuted }}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] md:text-xs font-medium truncate" style={{ color: COLOR.dark }}>
-                          {t.name}
-                        </p>
-                        <p className="text-[8px] md:text-[9px] truncate mt-0.5" style={{ color: COLOR.textMuted }}>
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10.5px] uppercase tracking-wider mr-1" style={{ color: COLOR.textMuted }}>Category</span>
+                <FilterPill label="All" active={categoryFilter === "All"} onClick={() => setCategoryFilter("All")} small />
+                {categories.map((c) => (
+                  <FilterPill key={c} label={c} active={categoryFilter === c} onClick={() => setCategoryFilter(c)} small />
+                ))}
+              </div>
+
+              <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10.5px] uppercase tracking-wider mr-1" style={{ color: COLOR.textMuted }}>Status</span>
+                <FilterPill label="All"       active={statusFilter === "All"}       onClick={() => setStatusFilter("All")}       small />
+                <FilterPill label="Published" active={statusFilter === "Published"} onClick={() => setStatusFilter("Published")} small />
+                <FilterPill label="Draft"     active={statusFilter === "Draft"}     onClick={() => setStatusFilter("Draft")}     small />
+              </div>
+            </div>
+
+            {/* ── Content ────────────────────────── */}
+            {loading && templates.length === 0 ? (
+              <div className="rounded-3xl p-14 flex flex-col items-center justify-center soft-ring" style={{ background: COLOR.surface }}>
+                <Loader2 size={26} className="animate-spin" style={{ color: COLOR.primary }} />
+                <p className="mt-3 text-[13px]" style={{ color: COLOR.textMuted }}>Loading templates…</p>
+              </div>
+            ) : !loading && error && templates.length === 0 ? (
+              <div className="rounded-3xl p-12 flex flex-col items-center justify-center text-center soft-ring" style={{ background: COLOR.surface }}>
+                <div className="w-14 h-14 mb-4 rounded-2xl flex items-center justify-center"
+                  style={{ background: COLOR.dangerSoft, boxShadow: `inset 0 0 0 1px ${COLOR.dangerRing}` }}>
+                  <AlertTriangle size={26} style={{ color: COLOR.danger }} />
+                </div>
+                <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-semibold" ><span style={{ color: COLOR.dark }}>Couldn't load templates</span></h3>
+                <p className="mt-2 text-[13px] max-w-md" style={{ color: COLOR.textMuted }}>{error}</p>
+                <button
+                  onClick={refetch}
+                  className="mt-5 inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
+                  style={{ background: COLOR.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.6)" }}
+                >
+                  <RefreshCw size={13} /> Try again
+                </button>
+              </div>
+            ) : templates.length === 0 ? (
+              <div className="rounded-3xl p-12 flex flex-col items-center justify-center text-center soft-ring" style={{ background: COLOR.surface }}>
+                <div className="w-14 h-14 mb-4 rounded-2xl flex items-center justify-center"
+                  style={{ background: COLOR.primarySoft, boxShadow: `inset 0 0 0 1px ${COLOR.primaryRing}` }}>
+                  <Inbox size={26} style={{ color: COLOR.primary }} />
+                </div>
+                <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-semibold"><span style={{ color: COLOR.dark }}>No templates yet</span></h3>
+                <p className="mt-2 text-[13px]" style={{ color: COLOR.textMuted }}>Create your first template to get started.</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="rounded-3xl p-12 flex flex-col items-center justify-center text-center soft-ring" style={{ background: COLOR.surface }}>
+                <div className="w-14 h-14 mb-4 rounded-2xl flex items-center justify-center"
+                  style={{ background: COLOR.neutralSoft, boxShadow: `inset 0 0 0 1px ${COLOR.neutralRing}` }}>
+                  <Inbox size={26} style={{ color: COLOR.neutral }} />
+                </div>
+                <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-semibold"><span style={{ color: COLOR.dark }}>No templates match</span></h3>
+                <p className="mt-2 text-[13px] mb-5" style={{ color: COLOR.textMuted }}>Try adjusting your search or filters.</p>
+                <button
+                  onClick={() => { setSearch(""); setCategoryFilter("All"); setStatusFilter("All"); }}
+                  className="text-[12.5px] font-medium"
+                  style={{ color: COLOR.primary }}
+                >
+                  Clear filters
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filtered.map((t, i) => {
+                  const published = t.status === "Published";
+                  const meta = published
+                    ? { fg: COLOR.success, bg: COLOR.successSoft, ring: COLOR.successRing, label: "Published" }
+                    : { fg: COLOR.warning, bg: COLOR.warningSoft, ring: COLOR.warningRing, label: "Draft" };
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setEditingTemplate(t)}
+                      className="group float-in rounded-3xl overflow-hidden soft-ring text-left transition-all hover:-translate-y-0.5"
+                      style={{ background: "linear-gradient(180deg, #141821 0%, #10141D 100%)", animationDelay: `${Math.min(i * 20, 200)}ms` }}
+                    >
+                      {/* preview */}
+                      <div
+                        className="relative h-40 overflow-hidden"
+                        style={{
+                          background:
+                            "radial-gradient(280px 160px at 20% -20%, rgba(255,106,57,0.10), transparent 60%), #0F131C",
+                        }}
+                      >
+                        {t.html ? (
+                          <div
+                            className="origin-top-left"
+                            style={{
+                              width: "1280px",
+                              height: "1280px",
+                              transform: "scale(0.30)",
+                              transformOrigin: "top left",
+                              pointerEvents: "none",
+                            }}
+                          >
+                            <iframe
+                              title={`preview-${t.id}`}
+                              srcDoc={t.html}
+                              sandbox=""
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full border-0"
+                              style={{ background: "#fff" }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center p-4">
+                            <FileCode size={22} style={{ color: COLOR.textMuted }} />
+                          </div>
+                        )}
+
+                        <span
+                          className="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-medium"
+                          style={{
+                            background: "rgba(11,14,18,0.78)",
+                            backdropFilter: "blur(6px)",
+                            color: meta.fg,
+                            boxShadow: `inset 0 0 0 1px ${meta.ring}`,
+                          }}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: meta.fg, boxShadow: `0 0 6px ${meta.fg}` }} />
+                          {meta.label}
+                        </span>
+                      </div>
+
+                      {/* meta */}
+                      <div className="p-4">
+                        <p className="text-[13.5px] font-semibold truncate" style={{ color: COLOR.dark }}>{t.name}</p>
+                        <p className="text-[11.5px] truncate mt-0.5" style={{ color: COLOR.textMuted, fontFamily: FONT.mono }}>
                           {t.subject || "(no subject)"}
                         </p>
+
+                        <div className="mt-4 flex items-center justify-between gap-2">
+                          <span
+                            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-[10.5px]"
+                            style={{ background: COLOR.inner, color: COLOR.textBody, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+                          >
+                            <Tag size={10} /> {t.category}
+                          </span>
+                          <span className="text-[10.5px]" style={{ color: COLOR.textMuted, fontFamily: FONT.mono }}>
+                            {t.updatedAt}
+                          </span>
+                        </div>
                       </div>
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{ background: t.status === "Published" ? COLOR.success : COLOR.warning }}
-                        title={t.status}
-                      />
-                    </div>
-                    <div className="mt-2 flex flex-wrap items-center justify-between gap-1">
-                      <span
-                        className="rounded-md px-1.5 py-0.5 text-[7px] md:text-[8px] font-medium"
-                        style={{ background: COLOR.surface, color: COLOR.textBody, border: `1px solid ${COLOR.border}` }}
-                      >
-                        {t.category}
-                      </span>
-                      <span className="text-[7px] md:text-[8px]" style={{ color: COLOR.textMuted }}>
-                        {t.updatedAt}
-                      </span>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
-
-        {showNewModal && (
-          <NewTemplateModal onClose={() => setShowNewModal(false)} onCreate={handleCreate} />
-        )}
-
-        {showAIGenerate && (
-          <AIGenerateModal
-            onClose={() => setShowAIGenerate(false)}
-            onGenerate={handleAIGenerate}
-            prompt={generationPrompt}
-            setPrompt={setGenerationPrompt}
-          />
-        )}
-
-        {editingTemplate && (
-          <TemplateEditor
-            template={editingTemplate}
-            onSave={handleSaveTemplate}
-            onClose={() => setEditingTemplate(null)}
-            onDelete={() => handleDeleteTemplate(editingTemplate.id)}
-          />
-        )}
       </main>
+
+      {/* ── Modals ─────────────────────────────── */}
+      {showNewModal && <NewTemplateModal onClose={() => setShowNewModal(false)} onCreate={handleCreate} />}
+      {showAIGenerate && (
+        <AIGenerateModal
+          onClose={() => setShowAIGenerate(false)}
+          onGenerate={handleAIGenerate}
+          prompt={generationPrompt}
+          setPrompt={setGenerationPrompt}
+        />
+      )}
+      {editingTemplate && (
+        <TemplateEditor
+          template={editingTemplate}
+          onSave={handleSaveTemplate}
+          onClose={() => setEditingTemplate(null)}
+          onDelete={() => handleDeleteTemplate(editingTemplate.id)}
+        />
+      )}
     </div>
   );
 };
 
-/* ========================================================= */
-/* Stat Card (unchanged)                                     */
-/* ========================================================= */
+/* ─────────────── New template modal ─────────────── */
 
-interface StatCardProps {
-  title: string;
-  value: string;
-  description: string;
-  icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>;
-  accent: string;
-  accentSoft: string;
-}
-
-const StatCard = ({ title, value, description, icon: Icon, accent, accentSoft }: StatCardProps) => (
-  <div
-    className="mf-card rounded-xl p-3 md:p-4 lg:p-5 transition"
-    style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}
-  >
-    <div className="flex items-start justify-between">
-      <p className="text-[9px] md:text-[10px] lg:text-sm" style={{ color: COLOR.textMuted }}>{title}</p>
-      <span className="flex h-5 w-5 md:h-7 md:w-7 lg:h-8 lg:w-8 items-center justify-center rounded-lg" style={{ background: accentSoft }}>
-        <Icon size={11} className="md:w-[12px] md:h-[12px] lg:w-[13px] lg:h-[13px]" style={{ color: accent }} />
-      </span>
-    </div>
-    <h2 style={{ fontFamily: FONT.mono, color: COLOR.dark }} className="mt-1.5 md:mt-2 lg:mt-3 text-base md:text-xl lg:text-2xl font-semibold tracking-tight">
-      {value}
-    </h2>
-    <p className="mt-0.5 md:mt-1 text-[8px] md:text-[9px] lg:text-xs" style={{ color: COLOR.textMuted }}>{description}</p>
-  </div>
-);
-
-/* ========================================================= */
-/* Filter Chips (unchanged)                                  */
-/* ========================================================= */
-
-const FilterChip = ({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) => (
-  <button
-    onClick={onClick}
-    className="rounded-full px-1.5 md:px-2.5 py-0.5 text-[8px] md:text-[10px] lg:text-[11px] font-medium transition"
-    style={{
-      background: active ? COLOR.primary : COLOR.bg,
-      color: active ? COLOR.bg : COLOR.textBody,
-      border: `1px solid ${active ? COLOR.primary : COLOR.border}`,
-    }}
-  >
-    {label}
-  </button>
-);
-
-const FilterChipSmall = ({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) => (
-  <button
-    onClick={onClick}
-    className="rounded-full px-1.5 md:px-2 py-0.5 text-[7px] md:text-[8px] lg:text-[10px] font-medium transition"
-    style={{
-      background: active ? COLOR.primary : COLOR.bg,
-      color: active ? COLOR.bg : COLOR.textBody,
-      border: `1px solid ${active ? COLOR.primary : COLOR.border}`,
-    }}
-  >
-    {label}
-  </button>
-);
-
-/* ========================================================= */
-/* New Template Modal (unchanged)                            */
-/* ========================================================= */
-
-const NewTemplateModal = ({
-  onClose,
-  onCreate,
-}: {
+const NewTemplateModal: React.FC<{
   onClose: () => void;
   onCreate: (name: string, subject: string, category: Category) => void;
-}) => {
+}> = ({ onClose, onCreate }) => {
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [category, setCategory] = useState<Category>("Welcome");
 
+  const inputStyle: React.CSSProperties = {
+    background: COLOR.inner,
+    color: COLOR.textBody,
+    boxShadow: `inset 0 0 0 1px ${COLOR.border}`,
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: "rgba(14,16,19,0.6)" }}>
-      <div className="w-full max-w-lg rounded-2xl shadow-2xl" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-        <div className="flex items-center justify-between p-4 md:p-6" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
-          <div className="flex items-center gap-2 md:gap-3">
-            <span className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-lg" style={{ background: COLOR.primarySoft, color: COLOR.primary }}>
-              <LayoutTemplate size={14} />
-            </span>
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg rounded-3xl overflow-hidden soft-ring modal-pop"
+        style={{ background: COLOR.surface }}
+      >
+        <div className="flex items-start justify-between gap-3 p-5 md:p-6 border-b" style={{ borderColor: COLOR.border }}>
+          <div className="flex items-start gap-3.5">
+            <div
+              className="shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center"
+              style={{ background: COLOR.primarySoft, boxShadow: `inset 0 0 0 1px ${COLOR.primaryRing}` }}
+            >
+              <LayoutTemplate size={16} style={{ color: COLOR.primary }} />
+            </div>
             <div>
-              <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-sm md:text-base font-semibold">
-                New Template
-              </h2>
-              <p className="text-[10px] md:text-xs" style={{ color: COLOR.textMuted }}>Start from a category-matched boilerplate.</p>
+              <h2 style={{ fontFamily: FONT.display }} className="text-[16px] font-bold text-white">New template</h2>
+              <p className="text-[12px] mt-0.5" style={{ color: COLOR.textMuted }}>
+                Start from a category-matched boilerplate.
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 md:p-2 transition" style={{ color: COLOR.textMuted }}>
-            <X size={14} />
+          <button
+            onClick={onClose}
+            className="shrink-0 p-2 rounded-2xl transition-colors"
+            style={{ background: COLOR.inner, color: COLOR.textMuted, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+            aria-label="Close"
+          >
+            <X size={15} />
           </button>
         </div>
 
-        <div className="space-y-3 md:space-y-5 p-4 md:p-6">
+        <div className="p-5 md:p-6 space-y-4">
           <div>
-            <label className="mb-1 md:mb-2 block text-[10px] md:text-sm font-medium" style={{ color: COLOR.textBody }}>
-              Template Name
-            </label>
+            <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: COLOR.textBody }}>Template name</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Cart Abandonment — Reminder"
-              className="mf-input w-full rounded-lg px-2.5 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-sm outline-none transition"
-              style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
+              className="w-full rounded-2xl px-3.5 py-2.5 text-[13px] outline-none transition-all"
+              style={inputStyle}
+              onFocus={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px rgba(255,106,57,0.5), 0 0 0 4px rgba(255,106,57,0.10)`)}
+              onBlur={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${COLOR.border}`)}
             />
           </div>
 
           <div>
-            <label className="mb-1 md:mb-2 block text-[10px] md:text-sm font-medium" style={{ color: COLOR.textBody }}>
-              Subject Line
-            </label>
+            <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: COLOR.textBody }}>Subject line</label>
             <input
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. You left something behind"
-              className="mf-input w-full rounded-lg px-2.5 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-sm outline-none transition"
-              style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
+              className="w-full rounded-2xl px-3.5 py-2.5 text-[13px] outline-none transition-all"
+              style={inputStyle}
+              onFocus={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px rgba(255,106,57,0.5), 0 0 0 4px rgba(255,106,57,0.10)`)}
+              onBlur={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${COLOR.border}`)}
             />
           </div>
 
           <div>
-            <label className="mb-1 md:mb-2 block text-[10px] md:text-sm font-medium" style={{ color: COLOR.textBody }}>
-              Category
-            </label>
-            <div className="grid grid-cols-2 gap-1.5 md:gap-2">
+            <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: COLOR.textBody }}>Category</label>
+            <div className="grid grid-cols-2 gap-2">
               {categories.map((c) => {
                 const active = category === c;
                 return (
                   <button
                     key={c}
                     onClick={() => setCategory(c)}
-                    className="rounded-lg border px-1.5 md:px-3 py-1.5 md:py-2.5 text-left text-[9px] md:text-sm font-medium transition"
+                    className="rounded-2xl px-3.5 py-2.5 text-[12.5px] font-medium text-left transition-all"
                     style={{
-                      borderColor: active ? COLOR.primary : COLOR.border,
-                      background: active ? COLOR.primarySoft : COLOR.bg,
+                      background: active ? COLOR.primarySoft : COLOR.inner,
                       color: active ? COLOR.primary : COLOR.textBody,
+                      boxShadow: `inset 0 0 0 1px ${active ? COLOR.primaryRing : COLOR.border}`,
                     }}
                   >
                     {c}
@@ -1087,20 +1120,20 @@ const NewTemplateModal = ({
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-end gap-1.5 md:gap-3 p-4 md:p-6" style={{ borderTop: `1px solid ${COLOR.border}` }}>
+        <div className="flex items-center justify-end gap-2 p-5 md:p-6 border-t" style={{ borderColor: COLOR.border }}>
           <button
             onClick={onClose}
-            className="rounded-lg px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-sm font-medium transition hover:opacity-90"
-            style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
+            className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-colors"
+            style={{ background: COLOR.inner, color: COLOR.textBody, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
           >
             Cancel
           </button>
           <button
             onClick={() => onCreate(name, subject, category)}
-            className="rounded-lg px-4 md:px-5 py-1.5 md:py-2.5 text-[10px] md:text-sm font-medium transition hover:opacity-90"
-            style={{ background: COLOR.primary, color: COLOR.bg }}
+            className="inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
+            style={{ background: COLOR.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.6)" }}
           >
-            Create Template
+            <Plus size={13} /> Create template
           </button>
         </div>
       </div>
@@ -1108,109 +1141,115 @@ const NewTemplateModal = ({
   );
 };
 
-/* ========================================================= */
-/* AI Generate Modal (unchanged)                             */
-/* ========================================================= */
+/* ─────────────── AI modal ─────────────── */
 
-const AIGenerateModal = ({
-  onClose,
-  onGenerate,
-  prompt,
-  setPrompt,
-}: {
+const AIGenerateModal: React.FC<{
   onClose: () => void;
   onGenerate: () => void;
   prompt: string;
   setPrompt: (value: string) => void;
-}) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{ background: "rgba(14,16,19,0.6)" }}>
-    <div className="w-full max-w-lg rounded-2xl shadow-2xl" style={{ background: COLOR.surface, border: `1px solid ${COLOR.border}` }}>
-      <div className="flex items-center justify-between p-4 md:p-6" style={{ borderBottom: `1px solid ${COLOR.border}` }}>
-        <div className="flex items-center gap-2 md:gap-3">
-          <span className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-lg" style={{ background: COLOR.warningSoft, color: COLOR.warning }}>
-            <Sparkles size={14} />
-          </span>
+}> = ({ onClose, onGenerate, prompt, setPrompt }) => {
+  const quickPrompts = [
+    { label: "Welcome", prompt: "A friendly welcome email for new users with a 20% discount" },
+    { label: "Promotion", prompt: "A promotional email announcing a flash sale with urgency" },
+    { label: "Newsletter", prompt: "A monthly newsletter with product updates and industry news" },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg rounded-3xl overflow-hidden soft-ring modal-pop"
+        style={{ background: COLOR.surface }}
+      >
+        <div className="flex items-start justify-between gap-3 p-5 md:p-6 border-b" style={{ borderColor: COLOR.border }}>
+          <div className="flex items-start gap-3.5">
+            <div
+              className="shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center"
+              style={{ background: COLOR.warningSoft, boxShadow: `inset 0 0 0 1px ${COLOR.warningRing}` }}
+            >
+              <Sparkles size={16} style={{ color: COLOR.warning }} />
+            </div>
+            <div>
+              <h2 style={{ fontFamily: FONT.display }} className="text-[16px] font-bold text-white">AI template generator</h2>
+              <p className="text-[12px] mt-0.5" style={{ color: COLOR.textMuted }}>
+                Describe what you want and we'll draft it.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="shrink-0 p-2 rounded-2xl transition-colors"
+            style={{ background: COLOR.inner, color: COLOR.textMuted, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+            aria-label="Close"
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        <div className="p-5 md:p-6 space-y-4">
           <div>
-            <h2 style={{ fontFamily: FONT.display, color: COLOR.dark }} className="text-sm md:text-base font-semibold">
-              AI Template Generator
-            </h2>
-            <p className="text-[10px] md:text-xs" style={{ color: COLOR.textMuted }}>Describe what you want and AI will generate it</p>
+            <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: COLOR.textBody }}>
+              What kind of email do you want?
+            </label>
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="e.g., A welcome email for new users with a 20% discount code…"
+              rows={4}
+              className="w-full rounded-2xl px-3.5 py-2.5 text-[13px] outline-none transition-all resize-none"
+              style={{ background: COLOR.inner, color: COLOR.textBody, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+              onFocus={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px rgba(255,106,57,0.5), 0 0 0 4px rgba(255,106,57,0.10)`)}
+              onBlur={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${COLOR.border}`)}
+            />
+            <p className="mt-1.5 inline-flex items-center gap-1 text-[11px]" style={{ color: COLOR.textMuted }}>
+              <AlertCircle size={11} />
+              Be specific about tone, purpose, and key messages.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] mr-1" style={{ color: COLOR.textMuted }}>Quick prompts</span>
+            {quickPrompts.map((p) => (
+              <button
+                key={p.label}
+                onClick={() => setPrompt(p.prompt)}
+                className="rounded-full px-2.5 py-1 text-[11px] transition-colors"
+                style={{ background: COLOR.inner, color: COLOR.textBody, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+              >
+                {p.label}
+              </button>
+            ))}
           </div>
         </div>
-        <button onClick={onClose} className="rounded-lg p-1.5 md:p-2 transition" style={{ color: COLOR.textMuted }}>
-          <X size={14} />
-        </button>
-      </div>
 
-      <div className="space-y-4 md:space-y-5 p-4 md:p-6">
-        <div>
-          <label className="mb-1.5 md:mb-2 block text-xs md:text-sm font-medium" style={{ color: COLOR.textBody }}>
-            What kind of email do you want?
-          </label>
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="e.g., A welcome email for new users with a 20% discount code..."
-            rows={4}
-            className="mf-input w-full rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm outline-none transition resize-none"
-            style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
-          />
-          <p className="mt-1.5 text-[9px] md:text-xs" style={{ color: COLOR.textMuted }}>
-            <AlertCircle size={12} className="inline mr-1" />
-            Be specific about the tone, purpose, and key messages.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-1.5">
-          <span className="text-[9px] md:text-xs font-medium" style={{ color: COLOR.textMuted }}>Quick prompts:</span>
+        <div className="flex items-center justify-end gap-2 p-5 md:p-6 border-t" style={{ borderColor: COLOR.border }}>
           <button
-            onClick={() => setPrompt("A friendly welcome email for new users with a 20% discount")}
-            className="rounded-full px-2 md:px-2.5 py-0.5 md:py-1 text-[8px] md:text-[10px] transition hover:opacity-80"
-            style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
+            onClick={onClose}
+            className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-colors"
+            style={{ background: COLOR.inner, color: COLOR.textBody, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
           >
-            Welcome
+            Cancel
           </button>
           <button
-            onClick={() => setPrompt("A promotional email announcing a flash sale with urgency")}
-            className="rounded-full px-2 md:px-2.5 py-0.5 md:py-1 text-[8px] md:text-[10px] transition hover:opacity-80"
-            style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
+            onClick={onGenerate}
+            disabled={!prompt.trim()}
+            className="inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed hover:-translate-y-0.5 disabled:hover:translate-y-0"
+            style={{
+              background: prompt.trim() ? COLOR.warning : COLOR.inner,
+              color: prompt.trim() ? "#0B0E13" : COLOR.textMuted,
+              boxShadow: prompt.trim() ? "0 12px 30px -12px rgba(251,191,36,0.55)" : `inset 0 0 0 1px ${COLOR.border}`,
+            }}
           >
-            Promotion
-          </button>
-          <button
-            onClick={() => setPrompt("A monthly newsletter with product updates and industry news")}
-            className="rounded-full px-2 md:px-2.5 py-0.5 md:py-1 text-[8px] md:text-[10px] transition hover:opacity-80"
-            style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
-          >
-            Newsletter
+            <Wand2 size={13} /> Generate template
           </button>
         </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row justify-end gap-2 md:gap-3 p-4 md:p-6" style={{ borderTop: `1px solid ${COLOR.border}` }}>
-        <button
-          onClick={onClose}
-          className="rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium transition hover:opacity-90"
-          style={{ background: COLOR.bg, border: `1px solid ${COLOR.border}`, color: COLOR.textBody }}
-        >
-          Cancel
-        </button>
-        <button
-          onClick={onGenerate}
-          disabled={!prompt.trim()}
-          className="flex items-center gap-1.5 md:gap-2 rounded-lg px-4 md:px-5 py-2 md:py-2.5 text-xs md:text-sm font-medium transition hover:opacity-90"
-          style={{
-            background: prompt.trim() ? COLOR.warning : COLOR.border,
-            color: prompt.trim() ? COLOR.bg : COLOR.textMuted,
-            cursor: prompt.trim() ? "pointer" : "not-allowed",
-          }}
-        >
-          <Wand2 size={14} />
-          Generate Template
-        </button>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default EmailTemplatesAdmin;
