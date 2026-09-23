@@ -1,549 +1,170 @@
-// AdminCampaigns.tsx
-import React, { useState, useMemo, useContext } from "react";
-import { CampaignContext } from "../../contexts/CampaignContext";
-import AdminSidebar from "./AdminSidebar";
-import {
-  Megaphone,
-  MoreHorizontal,
-  Search,
-  Filter,
-  ArrowUpDown,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  PlayCircle,
-  PauseCircle,
-  AlertCircle,
-  Menu,
-} from "lucide-react";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { Link } from "react-router-dom";
+import { MailX, Home, ArrowLeft, Search, Sparkles } from "lucide-react";
 
-/* ---------------------------------------------------------------------- */
-/*  Types                                                                  */
-/* ---------------------------------------------------------------------- */
-
-type CampaignStatus = 
-  | "DRAFT" 
-  | "READY" 
-  | "RUNNING" 
-  | "PAUSED" 
-  | "COMPLETED" 
-  | "CANCELLED";
-
-interface Campaign {
-  id: number;
-  campaign_name: string;
-  subject: string;
-  status: CampaignStatus;
-  template_id: number;
-  sender_account_id: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface StatusStyleConfig {
-  bg: string;
-  fg: string;
-  icon: React.ElementType;
-}
-
-/* ---------------------------------------------------------------------- */
-/*  Styles & Data                                                          */
-/* ---------------------------------------------------------------------- */
-
-const STATUS_STYLE: Record<CampaignStatus, StatusStyleConfig> = {
-  DRAFT: { bg: "bg-slate-500/15", fg: "text-slate-400", icon: AlertCircle },
-  READY: { bg: "bg-blue-500/15", fg: "text-blue-400", icon: Clock },
-  RUNNING: { bg: "bg-emerald-500/15", fg: "text-emerald-400", icon: PlayCircle },
-  PAUSED: { bg: "bg-amber-500/15", fg: "text-amber-400", icon: PauseCircle },
-  COMPLETED: { bg: "bg-violet-500/15", fg: "text-violet-400", icon: CheckCircle2 },
-  CANCELLED: { bg: "bg-rose-500/15", fg: "text-rose-400", icon: XCircle },
+const FONT = {
+  display: "'Space Grotesk', sans-serif",
+  body: "'Inter', sans-serif",
+  mono: "'JetBrains Mono', monospace",
 };
 
-const FILTERS: ("All" | CampaignStatus)[] = [
-  "All",
-  "DRAFT",
-  "READY",
-  "RUNNING",
-  "PAUSED",
-  "COMPLETED",
-  "CANCELLED",
-];
-
-const RANGES = ["Last 7 days", "Last 30 days", "Last 90 days"] as const;
-const RANGE_DAYS: Record<(typeof RANGES)[number], number> = {
-  "Last 7 days": 7,
-  "Last 30 days": 30,
-  "Last 90 days": 90,
-};
-
-/* ---------------------------------------------------------------------- */
-/*  Helpers                                                                */
-/* ---------------------------------------------------------------------- */
-
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-
-const buildCreationTrend = (campaigns: Campaign[], days: number) => {
-  const buckets: { day: string; count: number }[] = [];
-  const today = new Date();
-
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const dayKey = d.toISOString().slice(0, 10);
-    const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const count = campaigns.filter((c) => c.created_at.slice(0, 10) === dayKey).length;
-    buckets.push({ day: label, count });
-  }
-
-  return buckets;
-};
-
-/* ---------------------------------------------------------------------- */
-/*  Page                                                                   */
-/* ---------------------------------------------------------------------- */
-
-const AdminCampaigns = () => {
-  const context = useContext(CampaignContext);
-  const campaigns: Campaign[] = context || [];
-
-  const [range, setRange] = useState<(typeof RANGES)[number]>(RANGES[0]);
-  const [filter, setFilter] = useState<"All" | CampaignStatus>("All");
-  const [search, setSearch] = useState("");
-  const [sortField, setSortField] = useState<keyof Campaign>("created_at");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const days = RANGE_DAYS[range];
-
-  // Campaigns within range
-  const campaignsInRange = useMemo(() => {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    return campaigns.filter((c) => new Date(c.created_at) >= cutoff);
-  }, [campaigns, days]);
-
-  // Stats
-  const stats = useMemo(() => {
-    const count = (status: CampaignStatus) =>
-      campaignsInRange.filter((c) => c.status === status).length;
-
-    return [
-      { title: "Total Campaigns", value: campaignsInRange.length, icon: Megaphone, accent: "#FF6A39", accentSoft: "rgba(255,106,57,0.12)" },
-      { title: "Running", value: count("RUNNING"), icon: PlayCircle, accent: "#7FD98A", accentSoft: "rgba(127,217,138,0.12)" },
-      { title: "Completed", value: count("COMPLETED"), icon: CheckCircle2, accent: "#A78BFA", accentSoft: "rgba(167,139,250,0.12)" },
-      { title: "Drafts", value: count("DRAFT"), icon: AlertCircle, accent: "#8B8D94", accentSoft: "rgba(139,141,148,0.12)" },
-    ];
-  }, [campaignsInRange]);
-
-  // Chart data
-  const creationTrend = useMemo(
-    () => buildCreationTrend(campaignsInRange, days),
-    [campaignsInRange, days]
-  );
-
-  const tickInterval = Math.max(0, Math.floor(days / 8) - 1);
-
-  // Filtered & Sorted campaigns
-  const filteredCampaigns = useMemo(() => {
-    let result = campaignsInRange;
-
-    if (filter !== "All") {
-      result = result.filter((c) => c.status === filter);
-    }
-
-    if (search) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (c) =>
-          c.campaign_name.toLowerCase().includes(q) ||
-          c.subject.toLowerCase().includes(q)
-      );
-    }
-
-    result = [...result].sort((a, b) => {
-      const aVal = a[sortField];
-      const bVal = b[sortField];
-
-      if (typeof aVal === "string" && typeof bVal === "string") {
-        return sortDirection === "asc"
-          ? aVal.localeCompare(bVal)
-          : bVal.localeCompare(aVal);
-      }
-
-      return sortDirection === "asc"
-        ? (aVal as number) - (bVal as number)
-        : (bVal as number) - (aVal as number);
-    });
-
-    return result;
-  }, [campaignsInRange, filter, search, sortField, sortDirection]);
-
-  const toggleSort = (field: keyof Campaign) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
-      setSortDirection("desc");
-    }
-  };
-
+export default function NotFound() {
   return (
-    <div className="flex min-h-screen overflow-hidden bg-[#0E1013]">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
+      style={{ background: "#0B0E13", color: "#F2F0EB", fontFamily: FONT.body }}
+    >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-        .main-content::-webkit-scrollbar {
-          width: 6px;
+        @keyframes ping { 75%, 100% { transform: scale(2.4); opacity: 0; } }
+        .ping { animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite; }
+
+        @keyframes floatIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        .float-in { animation: floatIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+        @keyframes drift {
+          0%   { transform: translate(0, 0); }
+          50%  { transform: translate(6px, -4px); }
+          100% { transform: translate(0, 0); }
         }
-        .main-content::-webkit-scrollbar-track {
-          background: #0E1013;
-        }
-        .main-content::-webkit-scrollbar-thumb {
-          background: #2A2E37;
-          border-radius: 3px;
-        }
-        .main-content::-webkit-scrollbar-thumb:hover {
-          background: #3A3F4A;
-        }
-        .mf-row:hover {
-          background-color: #1B1E24;
-        }
-        .sidebar-overlay {
-          animation: fadeIn 0.2s ease-in-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .sidebar-slide {
-          animation: slideIn 0.25s ease-out;
-        }
-        @keyframes slideIn {
-          from { transform: translateX(-100%); }
-          to { transform: translateX(0); }
-        }
-        @media (max-width: 480px) {
-          .filter-buttons {
-            flex-wrap: nowrap;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-          }
-          .filter-buttons::-webkit-scrollbar {
-            height: 2px;
-          }
-          .filter-buttons::-webkit-scrollbar-thumb {
-            background: #2A2E37;
-            border-radius: 2px;
-          }
+        .drift { animation: drift 6s ease-in-out infinite; }
+
+        .soft-ring { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 1px 0 rgba(255,255,255,0.02); }
+
+        @media (prefers-reduced-motion: reduce) {
+          .ping, .float-in, .drift { animation: none !important; }
         }
       `}</style>
 
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
+      {/* Ambient glow */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(700px 260px at 50% -60px, rgba(255,106,57,0.12), transparent 70%)," +
+            "radial-gradient(600px 220px at 90% 110%, rgba(52,211,153,0.05), transparent 60%)",
+        }}
+      />
+
+      {/* Subtle grid */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none opacity-40"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px)," +
+            "linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+          maskImage: "radial-gradient(circle at center, black 30%, transparent 75%)",
+          WebkitMaskImage: "radial-gradient(circle at center, black 30%, transparent 75%)",
+        }}
+      />
+
+      {/* Card */}
+      <div className="relative w-full max-w-md float-in">
         <div
-          className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <div className={`
-        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        sidebar-slide
-      `}>
-        <AdminSidebar onClose={() => setSidebarOpen(false)} />
-      </div>
-
-      <main className="main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8 bg-[#0E1013] h-screen w-full">
-        {/* Header */}
-        <div className="mb-6 md:mb-8 flex flex-wrap items-center justify-between gap-3 md:gap-4">
-          <div className="flex items-center gap-3 md:gap-4">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
+          className="rounded-3xl p-8 md:p-10 text-center soft-ring"
+          style={{ background: "linear-gradient(180deg, #141821 0%, #10141D 100%)" }}
+        >
+          {/* Icon plate */}
+          <div className="mx-auto mb-6 relative">
+            <div
+              className="drift w-20 h-20 mx-auto rounded-3xl flex items-center justify-center relative"
+              style={{
+                background: "linear-gradient(135deg, rgba(255,106,57,0.22), rgba(255,106,57,0.06))",
+                boxShadow: "inset 0 0 0 1px rgba(255,106,57,0.28), 0 20px 40px -20px rgba(255,106,57,0.5)",
+              }}
             >
-              <Menu size={20} />
-            </button>
-            <div>
-              <div className="flex flex-wrap items-center gap-2 md:gap-2.5">
-                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold tracking-tight text-[#E8E6E1] font-['Space_Grotesk']">
-                  Campaigns
-                </h1>
-                <span className="rounded-full px-2 md:px-2.5 py-0.5 text-[9px] md:text-[10px] lg:text-[11px] font-medium bg-[#FF6A39]/15 text-[#FF6A39]">
-                  Admin View
-                </span>
-              </div>
-              <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm text-[#8B8D94]">
-                Monitor all campaigns across workspaces.
-              </p>
+              <MailX className="w-8 h-8" style={{ color: "#FF6A39" }} strokeWidth={1.8} />
+              {/* pulse dot */}
+              <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#FF6A39]">
+                <span className="absolute inset-0 rounded-full bg-[#FF6A39] ping" />
+              </span>
             </div>
           </div>
 
-          <select
-            value={range}
-            onChange={(e) => setRange(e.target.value as (typeof RANGES)[number])}
-            className="w-full sm:w-auto rounded-lg border border-[#2A2E37] bg-[#171A21] px-3 md:px-4 py-2 md:py-2.5 text-xs md:text-sm text-[#C7C9CE] outline-none focus:border-[#FF6A39]"
+          {/* 404 */}
+          <div className="mb-1">
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
+              style={{
+                background: "rgba(255,106,57,0.10)",
+                color: "#FF6A39",
+                boxShadow: "inset 0 0 0 1px rgba(255,106,57,0.22)",
+              }}
+            >
+              <Search size={11} /> Page not found
+            </span>
+          </div>
+
+          <h1
+            className="mt-4 text-[64px] md:text-[72px] leading-none font-bold tracking-tight"
+            style={{
+              fontFamily: FONT.display,
+              background: "linear-gradient(180deg, #F2F0EB 0%, #7A8092 120%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
           >
-            {RANGES.map((r) => (
-              <option key={r}>{r}</option>
-            ))}
-          </select>
-        </div>
+            404
+          </h1>
 
-        {/* Stats */}
-        <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <div
-                key={stat.title}
-                className="rounded-xl bg-[#171A21] p-3 md:p-4 lg:p-5 border border-[#2A2E37] hover:border-[#3A3F4A] transition-all"
-              >
-                <div
-                  className="flex h-7 w-7 md:h-8 md:w-8 lg:h-9 lg:w-9 items-center justify-center rounded-lg"
-                  style={{ background: stat.accentSoft }}
-                >
-                  <Icon size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px]" style={{ color: stat.accent }} />
-                </div>
-                <h2 className="mt-2 md:mt-3 lg:mt-4 text-lg md:text-xl lg:text-2xl font-semibold tracking-tight text-[#E8E6E1] font-['JetBrains_Mono']">
-                  {stat.value}
-                </h2>
-                <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm text-[#C7C9CE]">{stat.title}</p>
-              </div>
-            );
-          })}
-        </div>
+          <h2
+            className="mt-3 text-[18px] md:text-[20px] font-semibold text-[#F2F0EB] tracking-tight"
+            style={{ fontFamily: FONT.display }}
+          >
+            This page bounced back
+          </h2>
 
-        {/* Chart */}
-        <div className="mb-6 rounded-xl bg-[#171A21] p-3 md:p-4 lg:p-6 border border-[#2A2E37]">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-3 md:mb-4">
-            <h2 className="text-sm md:text-base lg:text-lg font-semibold text-[#E8E6E1] font-['Space_Grotesk']">
-              Campaigns Created
-            </h2>
-            <span className="text-[9px] md:text-[10px] lg:text-[11px] text-[#8B8D94] font-['JetBrains_Mono']">
-              {range}
-            </span>
-          </div>
-          <div className="h-[150px] md:h-[180px] lg:h-[220px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={creationTrend} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="fillCreatedAdmin" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#FF6A39" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="#FF6A39" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="#2A2E37" vertical={false} />
-                <XAxis
-                  dataKey="day"
-                  interval={tickInterval}
-                  tick={{ fontSize: 9, fill: "#8B8D94", fontFamily: "JetBrains Mono" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tick={{ fontSize: 9, fill: "#8B8D94", fontFamily: "JetBrains Mono" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: 8,
-                    border: "1px solid #2A2E37",
-                    background: "#171A21",
-                    fontFamily: "JetBrains Mono",
-                    fontSize: 11,
-                    color: "#E8E6E1",
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="count"
-                  name="Created"
-                  stroke="#FF6A39"
-                  strokeWidth={2}
-                  fill="url(#fillCreatedAdmin)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+          <p className="mt-2.5 text-[13px] leading-relaxed text-[#8A90A0] max-w-sm mx-auto">
+            The page you're looking for doesn't exist, was moved, or the link might be broken. Let's get you back on track.
+          </p>
 
-        {/* Campaign List */}
-        <div className="rounded-xl bg-[#171A21] border border-[#2A2E37] overflow-hidden">
-          {/* Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3 md:p-4 lg:p-5 border-b border-[#2A2E37]">
-            <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full lg:w-auto">
-              <div className="flex items-center gap-1.5 md:gap-2 rounded-lg px-2 md:px-3 py-1 md:py-1.5 lg:py-2 border border-[#2A2E37] bg-[#0E1013] flex-1 lg:flex-none">
-                <Search size={12} className="md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] text-[#8B8D94] shrink-0" />
-                <input
-                  placeholder="Search campaigns..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="bg-transparent text-[10px] md:text-xs lg:text-sm outline-none text-[#C7C9CE] w-[80px] md:w-[120px] lg:w-[180px] placeholder:text-[#8B8D94]"
-                />
-              </div>
+          {/* Actions */}
+          <div className="mt-8 flex flex-col sm:flex-row gap-2.5 justify-center">
+            <Link
+              to="/"
+              className="group inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5"
+              style={{ background: "#FF6A39", boxShadow: "0 12px 30px -12px rgba(255,106,57,0.7)" }}
+            >
+              <Home size={15} />
+              Go to dashboard
+            </Link>
 
-              <div className="filter-buttons flex flex-nowrap items-center gap-1 overflow-x-auto pb-1 -mb-1">
-                {FILTERS.map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => setFilter(f)}
-                    className={`whitespace-nowrap rounded-full px-2 md:px-2.5 lg:px-3 py-0.5 md:py-1 text-[8px] md:text-[9px] lg:text-[11px] font-medium transition ${
-                      filter === f
-                        ? "bg-[#FF6A39] text-white"
-                        : "text-[#C7C9CE] hover:bg-[#2A2E37]"
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button className="flex items-center gap-1 md:gap-1.5 rounded-lg px-2 md:px-3 py-1 md:py-1.5 text-[9px] md:text-xs font-medium text-[#C7C9CE] border border-[#2A2E37] hover:border-[#3A3F4A] transition">
-              <Filter size={11} className="md:w-[12px] md:h-[12px] lg:w-[13px] lg:h-[13px]" />
-              <span className="hidden xs:inline">Filter</span>
+            <button
+              onClick={() => window.history.back()}
+              className="group inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-[13px] font-medium transition-all hover:-translate-y-0.5"
+              style={{
+                background: "#0F131C",
+                color: "#DADEE7",
+                boxShadow: "inset 0 0 0 1px #1A1F2B",
+              }}
+            >
+              <ArrowLeft size={15} className="transition-transform group-hover:-translate-x-0.5" />
+              Go back
             </button>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[700px] md:min-w-[900px]">
-              <thead className="text-[8px] md:text-[9px] lg:text-[11px] uppercase tracking-wide text-[#8B8D94] border-b border-[#2A2E37]">
-                <tr>
-                  <th
-                    className="px-2 md:px-3 lg:px-5 py-2 md:py-2.5 lg:py-3 font-medium cursor-pointer hover:text-[#E8E6E1] transition"
-                    onClick={() => toggleSort("campaign_name")}
-                  >
-                    <span className="flex items-center gap-1">
-                      Campaign <ArrowUpDown size={10} />
-                    </span>
-                  </th>
-                  <th
-                    className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium cursor-pointer hover:text-[#E8E6E1] transition"
-                    onClick={() => toggleSort("status")}
-                  >
-                    <span className="flex items-center gap-1">
-                      Status <ArrowUpDown size={10} />
-                    </span>
-                  </th>
-                  <th className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Template</th>
-                  <th className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium">Sender</th>
-                  <th
-                    className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium cursor-pointer hover:text-[#E8E6E1] transition"
-                    onClick={() => toggleSort("created_at")}
-                  >
-                    <span className="flex items-center gap-1">
-                      Created <ArrowUpDown size={10} />
-                    </span>
-                  </th>
-                  <th
-                    className="px-2 md:px-3 py-2 md:py-2.5 lg:py-3 font-medium cursor-pointer hover:text-[#E8E6E1] transition"
-                    onClick={() => toggleSort("updated_at")}
-                  >
-                    <span className="flex items-center gap-1">
-                      Updated <ArrowUpDown size={10} />
-                    </span>
-                  </th>
-                  <th className="px-2 md:px-3 lg:px-5 py-2 md:py-2.5 lg:py-3 font-medium w-6 md:w-8 lg:w-10" />
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCampaigns.map((campaign) => {
-                  const statusStyle = STATUS_STYLE[campaign.status];
-                  const StatusIcon = statusStyle.icon;
-
-                  return (
-                    <tr key={campaign.id} className="mf-row transition border-t border-[#2A2E37]">
-                      <td className="px-2 md:px-3 lg:px-5 py-2.5 md:py-3 lg:py-3.5">
-                        <div>
-                          <p className="text-[10px] md:text-[11px] lg:text-[13.5px] font-medium text-[#E8E6E1]">
-                            {campaign.campaign_name}
-                          </p>
-                          <p className="text-[8px] md:text-[9px] lg:text-[11px] text-[#8B8D94]">
-                            {campaign.subject}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5">
-                        <span
-                          className={`inline-flex items-center gap-1 md:gap-1.5 rounded-full px-1.5 md:px-2 lg:px-2.5 py-0.5 text-[8px] md:text-[9px] lg:text-[11px] font-medium ${statusStyle.bg} ${statusStyle.fg}`}
-                        >
-                          <StatusIcon size={10} />
-                          <span className="hidden xs:inline">{campaign.status}</span>
-                          <span className="xs:hidden">{campaign.status.charAt(0)}</span>
-                        </span>
-                      </td>
-                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5 text-[10px] md:text-[11px] lg:text-[13px] text-[#C7C9CE] font-['JetBrains_Mono']">
-                        #{campaign.template_id}
-                      </td>
-                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5 text-[10px] md:text-[11px] lg:text-[13px] text-[#C7C9CE] font-['JetBrains_Mono']">
-                        #{campaign.sender_account_id}
-                      </td>
-                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5 text-[9px] md:text-[10px] lg:text-[13px] text-[#C7C9CE] font-['JetBrains_Mono']">
-                        {formatDate(campaign.created_at)}
-                      </td>
-                      <td className="px-2 md:px-3 py-2.5 md:py-3 lg:py-3.5 text-[9px] md:text-[10px] lg:text-[13px] text-[#C7C9CE] font-['JetBrains_Mono']">
-                        {formatDate(campaign.updated_at)}
-                      </td>
-                      <td className="px-2 md:px-3 lg:px-5 py-2.5 md:py-3 lg:py-3.5 text-right">
-                        <button className="text-[#8B8D94] hover:text-[#E8E6E1] transition">
-                          <MoreHorizontal size={12} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {filteredCampaigns.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-3 md:px-5 py-8 md:py-12 text-center text-[10px] md:text-sm text-[#8B8D94]">
-                      No campaigns found matching your filters.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className="flex flex-wrap items-center justify-between gap-2 p-3 md:p-4 lg:p-5 border-t border-[#2A2E37]">
-            <span className="text-[9px] md:text-[10px] lg:text-xs text-[#8B8D94]">
-              Showing {filteredCampaigns.length} of {campaignsInRange.length} campaigns
+          {/* Divider */}
+          <div
+            className="mt-8 pt-5 flex items-center justify-between gap-3 text-[11px]"
+            style={{ borderTop: "1px solid #1A1F2B", fontFamily: FONT.mono, color: "#5A6172" }}
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <Sparkles size={11} className="text-[#FF6A39]" />
+              MailForge
             </span>
-            <div className="flex items-center gap-1 md:gap-1.5">
-              <button className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[9px] md:text-xs hover:bg-[#1B1E24] transition disabled:opacity-40 disabled:cursor-not-allowed">
-                Previous
-              </button>
-              <button className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg bg-[#FF6A39] text-white text-[9px] md:text-xs font-medium">
-                1
-              </button>
-              <button className="px-2 md:px-3 py-1 md:py-1.5 rounded-lg border border-[#2A2E37] text-[#C7C9CE] text-[9px] md:text-xs hover:bg-[#1B1E24] transition">
-                Next
-              </button>
-            </div>
+            <span>error · 404</span>
           </div>
         </div>
-      </main>
+
+        {/* Below card */}
+        <p className="mt-6 text-center text-[11px]" style={{ fontFamily: FONT.mono, color: "#5A6172" }}>
+          If you believe this is a mistake, contact support.
+        </p>
+      </div>
     </div>
   );
-};
-
-export default AdminCampaigns;
+}
