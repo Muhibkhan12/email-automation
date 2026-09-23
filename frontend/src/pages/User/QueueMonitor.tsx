@@ -1,17 +1,9 @@
 import { useState } from "react";
 import Sidebar from "./Sidebar";
 import {
-  RefreshCw,
-  Inbox,
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Pause,
-  Play,
-  Cpu,
-  Copy,
-  Menu,
+  RefreshCw, Inbox, Loader2, CheckCircle2, XCircle, Clock,
+  Pause, Play, Cpu, Copy, Menu, Users, Sparkles, ArrowUpRight,
+  Layers, Activity, ListChecks, Zap,
 } from "lucide-react";
 
 const FONT = {
@@ -19,6 +11,8 @@ const FONT = {
   body: "'Inter', sans-serif",
   mono: "'JetBrains Mono', monospace",
 };
+
+/* ─────────────── types ─────────────── */
 
 interface Queue {
   name: string;
@@ -44,58 +38,37 @@ interface Job {
   time: string;
 }
 
+/* ─────────────── data ─────────────── */
+
 const initialQueues: Queue[] = [
   { name: "email-sending", pending: 124, processing: 8, failed: 3, status: "Running" },
-  { name: "email-retry", pending: 18, processing: 2, failed: 1, status: "Running" },
-  { name: "high-priority", pending: 6, processing: 1, failed: 0, status: "Running" },
+  { name: "email-retry",   pending: 18,  processing: 2, failed: 1, status: "Running" },
+  { name: "high-priority", pending: 6,   processing: 1, failed: 0, status: "Running" },
 ];
 
 const workers: Worker[] = [
-  { name: "Worker-1", load: 72, jobsProcessed: 842, online: true },
+  { name: "Worker-1", load: 72, jobsProcessed: 842,  online: true },
   { name: "Worker-2", load: 45, jobsProcessed: 1684, online: true },
   { name: "Worker-3", load: 88, jobsProcessed: 2526, online: true },
   { name: "Worker-4", load: 12, jobsProcessed: 3368, online: true },
 ];
 
 const jobs: Job[] = [
-  {
-    id: "JOB-10241",
-    campaign: "Summer Promotion",
-    recipient: "john@example.com",
-    sender: "marketing@company.com",
-    status: "Processing",
-    time: "2 sec ago",
-  },
-  {
-    id: "JOB-10240",
-    campaign: "Product Launch",
-    recipient: "sarah@example.com",
-    sender: "sales@company.com",
-    status: "Pending",
-    time: "5 sec ago",
-  },
-  {
-    id: "JOB-10239",
-    campaign: "August Newsletter",
-    recipient: "alex@example.com",
-    sender: "hello@company.com",
-    status: "Completed",
-    time: "12 sec ago",
-  },
-  {
-    id: "JOB-10238",
-    campaign: "Summer Promotion",
-    recipient: "mike@example.com",
-    sender: "marketing@company.com",
-    status: "Failed",
-    time: "18 sec ago",
-  },
+  { id: "JOB-10241", campaign: "Summer Promotion",  recipient: "john@example.com",  sender: "marketing@company.com", status: "Processing", time: "2 sec ago" },
+  { id: "JOB-10240", campaign: "Product Launch",    recipient: "sarah@example.com", sender: "sales@company.com",     status: "Pending",    time: "5 sec ago" },
+  { id: "JOB-10239", campaign: "August Newsletter", recipient: "alex@example.com",  sender: "hello@company.com",     status: "Completed",  time: "12 sec ago" },
+  { id: "JOB-10238", campaign: "Summer Promotion",  recipient: "mike@example.com",  sender: "marketing@company.com", status: "Failed",     time: "18 sec ago" },
 ];
+
+type Tab = "overview" | "workers" | "queues" | "jobs";
+
+/* ─────────────── page ─────────────── */
 
 const QueueMonitor = () => {
   const [queues, setQueues] = useState<Queue[]>(initialQueues);
   const [refreshing, setRefreshing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [tab, setTab] = useState<Tab>("overview");
 
   const toggleQueue = (name: string) => {
     setQueues((prev) =>
@@ -110,395 +83,401 @@ const QueueMonitor = () => {
     setTimeout(() => setRefreshing(false), 700);
   };
 
+  const totalPending    = queues.reduce((s, q) => s + q.pending, 0);
+  const totalProcessing = queues.reduce((s, q) => s + q.processing, 0);
+  const totalFailed     = queues.reduce((s, q) => s + q.failed, 0);
+  const onlineWorkers   = workers.filter((w) => w.online).length;
+
+  const tabs: { id: Tab; label: string; icon: React.ComponentType<{ size?: number }>; count?: number }[] = [
+    { id: "overview", label: "Overview", icon: Sparkles },
+    { id: "workers",  label: "Workers",  icon: Cpu,       count: workers.length },
+    { id: "queues",   label: "Queues",   icon: Layers,    count: queues.length },
+    { id: "jobs",     label: "Jobs",     icon: ListChecks, count: jobs.length },
+  ];
+
   return (
-    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body }}>
+    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: "#0B0E13" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 1s linear infinite; }
-        @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
-        .ping { animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite; }
+        @keyframes ping { 75%, 100% { transform: scale(2.4); opacity: 0; } }
+        .ping { animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite; }
+        @keyframes floatIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        .float-in { animation: floatIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
 
-        .mf-main-content::-webkit-scrollbar {
-          width: 6px;
-        }
-        .mf-main-content::-webkit-scrollbar-track {
-          background: #0B0E12;
-        }
-        .mf-main-content::-webkit-scrollbar-thumb {
-          background: #2A2E37;
-          border-radius: 3px;
-        }
-        .mf-main-content::-webkit-scrollbar-thumb:hover {
-          background: #3A3F4A;
-        }
+        .qm-main::-webkit-scrollbar { width: 10px; }
+        .qm-main::-webkit-scrollbar-track { background: transparent; }
+        .qm-main::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 10px; border: 2px solid #0B0E13; }
+        .qm-main::-webkit-scrollbar-thumb:hover { background: #2A2F3B; }
 
-        .sidebar-overlay {
-          animation: fadeIn 0.2s ease-in-out;
+        .soft-ring {
+          box-shadow:
+            inset 0 0 0 1px rgba(255,255,255,0.04),
+            0 1px 0 rgba(255,255,255,0.02);
         }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .sidebar-slide {
-          animation: slideIn 0.25s ease-out;
-        }
-        @keyframes slideIn {
-          from { transform: translateX(-100%); }
-          to { transform: translateX(0); }
+        .glow-top {
+          background:
+            radial-gradient(900px 240px at 50% -80px, rgba(255,106,57,0.10), transparent 70%),
+            radial-gradient(700px 200px at 20% -60px, rgba(52,211,153,0.06), transparent 70%);
         }
       `}</style>
 
-      {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
+          className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
       <div className={`
-        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-250 ease-out
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        sidebar-slide
       `}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Main content with scrolling */}
-      <main className="mf-main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8" style={{ background: "#12151B", height: "100vh", width: "100%" }}>
-        {/* Header */}
-        <div className="mf-header mb-5 md:mb-7 flex flex-wrap items-center justify-between gap-3 md:gap-4">
-          <div className="flex items-center gap-3 md:gap-4">
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
-            >
-              <Menu size={20} />
-            </button>
-            <div>
-              <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                <h1 className="text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight" style={{ color: "#E8E6E1" }}>
-                  Queue Monitor
-                </h1>
-                <span className="mf-health-badge flex items-center gap-1 md:gap-1.5 rounded-full px-1.5 md:px-2.5 py-0.5 md:py-1 text-[8px] md:text-xs font-medium whitespace-nowrap" style={{ background: "rgba(52,211,153,0.15)", color: "#34D399" }}>
-                  <span className="relative flex h-1.5 w-1.5 md:h-2 md:w-2">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 ping" />
-                    <span className="relative inline-flex h-1.5 w-1.5 md:h-2 md:w-2 rounded-full bg-emerald-500" />
-                  </span>
-                  <span className="hidden xs:inline">System Healthy</span>
-                  <span className="xs:hidden">✓</span>
-                </span>
-              </div>
-              <p className="mt-0.5 md:mt-1 text-[10px] md:text-xs lg:text-sm" style={{ color: "#9BA0A8" }}>
-                Monitor email queues, workers and background jobs in real time.
-              </p>
-            </div>
-          </div>
+      <main className="qm-main flex-1 overflow-y-auto" style={{ height: "100vh", width: "100%", background: "#0B0E13" }}>
+        <div className="glow-top">
+          <div className="max-w-[1160px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
 
-          <button
-            onClick={handleRefresh}
-            className="mf-refresh-btn flex items-center justify-center gap-1.5 md:gap-2 rounded-lg border px-3 md:px-4 py-1.5 md:py-2.5 text-[10px] md:text-xs lg:text-sm font-medium shadow-sm transition-colors w-full sm:w-auto"
-            style={{ 
-              borderColor: "#2A2E37", 
-              background: "#12151B", 
-              color: "#C7C9CE" 
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#1B1E24";
-              e.currentTarget.style.color = "#E8E6E1";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#12151B";
-              e.currentTarget.style.color = "#C7C9CE";
-            }}
-          >
-            <RefreshCw size={12} className={`md:w-[13px] md:h-[13px] lg:w-[14px] lg:h-[14px] ${refreshing ? "spin" : ""}`} />
-            <span className="hidden xs:inline">Refresh</span>
-          </button>
-        </div>
-
-        {/* Overview - Responsive Stats */}
-        <div className="mf-stats-grid mb-4 md:mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-3 lg:gap-4">
-          <StatCard
-            title="Pending Jobs"
-            value="148"
-            description="Waiting to be processed"
-            icon={Inbox}
-            accent="text-[#9BA0A8] bg-[#1B1E24]"
-            isEmber={true}
-          />
-          <StatCard
-            title="Processing"
-            value="11"
-            description="Currently being processed"
-            icon={Loader2}
-            accent="text-blue-400 bg-blue-500/10"
-            spin
-            isEmber={false}
-          />
-          <StatCard
-            title="Completed"
-            value="12,842"
-            description="Successfully processed"
-            icon={CheckCircle2}
-            accent="text-emerald-400 bg-emerald-500/10"
-            isEmber={false}
-          />
-          <StatCard
-            title="Failed Jobs"
-            value="4"
-            description="Require attention"
-            icon={XCircle}
-            accent="text-rose-400 bg-rose-500/10"
-            isEmber={false}
-          />
-        </div>
-
-        {/* Workers */}
-        <div className="mf-section-padding mb-4 md:mb-6 rounded-xl border p-3 md:p-4 lg:p-6 shadow-sm" style={{ borderColor: "#2A2E37", background: "#12151B" }}>
-          <div className="mb-3 md:mb-4 lg:mb-5 flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h2 className="text-[10px] md:text-xs lg:text-sm font-semibold" style={{ color: "#E8E6E1" }}>Workers</h2>
-              <p className="text-[8px] md:text-[9px] lg:text-xs" style={{ color: "#6B727C" }}>
-                Background workers processing your queues.
-              </p>
-            </div>
-            <span className="text-[8px] md:text-[9px] lg:text-xs" style={{ color: "#6B727C" }}>
-              {workers.filter((w) => w.online).length} of {workers.length} online
-            </span>
-          </div>
-
-          <div className="mf-workers-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-3 lg:gap-4">
-            {workers.map((worker) => (
-              <div
-                key={worker.name}
-                className="rounded-lg border p-2.5 md:p-3 lg:p-4 transition hover:border-[#3A3E47]"
-                style={{ borderColor: "#2A2E37", background: "#0B0E12" }}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 md:gap-2">
-                    <span className="flex h-5 w-5 md:h-6 md:w-6 lg:h-7 lg:w-7 items-center justify-center rounded-md shadow-sm" style={{ background: "#1B1E24" }}>
-                      <Cpu size={10} className="md:w-[11px] md:h-[11px] lg:w-[11px] lg:h-[11px] text-[#9BA0A8]" />
+            {/* ── Header ─────────────────────────────── */}
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8 md:mb-10">
+              <div className="flex items-start gap-3 md:gap-4">
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden mt-1 p-2 rounded-2xl text-[#C7C9CE] transition-colors soft-ring"
+                  style={{ background: "#141823" }}
+                >
+                  <Menu size={18} />
+                </button>
+                <div>
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
+                      style={{ background: "rgba(52,211,153,0.10)", color: "#34D399", boxShadow: "inset 0 0 0 1px rgba(52,211,153,0.20)" }}>
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 ping" />
+                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      </span>
+                      All systems healthy
                     </span>
-                    <p className="mf-worker-name text-[9px] md:text-[10px] lg:text-sm font-medium" style={{ color: "#E8E6E1" }}>{worker.name}</p>
+                    <span className="text-[11px]" style={{ color: "#5A6172", fontFamily: FONT.mono }}>
+                      · updated {refreshing ? "now" : "12s ago"}
+                    </span>
                   </div>
-                  <span className="relative flex h-1.5 w-1.5 md:h-2 md:w-2 lg:h-2.5 lg:w-2.5">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 ping" />
-                    <span className="relative inline-flex h-1.5 w-1.5 md:h-2 md:w-2 lg:h-2.5 lg:w-2.5 rounded-full bg-emerald-500" />
-                  </span>
-                </div>
 
-                <div className="mt-2.5 md:mt-3 lg:mt-4">
-                  <div className="mb-1 flex items-center justify-between text-[8px] md:text-[9px] lg:text-xs">
-                    <span className="mf-worker-load" style={{ color: "#6B727C" }}>Load</span>
-                    <span className="font-medium" style={{ color: "#E8E6E1" }}>{worker.load}%</span>
-                  </div>
-                  <div className="h-1 md:h-1.5 w-full overflow-hidden rounded-full" style={{ background: "#2A2E37" }}>
-                    <div
-                      className={`h-full rounded-full transition-all ${
-                        worker.load > 80
-                          ? "bg-rose-500"
-                          : worker.load > 50
-                          ? "bg-amber-500"
-                          : "bg-emerald-500"
-                      }`}
-                      style={{ width: `${worker.load}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-1.5 md:mt-2 lg:mt-3 flex items-center justify-between text-[8px] md:text-[9px] lg:text-xs">
-                  <span style={{ color: "#6B727C" }}>Jobs processed</span>
-                  <span className="font-medium" style={{ color: "#E8E6E1" }}>
-                    {worker.jobsProcessed.toLocaleString()}
-                  </span>
+                  <h1
+                    style={{ fontFamily: FONT.display, letterSpacing: "-0.025em", color: "#F2F0EB" }}
+                    className="text-[28px] md:text-[34px] lg:text-[40px] font-bold leading-[1.05]"
+                  >
+                    Queue monitor
+                  </h1>
+                  <p className="mt-2 text-[14px] md:text-[15px] max-w-lg" style={{ color: "#8A90A0" }}>
+                    Live view of your sending pipeline — queues, workers, and jobs in one place.
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Queues */}
-        <div className="mf-section-padding mb-4 md:mb-6 overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: "#2A2E37", background: "#12151B" }}>
-          <div className="border-b p-3 md:p-4 lg:p-6" style={{ borderColor: "#2A2E37" }}>
-            <h2 className="text-[10px] md:text-xs lg:text-sm font-semibold" style={{ color: "#E8E6E1" }}>Queues</h2>
-            <p className="mt-0.5 md:mt-1 text-[8px] md:text-[9px] lg:text-xs" style={{ color: "#6B727C" }}>
-              Current status of your email processing queues.
-            </p>
-          </div>
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[13px] font-medium self-start md:self-auto transition-all soft-ring hover:bg-[#171C28] disabled:opacity-60"
+                style={{ background: "#141823", color: "#E8E6E1" }}
+              >
+                <RefreshCw size={14} className={`transition-transform group-hover:rotate-45 ${refreshing ? "spin" : ""}`} />
+                Refresh
+              </button>
+            </header>
 
-          <div className="mf-table-wrapper overflow-x-auto">
-            <table className="w-full text-left" style={{ minWidth: "500px" }}>
-              <thead>
-                <tr className="border-b text-[8px] md:text-[9px] lg:text-xs uppercase tracking-wide" style={{ borderColor: "#2A2E37", color: "#6B727C", background: "#0B0E12" }}>
-                  <th className="mf-table-cell px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Queue</th>
-                  <th className="mf-table-cell px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Pending</th>
-                  <th className="mf-table-cell px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Processing</th>
-                  <th className="mf-table-cell px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Failed</th>
-                  <th className="mf-table-cell px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Status</th>
-                  <th className="mf-table-cell px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium text-right">Action</th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y" style={{ borderColor: "#2A2E37" }}>
-                {queues.map((queue) => (
-                  <tr 
-                    key={queue.name} 
-                    className="transition hover:bg-[#1B1E24]"
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#1B1E24";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                    }}
-                  >
-                    <td className="mf-table-cell px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
-                      <span className="mf-queue-name rounded-md px-1 md:px-1.5 lg:px-2 py-0.5 md:py-0.5 lg:py-1 font-mono text-[7px] md:text-[8px] lg:text-xs" style={{ background: "#1B1E24", color: "#C7C9CE" }}>
-                        {queue.name}
-                      </span>
-                    </td>
-                    <td className="mf-queue-value px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4 text-[9px] md:text-[10px] lg:text-sm font-medium" style={{ color: "#E8E6E1" }}>
-                      {queue.pending}
-                    </td>
-                    <td className="mf-queue-value px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4 text-[9px] md:text-[10px] lg:text-sm font-medium" style={{ color: "#60A5FA" }}>
-                      {queue.processing}
-                    </td>
-                    <td className="mf-queue-value px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4 text-[9px] md:text-[10px] lg:text-sm font-medium" style={{ color: "#F87171" }}>
-                      {queue.failed}
-                    </td>
-                    <td className="mf-table-cell px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
-                      <span
-                        className={`inline-flex items-center gap-0.5 md:gap-1 lg:gap-1.5 rounded-full px-1 md:px-1.5 lg:px-2.5 py-0.5 md:py-0.5 lg:py-1 text-[7px] md:text-[8px] lg:text-xs font-medium ${
-                          queue.status === "Running"
-                            ? "bg-emerald-500/10 text-emerald-400"
-                            : "bg-slate-500/10 text-slate-400"
-                        }`}
-                      >
-                        <span
-                          className={`h-1 w-1 md:h-1.5 md:w-1.5 rounded-full ${
-                            queue.status === "Running" ? "bg-emerald-500" : "bg-slate-400"
-                          }`}
-                        />
-                        <span className="hidden xs:inline">{queue.status}</span>
-                        <span className="xs:hidden">{queue.status.charAt(0)}</span>
-                      </span>
-                    </td>
-                    <td className="mf-queue-actions px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
-                      <div className="flex flex-wrap items-center justify-end gap-1 md:gap-1.5 lg:gap-2">
-                        <button
-                          onClick={() => toggleQueue(queue.name)}
-                          className="flex items-center justify-center gap-0.5 md:gap-1 lg:gap-1.5 rounded-lg border px-1.5 md:px-2 lg:px-3 py-0.5 md:py-1 lg:py-1.5 text-[7px] md:text-[8px] lg:text-xs font-medium transition-colors"
-                          style={{ 
-                            borderColor: "#2A2E37", 
-                            color: "#C7C9CE",
-                            background: "transparent"
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "#1B1E24";
-                            e.currentTarget.style.color = "#E8E6E1";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "transparent";
-                            e.currentTarget.style.color = "#C7C9CE";
-                          }}
-                        >
-                          {queue.status === "Running" ? (
-                            <>
-                              <Pause size={9} className="md:w-[10px] md:h-[10px] lg:w-[10px] lg:h-[10px]" /> 
-                              <span className="hidden xs:inline">Pause</span>
-                            </>
-                          ) : (
-                            <>
-                              <Play size={9} className="md:w-[10px] md:h-[10px] lg:w-[10px] lg:h-[10px]" /> 
-                              <span className="hidden xs:inline">Resume</span>
-                            </>
-                          )}
-                        </button>
-                        <button className="text-[7px] md:text-[8px] lg:text-xs font-medium hover:text-[#E8E6E1] hidden sm:inline" style={{ color: "#6B727C" }}>
-                          Manage
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Recent Jobs */}
-        <div className="mf-section-padding overflow-hidden rounded-xl border shadow-sm" style={{ borderColor: "#2A2E37", background: "#12151B" }}>
-          <div className="flex flex-wrap items-center justify-between border-b p-3 md:p-4 lg:p-6 gap-2" style={{ borderColor: "#2A2E37" }}>
-            <div>
-              <h2 className="text-[10px] md:text-xs lg:text-sm font-semibold" style={{ color: "#E8E6E1" }}>Recent Jobs</h2>
-              <p className="mt-0.5 md:mt-1 text-[8px] md:text-[9px] lg:text-xs" style={{ color: "#6B727C" }}>
-                Latest email jobs processed by your workers.
-              </p>
+            {/* ── Floating summary bar ───────────────── */}
+            <div
+              className="float-in relative mb-6 md:mb-8 rounded-3xl overflow-hidden soft-ring"
+              style={{ background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" }}
+            >
+              <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-[#1A1F2B]">
+                <SummaryTile icon={Inbox}        label="Pending"    value={totalPending.toLocaleString()}    tone="#9BA0A8" />
+                <SummaryTile icon={Loader2}      label="Processing" value={totalProcessing.toLocaleString()} tone="#60A5FA" spin />
+                <SummaryTile icon={CheckCircle2} label="Completed"  value="12,842"                            tone="#34D399" />
+                <SummaryTile icon={XCircle}      label="Failed"     value={totalFailed.toLocaleString()}      tone="#F87171" />
+              </div>
             </div>
-            <button className="text-[8px] md:text-[9px] lg:text-xs font-medium hover:text-[#E8E6E1]" style={{ color: "#6B727C" }}>
-              <span className="hidden xs:inline">View all</span>
-              <span className="xs:hidden">All</span>
-            </button>
-          </div>
 
-          <div className="mf-table-wrapper overflow-x-auto">
-            <table className="w-full text-left" style={{ minWidth: "550px" }}>
-              <thead>
-                <tr className="border-b text-[8px] md:text-[9px] lg:text-xs uppercase tracking-wide" style={{ borderColor: "#2A2E37", color: "#6B727C", background: "#0B0E12" }}>
-                  <th className="mf-table-cell px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Job</th>
-                  <th className="mf-table-cell px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Campaign</th>
-                  <th className="mf-table-cell px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Recipient</th>
-                  <th className="mf-table-cell px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Sender</th>
-                  <th className="mf-table-cell px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Status</th>
-                  <th className="mf-table-cell px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-3.5 font-medium">Time</th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y" style={{ borderColor: "#2A2E37" }}>
-                {jobs.map((job) => (
-                  <tr 
-                    key={job.id} 
-                    className="transition hover:bg-[#1B1E24]"
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#1B1E24";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
+            {/* ── Tab switcher ───────────────────────── */}
+            <div className="mb-6 md:mb-7 flex items-center gap-1 p-1 rounded-2xl overflow-x-auto soft-ring"
+              style={{ background: "#10141D", width: "fit-content", maxWidth: "100%" }}>
+              {tabs.map((t) => {
+                const Icon = t.icon;
+                const active = tab === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setTab(t.id)}
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-[13px] font-medium whitespace-nowrap transition-all"
+                    style={{
+                      background: active ? "#1B2130" : "transparent",
+                      color: active ? "#F2F0EB" : "#7A8092",
+                      boxShadow: active ? "inset 0 0 0 1px rgba(255,255,255,0.05), 0 4px 14px -6px rgba(0,0,0,0.6)" : "none",
                     }}
                   >
-                    <td className="mf-table-cell px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
-                      <button
-                        onClick={() => navigator.clipboard?.writeText(job.id)}
-                        className="mf-job-id flex items-center gap-0.5 md:gap-1 font-mono text-[7px] md:text-[8px] lg:text-xs hover:text-[#E8E6E1]" 
-                        style={{ color: "#6B727C" }}
+                    <Icon size={14} />
+                    {t.label}
+                    {t.count !== undefined && (
+                      <span
+                        className="text-[10px] px-1.5 py-0.5 rounded-full font-mono"
+                        style={{
+                          background: active ? "rgba(255,106,57,0.14)" : "#171C28",
+                          color: active ? "#FF6A39" : "#6A7080",
+                        }}
                       >
-                        <span className="hidden xs:inline">{job.id}</span>
-                        <span className="xs:hidden">{job.id.substring(0, 8)}</span>
-                        <Copy size={7} className="md:w-[8px] md:h-[8px] lg:w-[8px] lg:h-[8px]" />
+                        {t.count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* ── Tab content ────────────────────────── */}
+
+            {tab === "overview" && (
+              <div className="float-in grid grid-cols-1 lg:grid-cols-3 gap-5">
+                {/* Workers glance */}
+                <GlanceCard
+                  title="Worker rack"
+                  subtitle={`${onlineWorkers} of ${workers.length} online`}
+                  icon={Cpu}
+                  onOpen={() => setTab("workers")}
+                >
+                  <ul className="space-y-3">
+                    {workers.map((w) => {
+                      const tone = w.load > 80 ? "#F87171" : w.load > 50 ? "#FBBF24" : "#34D399";
+                      return (
+                        <li key={w.name}>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="flex items-center gap-2 text-[12.5px]" style={{ color: "#DADEE7" }}>
+                              <span className="relative flex h-1.5 w-1.5">
+                                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 ping" />
+                                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                              </span>
+                              {w.name}
+                            </span>
+                            <span className="text-[11px] font-mono" style={{ color: tone }}>{w.load}%</span>
+                          </div>
+                          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#0B0E13" }}>
+                            <div className="h-full rounded-full" style={{ width: `${w.load}%`, background: tone, boxShadow: `0 0 10px ${tone}55` }} />
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </GlanceCard>
+
+                {/* Queues glance */}
+                <GlanceCard
+                  title="Active queues"
+                  subtitle={`${queues.filter(q => q.status === "Running").length} running`}
+                  icon={Layers}
+                  onOpen={() => setTab("queues")}
+                >
+                  <ul className="space-y-2.5">
+                    {queues.map((q) => {
+                      const running = q.status === "Running";
+                      return (
+                        <li key={q.name} className="rounded-2xl px-3 py-2.5 flex items-center justify-between gap-3"
+                          style={{ background: "#0F131C", boxShadow: "inset 0 0 0 1px #1A1F2B" }}>
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="w-2 h-2 rounded-full shrink-0"
+                              style={{ background: running ? "#34D399" : "#9BA0A8", boxShadow: running ? "0 0 8px #34D39988" : "none" }} />
+                            <span className="text-[12.5px] truncate" style={{ color: "#DADEE7", fontFamily: FONT.mono }}>{q.name}</span>
+                          </div>
+                          <span className="text-[11px] font-mono shrink-0" style={{ color: "#7A8092" }}>
+                            {q.pending}<span style={{ color: "#3A404F" }}>·</span>{q.processing}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </GlanceCard>
+
+                {/* Jobs glance */}
+                <GlanceCard
+                  title="Recent jobs"
+                  subtitle={`${jobs.length} in the last minute`}
+                  icon={ListChecks}
+                  onOpen={() => setTab("jobs")}
+                >
+                  <ul className="space-y-2.5">
+                    {jobs.slice(0, 4).map((j) => (
+                      <li key={j.id} className="flex items-center gap-2.5">
+                        <JobDot status={j.status} />
+                        <span className="text-[12.5px] truncate flex-1" style={{ color: "#DADEE7" }}>{j.campaign}</span>
+                        <span className="text-[11px] shrink-0" style={{ color: "#6A7080" }}>{j.time}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </GlanceCard>
+              </div>
+            )}
+
+            {tab === "workers" && (
+              <div className="float-in grid grid-cols-1 md:grid-cols-2 gap-4">
+                {workers.map((w) => {
+                  const tone = w.load > 80 ? "#F87171" : w.load > 50 ? "#FBBF24" : "#34D399";
+                  return (
+                    <div
+                      key={w.name}
+                      className="group rounded-3xl p-5 transition-all soft-ring hover:-translate-y-0.5"
+                      style={{ background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" }}
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                            style={{ background: `${tone}14`, boxShadow: `inset 0 0 0 1px ${tone}33` }}>
+                            <Cpu size={18} style={{ color: tone }} />
+                          </div>
+                          <div>
+                            <p className="text-[14.5px] font-semibold" style={{ color: "#F2F0EB" }}>{w.name}</p>
+                            <p className="text-[11.5px]" style={{ color: "#7A8092" }}>Background worker</p>
+                          </div>
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
+                          style={{ background: "rgba(52,211,153,0.10)", color: "#34D399", boxShadow: "inset 0 0 0 1px rgba(52,211,153,0.20)" }}>
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 ping" />
+                            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          </span>
+                          Online
+                        </span>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5 text-[11.5px]">
+                            <span style={{ color: "#7A8092" }}>CPU load</span>
+                            <span className="font-mono font-semibold" style={{ color: tone }}>{w.load}%</span>
+                          </div>
+                          <div className="h-2 rounded-full overflow-hidden" style={{ background: "#0B0E13" }}>
+                            <div className="h-full rounded-full transition-all" style={{ width: `${w.load}%`, background: tone, boxShadow: `0 0 12px ${tone}66` }} />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1">
+                          <div>
+                            <p className="text-[11px] uppercase tracking-wider" style={{ color: "#5A6172" }}>Jobs processed</p>
+                            <p className="text-[20px] font-bold font-mono leading-none mt-1" style={{ color: "#F2F0EB" }}>
+                              {w.jobsProcessed.toLocaleString()}
+                            </p>
+                          </div>
+                          <ArrowUpRight size={18} style={{ color: "#3A404F" }} className="group-hover:text-[#FF6A39] transition-colors" />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {tab === "queues" && (
+              <div className="float-in space-y-3">
+                {queues.map((q) => {
+                  const running = q.status === "Running";
+                  const tone = running ? "#34D399" : "#9BA0A8";
+                  return (
+                    <div
+                      key={q.name}
+                      className="rounded-3xl p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 soft-ring transition-all hover:-translate-y-0.5"
+                      style={{ background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" }}
+                    >
+                      {/* left: status + name */}
+                      <div className="flex items-center gap-3 min-w-[200px]">
+                        <div className="relative w-12 h-12 shrink-0">
+                          <div className="absolute inset-0 rounded-2xl" style={{ background: `${tone}14`, boxShadow: `inset 0 0 0 1px ${tone}33` }} />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="relative flex h-2.5 w-2.5">
+                              {running && <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 ping" />}
+                              <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: tone }} />
+                            </span>
+                          </div>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[14px] font-semibold truncate" style={{ color: "#F2F0EB", fontFamily: FONT.mono }}>{q.name}</p>
+                          <p className="text-[11.5px] mt-0.5" style={{ color: tone }}>{q.status}</p>
+                        </div>
+                      </div>
+
+                      {/* middle: mini stats */}
+                      <div className="flex-1 grid grid-cols-3 gap-3">
+                        <MiniStat label="Pending"    value={q.pending}    tone="#9BA0A8" />
+                        <MiniStat label="Processing" value={q.processing} tone="#60A5FA" />
+                        <MiniStat label="Failed"     value={q.failed}     tone="#F87171" />
+                      </div>
+
+                      {/* right: action */}
+                      <button
+                        onClick={() => toggleQueue(q.name)}
+                        className="shrink-0 inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-all"
+                        style={{
+                          background: running ? "rgba(251,191,36,0.10)" : "rgba(52,211,153,0.10)",
+                          color:      running ? "#FBBF24"                : "#34D399",
+                          boxShadow: `inset 0 0 0 1px ${running ? "rgba(251,191,36,0.22)" : "rgba(52,211,153,0.22)"}`,
+                        }}
+                      >
+                        {running ? <Pause size={13} /> : <Play size={13} />}
+                        {running ? "Pause" : "Resume"}
                       </button>
-                    </td>
-                    <td className="mf-job-campaign px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4 text-[8px] md:text-[9px] lg:text-sm font-medium" style={{ color: "#E8E6E1" }}>
-                      {job.campaign}
-                    </td>
-                    <td className="mf-job-recipient px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4 text-[8px] md:text-[9px] lg:text-sm" style={{ color: "#9BA0A8" }}>
-                      <span className="hidden xs:inline">{job.recipient}</span>
-                      <span className="xs:hidden">{job.recipient.substring(0, 12)}...</span>
-                    </td>
-                    <td className="mf-job-sender px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4 text-[8px] md:text-[9px] lg:text-sm" style={{ color: "#9BA0A8" }}>
-                      <span className="hidden xs:inline">{job.sender}</span>
-                      <span className="xs:hidden">{job.sender.substring(0, 12)}...</span>
-                    </td>
-                    <td className="mf-table-cell px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4">
-                      <JobStatus status={job.status} />
-                    </td>
-                    <td className="mf-job-time px-2 md:px-3 lg:px-6 py-1.5 md:py-2 lg:py-4 text-[7px] md:text-[8px] lg:text-sm" style={{ color: "#6B727C" }}>{job.time}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {tab === "jobs" && (
+              <div className="float-in rounded-3xl overflow-hidden soft-ring" style={{ background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" }}>
+                <ul>
+                  {jobs.map((j, i) => {
+                    const tone =
+                      j.status === "Processing" ? "#60A5FA" :
+                      j.status === "Pending"    ? "#FBBF24" :
+                      j.status === "Completed"  ? "#34D399" : "#F87171";
+                    return (
+                      <li
+                        key={j.id}
+                        className="flex items-center gap-3 md:gap-4 px-4 md:px-5 py-4 hover:bg-[#141823]/60 transition-colors"
+                        style={{ borderTop: i === 0 ? "none" : "1px solid #1A1F2B" }}
+                      >
+                        <span className="w-1 self-stretch rounded-full shrink-0" style={{ background: tone, opacity: 0.75 }} />
+
+                        <div className="w-9 h-9 shrink-0 rounded-2xl flex items-center justify-center"
+                          style={{ background: `${tone}14`, boxShadow: `inset 0 0 0 1px ${tone}33` }}>
+                          <JobDot status={j.status} />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <p className="text-[13.5px] font-semibold truncate" style={{ color: "#F2F0EB" }}>{j.campaign}</p>
+                            <button
+                              onClick={() => navigator.clipboard?.writeText(j.id)}
+                              className="inline-flex items-center gap-1 text-[10.5px] shrink-0 transition-colors hover:text-[#E8E6E1]"
+                              style={{ color: "#6A7080", fontFamily: FONT.mono }}
+                            >
+                              {j.id}
+                              <Copy size={10} />
+                            </button>
+                          </div>
+                          <p className="text-[11.5px] truncate" style={{ color: "#7A8092", fontFamily: FONT.mono }}>
+                            {j.recipient} <span style={{ color: "#3A404F" }}>←</span> {j.sender}
+                          </p>
+                        </div>
+
+                        <span className="hidden md:inline shrink-0 text-[11px]" style={{ color: "#5A6172", fontFamily: FONT.mono }}>{j.time}</span>
+
+                        <span className="shrink-0"><JobStatus status={j.status} /></span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </main>
@@ -506,65 +485,92 @@ const QueueMonitor = () => {
   );
 };
 
-/* ========================= */
-/* Stat Card */
-/* ========================= */
+/* ─────────────── subcomponents ─────────────── */
 
-interface StatCardProps {
-  title: string;
-  value: string;
-  description: string;
+const SummaryTile: React.FC<{
   icon: React.ComponentType<{ size?: number; className?: string }>;
-  accent: string;
+  label: string;
+  value: string;
+  tone: string;
   spin?: boolean;
-  isEmber: boolean;
-}
-
-const StatCard = ({ title, value, description, icon: Icon, accent, isEmber }: StatCardProps) => {
-  return (
-    <div className="mf-stat-card rounded-xl border p-2.5 md:p-3 lg:p-5 shadow-sm transition hover:shadow-md" style={{ borderColor: "#2A2E37", background: "#12151B" }}>
-      <div className="flex items-start justify-between">
-        <p className="mf-stat-label text-[8px] md:text-[9px] lg:text-sm" style={{ color: "#9BA0A8" }}>{title}</p>
-        <span className={`flex h-5 w-5 md:h-6 md:w-6 lg:h-8 lg:w-8 items-center justify-center rounded-lg ${
-          isEmber ? "bg-ember-soft" : ""
-        } ${!isEmber ? accent : ""}`}
-        style={{ background: isEmber ? "rgba(255,106,57,0.12)" : undefined }}
-        >
-          <Icon size={11} className={`md:w-[12px] md:h-[12px] lg:w-[13px] lg:h-[13px] ${isEmber ? "text-[#FF6A39]" : ""}`} />
-        </span>
+}> = ({ icon: Icon, label, value, tone, spin }) => (
+  <div className="p-5 md:p-6">
+    <div className="flex items-center gap-2 mb-3">
+      <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+        style={{ background: `${tone}14`, boxShadow: `inset 0 0 0 1px ${tone}2E` }}>
+        <Icon size={14} className={spin ? "spin" : ""} style={{ color: tone }} />
       </div>
-      <h2 className="mf-stat-value mt-1.5 md:mt-2 lg:mt-3 text-base md:text-xl lg:text-2xl font-semibold tracking-tight" style={{ color: "#E8E6E1" }}>{value}</h2>
-      <p className="mt-0.5 md:mt-1 text-[7px] md:text-[8px] lg:text-xs" style={{ color: "#6B727C" }}>{description}</p>
+      <span className="text-[11.5px] uppercase tracking-wider font-medium" style={{ color: "#6A7080" }}>{label}</span>
     </div>
-  );
+    <p className="text-[28px] md:text-[32px] font-bold font-mono leading-none tracking-tight" style={{ color: "#F2F0EB" }}>
+      {value}
+    </p>
+  </div>
+);
+
+const GlanceCard: React.FC<{
+  title: string;
+  subtitle: string;
+  icon: React.ComponentType<{ size?: number }>;
+  onOpen: () => void;
+  children: React.ReactNode;
+}> = ({ title, subtitle, icon: Icon, onOpen, children }) => (
+  <div className="rounded-3xl p-5 soft-ring transition-all hover:-translate-y-0.5"
+    style={{ background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" }}>
+    <div className="flex items-start justify-between mb-4">
+      <div>
+        <h3 className="text-[14px] font-semibold flex items-center gap-2" style={{ color: "#F2F0EB" }}>
+          <Icon size={14} />
+          {title}
+        </h3>
+        <p className="text-[11.5px] mt-0.5" style={{ color: "#7A8092" }}>{subtitle}</p>
+      </div>
+      <button
+        onClick={onOpen}
+        className="inline-flex items-center gap-1 text-[11.5px] font-medium transition-colors hover:opacity-80"
+        style={{ color: "#FF6A39" }}
+      >
+        Open <ArrowUpRight size={12} />
+      </button>
+    </div>
+    {children}
+  </div>
+);
+
+const MiniStat: React.FC<{ label: string; value: number; tone: string }> = ({ label, value, tone }) => (
+  <div className="rounded-2xl px-3 py-2.5" style={{ background: "#0F131C", boxShadow: "inset 0 0 0 1px #1A1F2B" }}>
+    <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5A6172" }}>{label}</p>
+    <p className="text-[16px] font-bold font-mono leading-none mt-1.5" style={{ color: tone }}>{value}</p>
+  </div>
+);
+
+const JobDot: React.FC<{ status: Job["status"] }> = ({ status }) => {
+  const map: Record<Job["status"], { color: string; icon: React.ComponentType<{ size?: number; className?: string }>; spin?: boolean }> = {
+    Processing: { color: "#60A5FA", icon: Loader2,       spin: true },
+    Pending:    { color: "#FBBF24", icon: Clock },
+    Completed:  { color: "#34D399", icon: CheckCircle2 },
+    Failed:     { color: "#F87171", icon: XCircle },
+  };
+  const { color, icon: Icon, spin } = map[status];
+  return <Icon size={14} className={spin ? "spin" : ""} style={{ color }} />;
 };
 
-/* ========================= */
-/* Job Status */
-/* ========================= */
-
-type JobStatusType = Job["status"];
-
-const jobStatusConfig: Record<
-  JobStatusType,
-  { className: string; icon: React.ComponentType<{ size?: number; className?: string }>; spin?: boolean }
-> = {
-  Processing: { className: "bg-blue-500/10 text-blue-400", icon: Loader2, spin: true },
-  Pending: { className: "bg-amber-500/10 text-amber-400", icon: Clock },
-  Failed: { className: "bg-rose-500/10 text-rose-400", icon: XCircle },
-  Completed: { className: "bg-emerald-500/10 text-emerald-400", icon: CheckCircle2 },
+const jobStatusConfig: Record<Job["status"], { fg: string; bg: string; ring: string }> = {
+  Processing: { fg: "#60A5FA", bg: "rgba(59,130,246,0.10)",  ring: "rgba(59,130,246,0.22)" },
+  Pending:    { fg: "#FBBF24", bg: "rgba(234,179,8,0.10)",   ring: "rgba(234,179,8,0.22)" },
+  Failed:     { fg: "#F87171", bg: "rgba(239,68,68,0.10)",   ring: "rgba(239,68,68,0.22)" },
+  Completed:  { fg: "#34D399", bg: "rgba(52,211,153,0.10)",  ring: "rgba(52,211,153,0.22)" },
 };
 
-const JobStatus = ({ status }: { status: JobStatusType }) => {
-  const { className, icon: Icon, spin } = jobStatusConfig[status];
-
+const JobStatus = ({ status }: { status: Job["status"] }) => {
+  const { fg, bg, ring } = jobStatusConfig[status];
   return (
     <span
-      className={`inline-flex items-center gap-0.5 md:gap-1 lg:gap-1.5 rounded-full px-1 md:px-1.5 lg:px-2.5 py-0.5 md:py-0.5 lg:py-1 text-[7px] md:text-[8px] lg:text-xs font-medium ${className}`}
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium whitespace-nowrap"
+      style={{ background: bg, color: fg, boxShadow: `inset 0 0 0 1px ${ring}` }}
     >
-      <Icon size={8} className={`md:w-[9px] md:h-[9px] lg:w-[10px] lg:h-[10px] ${spin ? "spin" : ""}`} />
-      <span className="hidden xs:inline">{status}</span>
-      <span className="xs:hidden">{status.charAt(0)}</span>
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: fg, boxShadow: `0 0 6px ${fg}` }} />
+      {status}
     </span>
   );
 };

@@ -1,34 +1,15 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useState } from "react";
 import Sidebar from "./Sidebar";
 import {
-  Mail,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  Gauge,
-  Layers,
-  Plus,
-  X,
-  Search,
-  Zap,
-  Settings2,
-  Trash2,
-  Shuffle,
-  Timer,
-  RotateCcw,
-  Wifi,
-  Menu,
-  Loader2,
+  Mail, CheckCircle2, AlertTriangle, XCircle, Gauge, Layers,
+  Plus, X, Search, Zap, Settings2, Trash2, Shuffle, Timer,
+  RotateCcw, Wifi, Menu, Loader2, ArrowUpRight, Inbox,
 } from "lucide-react";
-
-// ⚠️ adjust these paths to wherever your files actually live
 import { SenderAccContext } from "../../contexts/SenderAccountsContext";
 import type {
   SenderAccount,
   CreateSenderAccountInput,
 } from "../../types/SenderAccount";
-import { getSenderAccount } from "../../services/SenderService";
-import { id } from "zod/locales";
 
 const FONT = {
   display: "'Space Grotesk', sans-serif",
@@ -36,19 +17,25 @@ const FONT = {
   mono: "'JetBrains Mono', monospace",
 };
 
+/* ─────────────── helpers ─────────────── */
+
 type AccountStatus = "Active" | "Warning" | "Disconnected";
 type Provider = "Gmail" | "Outlook" | "Custom SMTP";
 
-const providerColors: Record<Provider, string> = {
-  Gmail: "bg-rose-500",
-  Outlook: "bg-blue-500",
-  "Custom SMTP": "bg-slate-700",
+const providerMeta: Record<Provider, { short: string; grad: string; ring: string; fg: string }> = {
+  Gmail:         { short: "G",  grad: "linear-gradient(135deg, #EA4335, #B32C20)", ring: "rgba(234,67,53,0.35)",  fg: "#EA4335" },
+  Outlook:       { short: "O",  grad: "linear-gradient(135deg, #0A66C2, #053C74)", ring: "rgba(10,102,194,0.35)", fg: "#0A66C2" },
+  "Custom SMTP": { short: "SM", grad: "linear-gradient(135deg, #4B5563, #1F2937)", ring: "rgba(107,114,128,0.35)", fg: "#9BA0A8" },
 };
 
-const pct = (used: number, limit: number) =>
-  limit > 0 ? Math.round((used / limit) * 100) : 0;
+const statusMeta: Record<AccountStatus, { fg: string; bg: string; ring: string; icon: React.ComponentType<{ size?: number }> }> = {
+  Active:       { fg: "#34D399", bg: "rgba(52,211,153,0.10)",  ring: "rgba(52,211,153,0.22)",  icon: CheckCircle2 },
+  Warning:      { fg: "#FBBF24", bg: "rgba(251,191,36,0.10)",  ring: "rgba(251,191,36,0.22)",  icon: AlertTriangle },
+  Disconnected: { fg: "#F87171", bg: "rgba(248,113,113,0.10)", ring: "rgba(248,113,113,0.22)", icon: XCircle },
+};
 
-// Backend might send "active" / "ACTIVE" / "Active" — normalize it
+const pct = (used: number, limit: number) => (limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0);
+
 const normalizeStatus = (s?: string): AccountStatus => {
   const v = (s ?? "").toLowerCase();
   if (v === "active") return "Active";
@@ -63,6 +50,8 @@ const normalizeProvider = (p?: string): Provider => {
   return "Custom SMTP";
 };
 
+/* ─────────────── page ─────────────── */
+
 const SenderAccountsPage = () => {
   const ctx = useContext(SenderAccContext);
   const [showAddAccount, setShowAddAccount] = useState(false);
@@ -70,13 +59,9 @@ const SenderAccountsPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (!ctx) {
-    throw new Error(
-      "SenderAccountsPage must be used inside a <SenderAccountsContext> provider."
-    );
+    throw new Error("SenderAccountsPage must be used inside a <SenderAccountsContext> provider.");
   }
   const { senderAcc: rawAccounts, loading, deleteSenderAccount } = ctx;
-
-  // Safety net: never let a non-array crash the page
   const senderAcc: SenderAccount[] = Array.isArray(rawAccounts) ? rawAccounts : [];
 
   const query = search.toLowerCase();
@@ -86,9 +71,7 @@ const SenderAccountsPage = () => {
       (a.display_name ?? "").toLowerCase().includes(query)
   );
 
-  const activeCount = senderAcc.filter(
-    (a) => normalizeStatus(a.status) === "Active"
-  ).length;
+  const activeCount = senderAcc.filter((a) => normalizeStatus(a.status) === "Active").length;
   const emailsToday = senderAcc.reduce((sum, a) => sum + (a.emails_sent_today ?? 0), 0);
   const dailyCapacity = senderAcc.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0);
 
@@ -103,528 +86,443 @@ const SenderAccountsPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body }}>
+    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: "#0B0E13" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes ping { 75%, 100% { transform: scale(2.4); opacity: 0; } }
+        .ping { animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite; }
+        @keyframes floatIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        .float-in { animation: floatIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
 
-        .mf-main-content::-webkit-scrollbar {
-          width: 6px;
-        }
-        .mf-main-content::-webkit-scrollbar-track {
-          background: #0B0E12;
-        }
-        .mf-main-content::-webkit-scrollbar-thumb {
-          background: #2A2E37;
-          border-radius: 3px;
-        }
-        .mf-main-content::-webkit-scrollbar-thumb:hover {
-          background: #3A3F4A;
-        }
+        .sa-main::-webkit-scrollbar { width: 10px; }
+        .sa-main::-webkit-scrollbar-track { background: transparent; }
+        .sa-main::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 10px; border: 2px solid #0B0E13; }
+        .sa-main::-webkit-scrollbar-thumb:hover { background: #2A2F3B; }
 
-        .sidebar-overlay {
-          animation: fadeIn 0.2s ease-in-out;
+        .soft-ring { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 1px 0 rgba(255,255,255,0.02); }
+        .glow-top {
+          background:
+            radial-gradient(900px 240px at 50% -80px, rgba(255,106,57,0.10), transparent 70%),
+            radial-gradient(700px 200px at 20% -60px, rgba(52,211,153,0.06), transparent 70%);
         }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        @keyframes mf-spin-kf {
-          to { transform: rotate(360deg); }
-        }
-        .mf-spin {
-          animation: mf-spin-kf 0.8s linear infinite;
-        }
+        select option { background: #141823; color: #E8E6E1; }
       `}</style>
 
-      {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 sidebar-overlay bg-black/70"
+          className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
-      <div
-        className={`
-        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-200 ease-out
+      <div className={`
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-      `}
-      >
+      `}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Main content with scrolling */}
-      <main
-        className="mf-main-content flex-1 overflow-y-auto p-3 md:p-4 lg:p-6 xl:p-8"
-        style={{ background: "#12151B", height: "100vh", width: "100%" }}
-      >
-        {/* Header */}
-        <div className="mf-header mb-5 md:mb-7 flex flex-wrap items-center justify-between gap-3 md:gap-4">
-          <div className="flex items-center gap-3 md:gap-4">
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg bg-[#171A21] border border-[#2A2E37] text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors"
-              aria-label="Open menu"
+      <main className="sa-main flex-1 overflow-y-auto" style={{ height: "100vh", width: "100%", background: "#0B0E13" }}>
+        <div className="glow-top">
+          <div className="max-w-[1160px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
+
+            {/* ── Header ─────────────────────────── */}
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8 md:mb-10">
+              <div className="flex items-start gap-3 md:gap-4">
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden mt-1 p-2 rounded-2xl text-[#C7C9CE] transition-colors soft-ring"
+                  style={{ background: "#141823" }}
+                >
+                  <Menu size={18} />
+                </button>
+                <div>
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
+                      style={{ background: "rgba(52,211,153,0.10)", color: "#34D399", boxShadow: "inset 0 0 0 1px rgba(52,211,153,0.20)" }}
+                    >
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 ping" />
+                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      </span>
+                      {activeCount} active sender{activeCount === 1 ? "" : "s"}
+                    </span>
+                    <span className="text-[11px]" style={{ color: "#5A6172", fontFamily: FONT.mono }}>
+                      · {senderAcc.length} total
+                    </span>
+                  </div>
+
+                  <h1
+                    style={{ fontFamily: FONT.display, letterSpacing: "-0.025em", color: "#F2F0EB" }}
+                    className="text-[28px] md:text-[34px] lg:text-[40px] font-bold leading-[1.05]"
+                  >
+                    Sender accounts
+                  </h1>
+                  <p className="mt-2 text-[14px] md:text-[15px] max-w-lg" style={{ color: "#8A90A0" }}>
+                    Manage the accounts used to send your campaigns.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowAddAccount(true)}
+                className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[13px] font-semibold self-start md:self-auto transition-all hover:-translate-y-0.5"
+                style={{ background: "#FF6A39", color: "#fff", boxShadow: "0 12px 30px -12px rgba(255,106,57,0.65)" }}
+              >
+                <Plus size={15} />
+                Add sender account
+              </button>
+            </header>
+
+            {/* ── Summary bar ────────────────────── */}
+            <div
+              className="float-in mb-6 md:mb-8 rounded-3xl overflow-hidden soft-ring"
+              style={{ background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" }}
             >
-              <Menu size={20} />
-            </button>
-            <div>
-              <p
-                className="text-[10px] md:text-[11px] lg:text-xs font-medium uppercase tracking-wide"
-                style={{ color: "#6B727C" }}
-              >
-                Email Infrastructure
-              </p>
-              <h1
-                className="mt-1 text-xl md:text-2xl lg:text-3xl font-semibold tracking-tight"
-                style={{ color: "#E8E6E1", fontFamily: FONT.display }}
-              >
-                Sender Accounts
-              </h1>
-              <p className="mt-0.5 md:mt-1 text-xs lg:text-sm" style={{ color: "#9BA0A8" }}>
-                Manage the accounts used to send your campaigns.
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setShowAddAccount(true)}
-            className="mf-add-btn flex items-center justify-center gap-1.5 md:gap-2 rounded-lg px-3 md:px-4 py-2 md:py-2.5 text-xs lg:text-sm font-medium text-white shadow-sm transition-all hover:opacity-90 hover:scale-[1.02] w-full sm:w-auto"
-            style={{
-              background: "#FF6A39",
-              boxShadow: "0 4px 12px rgba(255,106,57,0.25)",
-            }}
-          >
-            <Plus size={14} />
-            <span>Add Sender Account</span>
-          </button>
-        </div>
-
-        {/* Overview - Responsive Stats */}
-        <div className="mf-stats-grid mb-4 md:mb-6 grid grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-3 lg:gap-4">
-          <StatCard
-            title="Total Accounts"
-            value={String(senderAcc.length)}
-            description="Connected sender accounts"
-            icon={Layers}
-            accent="text-[#9BA0A8] bg-[#1B1E24]"
-            isEmber={true}
-          />
-          <StatCard
-            title="Active"
-            value={String(activeCount)}
-            description="Ready to send"
-            icon={CheckCircle2}
-            accent="text-emerald-400 bg-emerald-500/10"
-            isEmber={false}
-          />
-          <StatCard
-            title="Emails Today"
-            value={emailsToday.toLocaleString()}
-            description="Across all senders"
-            icon={Mail}
-            accent="text-blue-400 bg-blue-500/10"
-            isEmber={false}
-          />
-          <StatCard
-            title="Daily Capacity"
-            value={dailyCapacity.toLocaleString()}
-            description="Configured sending limit"
-            icon={Gauge}
-            accent="text-violet-400 bg-violet-500/10"
-            isEmber={false}
-          />
-        </div>
-
-        {/* Account List */}
-        <div
-          className="overflow-hidden rounded-xl border shadow-sm"
-          style={{ borderColor: "#2A2E37", background: "#12151B" }}
-        >
-          <div
-            className="flex flex-col gap-3 md:gap-4 border-b px-3 md:px-4 lg:px-6 py-3 md:py-4 lg:py-6 sm:flex-row sm:items-center sm:justify-between"
-            style={{ borderColor: "#2A2E37" }}
-          >
-            <div>
-              <h2 className="text-sm font-semibold" style={{ color: "#E8E6E1" }}>
-                Your Sender Accounts
-              </h2>
-              <p className="mt-0.5 md:mt-1 text-[11px] lg:text-xs" style={{ color: "#6B727C" }}>
-                Monitor account health and sending capacity.
-              </p>
+              <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-[#1A1F2B]">
+                <SummaryTile icon={Layers}       label="Total accounts"   value={String(senderAcc.length)}        tone="#9BA0A8" />
+                <SummaryTile icon={CheckCircle2} label="Active"           value={String(activeCount)}             tone="#34D399" />
+                <SummaryTile icon={Mail}         label="Emails today"     value={emailsToday.toLocaleString()}    tone="#60A5FA" />
+                <SummaryTile icon={Gauge}        label="Daily capacity"   value={dailyCapacity.toLocaleString()}  tone="#A78BFA" />
+              </div>
             </div>
 
-            <div className="relative w-full sm:w-56 lg:w-64">
-              <Search
-                size={13}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
-                style={{ color: "#6B727C" }}
-              />
-              <input
-                type="text"
-                placeholder="Search accounts…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-lg border py-1.5 lg:py-2 pl-8 pr-3 text-xs lg:text-sm outline-none transition"
-                style={{
-                  borderColor: "#2A2E37",
-                  background: "#0B0E12",
-                  color: "#E8E6E1",
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = "#FF6A39";
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = "#2A2E37";
-                }}
-              />
-            </div>
-          </div>
+            {/* ── Accounts list ─────────────────── */}
+            <section className="rounded-3xl overflow-hidden soft-ring mb-6 md:mb-8"
+              style={{ background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" }}>
+              <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 md:px-6 py-4 border-b border-[#1A1F2B]">
+                <div>
+                  <h2 className="text-[15px] font-semibold flex items-center gap-2" style={{ color: "#F2F0EB" }}>
+                    <Inbox size={15} className="text-[#FF6A39]" />
+                    Your accounts
+                  </h2>
+                  <p className="text-[12px] mt-0.5" style={{ color: "#7A8092" }}>
+                    Monitor health and sending capacity.
+                  </p>
+                </div>
 
-          <div className="divide-y" style={{ borderColor: "#2A2E37" }}>
-            {/* Initial loading */}
-            {loading && senderAcc.length === 0 && (
-              <div
-                className="flex items-center justify-center gap-2 p-8 md:p-10 text-xs lg:text-sm"
-                style={{ color: "#6B727C" }}
-              >
-                <Loader2 size={14} className="mf-spin" />
-                Loading sender accounts…
+                <div className="relative w-full sm:w-64">
+                  <Search
+                    size={14}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
+                    style={{ color: "#6A7080" }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search accounts…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full rounded-2xl py-2 pl-9 pr-9 text-[13px] outline-none transition-all"
+                    style={{ background: "#0F131C", color: "#E8E6E1", boxShadow: "inset 0 0 0 1px #1A1F2B" }}
+                    onFocus={(e) => (e.currentTarget.style.boxShadow = "inset 0 0 0 1px rgba(255,106,57,0.5)")}
+                    onBlur={(e)  => (e.currentTarget.style.boxShadow = "inset 0 0 0 1px #1A1F2B")}
+                  />
+                  {search && (
+                    <button
+                      onClick={() => setSearch("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#6A7080] hover:text-[#E8E6E1] px-1.5 py-0.5 rounded hover:bg-[#1B2130] transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </header>
+
+              {/* Loading */}
+              {loading && senderAcc.length === 0 && (
+                <div className="flex items-center justify-center gap-2 py-16">
+                  <Loader2 size={16} className="spin text-[#FF6A39]" />
+                  <span className="text-[13px]" style={{ color: "#7A8092" }}>Loading sender accounts…</span>
+                </div>
+              )}
+
+              {/* List */}
+              {filteredAccounts.length > 0 && (
+                <ul>
+                  {filteredAccounts.map((account, i) => (
+                    <SenderAccountRow
+                      key={account.id}
+                      account={account as any}
+                      first={i === 0}
+                      onDelete={() => handleDelete(account.id)}
+                    />
+                  ))}
+                </ul>
+              )}
+
+              {/* Empty */}
+              {!loading && senderAcc.length === 0 && (
+                <div className="text-center py-16 px-6">
+                  <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center"
+                    style={{ background: "#1B2130", boxShadow: "inset 0 0 0 1px #232938" }}>
+                    <Mail className="w-6 h-6 text-[#6A7080]" />
+                  </div>
+                  <p className="text-[14px] font-medium" style={{ color: "#F2F0EB" }}>No sender accounts yet</p>
+                  <p className="text-[12px] mt-1.5 mb-5" style={{ color: "#7A8092" }}>
+                    Connect an account to start sending campaigns.
+                  </p>
+                  <button
+                    onClick={() => setShowAddAccount(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
+                    style={{ background: "#FF6A39", boxShadow: "0 10px 24px -10px rgba(255,106,57,0.6)" }}
+                  >
+                    <Plus size={14} /> Add account
+                  </button>
+                </div>
+              )}
+
+              {/* No matches */}
+              {senderAcc.length > 0 && filteredAccounts.length === 0 && (
+                <div className="text-center py-14 px-6">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-2xl flex items-center justify-center"
+                    style={{ background: "#1B2130", boxShadow: "inset 0 0 0 1px #232938" }}>
+                    <Search className="w-5 h-5 text-[#6A7080]" />
+                  </div>
+                  <p className="text-[13.5px]" style={{ color: "#DADEE7" }}>
+                    No accounts match "{search}"
+                  </p>
+                  <button
+                    onClick={() => setSearch("")}
+                    className="mt-3 text-[12px] font-medium transition-colors"
+                    style={{ color: "#FF6A39" }}
+                  >
+                    Clear search
+                  </button>
+                </div>
+              )}
+            </section>
+
+            {/* ── Sending configuration ─────────── */}
+            <section className="rounded-3xl p-5 md:p-6 soft-ring"
+              style={{ background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" }}>
+              <div className="mb-5">
+                <h2 className="text-[15px] font-semibold flex items-center gap-2" style={{ color: "#F2F0EB" }}>
+                  <Settings2 size={15} className="text-[#FF6A39]" />
+                  Sending configuration
+                </h2>
+                <p className="text-[12px] mt-0.5" style={{ color: "#7A8092" }}>
+                  How your accounts are used during campaigns.
+                </p>
               </div>
-            )}
 
-            {/* Accounts: shown whenever data exists, even during a refetch */}
-            {filteredAccounts.map((account) => (
-              <SenderAccountCard
-                key={account.id}
-                account={account}
-                onDelete={() => handleDelete(account.id)}
-              />
-            ))}
-
-            {/* Empty state */}
-            {!loading && senderAcc.length === 0 && (
-              <div
-                className="p-6 md:p-8 lg:p-10 text-center text-xs lg:text-sm"
-                style={{ color: "#6B727C" }}
-              >
-                No sender accounts yet. Add one to start sending campaigns.
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <SettingCard
+                  icon={Shuffle}
+                  title="Account rotation"
+                  description="Automatically rotate between active sender accounts."
+                  enabled
+                />
+                <SettingCard
+                  icon={Timer}
+                  title="Rate limiting"
+                  description="Respect hourly and daily limits for each account."
+                  enabled
+                />
+                <SettingCard
+                  icon={RotateCcw}
+                  title="Automatic retry"
+                  description="Retry failed email jobs using another sender."
+                  enabled
+                />
               </div>
-            )}
-
-            {/* No search matches */}
-            {senderAcc.length > 0 && filteredAccounts.length === 0 && (
-              <div
-                className="p-6 md:p-8 lg:p-10 text-center text-xs lg:text-sm"
-                style={{ color: "#6B727C" }}
-              >
-                No accounts match "{search}".
-              </div>
-            )}
+            </section>
           </div>
         </div>
-
-        {/* Sending Rules */}
-        <div
-          className="mf-settings-grid mt-4 md:mt-5 lg:mt-6 grid grid-cols-1 rounded-xl border p-3 md:p-4 lg:p-6 shadow-sm"
-          style={{ borderColor: "#2A2E37", background: "#12151B" }}
-        >
-          <div className="mb-3 md:mb-4 lg:mb-6">
-            <h2 className="text-sm font-semibold" style={{ color: "#E8E6E1" }}>
-              Sending Configuration
-            </h2>
-            <p className="mt-0.5 md:mt-1 text-[11px] lg:text-xs" style={{ color: "#6B727C" }}>
-              Configure how your accounts are used during campaigns.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-2.5 md:gap-3 lg:gap-5 md:grid-cols-3">
-            <SettingCard
-              icon={Shuffle}
-              title="Account Rotation"
-              description="Automatically rotate between active sender accounts."
-              enabled
-            />
-            <SettingCard
-              icon={Timer}
-              title="Rate Limiting"
-              description="Respect hourly and daily limits for each account."
-              enabled
-            />
-            <SettingCard
-              icon={RotateCcw}
-              title="Automatic Retry"
-              description="Retry failed email jobs using another sender."
-              enabled
-            />
-          </div>
-        </div>
-
-        {showAddAccount && <AddAccountModal onClose={() => setShowAddAccount(false)} />}
       </main>
+
+      {showAddAccount && <AddAccountModal onClose={() => setShowAddAccount(false)} />}
     </div>
   );
 };
 
-/* ========================================================= */
-/* Stat Card */
-/* ========================================================= */
+/* ─────────────── Summary tile ─────────────── */
 
-interface StatCardProps {
-  title: string;
-  value: string;
-  description: string;
+const SummaryTile: React.FC<{
   icon: React.ComponentType<{ size?: number; className?: string }>;
-  accent: string;
-  isEmber: boolean;
-}
-
-const StatCard = ({ title, value, description, icon: Icon, accent, isEmber }: StatCardProps) => {
-  return (
-    <div
-      className="mf-stat-card rounded-xl border p-3 lg:p-5 shadow-sm transition hover:shadow-md"
-      style={{ borderColor: "#2A2E37", background: "#12151B" }}
-    >
-      <div className="flex items-start justify-between">
-        <p className="mf-stat-label text-xs lg:text-sm" style={{ color: "#9BA0A8" }}>
-          {title}
-        </p>
-        <span
-          className={`flex h-6 w-6 lg:h-8 lg:w-8 items-center justify-center rounded-lg ${
-            !isEmber ? accent : ""
-          }`}
-          style={{ background: isEmber ? "rgba(255,106,57,0.12)" : undefined }}
-        >
-          <Icon size={13} className={isEmber ? "text-[#FF6A39]" : ""} />
-        </span>
-      </div>
-      <h2
-        className="mf-stat-value mt-2 lg:mt-3 text-xl lg:text-2xl font-semibold tracking-tight"
-        style={{ color: "#E8E6E1", fontFamily: FONT.display }}
+  label: string;
+  value: string;
+  tone: string;
+}> = ({ icon: Icon, label, value, tone }) => (
+  <div className="p-5 md:p-6">
+    <div className="flex items-center gap-2 mb-3">
+      <div
+        className="w-8 h-8 rounded-xl flex items-center justify-center"
+        style={{ background: `${tone}14`, boxShadow: `inset 0 0 0 1px ${tone}2E` }}
       >
-        {value}
-      </h2>
-      <p className="mt-1 text-[11px] lg:text-xs" style={{ color: "#6B727C" }}>
-        {description}
-      </p>
+        <Icon size={14} style={{ color: tone }} />
+      </div>
+      <span className="text-[11.5px] uppercase tracking-wider font-medium" style={{ color: "#6A7080" }}>
+        {label}
+      </span>
+    </div>
+    <p className="text-[28px] md:text-[32px] font-bold leading-none tracking-tight"
+      style={{ color: "#F2F0EB", fontFamily: FONT.mono }}>
+      {value}
+    </p>
+  </div>
+);
+
+/* ─────────────── Usage ring (SVG) ─────────────── */
+
+const UsageRing: React.FC<{
+  label: string;
+  current: number;
+  limit: number;
+  pct: number;
+  size?: number;
+}> = ({ label, current, limit, pct, size = 76 }) => {
+  const stroke = 6;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c - (pct / 100) * c;
+
+  const tone = pct >= 90 ? "#F87171" : pct >= 70 ? "#FBBF24" : "#FF6A39";
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="-rotate-90">
+          <circle
+            cx={size / 2} cy={size / 2} r={r}
+            stroke="#1B2130" strokeWidth={stroke} fill="none"
+          />
+          <circle
+            cx={size / 2} cy={size / 2} r={r}
+            stroke={tone} strokeWidth={stroke} fill="none"
+            strokeDasharray={c} strokeDashoffset={offset}
+            strokeLinecap="round"
+            style={{ transition: "stroke-dashoffset 0.5s ease, stroke 0.3s ease" }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-[14px] font-bold font-mono leading-none" style={{ color: "#F2F0EB" }}>
+            {pct}%
+          </span>
+        </div>
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] uppercase tracking-wider" style={{ color: "#6A7080" }}>{label}</p>
+        <p className="text-[13px] font-semibold mt-0.5" style={{ color: "#DADEE7", fontFamily: FONT.mono }}>
+          {current.toLocaleString()}
+          <span style={{ color: "#4A5162" }}> / </span>
+          {limit.toLocaleString()}
+        </p>
+      </div>
     </div>
   );
 };
 
-/* ========================================================= */
-/* Sender Account Card */
-/* ========================================================= */
+/* ─────────────── Account row ─────────────── */
 
-// `campaigns` isn't in your SenderAccount type yet, so we read it safely
 type AccountWithCampaigns = SenderAccount & { campaigns?: number };
 
-const SenderAccountCard = ({
-  account,
-  onDelete,
-}: {
+const SenderAccountRow: React.FC<{
   account: AccountWithCampaigns;
+  first?: boolean;
   onDelete: () => void;
-}) => {
+}> = ({ account, first, onDelete }) => {
   const provider = normalizeProvider(account.provider);
   const status = normalizeStatus(account.status);
+  const p = providerMeta[provider];
+  const s = statusMeta[status];
+  const StatusIcon = s.icon;
 
   const sentToday = account.emails_sent_today ?? 0;
   const dailyLimit = account.daily_limit ?? 0;
   const sentThisHour = account.emails_sent_hour ?? 0;
   const hourlyLimit = account.hourly_limit ?? 0;
-
-  const dailyPercentage = pct(sentToday, dailyLimit);
-  const hourlyPercentage = pct(sentThisHour, hourlyLimit);
+  const dailyPct = pct(sentToday, dailyLimit);
+  const hourlyPct = pct(sentThisHour, hourlyLimit);
   const disconnected = status === "Disconnected";
   const campaigns = account.campaigns ?? 0;
 
   return (
-    <div
-      className={`mf-account-card p-3 md:p-4 lg:p-6 transition hover:bg-[#1B1E24] ${
-        disconnected ? "opacity-70" : ""
-      }`}
+    <li
+      className={`px-4 md:px-6 py-5 transition-colors hover:bg-[#11151E] ${disconnected ? "opacity-70" : ""}`}
+      style={{ borderTop: first ? "none" : "1px solid #1A1F2B" }}
     >
-      <div className="flex flex-col gap-3 md:gap-4 lg:gap-6 xl:flex-row xl:items-center xl:justify-between">
-        {/* Account Info */}
-        <div className="mf-account-header flex items-center gap-3 lg:gap-4 xl:flex-1 min-w-0">
-          <div
-            className={`flex h-9 w-9 lg:h-11 lg:w-11 shrink-0 items-center justify-center rounded-xl text-xs lg:text-sm font-bold text-white ${providerColors[provider]}`}
-          >
-            {provider === "Custom SMTP" ? "SM" : provider.charAt(0)}
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
 
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-1.5 lg:gap-2.5">
-              <h3
-                className="mf-email-text text-xs lg:text-sm font-semibold truncate"
-                style={{ color: "#E8E6E1" }}
-              >
+        {/* Provider + identity */}
+        <div className="lg:col-span-5 flex items-center gap-4 min-w-0">
+          <div
+            className="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center text-[15px] font-bold text-white"
+            style={{ background: p.grad, boxShadow: `0 0 0 3px ${p.ring}, 0 6px 18px -8px ${p.fg}66` }}
+          >
+            {p.short}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-[14.5px] font-semibold truncate" style={{ color: "#F2F0EB" }}>
                 {account.email}
               </h3>
-              <StatusBadge status={status} />
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
+                style={{ background: s.bg, color: s.fg, boxShadow: `inset 0 0 0 1px ${s.ring}` }}
+              >
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: s.fg, boxShadow: `0 0 6px ${s.fg}` }} />
+                {status}
+              </span>
             </div>
-            <p className="mf-provider-badge mt-1 text-[11px] lg:text-xs" style={{ color: "#9BA0A8" }}>
-              {account.display_name} · {account.provider}
+            <p className="text-[12px] mt-1 truncate" style={{ color: "#7A8092" }}>
+              {account.display_name} <span style={{ color: "#4A5162" }}>·</span>{" "}
+              <span style={{ fontFamily: FONT.mono }}>{account.provider}</span>
             </p>
-            <p className="mt-1 lg:mt-2 text-[11px]" style={{ color: "#6B727C" }}>
+            <p className="text-[11px] mt-1" style={{ color: "#5A6172" }}>
               {campaigns} campaign{campaigns !== 1 && "s"} using this account
             </p>
           </div>
         </div>
 
-        {/* Limits */}
-        <div className="mf-account-limits grid grid-cols-1 gap-3 lg:gap-5 sm:grid-cols-2 xl:w-[380px]">
-          <UsageBar
-            label="Daily usage"
-            current={sentToday}
-            limit={dailyLimit}
-            percentage={dailyPercentage}
-          />
-          <UsageBar
-            label="Hourly usage"
-            current={sentThisHour}
-            limit={hourlyLimit}
-            percentage={hourlyPercentage}
-          />
+        {/* Usage rings */}
+        <div className="lg:col-span-4 grid grid-cols-2 gap-3">
+          <UsageRing label="Daily" current={sentToday} limit={dailyLimit} pct={dailyPct} />
+          <UsageRing label="Hourly" current={sentThisHour} limit={hourlyLimit} pct={hourlyPct} />
         </div>
 
         {/* Actions */}
-        <div className="mf-account-actions flex flex-wrap items-center gap-1.5 lg:gap-2 shrink-0">
+        <div className="lg:col-span-3 flex items-center lg:justify-end gap-2 flex-wrap">
           {disconnected ? (
             <button
-              className="flex items-center gap-1 rounded-lg px-3 lg:px-3.5 py-1.5 lg:py-2 text-[11px] lg:text-xs font-medium text-white hover:opacity-90"
-              style={{ background: "#FF6A39" }}
+              className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[12px] font-semibold text-white transition-all hover:-translate-y-0.5"
+              style={{ background: "#FF6A39", boxShadow: "0 10px 24px -10px rgba(255,106,57,0.6)" }}
             >
-              <Wifi size={11} />
-              <span>Reconnect</span>
+              <Wifi size={13} /> Reconnect
             </button>
           ) : (
             <button
-              className="flex items-center gap-1 rounded-lg border px-3 lg:px-3.5 py-1.5 lg:py-2 text-[11px] lg:text-xs font-medium transition-colors"
-              style={{ borderColor: "#2A2E37", color: "#C7C9CE", background: "transparent" }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#1B1E24";
-                e.currentTarget.style.color = "#E8E6E1";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "#C7C9CE";
-              }}
+              className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[12px] font-medium transition-all"
+              style={{ background: "#0F131C", color: "#DADEE7", boxShadow: "inset 0 0 0 1px #1A1F2B" }}
             >
-              <Zap size={11} />
-              <span>Test</span>
+              <Zap size={13} /> Test
             </button>
           )}
+
           <button
-            className="flex items-center gap-1 rounded-lg border px-3 lg:px-3.5 py-1.5 lg:py-2 text-[11px] lg:text-xs font-medium transition-colors"
-            style={{ borderColor: "#2A2E37", color: "#C7C9CE", background: "transparent" }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#1B1E24";
-              e.currentTarget.style.color = "#E8E6E1";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "#C7C9CE";
-            }}
+            className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[12px] font-medium transition-all"
+            style={{ background: "#0F131C", color: "#DADEE7", boxShadow: "inset 0 0 0 1px #1A1F2B" }}
           >
-            <Settings2 size={11} />
-            <span>Manage</span>
+            <Settings2 size={13} /> Manage
           </button>
+
           <button
             onClick={onDelete}
             aria-label="Delete account"
-            className="flex items-center gap-1 rounded-lg border px-3 lg:px-3.5 py-1.5 lg:py-2 text-[11px] lg:text-xs font-medium transition-colors"
-            style={{
-              borderColor: "rgba(248,113,113,0.3)",
-              color: "#F87171",
-              background: "transparent",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(248,113,113,0.1)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
+            className="inline-flex items-center justify-center rounded-2xl px-3 py-2 text-[12px] font-medium transition-all"
+            style={{ background: "rgba(248,113,113,0.08)", color: "#F87171", boxShadow: "inset 0 0 0 1px rgba(248,113,113,0.22)" }}
           >
-            <Trash2 size={11} />
+            <Trash2 size={13} />
           </button>
         </div>
       </div>
-    </div>
+    </li>
   );
 };
 
-/* ========================================================= */
-/* Usage Bar */
-/* ========================================================= */
-
-interface UsageBarProps {
-  label: string;
-  current: number;
-  limit: number;
-  percentage: number;
-}
-
-const UsageBar = ({ label, current, limit, percentage }: UsageBarProps) => {
-  const barWidth = Math.min(percentage, 100);
-
-  return (
-    <div>
-      <div className="mb-1 lg:mb-2 flex items-center justify-between text-[11px] lg:text-xs">
-        <span className="mf-usage-label" style={{ color: "#6B727C" }}>
-          {label}
-        </span>
-        <span className="mf-usage-value font-medium" style={{ color: "#C7C9CE" }}>
-          {current} / {limit}
-        </span>
-      </div>
-      <div className="h-1.5 overflow-hidden rounded-full" style={{ background: "#2A2E37" }}>
-        <div
-          className={`h-full rounded-full transition-all ${
-            percentage >= 90 ? "bg-rose-500" : percentage >= 70 ? "bg-amber-500" : "bg-[#FF6A39]"
-          }`}
-          style={{ width: `${barWidth}%` }}
-        />
-      </div>
-      <p className="mf-usage-percent mt-1 text-right text-[10px] lg:text-[11px]" style={{ color: "#6B727C" }}>
-        {percentage}% used
-      </p>
-    </div>
-  );
-};
-
-/* ========================================================= */
-/* Status Badge */
-/* ========================================================= */
-
-const statusConfig: Record<
-  AccountStatus,
-  { className: string; icon: React.ComponentType<{ size?: number; className?: string }> }
-> = {
-  Active: { className: "bg-emerald-500/10 text-emerald-400", icon: CheckCircle2 },
-  Warning: { className: "bg-amber-500/10 text-amber-400", icon: AlertTriangle },
-  Disconnected: { className: "bg-rose-500/10 text-rose-400", icon: XCircle },
-};
-
-const StatusBadge = ({ status }: { status: AccountStatus }) => {
-  const config = statusConfig[status] ?? statusConfig.Warning;
-  const Icon = config.icon;
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2 lg:px-2.5 py-0.5 text-[10px] lg:text-xs font-medium ${config.className}`}
-    >
-      <Icon size={10} />
-      <span>{status}</span>
-    </span>
-  );
-};
-
-/* ========================================================= */
-/* Setting Card */
-/* ========================================================= */
+/* ─────────────── Setting card ─────────────── */
 
 interface SettingCardProps {
   icon: React.ComponentType<{ size?: number; className?: string }>;
@@ -638,24 +536,20 @@ const SettingCard = ({ icon: Icon, title, description, enabled }: SettingCardPro
 
   return (
     <div
-      className="mf-setting-card rounded-xl border p-3 lg:p-5 transition hover:border-[#3A3E47]"
-      style={{ borderColor: "#2A2E37", background: "#0B0E12" }}
+      className="rounded-2xl p-4 transition-all"
+      style={{ background: "#0F131C", boxShadow: "inset 0 0 0 1px #1A1F2B" }}
     >
-      <div className="flex items-start justify-between gap-3 lg:gap-4">
-        <div className="flex gap-2 lg:gap-3">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex gap-3 min-w-0">
           <span
-            className="flex h-7 w-7 lg:h-8 lg:w-8 shrink-0 items-center justify-center rounded-lg"
-            style={{ background: "#1B1E24", color: "#9BA0A8" }}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+            style={{ background: active ? "rgba(255,106,57,0.10)" : "#141823", color: active ? "#FF6A39" : "#7A8092", boxShadow: active ? "inset 0 0 0 1px rgba(255,106,57,0.22)" : "inset 0 0 0 1px #1A1F2B" }}
           >
-            <Icon size={13} />
+            <Icon size={15} />
           </span>
-          <div>
-            <h3 className="text-xs lg:text-sm font-semibold" style={{ color: "#E8E6E1" }}>
-              {title}
-            </h3>
-            <p className="mt-1 lg:mt-1.5 text-[11px] lg:text-xs leading-5" style={{ color: "#6B727C" }}>
-              {description}
-            </p>
+          <div className="min-w-0">
+            <h3 className="text-[13.5px] font-semibold" style={{ color: "#F2F0EB" }}>{title}</h3>
+            <p className="mt-1 text-[11.5px] leading-5" style={{ color: "#7A8092" }}>{description}</p>
           </div>
         </div>
 
@@ -664,14 +558,12 @@ const SettingCard = ({ icon: Icon, title, description, enabled }: SettingCardPro
           role="switch"
           aria-checked={active}
           aria-label={title}
-          className={`relative h-5 w-9 lg:h-6 lg:w-11 shrink-0 rounded-full transition ${
-            active ? "bg-[#FF6A39]" : "bg-[#2A2E37]"
-          }`}
+          className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
+          style={{ background: active ? "#FF6A39" : "#232938" }}
         >
           <span
-            className={`absolute top-0.5 h-4 w-4 lg:h-5 lg:w-5 rounded-full bg-white shadow transition-all ${
-              active ? "left-4 lg:left-[22px]" : "left-0.5"
-            }`}
+            className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all"
+            style={{ left: active ? 22 : 2 }}
           />
         </button>
       </div>
@@ -679,9 +571,7 @@ const SettingCard = ({ icon: Icon, title, description, enabled }: SettingCardPro
   );
 };
 
-/* ========================================================= */
-/* Add Account Modal */
-/* ========================================================= */
+/* ─────────────── Add account modal ─────────────── */
 
 const AddAccountModal = ({ onClose }: { onClose: () => void }) => {
   const ctx = useContext(SenderAccContext);
@@ -695,8 +585,6 @@ const AddAccountModal = ({ onClose }: { onClose: () => void }) => {
 
   const handleSubmit = async () => {
     if (!ctx) return;
-
-    // user_id is set by the backend from the logged-in user's token
     const payload: CreateSenderAccountInput = {
       display_name: name.trim(),
       email: email.trim(),
@@ -704,7 +592,6 @@ const AddAccountModal = ({ onClose }: { onClose: () => void }) => {
       daily_limit: Number(dailyLimit) || 0,
       hourly_limit: Number(hourlyLimit) || 0,
     };
-
     try {
       setSaving(true);
       setError(null);
@@ -718,191 +605,172 @@ const AddAccountModal = ({ onClose }: { onClose: () => void }) => {
     }
   };
 
-  const inputClass =
-    "w-full rounded-lg border px-3 lg:px-4 py-2 lg:py-2.5 text-xs lg:text-sm outline-none transition";
-  const focusOn = (e: React.FocusEvent<HTMLElement>) => {
-    e.currentTarget.style.borderColor = "#FF6A39";
-    e.currentTarget.style.boxShadow = "0 0 0 3px rgba(255,106,57,0.1)";
+  const inputBase =
+    "w-full rounded-2xl px-4 py-2.5 text-[13px] outline-none transition-all";
+  const inputStyle: React.CSSProperties = {
+    background: "#0F131C",
+    color: "#E8E6E1",
+    boxShadow: "inset 0 0 0 1px #1A1F2B",
   };
-  const focusOff = (e: React.FocusEvent<HTMLElement>) => {
-    e.currentTarget.style.borderColor = "#2A2E37";
-    e.currentTarget.style.boxShadow = "none";
-  };
+  const focusIn = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) =>
+    (e.currentTarget.style.boxShadow = "inset 0 0 0 1px rgba(255,106,57,0.55), 0 0 0 4px rgba(255,106,57,0.10)");
+  const focusOut = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) =>
+    (e.currentTarget.style.boxShadow = "inset 0 0 0 1px #1A1F2B");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0B0E12]/80 p-3 md:p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      onClick={onClose}>
       <div
-        className="mf-modal w-full max-w-lg rounded-2xl shadow-2xl"
-        style={{ background: "#12151B", border: "1px solid #2A2E37" }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg rounded-3xl overflow-hidden float-in"
+        style={{ background: "#141823", boxShadow: "inset 0 0 0 1px #232938, 0 30px 60px -20px rgba(0,0,0,0.6)" }}
       >
-        {/* Modal Header */}
-        <div
-          className="flex items-center justify-between border-b px-4 lg:px-6 py-4 lg:py-6"
-          style={{ borderColor: "#2A2E37" }}
-        >
-          <div className="flex items-center gap-3">
-            <span
-              className="flex h-8 w-8 lg:h-9 lg:w-9 items-center justify-center rounded-lg"
-              style={{ background: "#1B1E24", color: "#9BA0A8" }}
-            >
-              <Mail size={14} />
-            </span>
-            <div>
-              <h2 className="text-sm md:text-base font-semibold" style={{ color: "#E8E6E1" }}>
-                Add Sender Account
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 p-5 md:p-6 border-b border-[#1A1F2B]">
+          <div className="flex items-start gap-3.5 min-w-0">
+            <div className="shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
+              style={{ background: "rgba(255,106,57,0.10)", boxShadow: "inset 0 0 0 1px rgba(255,106,57,0.22)" }}>
+              <Mail size={18} className="text-[#FF6A39]" />
+            </div>
+            <div className="min-w-0">
+              <h2 style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }}
+                className="text-[16px] md:text-[18px] font-bold text-white truncate">
+                Add sender account
               </h2>
-              <p className="text-[11px] md:text-xs" style={{ color: "#6B727C" }}>
+              <p className="text-[12px] mt-0.5" style={{ color: "#8A90A0" }}>
                 Connect an account for sending campaigns.
               </p>
             </div>
           </div>
-
           <button
             onClick={onClose}
             aria-label="Close"
-            className="rounded-lg p-2 hover:bg-[#1B1E24] hover:text-[#E8E6E1]"
-            style={{ color: "#6B727C" }}
+            className="shrink-0 p-2 rounded-2xl text-[#8A90A0] hover:text-[#E8E6E1] transition-colors"
+            style={{ background: "#0F131C", boxShadow: "inset 0 0 0 1px #1A1F2B" }}
           >
-            <X size={14} />
+            <X size={15} />
           </button>
         </div>
 
-        {/* Form */}
-        <div className="mf-modal-body space-y-4 lg:space-y-5 p-4 lg:p-6">
-          <div>
-            <label className="mb-1.5 lg:mb-2 block text-xs lg:text-sm font-medium" style={{ color: "#C7C9CE" }}>
-              Email Address
-            </label>
+        {/* Body */}
+        <div className="p-5 md:p-6 space-y-4 max-h-[65vh] overflow-y-auto">
+          <Field label="Email address">
             <input
               type="email"
               placeholder="marketing@company.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className={inputClass}
-              style={{ borderColor: "#2A2E37", background: "#0B0E12", color: "#E8E6E1" }}
-              onFocus={focusOn}
-              onBlur={focusOff}
+              className={inputBase}
+              style={inputStyle}
+              onFocus={focusIn}
+              onBlur={focusOut}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="mb-1.5 lg:mb-2 block text-xs lg:text-sm font-medium" style={{ color: "#C7C9CE" }}>
-              Display Name
-            </label>
+          <Field label="Display name">
             <input
               type="text"
               placeholder="Marketing"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className={inputClass}
-              style={{ borderColor: "#2A2E37", background: "#0B0E12", color: "#E8E6E1" }}
-              onFocus={focusOn}
-              onBlur={focusOff}
+              className={inputBase}
+              style={inputStyle}
+              onFocus={focusIn}
+              onBlur={focusOut}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label className="mb-1.5 lg:mb-2 block text-xs lg:text-sm font-medium" style={{ color: "#C7C9CE" }}>
-              Provider
-            </label>
+          <Field label="Provider">
             <select
               value={provider}
               onChange={(e) => setProvider(e.target.value as Provider)}
-              className={inputClass}
-              style={{ borderColor: "#2A2E37", background: "#0B0E12", color: "#E8E6E1" }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = "#FF6A39";
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = "#2A2E37";
-              }}
+              className={inputBase}
+              style={inputStyle}
+              onFocus={focusIn}
+              onBlur={focusOut}
             >
               <option>Gmail</option>
               <option>Outlook</option>
               <option>Custom SMTP</option>
             </select>
-          </div>
+          </Field>
 
-          <div
-            className="mf-limit-fields grid grid-cols-2 gap-3 lg:gap-4 rounded-lg p-3 lg:p-4"
-            style={{ background: "#0B0E12" }}
-          >
-            <div>
-              <label className="mb-1 lg:mb-2 block text-[11px] lg:text-sm font-medium" style={{ color: "#C7C9CE" }}>
-                Daily Limit
-              </label>
+          <div className="grid grid-cols-2 gap-3 rounded-2xl p-4"
+            style={{ background: "#0F131C", boxShadow: "inset 0 0 0 1px #1A1F2B" }}>
+            <Field label="Daily limit" compact>
               <input
-                type="number"
-                min={0}
-                placeholder="500"
+                type="number" min={0} placeholder="500"
                 value={dailyLimit}
                 onChange={(e) => setDailyLimit(e.target.value)}
-                className={inputClass}
-                style={{ borderColor: "#2A2E37", background: "#12151B", color: "#E8E6E1" }}
-                onFocus={focusOn}
-                onBlur={focusOff}
+                className={inputBase}
+                style={{ ...inputStyle, background: "#141823" }}
+                onFocus={focusIn}
+                onBlur={focusOut}
               />
-            </div>
-            <div>
-              <label className="mb-1 lg:mb-2 block text-[11px] lg:text-sm font-medium" style={{ color: "#C7C9CE" }}>
-                Hourly Limit
-              </label>
+            </Field>
+            <Field label="Hourly limit" compact>
               <input
-                type="number"
-                min={0}
-                placeholder="50"
+                type="number" min={0} placeholder="50"
                 value={hourlyLimit}
                 onChange={(e) => setHourlyLimit(e.target.value)}
-                className={inputClass}
-                style={{ borderColor: "#2A2E37", background: "#12151B", color: "#E8E6E1" }}
-                onFocus={focusOn}
-                onBlur={focusOff}
+                className={inputBase}
+                style={{ ...inputStyle, background: "#141823" }}
+                onFocus={focusIn}
+                onBlur={focusOut}
               />
-            </div>
+            </Field>
           </div>
 
           {error && (
-            <p className="text-xs" style={{ color: "#F87171" }}>
-              {error}
-            </p>
+            <div className="flex items-start gap-2 rounded-2xl px-3.5 py-2.5"
+              style={{ background: "rgba(248,113,113,0.08)", boxShadow: "inset 0 0 0 1px rgba(248,113,113,0.22)" }}>
+              <AlertTriangle size={14} className="text-[#F87171] shrink-0 mt-0.5" />
+              <p className="text-[12px]" style={{ color: "#F87171" }}>{error}</p>
+            </div>
           )}
         </div>
 
         {/* Footer */}
-        <div
-          className="mf-modal-footer flex flex-col sm:flex-row justify-end gap-2 lg:gap-3 border-t px-4 lg:px-6 py-4 lg:py-6"
-          style={{ borderColor: "#2A2E37" }}
-        >
-          <button
-            onClick={onClose}
-            className="rounded-lg border px-4 py-2 md:py-2.5 text-xs lg:text-sm font-medium transition-colors"
-            style={{ borderColor: "#2A2E37", color: "#C7C9CE", background: "transparent" }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#1B1E24";
-              e.currentTarget.style.color = "#E8E6E1";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "#C7C9CE";
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={saving || !email || !name}
-            className="rounded-lg px-5 py-2 md:py-2.5 text-xs lg:text-sm font-medium text-white transition-all hover:opacity-90 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
-            style={{
-              background: "#FF6A39",
-              boxShadow: "0 4px 12px rgba(255,106,57,0.25)",
-            }}
-          >
-            {saving ? "Connecting…" : "Connect Account"}
-          </button>
+        <div className="flex items-center justify-between gap-3 p-5 md:p-6 border-t border-[#1A1F2B]">
+          <span className="text-[11px]" style={{ color: "#5A6172", fontFamily: FONT.mono }}>
+            credentials encrypted at rest
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-colors"
+              style={{ background: "#0F131C", color: "#DADEE7", boxShadow: "inset 0 0 0 1px #1A1F2B" }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={saving || !email || !name}
+              className="rounded-2xl px-5 py-2.5 text-[12.5px] font-semibold text-white transition-all disabled:opacity-50 disabled:hover:translate-y-0 hover:-translate-y-0.5"
+              style={{ background: "#FF6A39", boxShadow: "0 12px 30px -12px rgba(255,106,57,0.65)" }}
+            >
+              {saving ? "Connecting…" : "Connect account"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 };
+
+/* Small label wrapper */
+const Field: React.FC<{ label: string; compact?: boolean; children: React.ReactNode }> = ({
+  label, compact, children,
+}) => (
+  <div>
+    <label
+      className={`block font-medium mb-1.5 ${compact ? "text-[10.5px]" : "text-[12px]"}`}
+      style={{ color: compact ? "#8A90A0" : "#C7C9CE", textTransform: compact ? "uppercase" : "none", letterSpacing: compact ? "0.06em" : "0" }}
+    >
+      {label}
+    </label>
+    {children}
+  </div>
+);
 
 export default SenderAccountsPage;

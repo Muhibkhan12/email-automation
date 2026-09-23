@@ -19,7 +19,9 @@ def validate_file(file: UploadFile):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Only CSV and XLSX files are allow"
         )
-
+    return{
+        "message" : "Route Valid"
+    }
 def save_file_to_storage(file: UploadFile):
     os.makedirs(
         UPLOAD_DIR,

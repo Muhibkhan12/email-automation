@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import type { UploadedFile } from "../types/UploadTypes"; // adjust path
 import {
   uploadFile,
+  uploadRecipientsFile,
   getAllUploadedFiles,
   getUploadedFilesById,
   deleteUploadedFile,
@@ -20,7 +21,11 @@ interface UploadContextType {
   loading: boolean;
   error: string | null;
   upload: (campaignId: number) => Promise<void>;
-  fetchAllFiles: () => Promise<void>;
+  uploadRecipients: (
+    file: File,
+    onProgress?: (percent: number) => void
+  ) => Promise<UploadedFile>;
+  fetchAllFiles: (silent?: boolean) => Promise<void>;
   fetchFileById: (id: number) => Promise<UploadedFile | null>;
   removeFile: (id: number) => Promise<void>;
 }
@@ -37,21 +42,24 @@ export const UploadProvider = ({ children, userId }: UploadProviderProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAllFiles = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      // TODO: getAllUploadedFiles must accept userId on the backend/service
-      // side and return only this user's files. If it currently takes no
-      // args, update UploadServices.ts to: getAllUploadedFiles(userId: number)
-      const data = await getAllUploadedFiles(userId);
-      setFiles(Array.isArray(data) ? data : [data]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch files");
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
+  // silent = true refreshes the list without showing the loading spinner
+  // (used after an upload so the "Recent uploads" table doesn't flash).
+  // userId is kept in the deps so the list refetches if the logged-in user changes.
+  const fetchAllFiles = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoading(true);
+      setError(null);
+      try {
+        const data = await getAllUploadedFiles();
+        setFiles(Array.isArray(data) ? data : [data]);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch files");
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [userId]
+  );
 
   // Auto-fetch this user's uploaded files as soon as the provider mounts
   useEffect(() => {
@@ -63,8 +71,7 @@ export const UploadProvider = ({ children, userId }: UploadProviderProps) => {
       setLoading(true);
       setError(null);
       try {
-        const data = await getUploadedFilesById(id);
-        return data;
+        return await getUploadedFilesById(id);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch file");
         return null;
@@ -75,18 +82,34 @@ export const UploadProvider = ({ children, userId }: UploadProviderProps) => {
     []
   );
 
+  // Campaign-scoped upload (original)
   const upload = useCallback(
     async (campaignId: number) => {
       setLoading(true);
       setError(null);
       try {
         await uploadFile(campaignId);
-        await fetchAllFiles();
+        await fetchAllFiles(true);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to upload file");
       } finally {
         setLoading(false);
       }
+    },
+    [fetchAllFiles]
+  );
+
+  // Recipients upload from the Upload page.
+  // Errors are intentionally re-thrown (not stored in context `error`)
+  // so the page can show them on the specific file row.
+  const uploadRecipients = useCallback(
+    async (
+      file: File,
+      onProgress?: (percent: number) => void
+    ): Promise<UploadedFile> => {
+      const saved = await uploadRecipientsFile(file, onProgress);
+      await fetchAllFiles(true);
+      return saved;
     },
     [fetchAllFiles]
   );
@@ -110,11 +133,21 @@ export const UploadProvider = ({ children, userId }: UploadProviderProps) => {
       loading,
       error,
       upload,
+      uploadRecipients,
       fetchAllFiles,
       fetchFileById,
       removeFile,
     }),
-    [files, loading, error, upload, fetchAllFiles, fetchFileById, removeFile]
+    [
+      files,
+      loading,
+      error,
+      upload,
+      uploadRecipients,
+      fetchAllFiles,
+      fetchFileById,
+      removeFile,
+    ]
   );
 
   return (

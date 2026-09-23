@@ -56,8 +56,6 @@
 
   export const getAllSenderAccounts = async () => {
     const response = await api.get("/sender-accounts/all");
-    console.log("[SenderService] raw:", response.data);
-
     const raw = response.data;
     const rows = Array.isArray(raw)
       ? raw
