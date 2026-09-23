@@ -1,32 +1,14 @@
 // AdminSettings.tsx
 import React, { useState } from "react";
+import AdminSidebar from "./AdminSidebar";
 import {
-  Settings,
-  Save,
-  Globe,
-  Mail,
-  Shield,
-  Bell,
-  Key,
-  DollarSign,
-  AlertTriangle,
-  CheckCircle2,
-  X,
-  Plus,
-  Trash2,
-  Edit,
-  RefreshCw,
-  Eye,
-  EyeOff,
-  Copy,
-  Check,
-  Menu,
-  Download,
+  Settings, Save, Mail, Shield, Bell, Key, DollarSign,
+  AlertTriangle, CheckCircle2, X, Plus, Trash2, Edit,
+  RefreshCw, Eye, EyeOff, Copy, Check, Menu, Download,
+  ChevronRight, Sparkles, SlidersHorizontal, Globe, Users,
 } from "lucide-react";
 
-/* ---------------------------------------------------------------------- */
-/*  Types                                                                  */
-/* ---------------------------------------------------------------------- */
+/* ─────────────────────────── Types ─────────────────────────── */
 
 interface SMTPConfig {
   id: string;
@@ -45,73 +27,165 @@ interface Webhook {
   status: "Active" | "Inactive";
 }
 
-/* ---------------------------------------------------------------------- */
-/*  AdminSidebar Component                                                */
-/* ---------------------------------------------------------------------- */
+/* ─────────────────────────── Tokens ─────────────────────────── */
 
-const AdminSidebar = ({ onClose }: { onClose: () => void }) => {
-  return (
-    <div className="flex h-full w-64 flex-col bg-[#171A21] border-r border-[#2A2E37]">
-      <div className="flex items-center justify-between p-4 border-b border-[#2A2E37]">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-[#FF6A39] flex items-center justify-center">
-            <span className="text-white font-bold text-sm">MF</span>
-          </div>
-          <span className="text-[#E8E6E1] font-semibold text-sm">MailForge</span>
-        </div>
-        <button
-          onClick={onClose}
-          className="lg:hidden p-1 rounded hover:bg-[#2A2E37] text-[#8B8D94]"
-        >
-          <X size={18} />
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-4 space-y-1">
-        <div className="text-[10px] font-medium text-[#8B8D94] uppercase tracking-wider px-3 py-2">
-          Menu
-        </div>
-        <button className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors">
-          <Settings size={18} className="text-[#8B8D94]" />
-          <span>Dashboard</span>
-        </button>
-        <button className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#E8E6E1] bg-[#FF6A39]/10 border border-[#FF6A39]/20">
-          <Settings size={18} className="text-[#FF6A39]" />
-          <span>Settings</span>
-        </button>
-        <button className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#C7C9CE] hover:bg-[#1B1E24] transition-colors">
-          <Users size={18} className="text-[#8B8D94]" />
-          <span>Users</span>
-        </button>
-      </div>
-    </div>
-  );
+const FONT = {
+  display: "'Space Grotesk', sans-serif",
+  body: "'Inter', sans-serif",
+  mono: "'JetBrains Mono', monospace",
 };
 
-/* ---------------------------------------------------------------------- */
-/*  Page                                                                   */
-/* ---------------------------------------------------------------------- */
+const C = {
+  primary: "#FF6A39",
+  primarySoft: "rgba(255,106,57,0.10)",
+  primaryRing: "rgba(255,106,57,0.22)",
+  success: "#34D399",
+  successSoft: "rgba(52,211,153,0.10)",
+  successRing: "rgba(52,211,153,0.22)",
+  warning: "#FBBF24",
+  warningSoft: "rgba(251,191,36,0.10)",
+  warningRing: "rgba(251,191,36,0.22)",
+  danger: "#F87171",
+  dangerSoft: "rgba(248,113,113,0.10)",
+  dangerRing: "rgba(248,113,113,0.22)",
+  neutral: "#9BA0A8",
+  neutralSoft: "rgba(155,160,168,0.10)",
+  neutralRing: "rgba(155,160,168,0.22)",
+  dark: "#F2F0EB",
+  bg: "#0B0E13",
+  surface: "#141821",
+  inner: "#0F131C",
+  rowHover: "#11151E",
+  border: "#1A1F2B",
+  borderHover: "#232938",
+  textMuted: "#7A8092",
+  textBody: "#C7C9CE",
+};
+
+/* ─────────────────────────── Primitives ─────────────────────────── */
+
+const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => (
+  <div
+    className={`rounded-3xl soft-ring transition-colors ${className}`}
+    style={{ background: "linear-gradient(180deg, #141821 0%, #10141D 100%)" }}
+  >
+    {children}
+  </div>
+);
+
+const InputShell: React.FC<{
+  icon?: React.ComponentType<{ size?: number; className?: string }>;
+  children: React.ReactNode;
+}> = ({ icon: Icon, children }) => (
+  <div
+    className="flex items-center gap-2.5 rounded-2xl px-3.5 py-2.5 transition-all"
+    style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+    onFocusCapture={(e) =>
+      (e.currentTarget.style.boxShadow =
+        "inset 0 0 0 1px rgba(255,106,57,0.55), 0 0 0 4px rgba(255,106,57,0.10)")
+    }
+    onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${C.border}`)}
+  >
+    {Icon && <Icon size={14} className="text-[#6A7080] shrink-0" />}
+    {children}
+  </div>
+);
+
+const textInputCls =
+  "w-full bg-transparent text-[13px] text-[#E8E6E1] placeholder:text-[#5A6172] outline-none";
+const monoInputCls = `${textInputCls} font-mono`;
+
+const Field: React.FC<{ label: string; hint?: string; htmlFor?: string; children: React.ReactNode }> = ({
+  label, hint, htmlFor, children,
+}) => (
+  <div>
+    <label htmlFor={htmlFor} className="block text-[11.5px] font-medium text-[#C7C9CE] mb-1.5">
+      {label}
+    </label>
+    {children}
+    {hint && <p className="mt-1.5 text-[11px] text-[#7A8092]">{hint}</p>}
+  </div>
+);
+
+const Toggle: React.FC<{ checked: boolean; onChange: () => void; label: string }> = ({
+  checked, onChange, label,
+}) => (
+  <button
+    role="switch"
+    aria-checked={checked}
+    aria-label={label}
+    onClick={onChange}
+    className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
+    style={{
+      background: checked ? C.primary : C.borderHover,
+      boxShadow: checked ? "0 0 0 3px rgba(255,106,57,0.15)" : `inset 0 0 0 1px ${C.border}`,
+    }}
+  >
+    <span
+      className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
+      style={{ transform: checked ? "translateX(22px)" : "translateX(2px)" }}
+    />
+  </button>
+);
+
+const Pill: React.FC<{
+  fg: string;
+  bg: string;
+  ring: string;
+  children: React.ReactNode;
+  icon?: React.ComponentType<{ size?: number }>;
+}> = ({ fg, bg, ring, children, icon: Icon }) => (
+  <span
+    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
+    style={{ background: bg, color: fg, boxShadow: `inset 0 0 0 1px ${ring}` }}
+  >
+    {Icon && <Icon size={11} />}
+    {children}
+  </span>
+);
+
+const ToggleRow: React.FC<{
+  title: string;
+  description: string;
+  checked: boolean;
+  onChange: () => void;
+}> = ({ title, description, checked, onChange }) => (
+  <div
+    className="flex flex-wrap items-center justify-between gap-3 py-3.5 first:pt-0"
+    style={{ borderBottom: `1px solid ${C.border}` }}
+  >
+    <div className="min-w-0 flex-1">
+      <p className="text-[13px] font-medium" style={{ color: C.dark }}>{title}</p>
+      <p className="text-[11.5px] mt-0.5" style={{ color: C.textMuted }}>{description}</p>
+    </div>
+    <Toggle checked={checked} onChange={onChange} label={title} />
+  </div>
+);
+
+/* ─────────────────────────── Page ─────────────────────────── */
+
+type SectionKey = "general" | "smtp" | "security" | "notifications" | "api" | "billing";
 
 const AdminSettings = () => {
-  const [activeSection, setActiveSection] = useState("general");
+  const [activeSection, setActiveSection] = useState<SectionKey>("general");
   const [showApiKey, setShowApiKey] = useState(false);
   const [copied, setCopied] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // General settings state
+  // General
   const [workspaceName, setWorkspaceName] = useState("MailForge Platform");
   const [timezone, setTimezone] = useState("UTC");
   const [dateFormat, setDateFormat] = useState("MM/DD/YYYY");
   const [language, setLanguage] = useState("English");
 
-  // Security settings state
+  // Security
   const [twoFactorAuth, setTwoFactorAuth] = useState(false);
   const [sessionTimeout, setSessionTimeout] = useState("60");
   const [passwordPolicy, setPasswordPolicy] = useState("strict");
   const [ipWhitelist, setIpWhitelist] = useState<string[]>([]);
   const [newIp, setNewIp] = useState("");
 
-  // Notification settings state
+  // Notifications
   const [notifCampaigns, setNotifCampaigns] = useState(true);
   const [notifSystem, setNotifSystem] = useState(true);
   const [notifSecurity, setNotifSecurity] = useState(true);
@@ -119,63 +193,31 @@ const AdminSettings = () => {
   const [notifWeeklyDigest, setNotifWeeklyDigest] = useState(true);
   const [emailDigest, setEmailDigest] = useState(true);
 
-  // SMTP configurations state
+  // SMTP
   const [smtpConfigs, setSmtpConfigs] = useState<SMTPConfig[]>([
-    {
-      id: "smtp1",
-      name: "Primary SMTP",
-      host: "smtp.mailforge.io",
-      port: 587,
-      username: "smtp@mailforge.io",
-      encryption: "TLS",
-      status: "Active",
-    },
-    {
-      id: "smtp2",
-      name: "Backup SMTP",
-      host: "smtp2.mailforge.io",
-      port: 465,
-      username: "backup@mailforge.io",
-      encryption: "SSL",
-      status: "Inactive",
-    },
-    {
-      id: "smtp3",
-      name: "Custom SMTP",
-      host: "smtp.company.com",
-      port: 587,
-      username: "custom@company.com",
-      encryption: "TLS",
-      status: "Error",
-    },
+    { id: "smtp1", name: "Primary SMTP", host: "smtp.mailforge.io", port: 587, username: "smtp@mailforge.io", encryption: "TLS", status: "Active" },
+    { id: "smtp2", name: "Backup SMTP",  host: "smtp2.mailforge.io", port: 465, username: "backup@mailforge.io", encryption: "SSL", status: "Inactive" },
+    { id: "smtp3", name: "Custom SMTP",  host: "smtp.company.com",  port: 587, username: "custom@company.com",  encryption: "TLS", status: "Error" },
   ]);
 
-  // Webhooks state
+  // Webhooks
   const [webhooks, setWebhooks] = useState<Webhook[]>([
-    {
-      id: "webhook1",
-      name: "Campaign Events",
-      url: "https://api.company.com/webhooks/campaign",
-      status: "Active",
-    },
-    {
-      id: "webhook2",
-      name: "System Events",
-      url: "https://api.company.com/webhooks/system",
-      status: "Inactive",
-    },
+    { id: "webhook1", name: "Campaign Events", url: "https://api.company.com/webhooks/campaign", status: "Active" },
+    { id: "webhook2", name: "System Events",   url: "https://api.company.com/webhooks/system",   status: "Inactive" },
   ]);
 
-  const settingsSections = [
-    { id: "general", label: "General", icon: Settings },
-    { id: "smtp", label: "SMTP Configuration", icon: Mail },
-    { id: "security", label: "Security", icon: Shield },
-    { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "api", label: "API & Webhooks", icon: Key },
-    { id: "billing", label: "Billing", icon: DollarSign },
+  const sections: { id: SectionKey; label: string; hint: string; icon: React.ElementType }[] = [
+    { id: "general",       label: "General",           hint: "Platform basics",   icon: Settings },
+    { id: "smtp",          label: "SMTP configuration", hint: "Mail servers",      icon: Mail },
+    { id: "security",      label: "Security",          hint: "Access & policies", icon: Shield },
+    { id: "notifications", label: "Notifications",     hint: "What you get told", icon: Bell },
+    { id: "api",           label: "API & webhooks",    hint: "Integrations",      icon: Key },
+    { id: "billing",       label: "Billing",           hint: "Plan & invoices",   icon: DollarSign },
   ];
 
+  /* ── Handlers (unchanged behavior) ─────────── */
   const handleCopyApiKey = () => {
+    navigator.clipboard?.writeText("mf_live_9f2a1c7e4b8d3f6091a2c4e");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -190,127 +232,59 @@ const AdminSettings = () => {
     }
   };
 
-  const removeIpFromWhitelist = (ip: string) => {
+  const removeIpFromWhitelist = (ip: string) =>
     setIpWhitelist(ipWhitelist.filter((i) => i !== ip));
-  };
 
   const handleEditSMTP = (id: string) => {
-    // Implement edit functionality
     console.log("Edit SMTP:", id);
     alert(`Edit SMTP configuration: ${id}`);
   };
-
   const handleDeleteSMTP = (id: string) => {
     if (window.confirm("Are you sure you want to delete this SMTP configuration?")) {
       setSmtpConfigs(smtpConfigs.filter((config) => config.id !== id));
     }
   };
-
-  const handleAddSMTP = () => {
-    // Implement add functionality
-    alert("Add new SMTP configuration");
-  };
+  const handleAddSMTP = () => alert("Add new SMTP configuration");
 
   const handleEditWebhook = (id: string) => {
     console.log("Edit webhook:", id);
     alert(`Edit webhook: ${id}`);
   };
-
   const handleDeleteWebhook = (id: string) => {
     if (window.confirm("Are you sure you want to delete this webhook?")) {
       setWebhooks(webhooks.filter((webhook) => webhook.id !== id));
     }
   };
+  const handleAddWebhook = () => alert("Add new webhook");
 
-  const handleAddWebhook = () => {
-    alert("Add new webhook");
-  };
+  const handleSaveChanges = () => alert("Settings saved successfully!");
 
-  const handleSaveChanges = () => {
-    // Implement save functionality
-    alert("Settings saved successfully!");
-  };
-
-  const getStatusBadge = (status: SMTPConfig["status"]) => {
-    const styles = {
-      Active: { bg: "bg-emerald-500/15", text: "text-emerald-400" },
-      Inactive: { bg: "bg-slate-500/15", text: "text-slate-400" },
-      Error: { bg: "bg-rose-500/15", text: "text-rose-400" },
-    };
-    const s = styles[status];
-    return (
-      <span
-        className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[8px] font-medium sm:px-2 sm:text-[10px] ${s.bg} ${s.text}`}
-      >
-        <span
-          className={`h-1 w-1 rounded-full sm:h-1.5 sm:w-1.5 ${
-            status === "Active"
-              ? "bg-emerald-400"
-              : status === "Inactive"
-              ? "bg-slate-400"
-              : "bg-rose-400"
-          }`}
-        />
-        <span className="hidden xs:inline">{status}</span>
-        <span className="xs:hidden">{status.charAt(0)}</span>
-      </span>
-    );
-  };
-
-  const getWebhookStatusBadge = (status: Webhook["status"]) => {
-    const styles = {
-      Active: { bg: "bg-emerald-500/15", text: "text-emerald-400" },
-      Inactive: { bg: "bg-amber-500/15", text: "text-amber-400" },
-    };
-    const s = styles[status];
-    return (
-      <span
-        className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[8px] font-medium sm:px-2 sm:text-[10px] ${s.bg} ${s.text}`}
-      >
-        <span
-          className={`h-1 w-1 rounded-full sm:h-1.5 sm:w-1.5 ${
-            status === "Active" ? "bg-emerald-400" : "bg-amber-400"
-          }`}
-        />
-        <span className="hidden xs:inline">{status}</span>
-        <span className="xs:hidden">{status.charAt(0)}</span>
-      </span>
-    );
-  };
+  /* ── Section renderers ─────────────────────── */
 
   const renderSection = () => {
     switch (activeSection) {
       case "general":
         return (
-          <div className="space-y-4 sm:space-y-6">
-            <div className="grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2">
-              <div>
-                <label
-                  htmlFor="workspaceName"
-                  className="mb-1.5 block text-[11px] font-medium text-[#C7C9CE] sm:mb-2 sm:text-sm"
-                >
-                  Platform Name
-                </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <Field label="Platform name" htmlFor="workspaceName">
+              <InputShell icon={Globe}>
                 <input
                   id="workspaceName"
                   type="text"
                   value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
-                  className="w-full rounded-lg border border-[#2A2E37] bg-[#0E1013] px-3 py-2 text-[11px] text-[#E8E6E1] outline-none transition focus:border-[#FF6A39] sm:px-4 sm:py-2.5 sm:text-sm"
+                  className={textInputCls}
                 />
-              </div>
-              <div>
-                <label
-                  htmlFor="timezone"
-                  className="mb-1.5 block text-[11px] font-medium text-[#C7C9CE] sm:mb-2 sm:text-sm"
-                >
-                  Timezone
-                </label>
+              </InputShell>
+            </Field>
+
+            <Field label="Timezone" htmlFor="timezone">
+              <InputShell>
                 <select
                   id="timezone"
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  className="w-full rounded-lg border border-[#2A2E37] bg-[#0E1013] px-3 py-2 text-[11px] text-[#E8E6E1] outline-none transition focus:border-[#FF6A39] sm:px-4 sm:py-2.5 sm:text-sm"
+                  className={textInputCls}
                 >
                   <option value="UTC">UTC</option>
                   <option value="America/New_York">America/New_York (GMT-4)</option>
@@ -319,37 +293,31 @@ const AdminSettings = () => {
                   <option value="Asia/Karachi">Asia/Karachi (GMT+5)</option>
                   <option value="Asia/Singapore">Asia/Singapore (GMT+8)</option>
                 </select>
-              </div>
-              <div>
-                <label
-                  htmlFor="dateFormat"
-                  className="mb-1.5 block text-[11px] font-medium text-[#C7C9CE] sm:mb-2 sm:text-sm"
-                >
-                  Date Format
-                </label>
+              </InputShell>
+            </Field>
+
+            <Field label="Date format" htmlFor="dateFormat">
+              <InputShell>
                 <select
                   id="dateFormat"
                   value={dateFormat}
                   onChange={(e) => setDateFormat(e.target.value)}
-                  className="w-full rounded-lg border border-[#2A2E37] bg-[#0E1013] px-3 py-2 text-[11px] text-[#E8E6E1] outline-none transition focus:border-[#FF6A39] sm:px-4 sm:py-2.5 sm:text-sm"
+                  className={textInputCls}
                 >
                   <option value="MM/DD/YYYY">MM/DD/YYYY</option>
                   <option value="DD/MM/YYYY">DD/MM/YYYY</option>
                   <option value="YYYY-MM-DD">YYYY-MM-DD</option>
                 </select>
-              </div>
-              <div>
-                <label
-                  htmlFor="language"
-                  className="mb-1.5 block text-[11px] font-medium text-[#C7C9CE] sm:mb-2 sm:text-sm"
-                >
-                  Language
-                </label>
+              </InputShell>
+            </Field>
+
+            <Field label="Language" htmlFor="language">
+              <InputShell>
                 <select
                   id="language"
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
-                  className="w-full rounded-lg border border-[#2A2E37] bg-[#0E1013] px-3 py-2 text-[11px] text-[#E8E6E1] outline-none transition focus:border-[#FF6A39] sm:px-4 sm:py-2.5 sm:text-sm"
+                  className={textInputCls}
                 >
                   <option value="English">English</option>
                   <option value="Spanish">Spanish</option>
@@ -357,201 +325,171 @@ const AdminSettings = () => {
                   <option value="German">German</option>
                   <option value="Chinese">Chinese</option>
                 </select>
-              </div>
-            </div>
+              </InputShell>
+            </Field>
           </div>
         );
 
       case "smtp":
         return (
-          <div className="space-y-4 sm:space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h3 className="text-sm font-semibold text-[#E8E6E1] sm:text-base">
-                  SMTP Configurations
+                <h3 style={{ fontFamily: FONT.display }} className="text-[15px] font-semibold tracking-tight text-[#F2F0EB]">
+                  SMTP configurations
                 </h3>
-                <p className="text-[10px] text-[#8B8D94] sm:text-xs">
-                  Manage your SMTP server configurations
+                <p className="text-[11.5px] mt-0.5" style={{ color: C.textMuted }}>
+                  Manage the mail servers this platform sends through.
                 </p>
               </div>
               <button
                 onClick={handleAddSMTP}
-                className="flex items-center gap-1.5 rounded-lg bg-[#FF6A39] px-3 py-1.5 text-[10px] font-medium text-white transition hover:bg-[#e85a2c] sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
+                className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
+                style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.6)" }}
               >
-                <Plus size={12} className="sm:h-[13px] sm:w-[13px] lg:h-[14px] lg:w-[14px]" />
-                <span className="hidden xs:inline">Add SMTP</span>
-                <span className="xs:hidden">Add</span>
+                <Plus size={13} /> Add SMTP
               </button>
             </div>
 
-            <div className="space-y-2.5 sm:space-y-3">
-              {smtpConfigs.map((config) => (
-                <div
-                  key={config.id}
-                  className="flex flex-col justify-between gap-3 rounded-lg border border-[#2A2E37] bg-[#0E1013] p-3 sm:flex-row sm:items-center sm:p-4"
-                >
-                  <div className="min-w-0 space-y-0.5 sm:space-y-1">
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                      <h4 className="truncate text-[11px] font-medium text-[#E8E6E1] sm:text-sm">
-                        {config.name}
-                      </h4>
-                      {getStatusBadge(config.status)}
+            <div className="space-y-2.5">
+              {smtpConfigs.map((config) => {
+                const statusMeta =
+                  config.status === "Active"
+                    ? { fg: C.success, bg: C.successSoft, ring: C.successRing }
+                    : config.status === "Error"
+                    ? { fg: C.danger, bg: C.dangerSoft, ring: C.dangerRing }
+                    : { fg: C.neutral, bg: C.neutralSoft, ring: C.neutralRing };
+                return (
+                  <div
+                    key={config.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl p-4"
+                    style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-[13.5px] font-semibold" style={{ color: C.dark }}>{config.name}</p>
+                        <Pill fg={statusMeta.fg} bg={statusMeta.bg} ring={statusMeta.ring}>{config.status}</Pill>
+                      </div>
+                      <p className="mt-1 text-[11.5px] truncate" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+                        {config.host}:{config.port} · {config.encryption} · {config.username}
+                      </p>
                     </div>
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[9px] text-[#8B8D94] sm:gap-x-4 sm:text-xs">
-                      <span>Host: {config.host}</span>
-                      <span>Port: {config.port}</span>
-                      <span>Enc: {config.encryption}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => handleEditSMTP(config.id)}
+                        className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-medium transition-colors"
+                        style={{ background: C.surface, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+                      >
+                        <Edit size={12} /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSMTP(config.id)}
+                        className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-medium transition-colors"
+                        style={{ background: C.dangerSoft, color: C.danger, boxShadow: `inset 0 0 0 1px ${C.dangerRing}` }}
+                      >
+                        <Trash2 size={12} /> Remove
+                      </button>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                    <button
-                      onClick={() => handleEditSMTP(config.id)}
-                      className="rounded-lg border border-[#2A2E37] px-2 py-1 text-[9px] font-medium text-[#C7C9CE] transition hover:bg-[#1B1E24] sm:px-3 sm:py-1.5 sm:text-xs"
-                    >
-                      <Edit
-                        size={10}
-                        className="mr-0.5 inline sm:mr-1 sm:h-[11px] sm:w-[11px] lg:h-[12px] lg:w-[12px]"
-                      />
-                      <span className="hidden xs:inline">Edit</span>
-                    </button>
-                    <button
-                      onClick={() => handleDeleteSMTP(config.id)}
-                      className="rounded-lg border border-rose-500/30 px-2 py-1 text-[9px] font-medium text-rose-400 transition hover:bg-rose-500/10 sm:px-3 sm:py-1.5 sm:text-xs"
-                    >
-                      <Trash2
-                        size={10}
-                        className="mr-0.5 inline sm:mr-1 sm:h-[11px] sm:w-[11px] lg:h-[12px] lg:w-[12px]"
-                      />
-                      <span className="hidden xs:inline">Remove</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         );
 
       case "security":
         return (
-          <div className="space-y-4 sm:space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#2A2E37] bg-[#0E1013] p-3 sm:p-4">
+          <div className="space-y-4">
+            {/* 2FA */}
+            <div
+              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4"
+              style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+            >
               <div className="min-w-0 flex-1">
-                <h4 className="text-[11px] font-medium text-[#E8E6E1] sm:text-sm">
-                  Two-Factor Authentication
-                </h4>
-                <p className="text-[9px] text-[#8B8D94] sm:text-xs">
-                  Require 2FA for all admin accounts
-                </p>
+                <p className="text-[13px] font-medium" style={{ color: C.dark }}>Two-factor authentication</p>
+                <p className="text-[11.5px] mt-0.5" style={{ color: C.textMuted }}>Require 2FA for all admin accounts.</p>
               </div>
-              <button
-                onClick={() => setTwoFactorAuth(!twoFactorAuth)}
-                className={`relative h-5 w-9 shrink-0 rounded-full transition sm:h-6 sm:w-11 ${
-                  twoFactorAuth ? "bg-[#FF6A39]" : "bg-[#2A2E37]"
-                }`}
-                role="switch"
-                aria-checked={twoFactorAuth}
-                aria-label="Toggle two-factor authentication"
-              >
-                <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition sm:h-5 sm:w-5 ${
-                    twoFactorAuth ? "right-0.5" : "left-0.5"
-                  }`}
-                />
-              </button>
+              <Toggle
+                checked={twoFactorAuth}
+                onChange={() => setTwoFactorAuth(!twoFactorAuth)}
+                label="Toggle two-factor authentication"
+              />
             </div>
 
-            <div className="rounded-lg border border-[#2A2E37] bg-[#0E1013] p-3 sm:p-4">
-              <h4 className="text-[11px] font-medium text-[#E8E6E1] sm:text-sm">
-                Session Timeout
-              </h4>
-              <p className="mb-2 text-[9px] text-[#8B8D94] sm:mb-3 sm:text-xs">
-                Auto-logout after inactivity
-              </p>
-              <select
-                value={sessionTimeout}
-                onChange={(e) => setSessionTimeout(e.target.value)}
-                className="w-full rounded-lg border border-[#2A2E37] bg-[#0E1013] px-3 py-2 text-[11px] text-[#E8E6E1] outline-none transition focus:border-[#FF6A39] sm:px-4 sm:py-2.5 sm:text-sm"
-              >
-                <option value="15">15 minutes</option>
-                <option value="30">30 minutes</option>
-                <option value="60">1 hour</option>
-                <option value="120">2 hours</option>
-                <option value="240">4 hours</option>
-              </select>
-            </div>
+            <Field label="Session timeout" hint="Auto-logout after inactivity." htmlFor="sessionTimeout">
+              <InputShell>
+                <select
+                  id="sessionTimeout"
+                  value={sessionTimeout}
+                  onChange={(e) => setSessionTimeout(e.target.value)}
+                  className={textInputCls}
+                >
+                  <option value="15">15 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="60">1 hour</option>
+                  <option value="120">2 hours</option>
+                  <option value="240">4 hours</option>
+                </select>
+              </InputShell>
+            </Field>
 
-            <div className="rounded-lg border border-[#2A2E37] bg-[#0E1013] p-3 sm:p-4">
-              <h4 className="text-[11px] font-medium text-[#E8E6E1] sm:text-sm">
-                Password Policy
-              </h4>
-              <p className="mb-2 text-[9px] text-[#8B8D94] sm:mb-3 sm:text-xs">
-                Password complexity requirements
-              </p>
-              <select
-                value={passwordPolicy}
-                onChange={(e) => setPasswordPolicy(e.target.value)}
-                className="w-full rounded-lg border border-[#2A2E37] bg-[#0E1013] px-3 py-2 text-[11px] text-[#E8E6E1] outline-none transition focus:border-[#FF6A39] sm:px-4 sm:py-2.5 sm:text-sm"
-              >
-                <option value="basic">Basic (min 8 characters)</option>
-                <option value="medium">
-                  Medium (8+ chars, 1 uppercase, 1 number)
-                </option>
-                <option value="strict">
-                  Strict (12+ chars, upper, lower, number, symbol)
-                </option>
-              </select>
-            </div>
+            <Field label="Password policy" htmlFor="passwordPolicy">
+              <InputShell>
+                <select
+                  id="passwordPolicy"
+                  value={passwordPolicy}
+                  onChange={(e) => setPasswordPolicy(e.target.value)}
+                  className={textInputCls}
+                >
+                  <option value="basic">Basic (min 8 characters)</option>
+                  <option value="medium">Medium (8+ chars, 1 uppercase, 1 number)</option>
+                  <option value="strict">Strict (12+ chars, upper, lower, number, symbol)</option>
+                </select>
+              </InputShell>
+            </Field>
 
-            <div className="rounded-lg border border-[#2A2E37] bg-[#0E1013] p-3 sm:p-4">
-              <h4 className="text-[11px] font-medium text-[#E8E6E1] sm:text-sm">
-                IP Whitelist
-              </h4>
-              <p className="mb-2 text-[9px] text-[#8B8D94] sm:mb-3 sm:text-xs">
-                Restrict admin access to specific IPs
-              </p>
-              <div className="mb-2.5 flex flex-col gap-2 sm:flex-row sm:mb-3">
-                <input
-                  type="text"
-                  value={newIp}
-                  onChange={(e) => setNewIp(e.target.value)}
-                  placeholder="Enter IP address"
-                  className="flex-1 rounded-lg border border-[#2A2E37] bg-[#0E1013] px-3 py-1.5 text-[11px] text-[#E8E6E1] outline-none transition focus:border-[#FF6A39] sm:px-4 sm:py-2 sm:text-sm"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      addIpToWhitelist();
-                    }
-                  }}
-                />
+            <div>
+              <label className="block text-[11.5px] font-medium text-[#C7C9CE] mb-1.5">IP whitelist</label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <InputShell>
+                  <input
+                    type="text"
+                    value={newIp}
+                    onChange={(e) => setNewIp(e.target.value)}
+                    placeholder="Enter IP address"
+                    className={monoInputCls}
+                    onKeyDown={(e) => { if (e.key === "Enter") addIpToWhitelist(); }}
+                  />
+                </InputShell>
                 <button
                   onClick={addIpToWhitelist}
-                  className="rounded-lg bg-[#FF6A39] px-3 py-1.5 text-[11px] font-medium text-white transition hover:bg-[#e85a2c] sm:px-4 sm:py-2 sm:text-sm"
+                  className="shrink-0 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
+                  style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.6)" }}
                 >
                   Add
                 </button>
               </div>
-              <div className="flex flex-wrap gap-1.5 sm:gap-2">
+              <p className="mt-1.5 text-[11px]" style={{ color: C.textMuted }}>Restrict admin access to specific IPs.</p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
                 {ipWhitelist.map((ip) => (
                   <span
                     key={ip}
-                    className="inline-flex items-center gap-1 rounded-full bg-[#2A2E37] px-2 py-0.5 text-[9px] text-[#C7C9CE] sm:gap-1.5 sm:px-3 sm:py-1 sm:text-xs"
+                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px]"
+                    style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}`, fontFamily: FONT.mono }}
                   >
                     {ip}
                     <button
                       onClick={() => removeIpFromWhitelist(ip)}
-                      className="text-[#8B8D94] transition hover:text-[#E8E6E1]"
+                      className="opacity-60 hover:opacity-100 transition-opacity"
                       aria-label={`Remove ${ip} from whitelist`}
                     >
-                      <X
-                        size={10}
-                        className="sm:h-[11px] sm:w-[11px] lg:h-[12px] lg:w-[12px]"
-                      />
+                      <X size={11} />
                     </button>
                   </span>
                 ))}
                 {ipWhitelist.length === 0 && (
-                  <span className="text-[9px] text-[#8B8D94] sm:text-xs">
-                    No IPs whitelisted
-                  </span>
+                  <span className="text-[11.5px]" style={{ color: C.textMuted }}>No IPs whitelisted yet.</span>
                 )}
               </div>
             </div>
@@ -560,334 +498,167 @@ const AdminSettings = () => {
 
       case "notifications":
         return (
-          <div className="space-y-3 sm:space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#2A2E37] bg-[#0E1013] p-3 sm:p-4">
-              <div className="min-w-0 flex-1">
-                <h4 className="text-[11px] font-medium text-[#E8E6E1] sm:text-sm">
-                  Campaign Notifications
-                </h4>
-                <p className="text-[9px] text-[#8B8D94] sm:text-xs">
-                  Campaign completion and failure alerts
-                </p>
-              </div>
-              <button
-                onClick={() => setNotifCampaigns(!notifCampaigns)}
-                className={`relative h-5 w-9 shrink-0 rounded-full transition sm:h-6 sm:w-11 ${
-                  notifCampaigns ? "bg-[#FF6A39]" : "bg-[#2A2E37]"
-                }`}
-                role="switch"
-                aria-checked={notifCampaigns}
-                aria-label="Toggle campaign notifications"
-              >
-                <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition sm:h-5 sm:w-5 ${
-                    notifCampaigns ? "right-0.5" : "left-0.5"
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#2A2E37] bg-[#0E1013] p-3 sm:p-4">
-              <div className="min-w-0 flex-1">
-                <h4 className="text-[11px] font-medium text-[#E8E6E1] sm:text-sm">
-                  System Notifications
-                </h4>
-                <p className="text-[9px] text-[#8B8D94] sm:text-xs">
-                  System health and maintenance alerts
-                </p>
-              </div>
-              <button
-                onClick={() => setNotifSystem(!notifSystem)}
-                className={`relative h-5 w-9 shrink-0 rounded-full transition sm:h-6 sm:w-11 ${
-                  notifSystem ? "bg-[#FF6A39]" : "bg-[#2A2E37]"
-                }`}
-                role="switch"
-                aria-checked={notifSystem}
-                aria-label="Toggle system notifications"
-              >
-                <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition sm:h-5 sm:w-5 ${
-                    notifSystem ? "right-0.5" : "left-0.5"
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#2A2E37] bg-[#0E1013] p-3 sm:p-4">
-              <div className="min-w-0 flex-1">
-                <h4 className="text-[11px] font-medium text-[#E8E6E1] sm:text-sm">
-                  Security Alerts
-                </h4>
-                <p className="text-[9px] text-[#8B8D94] sm:text-xs">
-                  Security incidents and login alerts
-                </p>
-              </div>
-              <button
-                onClick={() => setNotifSecurity(!notifSecurity)}
-                className={`relative h-5 w-9 shrink-0 rounded-full transition sm:h-6 sm:w-11 ${
-                  notifSecurity ? "bg-[#FF6A39]" : "bg-[#2A2E37]"
-                }`}
-                role="switch"
-                aria-checked={notifSecurity}
-                aria-label="Toggle security alerts"
-              >
-                <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition sm:h-5 sm:w-5 ${
-                    notifSecurity ? "right-0.5" : "left-0.5"
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#2A2E37] bg-[#0E1013] p-3 sm:p-4">
-              <div className="min-w-0 flex-1">
-                <h4 className="text-[11px] font-medium text-[#E8E6E1] sm:text-sm">
-                  Billing Notifications
-                </h4>
-                <p className="text-[9px] text-[#8B8D94] sm:text-xs">
-                  Invoices, payments, and subscription alerts
-                </p>
-              </div>
-              <button
-                onClick={() => setNotifBilling(!notifBilling)}
-                className={`relative h-5 w-9 shrink-0 rounded-full transition sm:h-6 sm:w-11 ${
-                  notifBilling ? "bg-[#FF6A39]" : "bg-[#2A2E37]"
-                }`}
-                role="switch"
-                aria-checked={notifBilling}
-                aria-label="Toggle billing notifications"
-              >
-                <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition sm:h-5 sm:w-5 ${
-                    notifBilling ? "right-0.5" : "left-0.5"
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#2A2E37] bg-[#0E1013] p-3 sm:p-4">
-              <div className="min-w-0 flex-1">
-                <h4 className="text-[11px] font-medium text-[#E8E6E1] sm:text-sm">
-                  Weekly Digest
-                </h4>
-                <p className="text-[9px] text-[#8B8D94] sm:text-xs">
-                  Weekly summary of platform activity
-                </p>
-              </div>
-              <button
-                onClick={() => setNotifWeeklyDigest(!notifWeeklyDigest)}
-                className={`relative h-5 w-9 shrink-0 rounded-full transition sm:h-6 sm:w-11 ${
-                  notifWeeklyDigest ? "bg-[#FF6A39]" : "bg-[#2A2E37]"
-                }`}
-                role="switch"
-                aria-checked={notifWeeklyDigest}
-                aria-label="Toggle weekly digest"
-              >
-                <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition sm:h-5 sm:w-5 ${
-                    notifWeeklyDigest ? "right-0.5" : "left-0.5"
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#2A2E37] bg-[#0E1013] p-3 sm:p-4">
-              <div className="min-w-0 flex-1">
-                <h4 className="text-[11px] font-medium text-[#E8E6E1] sm:text-sm">
-                  Email Digest
-                </h4>
-                <p className="text-[9px] text-[#8B8D94] sm:text-xs">
-                  Receive notifications via email
-                </p>
-              </div>
-              <button
-                onClick={() => setEmailDigest(!emailDigest)}
-                className={`relative h-5 w-9 shrink-0 rounded-full transition sm:h-6 sm:w-11 ${
-                  emailDigest ? "bg-[#FF6A39]" : "bg-[#2A2E37]"
-                }`}
-                role="switch"
-                aria-checked={emailDigest}
-                aria-label="Toggle email digest"
-              >
-                <span
-                  className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition sm:h-5 sm:w-5 ${
-                    emailDigest ? "right-0.5" : "left-0.5"
-                  }`}
-                />
-              </button>
-            </div>
+          <div>
+            <ToggleRow
+              title="Campaign notifications"
+              description="Campaign completion and failure alerts."
+              checked={notifCampaigns}
+              onChange={() => setNotifCampaigns(!notifCampaigns)}
+            />
+            <ToggleRow
+              title="System notifications"
+              description="System health and maintenance alerts."
+              checked={notifSystem}
+              onChange={() => setNotifSystem(!notifSystem)}
+            />
+            <ToggleRow
+              title="Security alerts"
+              description="Security incidents and login alerts."
+              checked={notifSecurity}
+              onChange={() => setNotifSecurity(!notifSecurity)}
+            />
+            <ToggleRow
+              title="Billing notifications"
+              description="Invoices, payments, and subscription alerts."
+              checked={notifBilling}
+              onChange={() => setNotifBilling(!notifBilling)}
+            />
+            <ToggleRow
+              title="Weekly digest"
+              description="Weekly summary of platform activity."
+              checked={notifWeeklyDigest}
+              onChange={() => setNotifWeeklyDigest(!notifWeeklyDigest)}
+            />
+            <ToggleRow
+              title="Email digest"
+              description="Also deliver these notifications to your inbox."
+              checked={emailDigest}
+              onChange={() => setEmailDigest(!emailDigest)}
+            />
           </div>
         );
 
       case "api":
         return (
-          <div className="space-y-4 sm:space-y-6">
-            <div className="rounded-lg border border-[#2A2E37] bg-[#0E1013] p-3 sm:p-4">
-              <h4 className="text-[11px] font-medium text-[#E8E6E1] sm:text-sm">
-                API Key
-              </h4>
-              <p className="mb-2 text-[9px] text-[#8B8D94] sm:mb-3 sm:text-xs">
-                Use this key to authenticate API requests
-              </p>
-              <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
-                <div className="flex-1">
-                  <div className="flex items-center rounded-lg border border-[#2A2E37] bg-[#0E1013] px-3 py-2 sm:px-4 sm:py-2.5">
-                    <span className="truncate font-mono text-[10px] text-[#C7C9CE] sm:text-sm">
-                      {showApiKey
-                        ? "mf_live_9f2a1c7e4b8d3f6091a2c4e"
-                        : "••••••••••••••••••••••••"}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="space-y-5">
+            <Field label="API key" hint="Use this key to authenticate API requests. Keep it secret.">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <InputShell icon={Key}>
+                  <input
+                    readOnly
+                    value={showApiKey ? "mf_live_9f2a1c7e4b8d3f6091a2c4e" : "••••••••••••••••••••••••"}
+                    className={monoInputCls}
+                  />
                   <button
+                    type="button"
                     onClick={() => setShowApiKey(!showApiKey)}
-                    className="rounded-lg border border-[#2A2E37] p-1.5 text-[#8B8D94] transition hover:bg-[#1B1E24] sm:p-2.5"
                     aria-label={showApiKey ? "Hide API key" : "Show API key"}
+                    className="shrink-0 text-[#5A6172] hover:text-[#C7C9CE] transition-colors"
                   >
-                    {showApiKey ? (
-                      <EyeOff
-                        size={14}
-                        className="sm:h-[15px] sm:w-[15px] lg:h-[16px] lg:w-[16px]"
-                      />
-                    ) : (
-                      <Eye
-                        size={14}
-                        className="sm:h-[15px] sm:w-[15px] lg:h-[16px] lg:w-[16px]"
-                      />
-                    )}
+                    {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
                   </button>
+                </InputShell>
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={handleCopyApiKey}
-                    className="rounded-lg border border-[#2A2E37] p-1.5 text-[#8B8D94] transition hover:bg-[#1B1E24] sm:p-2.5"
-                    aria-label="Copy API key"
+                    className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2.5 text-[12px] font-medium transition-colors"
+                    style={{
+                      background: copied ? C.successSoft : C.inner,
+                      color: copied ? C.success : C.textBody,
+                      boxShadow: `inset 0 0 0 1px ${copied ? C.successRing : C.border}`,
+                    }}
                   >
-                    {copied ? (
-                      <Check
-                        size={14}
-                        className="text-emerald-400 sm:h-[15px] sm:w-[15px] lg:h-[16px] lg:w-[16px]"
-                      />
-                    ) : (
-                      <Copy
-                        size={14}
-                        className="sm:h-[15px] sm:w-[15px] lg:h-[16px] lg:w-[16px]"
-                      />
-                    )}
+                    {copied ? <Check size={13} /> : <Copy size={13} />}
+                    {copied ? "Copied" : "Copy"}
                   </button>
                   <button
-                    className="rounded-lg border border-[#2A2E37] p-1.5 text-[#8B8D94] transition hover:bg-[#1B1E24] sm:p-2.5"
                     aria-label="Regenerate API key"
+                    className="inline-flex items-center justify-center rounded-2xl p-2.5 transition-colors"
+                    style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
                   >
-                    <RefreshCw
-                      size={14}
-                      className="sm:h-[15px] sm:w-[15px] lg:h-[16px] lg:w-[16px]"
-                    />
+                    <RefreshCw size={13} />
                   </button>
                 </div>
               </div>
-            </div>
+            </Field>
 
-            <div className="rounded-lg border border-[#2A2E37] bg-[#0E1013] p-3 sm:p-4">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-3 sm:mb-3">
-                <div className="min-w-0 flex-1">
-                  <h4 className="text-[11px] font-medium text-[#E8E6E1] sm:text-sm">
+            <div className="pt-5" style={{ borderTop: `1px solid ${C.border}` }}>
+              <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
+                <div>
+                  <h3 style={{ fontFamily: FONT.display }} className="text-[14px] font-semibold tracking-tight text-[#F2F0EB]">
                     Webhooks
-                  </h4>
-                  <p className="text-[9px] text-[#8B8D94] sm:text-xs">
-                    Configure webhook endpoints for events
+                  </h3>
+                  <p className="text-[11.5px] mt-0.5" style={{ color: C.textMuted }}>
+                    Endpoints we POST events to.
                   </p>
                 </div>
                 <button
                   onClick={handleAddWebhook}
-                  className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#FF6A39] px-2.5 py-1 text-[9px] font-medium text-white transition hover:bg-[#e85a2c] sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs"
+                  className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
+                  style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.6)" }}
                 >
-                  <Plus
-                    size={10}
-                    className="sm:h-[11px] sm:w-[11px] lg:h-[12px] lg:w-[12px]"
-                  />
-                  <span className="hidden xs:inline">Add Webhook</span>
-                  <span className="xs:hidden">Add</span>
+                  <Plus size={13} /> Add webhook
                 </button>
               </div>
 
-              <div className="space-y-2">
-                {webhooks.map((webhook) => (
-                  <div
-                    key={webhook.id}
-                    className="flex flex-col justify-between gap-2 rounded-lg border border-[#2A2E37] bg-[#0E1013] p-2.5 sm:flex-row sm:items-center sm:p-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-[10px] text-[#E8E6E1] sm:text-sm">
-                        {webhook.name}
-                      </p>
-                      <p className="truncate text-[8px] text-[#8B8D94] sm:text-xs">
-                        {webhook.url}
-                      </p>
+              <div className="space-y-2.5">
+                {webhooks.map((webhook) => {
+                  const meta = webhook.status === "Active"
+                    ? { fg: C.success, bg: C.successSoft, ring: C.successRing }
+                    : { fg: C.warning, bg: C.warningSoft, ring: C.warningRing };
+                  return (
+                    <div
+                      key={webhook.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl p-4"
+                      style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-[13px] font-medium" style={{ color: C.dark }}>{webhook.name}</p>
+                          <Pill fg={meta.fg} bg={meta.bg} ring={meta.ring}>{webhook.status}</Pill>
+                        </div>
+                        <p className="mt-1 text-[11.5px] truncate" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+                          {webhook.url}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => handleEditWebhook(webhook.id)}
+                          aria-label={`Edit ${webhook.name}`}
+                          className="p-2 rounded-xl transition-colors"
+                          style={{ background: C.surface, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+                        >
+                          <Edit size={13} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteWebhook(webhook.id)}
+                          aria-label={`Delete ${webhook.name}`}
+                          className="p-2 rounded-xl transition-colors"
+                          style={{ background: C.dangerSoft, color: C.danger, boxShadow: `inset 0 0 0 1px ${C.dangerRing}` }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      {getWebhookStatusBadge(webhook.status)}
-                      <button
-                        onClick={() => handleEditWebhook(webhook.id)}
-                        className="text-[#8B8D94] transition hover:text-[#E8E6E1]"
-                        aria-label={`Edit ${webhook.name}`}
-                      >
-                        <Edit
-                          size={12}
-                          className="sm:h-[13px] sm:w-[13px] lg:h-[14px] lg:w-[14px]"
-                        />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteWebhook(webhook.id)}
-                        className="text-[#8B8D94] transition hover:text-rose-400"
-                        aria-label={`Delete ${webhook.name}`}
-                      >
-                        <Trash2
-                          size={12}
-                          className="sm:h-[13px] sm:w-[13px] lg:h-[14px] lg:w-[14px]"
-                        />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
-            <div className="rounded-lg border border-[#2A2E37] bg-[#0E1013] p-3 sm:p-4">
-              <h4 className="text-[11px] font-medium text-[#E8E6E1] sm:text-sm">
-                API Rate Limits
-              </h4>
-              <p className="mb-2 text-[9px] text-[#8B8D94] sm:mb-3 sm:text-xs">
-                Configure API request limits
-              </p>
-              <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
-                <div>
-                  <label
-                    htmlFor="requestsPerMinute"
-                    className="mb-1.5 block text-[10px] font-medium text-[#C7C9CE] sm:mb-2 sm:text-sm"
-                  >
-                    Requests per minute
-                  </label>
-                  <input
-                    id="requestsPerMinute"
-                    type="number"
-                    defaultValue="1000"
-                    className="w-full rounded-lg border border-[#2A2E37] bg-[#0E1013] px-3 py-1.5 text-[11px] text-[#E8E6E1] outline-none transition focus:border-[#FF6A39] sm:px-4 sm:py-2.5 sm:text-sm"
-                  />
+            <div className="pt-5" style={{ borderTop: `1px solid ${C.border}` }}>
+              <Field label="API rate limits" hint="Applies across all API keys.">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <InputShell>
+                    <input type="number" defaultValue="1000" className={monoInputCls} />
+                  </InputShell>
+                  <InputShell>
+                    <input type="number" defaultValue="10000" className={monoInputCls} />
+                  </InputShell>
                 </div>
-                <div>
-                  <label
-                    htmlFor="requestsPerHour"
-                    className="mb-1.5 block text-[10px] font-medium text-[#C7C9CE] sm:mb-2 sm:text-sm"
-                  >
-                    Requests per hour
-                  </label>
-                  <input
-                    id="requestsPerHour"
-                    type="number"
-                    defaultValue="10000"
-                    className="w-full rounded-lg border border-[#2A2E37] bg-[#0E1013] px-3 py-1.5 text-[11px] text-[#E8E6E1] outline-none transition focus:border-[#FF6A39] sm:px-4 sm:py-2.5 sm:text-sm"
-                  />
-                </div>
+              </Field>
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <p className="text-[11px]" style={{ color: C.textMuted }}>Requests per minute</p>
+                <p className="text-[11px]" style={{ color: C.textMuted }}>Requests per hour</p>
               </div>
             </div>
           </div>
@@ -895,219 +666,169 @@ const AdminSettings = () => {
 
       case "billing":
         return (
-          <div className="space-y-4 sm:space-y-6">
-            <div className="rounded-lg border border-[#2A2E37] bg-[#0E1013] p-4 sm:p-6">
-              <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div className="space-y-4">
+            {/* Plan */}
+            <div
+              className="rounded-2xl p-5"
+              style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+            >
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                    <h3 className="text-base font-semibold text-[#E8E6E1] sm:text-lg">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-semibold tracking-tight text-[#F2F0EB]">
                       Enterprise Plan
                     </h3>
-                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-medium text-emerald-400 sm:px-2.5 sm:text-xs">
-                      Active
-                    </span>
+                    <Pill fg={C.success} bg={C.successSoft} ring={C.successRing}>Active</Pill>
                   </div>
-                  <p className="mt-0.5 text-[10px] text-[#8B8D94] sm:mt-1 sm:text-sm">
-                    Unlimited workspaces • 10,000 emails/day • Priority support
+                  <p className="mt-1 text-[12.5px]" style={{ color: C.textMuted }}>
+                    Unlimited workspaces · 10,000 emails/day · Priority support
                   </p>
                 </div>
                 <div className="text-left md:text-right">
-                  <p className="text-xl font-bold text-[#E8E6E1] sm:text-2xl">
+                  <p className="text-[24px] font-bold leading-none" style={{ fontFamily: FONT.mono, color: C.dark }}>
                     $499
-                    <span className="text-sm font-normal text-[#8B8D94]">
-                      /month
-                    </span>
+                    <span className="text-[12px] font-normal ml-1" style={{ color: C.textMuted }}>/mo</span>
                   </p>
-                  <p className="text-[9px] text-[#8B8D94] sm:text-xs">
-                    Next billing: Sep 15, 2026
-                  </p>
+                  <p className="text-[11px] mt-1" style={{ color: C.textMuted }}>Next billing: Sep 15, 2026</p>
                 </div>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2 border-t border-[#2A2E37] pt-3 sm:mt-4 sm:gap-3 sm:pt-4">
-                <button className="rounded-lg bg-[#FF6A39] px-3 py-1.5 text-[10px] font-medium text-white transition hover:bg-[#e85a2c] sm:px-4 sm:py-2 sm:text-sm">
-                  Upgrade Plan
+              <div className="mt-4 flex flex-wrap gap-2 pt-4" style={{ borderTop: `1px solid ${C.border}` }}>
+                <button
+                  className="rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
+                  style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.6)" }}
+                >
+                  Upgrade plan
                 </button>
-                <button className="rounded-lg border border-[#2A2E37] px-3 py-1.5 text-[10px] font-medium text-[#C7C9CE] transition hover:bg-[#1B1E24] sm:px-4 sm:py-2 sm:text-sm">
-                  Manage Subscription
+                <button
+                  className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-colors"
+                  style={{ background: C.surface, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+                >
+                  Manage subscription
                 </button>
-                <button className="rounded-lg border border-rose-500/30 px-3 py-1.5 text-[10px] font-medium text-rose-400 transition hover:bg-rose-500/10 sm:px-4 sm:py-2 sm:text-sm">
-                  Cancel Subscription
+                <button
+                  className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-colors"
+                  style={{ background: C.dangerSoft, color: C.danger, boxShadow: `inset 0 0 0 1px ${C.dangerRing}` }}
+                >
+                  Cancel subscription
                 </button>
               </div>
             </div>
 
-            <div className="rounded-lg border border-[#2A2E37] bg-[#0E1013] p-3 sm:p-4">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-3 sm:mb-3">
-                <div className="min-w-0 flex-1">
-                  <h4 className="text-[11px] font-medium text-[#E8E6E1] sm:text-sm">
-                    Payment Methods
-                  </h4>
-                  <p className="text-[9px] text-[#8B8D94] sm:text-xs">
-                    Manage your payment methods
-                  </p>
+            {/* Payment method */}
+            <div
+              className="rounded-2xl p-4"
+              style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+            >
+              <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
+                <div>
+                  <h4 style={{ fontFamily: FONT.display }} className="text-[13.5px] font-semibold" ><span style={{ color: C.dark }}>Payment method</span></h4>
+                  <p className="text-[11.5px] mt-0.5" style={{ color: C.textMuted }}>Manage the card on file.</p>
                 </div>
-                <button className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#FF6A39] px-2.5 py-1 text-[9px] font-medium text-white transition hover:bg-[#e85a2c] sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs">
-                  <Plus
-                    size={10}
-                    className="sm:h-[11px] sm:w-[11px] lg:h-[12px] lg:w-[12px]"
-                  />
-                  <span className="hidden xs:inline">Add Payment Method</span>
-                  <span className="xs:hidden">Add</span>
+                <button
+                  className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[12px] font-semibold text-white"
+                  style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.6)" }}
+                >
+                  <Plus size={13} /> Add card
                 </button>
               </div>
 
-              <div className="flex flex-col justify-between gap-2 rounded-lg border border-[#2A2E37] bg-[#0E1013] p-2.5 sm:flex-row sm:items-center sm:p-3">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#2A2E37] sm:h-10 sm:w-10">
-                    <span className="text-sm font-bold text-[#E8E6E1] sm:text-base">
-                      💳
-                    </span>
+              <div
+                className="flex items-center justify-between gap-3 rounded-2xl p-3"
+                style={{ background: C.surface, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-[16px]"
+                    style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+                  >
+                    💳
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-[10px] text-[#E8E6E1] sm:text-sm">
-                      Visa ending in 4242
-                    </p>
-                    <p className="text-[8px] text-[#8B8D94] sm:text-xs">
-                      Expires 12/2026
-                    </p>
+                    <p className="text-[13px] font-medium truncate" style={{ color: C.dark }}>Visa ending in 4242</p>
+                    <p className="text-[11px] truncate" style={{ color: C.textMuted }}>Expires 12/2026</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[8px] font-medium text-emerald-400 sm:gap-1.5 sm:px-2 sm:text-[10px]">
-                    <span className="h-1 w-1 rounded-full bg-emerald-400 sm:h-1.5 sm:w-1.5" />
-                    <span className="hidden xs:inline">Default</span>
-                    <span className="xs:hidden">D</span>
-                  </span>
-                  <button
-                    className="text-[#8B8D94] transition hover:text-[#E8E6E1]"
-                    aria-label="Edit payment method"
-                  >
-                    <Edit
-                      size={12}
-                      className="sm:h-[13px] sm:w-[13px] lg:h-[14px] lg:w-[14px]"
-                    />
+                <div className="flex items-center gap-2 shrink-0">
+                  <Pill fg={C.success} bg={C.successSoft} ring={C.successRing}>Default</Pill>
+                  <button className="p-2 rounded-xl transition-colors" style={{ color: C.textMuted }} aria-label="Edit card">
+                    <Edit size={13} />
                   </button>
-                  <button
-                    className="text-[#8B8D94] transition hover:text-rose-400"
-                    aria-label="Delete payment method"
-                  >
-                    <Trash2
-                      size={12}
-                      className="sm:h-[13px] sm:w-[13px] lg:h-[14px] lg:w-[14px]"
-                    />
+                  <button className="p-2 rounded-xl transition-colors" style={{ color: C.danger }} aria-label="Delete card">
+                    <Trash2 size={13} />
                   </button>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-lg border border-[#2A2E37] bg-[#0E1013] p-3 sm:p-4">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-3 sm:mb-3">
-                <div className="min-w-0 flex-1">
-                  <h4 className="text-[11px] font-medium text-[#E8E6E1] sm:text-sm">
-                    Billing History
-                  </h4>
-                  <p className="text-[9px] text-[#8B8D94] sm:text-xs">
-                    Recent invoices and payments
-                  </p>
+            {/* Billing history */}
+            <div
+              className="rounded-2xl p-4"
+              style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+            >
+              <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
+                <div>
+                  <h4 style={{ fontFamily: FONT.display }} className="text-[13.5px] font-semibold"><span style={{ color: C.dark }}>Billing history</span></h4>
+                  <p className="text-[11.5px] mt-0.5" style={{ color: C.textMuted }}>Recent invoices and payments.</p>
                 </div>
-                <button className="flex shrink-0 items-center gap-1.5 rounded-lg border border-[#2A2E37] px-2.5 py-1 text-[9px] font-medium text-[#C7C9CE] transition hover:bg-[#1B1E24] sm:gap-2 sm:px-3 sm:py-1.5 sm:text-xs">
-                  <Download
-                    size={10}
-                    className="sm:h-[11px] sm:w-[11px] lg:h-[12px] lg:w-[12px]"
-                  />
-                  <span className="hidden xs:inline">Export All</span>
-                  <span className="xs:hidden">Export</span>
+                <button
+                  className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[12px] font-medium transition-colors"
+                  style={{ background: C.surface, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+                >
+                  <Download size={13} /> Export all
                 </button>
               </div>
 
               <div className="space-y-2">
-                <div className="flex flex-col justify-between gap-2 rounded-lg border border-[#2A2E37] bg-[#0E1013] p-2.5 sm:flex-row sm:items-center sm:p-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-[10px] text-[#E8E6E1] sm:text-sm">
-                      Invoice #INV-2026-001
-                    </p>
-                    <p className="text-[8px] text-[#8B8D94] sm:text-xs">
-                      Aug 15, 2026
-                    </p>
+                {[
+                  { id: "INV-2026-001", date: "Aug 15, 2026" },
+                  { id: "INV-2026-000", date: "Jul 15, 2026" },
+                ].map((inv) => (
+                  <div
+                    key={inv.id}
+                    className="flex items-center justify-between gap-3 rounded-2xl p-3"
+                    style={{ background: C.surface, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-medium truncate" style={{ color: C.dark }}>Invoice #{inv.id}</p>
+                      <p className="text-[11px] truncate" style={{ color: C.textMuted }}>{inv.date}</p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-[13px] font-medium" style={{ fontFamily: FONT.mono, color: C.dark }}>$499.00</span>
+                      <Pill fg={C.success} bg={C.successSoft} ring={C.successRing} icon={CheckCircle2}>Paid</Pill>
+                      <button className="p-2 rounded-xl transition-colors" style={{ color: C.textMuted }} aria-label="Download invoice">
+                        <Download size={13} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-                    <span className="text-[10px] font-medium text-[#E8E6E1] sm:text-sm">
-                      $499.00
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[8px] font-medium text-emerald-400 sm:gap-1.5 sm:px-2 sm:text-[10px]">
-                      <CheckCircle2
-                        size={9}
-                        className="sm:h-[10px] sm:w-[10px] lg:h-[10px] lg:w-[10px]"
-                      />
-                      <span className="hidden xs:inline">Paid</span>
-                      <span className="xs:hidden">✓</span>
-                    </span>
-                    <button
-                      className="text-[#8B8D94] transition hover:text-[#E8E6E1]"
-                      aria-label="Download invoice"
-                    >
-                      <Download
-                        size={12}
-                        className="sm:h-[13px] sm:w-[13px] lg:h-[14px] lg:w-[14px]"
-                      />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex flex-col justify-between gap-2 rounded-lg border border-[#2A2E37] bg-[#0E1013] p-2.5 sm:flex-row sm:items-center sm:p-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-[10px] text-[#E8E6E1] sm:text-sm">
-                      Invoice #INV-2026-000
-                    </p>
-                    <p className="text-[8px] text-[#8B8D94] sm:text-xs">
-                      Jul 15, 2026
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-                    <span className="text-[10px] font-medium text-[#E8E6E1] sm:text-sm">
-                      $499.00
-                    </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[8px] font-medium text-emerald-400 sm:gap-1.5 sm:px-2 sm:text-[10px]">
-                      <CheckCircle2
-                        size={9}
-                        className="sm:h-[10px] sm:w-[10px] lg:h-[10px] lg:w-[10px]"
-                      />
-                      <span className="hidden xs:inline">Paid</span>
-                      <span className="xs:hidden">✓</span>
-                    </span>
-                    <button
-                      className="text-[#8B8D94] transition hover:text-[#E8E6E1]"
-                      aria-label="Download invoice"
-                    >
-                      <Download
-                        size={12}
-                        className="sm:h-[13px] sm:w-[13px] lg:h-[14px] lg:w-[14px]"
-                      />
-                    </button>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
-            <div className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-3 sm:p-4">
-              <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center md:gap-4">
-                <div className="min-w-0 flex-1">
-                  <h4 className="text-[11px] font-semibold text-rose-400 sm:text-sm">
-                    Delete Platform
-                  </h4>
-                  <p className="text-[9px] text-rose-300 sm:text-xs">
-                    Permanently delete the entire platform and all associated
-                    data. This action cannot be undone.
+            {/* Danger zone */}
+            <div
+              className="rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4"
+              style={{ background: "rgba(248,113,113,0.05)", boxShadow: `inset 0 0 0 1px ${C.dangerRing}` }}
+            >
+              <div className="flex items-start gap-3.5">
+                <div
+                  className="shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
+                  style={{ background: C.dangerSoft, boxShadow: `inset 0 0 0 1px ${C.dangerRing}` }}
+                >
+                  <AlertTriangle size={18} style={{ color: C.danger }} />
+                </div>
+                <div className="min-w-0">
+                  <h4 style={{ fontFamily: FONT.display }} className="text-[14px] font-semibold" ><span style={{ color: C.danger }}>Delete platform</span></h4>
+                  <p className="text-[12px] mt-0.5 max-w-xl" style={{ color: "#E8A5A5" }}>
+                    Permanently delete the entire platform and all associated data. This action cannot be undone.
                   </p>
                 </div>
-                <button className="shrink-0 rounded-lg border border-rose-500/30 px-3 py-1.5 text-[10px] font-medium text-rose-400 transition hover:bg-rose-500/10 sm:px-4 sm:py-2 sm:text-sm">
-                  <AlertTriangle
-                    size={12}
-                    className="mr-1 inline sm:mr-2 sm:h-[13px] sm:w-[13px] lg:h-[14px] lg:w-[14px]"
-                  />
-                  Delete Platform
-                </button>
               </div>
+              <button
+                className="shrink-0 inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold transition-all self-start md:self-auto"
+                style={{ background: C.dangerSoft, color: C.danger, boxShadow: `inset 0 0 0 1px ${C.dangerRing}` }}
+              >
+                <Trash2 size={13} /> Delete platform
+              </button>
             </div>
           </div>
         );
@@ -1117,182 +838,159 @@ const AdminSettings = () => {
     }
   };
 
+  const activeMeta = sections.find((s) => s.id === activeSection)!;
+
   return (
-    <div className="flex min-h-screen overflow-hidden bg-[#0E1013]">
+    <div className="flex min-h-screen overflow-hidden" style={{ background: C.bg, fontFamily: FONT.body }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
-        
-        .main-content::-webkit-scrollbar {
-          width: 6px;
+
+        @keyframes floatIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+        .float-in { animation: floatIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+        .as-main::-webkit-scrollbar { width: 10px; }
+        .as-main::-webkit-scrollbar-track { background: transparent; }
+        .as-main::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 10px; border: 2px solid #0B0E13; }
+        .as-main::-webkit-scrollbar-thumb:hover { background: #2A2F3B; }
+
+        .soft-ring { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 1px 0 rgba(255,255,255,0.02); }
+        .glow-top {
+          background:
+            radial-gradient(900px 240px at 50% -80px, rgba(255,106,57,0.10), transparent 70%),
+            radial-gradient(700px 200px at 20% -60px, rgba(52,211,153,0.06), transparent 70%);
         }
-        .main-content::-webkit-scrollbar-track {
-          background: #0E1013;
-        }
-        .main-content::-webkit-scrollbar-thumb {
-          background: #2A2E37;
-          border-radius: 3px;
-        }
-        .main-content::-webkit-scrollbar-thumb:hover {
-          background: #3A3F4A;
-        }
-        .section-nav-item {
-          transition: all 0.15s ease;
-        }
-        .section-nav-item:hover {
-          background-color: #1B1E24;
-        }
-        .section-nav-item.active {
-          background-color: rgba(255,106,57,0.12);
-          color: #FF6A39;
-        }
-        .sidebar-overlay {
-          animation: fadeIn 0.2s ease-in-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .sidebar-slide {
-          animation: slideIn 0.25s ease-out;
-        }
-        @keyframes slideIn {
-          from { transform: translateX(-100%); }
-          to { transform: translateX(0); }
-        }
-        @media (max-width: 480px) {
-          .settings-nav {
-            display: flex;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            padding: 4px;
-            gap: 4px;
-          }
-          .settings-nav::-webkit-scrollbar {
-            height: 2px;
-          }
-          .settings-nav::-webkit-scrollbar-thumb {
-            background: #2A2E37;
-            border-radius: 2px;
-          }
-          .settings-nav .section-nav-item {
-            white-space: nowrap;
-            flex-shrink: 0;
-            padding: 8px 12px;
-          }
-        }
+        select option { background: #141821; color: #E8E6E1; }
+        .as-rail::-webkit-scrollbar { height: 4px; }
+        .as-rail::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 4px; }
       `}</style>
 
-      {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 sidebar-overlay bg-black/70 lg:hidden"
+          className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
-      <div
-        className={`
-          fixed top-0 z-50 h-screen shrink-0 transition-transform duration-200 ease-out lg:sticky
-          ${
-            sidebarOpen
-              ? "translate-x-0"
-              : "-translate-x-full lg:translate-x-0"
-          }
-          sidebar-slide
-        `}
-      >
+      <div className={`
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+      `}>
         <AdminSidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Main Content */}
-      <main className="main-content h-screen w-full flex-1 overflow-y-auto bg-[#0E1013] p-3 sm:p-4 lg:p-6 xl:p-8">
-        {/* Header */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 sm:mb-8 sm:gap-4">
-          <div className="flex items-center gap-3 sm:gap-4">
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="rounded-lg border border-[#2A2E37] bg-[#171A21] p-2 text-[#C7C9CE] transition-colors hover:bg-[#1B1E24] lg:hidden"
-              aria-label="Open sidebar menu"
-            >
-              <Menu size={20} />
-            </button>
-            <div>
-              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-                <h1 className="text-xl font-bold tracking-tight text-[#E8E6E1] sm:text-2xl lg:text-3xl">
-                  Settings
-                </h1>
-                <span className="rounded-full bg-[#FF6A39]/15 px-2 py-0.5 text-[9px] font-medium text-[#FF6A39] sm:px-2.5 sm:text-[10px] lg:text-[11px]">
-                  Admin
-                </span>
-              </div>
-              <p className="mt-0.5 text-[10px] text-[#8B8D94] sm:mt-1 sm:text-xs lg:text-sm">
-                Configure platform settings and preferences.
-              </p>
-            </div>
-          </div>
+      <main className="as-main flex-1 overflow-y-auto" style={{ background: C.bg, height: "100vh", width: "100%" }}>
+        <div className="glow-top">
+          <div className="max-w-[1320px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
 
-          <button
-            onClick={handleSaveChanges}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[#FF6A39] px-3 py-1.5 text-[10px] font-medium text-white shadow-lg shadow-[#FF6A39]/20 transition hover:bg-[#e85a2c] sm:w-auto sm:gap-2 sm:px-4 sm:py-2.5 sm:text-xs lg:text-sm"
-          >
-            <Save
-              size={14}
-              className="sm:h-[15px] sm:w-[15px] lg:h-[16px] lg:w-[16px]"
-            />
-            Save Changes
-          </button>
-        </div>
-
-        {/* Settings Layout */}
-        <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-[240px_1fr]">
-          {/* Sidebar Navigation - Responsive */}
-          <div className="rounded-xl border border-[#2A2E37] bg-[#171A21] p-1.5 sm:p-2">
-            <div className="settings-nav flex gap-0.5 overflow-x-auto sm:gap-1 lg:flex-col">
-              {settingsSections.map((section) => {
-                const Icon = section.icon;
-                const isActive = activeSection === section.id;
-                return (
-                  <button
-                    key={section.id}
-                    onClick={() => setActiveSection(section.id)}
-                    className={`section-nav-item flex shrink-0 items-center gap-2 rounded-lg px-2 py-1.5 text-[10px] font-medium transition sm:gap-3 sm:px-3 sm:py-2.5 sm:text-sm ${
-                      isActive ? "active" : "text-[#C7C9CE]"
-                    }`}
-                  >
-                    <Icon
-                      size={14}
-                      className={`sm:h-[15px] sm:w-[15px] lg:h-[16px] lg:w-[16px] ${
-                        isActive ? "text-[#FF6A39]" : "text-[#8B8D94]"
-                      }`}
-                    />
-                    <span className="hidden sm:inline">{section.label}</span>
-                    <span className="sm:hidden">
-                      {section.label.substring(0, 4)}
+            {/* ── Header ─────────────────────────── */}
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
+              <div className="flex items-start gap-3 md:gap-4">
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden mt-1 p-2 rounded-2xl text-[#C7C9CE] transition-colors soft-ring"
+                  style={{ background: C.surface }}
+                  aria-label="Open menu"
+                >
+                  <Menu size={18} />
+                </button>
+                <div>
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
+                      style={{ background: C.primarySoft, color: C.primary, boxShadow: `inset 0 0 0 1px ${C.primaryRing}` }}
+                    >
+                      <Sparkles size={11} /> Admin
                     </span>
-                    {section.id === "api" && (
-                      <span className="ml-auto rounded-full bg-[#FF6A39]/15 px-1.5 py-0.5 text-[8px] font-medium text-[#FF6A39] sm:px-2 sm:text-[10px]">
-                        v2
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                    <span className="text-[11px]" style={{ color: "#5A6172", fontFamily: FONT.mono }}>
+                      · {sections.length} sections
+                    </span>
+                  </div>
 
-          {/* Settings Content */}
-          <div className="rounded-xl border border-[#2A2E37] bg-[#171A21] p-3 sm:p-4 lg:p-6">
-            {renderSection()}
+                  <h1
+                    style={{ fontFamily: FONT.display, letterSpacing: "-0.025em" }}
+                    className="text-[28px] md:text-[34px] lg:text-[40px] font-bold leading-[1.05] text-[#F2F0EB]"
+                  >
+                    Settings
+                  </h1>
+                  <p className="mt-2 text-[14px] md:text-[15px] max-w-lg" style={{ color: C.textMuted }}>
+                    Configure platform settings and preferences.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={handleSaveChanges}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5 self-start md:self-auto"
+                style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.65)" }}
+              >
+                <Save size={14} /> Save changes
+              </button>
+            </header>
+
+            {/* ── Layout ─────────────────────────── */}
+            <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-5 md:gap-6">
+
+              {/* Section rail */}
+              <nav className="as-rail flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0">
+                {sections.map((s) => {
+                  const Icon = s.icon;
+                  const isActive = activeSection === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => setActiveSection(s.id)}
+                      className="group shrink-0 lg:shrink flex items-center gap-2.5 rounded-2xl px-3.5 py-2.5 text-left transition-all lg:w-full"
+                      style={{
+                        background: isActive ? C.primarySoft : C.surface,
+                        boxShadow: isActive
+                          ? `inset 0 0 0 1px ${C.primaryRing}`
+                          : `inset 0 0 0 1px ${C.border}`,
+                      }}
+                    >
+                      <Icon size={14} className="shrink-0" style={{ color: isActive ? C.primary : C.textMuted }} />
+                      <span
+                        className="text-[12.5px] font-medium whitespace-nowrap"
+                        style={{ color: isActive ? C.dark : C.textBody }}
+                      >
+                        {s.label}
+                      </span>
+                      <ChevronRight
+                        size={13}
+                        className="hidden lg:block ml-auto shrink-0 transition-transform group-hover:translate-x-0.5"
+                        style={{ color: isActive ? C.primary : C.border }}
+                      />
+                    </button>
+                  );
+                })}
+              </nav>
+
+              {/* Section content */}
+              <Card className="p-5 md:p-6 lg:p-7 float-in">
+                <div className="flex items-start gap-3.5 mb-5 pb-4" style={{ borderBottom: `1px solid ${C.border}` }}>
+                  <div
+                    className="shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center"
+                    style={{ background: C.primarySoft, boxShadow: `inset 0 0 0 1px ${C.primaryRing}` }}
+                  >
+                    <activeMeta.icon size={16} style={{ color: C.primary }} />
+                  </div>
+                  <div className="min-w-0">
+                    <h2
+                      style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }}
+                      className="text-[16px] md:text-[18px] font-bold text-[#F2F0EB] truncate"
+                    >
+                      {activeMeta.label}
+                    </h2>
+                    <p className="text-[12px] mt-0.5" style={{ color: C.textMuted }}>{activeMeta.hint}</p>
+                  </div>
+                </div>
+                {renderSection()}
+              </Card>
+            </div>
           </div>
         </div>
       </main>
     </div>
   );
 };
-
-// Add missing Users import for AdminSidebar
-import { Users } from "lucide-react";
 
 export default AdminSettings;
