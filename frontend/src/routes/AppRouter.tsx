@@ -139,6 +139,7 @@ const AppRouter = () => {
 
           {/* Full path: /admin/campaigns */}
           <Route path="campaigns" element={<AdminCampaigns />} />
+          <Route path="system" element={<AdminCampaigns />} />
 
           {/* Full path: /admin/users */}
           <Route

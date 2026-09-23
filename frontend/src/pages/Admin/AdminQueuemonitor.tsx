@@ -344,151 +344,151 @@ const AdminQueueMonitor = () => {
             </div>
 
             {/* ── Workers ────────────────────────── */}
-<Card className="p-4 md:p-6 mb-6 md:mb-8">
-  <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
-    <div>
-      <h2
-        style={{ fontFamily: FONT.display }}
-        className="text-[14px] md:text-[15px] font-semibold tracking-tight text-[#F2F0EB] flex items-center gap-2"
-      >
-        <Cpu size={15} style={{ color: C.primary }} /> Workers
-      </h2>
-      <p className="text-[11.5px] mt-0.5" style={{ color: C.textMuted }}>
-        {onlineWorkers} of {workers.length} online · live load
-      </p>
-    </div>
-
-    {/* compact legend */}
-    <div className="flex flex-wrap items-center gap-1.5">
-      {(["Active", "Busy", "Idle", "Offline"] as Worker["status"][]).map((status) => {
-        const meta = WORKER_STATUS_META[status];
-        return (
-          <span
-            key={status}
-            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-medium"
-            style={{ background: meta.bg, color: meta.fg, boxShadow: `inset 0 0 0 1px ${meta.ring}` }}
-          >
-            <span
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ background: meta.fg, boxShadow: `0 0 6px ${meta.fg}` }}
-            />
-            {status}
-          </span>
-        );
-      })}
-    </div>
-  </div>
-
-  {/* ── Rack rows ────────────────────────── */}
-  <div className="space-y-2.5">
-    {workers.map((worker) => {
-      const meta = WORKER_STATUS_META[worker.status];
-      const tone = worker.load > 80 ? C.danger : worker.load > 50 ? C.warning : C.success;
-      const offline = worker.status === "Offline";
-
-      return (
-        <div
-          key={worker.id}
-          className="relative rounded-2xl soft-ring transition-all hover:-translate-y-0.5 overflow-hidden"
-          style={{
-            background: C.inner,
-            opacity: offline ? 0.65 : 1,
-          }}
-        >
-          {/* left status rail */}
-          <span
-            className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full transition-all"
-            style={{
-              background: meta.fg,
-              opacity: offline ? 0.35 : 0.85,
-              boxShadow: offline ? "none" : `0 0 12px ${meta.fg}66`,
-            }}
-          />
-
-          <div className="flex flex-col lg:flex-row lg:items-center gap-4 pl-5 pr-4 py-3.5">
-            {/* identity */}
-            <div className="flex items-center gap-3 min-w-0 lg:w-[220px] shrink-0">
-              <div
-                className="relative w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: "#1F242E", boxShadow: "inset 0 0 0 1px #2A2E37" }}
-              >
-                <Cpu size={16} style={{ color: offline ? C.textMuted : meta.fg }} />
-                <span
-                  className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
-                  style={{
-                    background: meta.fg,
-                    borderColor: C.inner,
-                    boxShadow: offline ? "none" : `0 0 8px ${meta.fg}`,
-                  }}
-                />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[13px] font-semibold truncate" style={{ color: C.dark }}>
-                  {worker.name}
-                </p>
-                <p className="text-[10.5px] truncate" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
-                  up {worker.uptime}
-                </p>
-              </div>
-              <div className="ml-auto lg:hidden">
-                <StatusPill meta={meta} label={worker.status} dotOnly />
-              </div>
-            </div>
-
-            {/* load bar */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <SegmentedBar value={worker.load} />
+            <Card className="p-4 md:p-6 mb-6 md:mb-8">
+              <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
+                <div>
+                  <h2
+                    style={{ fontFamily: FONT.display }}
+                    className="text-[14px] md:text-[15px] font-semibold tracking-tight text-[#F2F0EB] flex items-center gap-2"
+                  >
+                    <Cpu size={15} style={{ color: C.primary }} /> Workers
+                  </h2>
+                  <p className="text-[11.5px] mt-0.5" style={{ color: C.textMuted }}>
+                    {onlineWorkers} of {workers.length} online · live load
+                  </p>
                 </div>
-                <span
-                  className="shrink-0 text-[11.5px] font-semibold tabular-nums"
-                  style={{ fontFamily: FONT.mono, color: offline ? C.textMuted : tone, minWidth: 36, textAlign: "right" }}
-                >
-                  {worker.load}%
-                </span>
-              </div>
-              <div className="mt-1.5 flex items-center justify-between text-[10.5px]" style={{ color: C.textMuted }}>
-                <span>Load</span>
-                <span>Threshold {worker.load > 80 ? "critical" : worker.load > 50 ? "elevated" : "healthy"}</span>
-              </div>
-            </div>
 
-            {/* metrics cluster */}
-            <div className="flex items-center gap-4 lg:gap-6 shrink-0 lg:pl-4 lg:border-l"
-              style={{ borderColor: C.border }}
-            >
-              <div>
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: C.textMuted }}>Jobs</p>
-                <p className="text-[13px] font-semibold tabular-nums mt-0.5" style={{ fontFamily: FONT.mono, color: C.dark }}>
-                  {worker.jobsProcessed.toLocaleString()}
-                </p>
+                {/* compact legend */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {(["Active", "Busy", "Idle", "Offline"] as Worker["status"][]).map((status) => {
+                    const meta = WORKER_STATUS_META[status];
+                    return (
+                      <span
+                        key={status}
+                        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-medium"
+                        style={{ background: meta.bg, color: meta.fg, boxShadow: `inset 0 0 0 1px ${meta.ring}` }}
+                      >
+                        <span
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ background: meta.fg, boxShadow: `0 0 6px ${meta.fg}` }}
+                        />
+                        {status}
+                      </span>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div className="hidden sm:block">
-                <p className="text-[10px] uppercase tracking-wider" style={{ color: C.textMuted }}>Current</p>
-                <p
-                  className="text-[12px] font-medium mt-0.5 truncate"
-                  style={{
-                    fontFamily: FONT.mono,
-                    color: worker.currentJob ? C.primary : C.textMuted,
-                    maxWidth: 160,
-                  }}
-                >
-                  {worker.currentJob ?? "—"}
-                </p>
-              </div>
+              {/* ── Rack rows ────────────────────────── */}
+              <div className="space-y-2.5">
+                {workers.map((worker) => {
+                  const meta = WORKER_STATUS_META[worker.status];
+                  const tone = worker.load > 80 ? C.danger : worker.load > 50 ? C.warning : C.success;
+                  const offline = worker.status === "Offline";
 
-              <div className="hidden lg:block">
-                <StatusPill meta={meta} label={worker.status} dotOnly />
+                  return (
+                    <div
+                      key={worker.id}
+                      className="relative rounded-2xl soft-ring transition-all hover:-translate-y-0.5 overflow-hidden"
+                      style={{
+                        background: C.inner,
+                        opacity: offline ? 0.65 : 1,
+                      }}
+                    >
+                      {/* left status rail */}
+                      <span
+                        className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full transition-all"
+                        style={{
+                          background: meta.fg,
+                          opacity: offline ? 0.35 : 0.85,
+                          boxShadow: offline ? "none" : `0 0 12px ${meta.fg}66`,
+                        }}
+                      />
+
+                      <div className="flex flex-col lg:flex-row lg:items-center gap-4 pl-5 pr-4 py-3.5">
+                        {/* identity */}
+                        <div className="flex items-center gap-3 min-w-0 lg:w-[220px] shrink-0">
+                          <div
+                            className="relative w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                            style={{ background: "#1F242E", boxShadow: "inset 0 0 0 1px #2A2E37" }}
+                          >
+                            <Cpu size={16} style={{ color: offline ? C.textMuted : meta.fg }} />
+                            <span
+                              className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
+                              style={{
+                                background: meta.fg,
+                                borderColor: C.inner,
+                                boxShadow: offline ? "none" : `0 0 8px ${meta.fg}`,
+                              }}
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[13px] font-semibold truncate" style={{ color: C.dark }}>
+                              {worker.name}
+                            </p>
+                            <p className="text-[10.5px] truncate" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+                              up {worker.uptime}
+                            </p>
+                          </div>
+                          <div className="ml-auto lg:hidden">
+                            <StatusPill meta={meta} label={worker.status} dotOnly />
+                          </div>
+                        </div>
+
+                        {/* load bar */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 min-w-0">
+                              <SegmentedBar value={worker.load} />
+                            </div>
+                            <span
+                              className="shrink-0 text-[11.5px] font-semibold tabular-nums"
+                              style={{ fontFamily: FONT.mono, color: offline ? C.textMuted : tone, minWidth: 36, textAlign: "right" }}
+                            >
+                              {worker.load}%
+                            </span>
+                          </div>
+                          <div className="mt-1.5 flex items-center justify-between text-[10.5px]" style={{ color: C.textMuted }}>
+                            <span>Load</span>
+                            <span>Threshold {worker.load > 80 ? "critical" : worker.load > 50 ? "elevated" : "healthy"}</span>
+                          </div>
+                        </div>
+
+                        {/* metrics cluster */}
+                        <div className="flex items-center gap-4 lg:gap-6 shrink-0 lg:pl-4 lg:border-l"
+                          style={{ borderColor: C.border }}
+                        >
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wider" style={{ color: C.textMuted }}>Jobs</p>
+                            <p className="text-[13px] font-semibold tabular-nums mt-0.5" style={{ fontFamily: FONT.mono, color: C.dark }}>
+                              {worker.jobsProcessed.toLocaleString()}
+                            </p>
+                          </div>
+
+                          <div className="hidden sm:block">
+                            <p className="text-[10px] uppercase tracking-wider" style={{ color: C.textMuted }}>Current</p>
+                            <p
+                              className="text-[12px] font-medium mt-0.5 truncate"
+                              style={{
+                                fontFamily: FONT.mono,
+                                color: worker.currentJob ? C.primary : C.textMuted,
+                                maxWidth: 160,
+                              }}
+                            >
+                              {worker.currentJob ?? "—"}
+                            </p>
+                          </div>
+
+                          <div className="hidden lg:block">
+                            <StatusPill meta={meta} label={worker.status} dotOnly />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
-          </div>
-        </div>
-      );
-    })}
-  </div>
-</Card>
+            </Card>
 
             {/* ── Queues ─────────────────────────── */}
             <Card className="overflow-hidden mb-6 md:mb-8">
