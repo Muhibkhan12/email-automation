@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext.tsx";
 import { EmailLogsProvider } from "./contexts/EmaillogsContext.tsx";
-import { SenderAccountsContext } from "./contexts/SenderAccountsContext.tsx";
+import { SenderAccountsProvider } from "./contexts/SenderAccountsContext.tsx";
 import HtmlTemplatesProvider from "./contexts/HtmlTemplatesContext.tsx";
 import RecipientsContextProvider from "./contexts/RecipientsContext.tsx";
 import { CampaignProvider } from "./contexts/CampaignContext.tsx";
@@ -16,7 +16,7 @@ createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
       <EmailLogsProvider>
         <AuthProvider>
-          <SenderAccountsContext>
+          <SenderAccountsProvider>
             <CampaignProvider>
               <HtmlTemplatesProvider>
                 <RecipientsContextProvider>
@@ -26,7 +26,7 @@ createRoot(document.getElementById("root")!).render(
                 </RecipientsContextProvider>
               </HtmlTemplatesProvider>
             </CampaignProvider>
-          </SenderAccountsContext>
+          </SenderAccountsProvider>
         </AuthProvider>
       </EmailLogsProvider>
     </BrowserRouter>

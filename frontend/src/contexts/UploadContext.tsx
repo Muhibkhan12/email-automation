@@ -1,3 +1,4 @@
+// UploadContext.tsx
 import React, {
   createContext,
   useContext,
@@ -7,14 +8,16 @@ import React, {
   useEffect,
 } from "react";
 import type { ReactNode } from "react";
-import type { UploadedFile } from "../types/UploadTypes"; // adjust path
+import type { UploadedFile } from "../types/UploadTypes";
 import {
   uploadFile,
   uploadRecipientsFile,
   getAllUploadedFiles,
   getUploadedFilesById,
   deleteUploadedFile,
-} from "../services/UploadServices"; // adjust path
+} from "../services/UploadServices";
+
+/* ─────────────── Context shape ─────────────── */
 
 interface UploadContextType {
   files: UploadedFile[];
@@ -32,36 +35,37 @@ interface UploadContextType {
 
 const UploadContext = createContext<UploadContextType | undefined>(undefined);
 
+/* ─────────────── Provider ───────────────
+   NOTE: no userId prop. The backend scopes everything by the JWT
+   that the axios interceptor attaches — the provider doesn't need
+   to know who the current user is. */
+
 interface UploadProviderProps {
   children: ReactNode;
-  userId: number; // scoped to logged-in user, same pattern as CampaignProvider
 }
 
-export const UploadProvider = ({ children, userId }: UploadProviderProps) => {
+export const UploadProvider = ({ children }: UploadProviderProps) => {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // silent = true refreshes the list without showing the loading spinner
   // (used after an upload so the "Recent uploads" table doesn't flash).
-  // userId is kept in the deps so the list refetches if the logged-in user changes.
-  const fetchAllFiles = useCallback(
-    async (silent = false) => {
-      if (!silent) setLoading(true);
-      setError(null);
-      try {
-        const data = await getAllUploadedFiles();
-        setFiles(Array.isArray(data) ? data : [data]);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch files");
-      } finally {
-        if (!silent) setLoading(false);
-      }
-    },
-    [userId]
-  );
+  const fetchAllFiles = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    setError(null);
+    try {
+      const data = await getAllUploadedFiles();
+      setFiles(Array.isArray(data) ? data : [data]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch files");
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, []);
 
-  // Auto-fetch this user's uploaded files as soon as the provider mounts
+  // Auto-fetch on mount (and whenever fetchAllFiles identity changes,
+  // which now only happens once because the deps are stable).
   useEffect(() => {
     fetchAllFiles();
   }, [fetchAllFiles]);
@@ -82,7 +86,7 @@ export const UploadProvider = ({ children, userId }: UploadProviderProps) => {
     []
   );
 
-  // Campaign-scoped upload (original)
+  // Campaign-scoped upload
   const upload = useCallback(
     async (campaignId: number) => {
       setLoading(true);

@@ -1,29 +1,18 @@
 // AdminSenderAccounts.tsx
-import React, { useState, useMemo, useContext } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { SenderAccContext } from "../../contexts/SenderAccountsContext";
 import AdminSidebar from "./AdminSidebar";
 import {
   AtSign, Plus, Search, Edit, Trash2, RefreshCw, CheckCircle2,
-  Save, ShieldCheck, ShieldAlert, ShieldX, ChevronLeft, ChevronRight,
-  X, Menu, Send, Mail, SlidersHorizontal, AlertTriangle, Loader2,
+  Save, ShieldCheck, ShieldAlert, ShieldX, X, Menu, Send, Mail,
+  SlidersHorizontal, AlertTriangle, Loader2, Link2, Link2Off,
+  CheckCircle, ExternalLink,
 } from "lucide-react";
-
-/* ─────────────────────────── Types ─────────────────────────── */
-
-type SenderStatus = "Active" | "Warning" | "Disconnected";
-type SenderProvider = "Gmail" | "Outlook" | "Custom SMTP";
-
-interface SenderAccount {
-  id: number;
-  email: string;
-  name: string;
-  provider: SenderProvider;
-  status: SenderStatus;
-  dailyLimit: number;
-  hourlyLimit: number;
-  sentToday: number;
-  sentThisHour: number;
-}
+import type {
+  SenderAccount,
+  UpdateSenderAccountInput,
+} from "../../types/SenderAccount";
 
 /* ─────────────────────────── Tokens ─────────────────────────── */
 
@@ -63,20 +52,35 @@ const C = {
   textBody: "#C7C9CE",
 };
 
-const FILTERS = ["All", "Active", "Warning", "Disconnected"] as const;
-const PROVIDER_FILTERS = ["All", "Gmail", "Outlook", "Custom SMTP"] as const;
+const STATUS_FILTERS  = ["All", "Active", "Warning", "Disconnected"] as const;
+const PROVIDER_FILTERS = ["All", "Gmail", "Outlook"] as const;
 
-const STATUS_META: Record<SenderStatus, { fg: string; bg: string; ring: string; icon: React.ElementType; label: string }> = {
+type KnownStatus = "Active" | "Warning" | "Disconnected";
+type KnownProvider = "Gmail" | "Outlook";
+
+const STATUS_META: Record<KnownStatus, { fg: string; bg: string; ring: string; icon: React.ElementType; label: string }> = {
   Active:       { fg: C.success, bg: C.successSoft, ring: C.successRing, icon: ShieldCheck, label: "Active" },
   Warning:      { fg: C.warning, bg: C.warningSoft, ring: C.warningRing, icon: ShieldAlert, label: "Warning" },
   Disconnected: { fg: C.danger,  bg: C.dangerSoft,  ring: C.dangerRing,  icon: ShieldX,     label: "Disconnected" },
 };
 
-const PROVIDER_META: Record<SenderProvider, { fg: string; bg: string; ring: string; short: string }> = {
-  Gmail:         { fg: C.danger, bg: C.dangerSoft, ring: C.dangerRing, short: "G" },
-  Outlook:       { fg: C.blue,   bg: C.blueSoft,   ring: C.blueRing,   short: "O" },
-  "Custom SMTP": { fg: C.violet, bg: C.violetSoft, ring: C.violetRing, short: "SM" },
+const PROVIDER_META: Record<KnownProvider, { fg: string; bg: string; ring: string; short: string; brand: string }> = {
+  Gmail:   { fg: C.danger, bg: C.dangerSoft, ring: C.dangerRing, short: "G", brand: "#EA4335" },
+  Outlook: { fg: C.blue,   bg: C.blueSoft,   ring: C.blueRing,   short: "O", brand: "#0078D4" },
 };
+
+const statusMeta = (raw: string) =>
+  STATUS_META[raw as KnownStatus] ?? {
+    fg: C.textMuted, bg: C.inner, ring: C.border,
+    icon: ShieldAlert, label: raw || "Unknown",
+  };
+
+const providerMeta = (raw: string) =>
+  PROVIDER_META[raw as KnownProvider] ?? {
+    fg: C.textMuted, bg: C.inner, ring: C.border,
+    short: (raw?.[0] ?? "?").toUpperCase(),
+    brand: C.textMuted,
+  };
 
 /* ─────────────────────────── Primitives ─────────────────────────── */
 
@@ -89,16 +93,17 @@ const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ chi
   </div>
 );
 
-const Avatar: React.FC<{ name?: string; size?: number }> = ({ name, size = 36 }) => {
+const Avatar: React.FC<{ name?: string; size?: number; brand?: string }> = ({ name, size = 36, brand }) => {
   const initial = (name || "?").trim()[0]?.toUpperCase() ?? "?";
+  const bg = brand ?? C.primary;
   return (
     <div
       className="shrink-0 rounded-xl flex items-center justify-center font-semibold text-white select-none"
       style={{
         width: size, height: size,
         fontSize: size * 0.42,
-        background: `linear-gradient(135deg, ${C.primary}, ${C.primary}88)`,
-        boxShadow: `0 8px 20px -10px ${C.primary}80, inset 0 0 0 1px rgba(255,255,255,0.06)`,
+        background: `linear-gradient(135deg, ${bg}, ${bg}88)`,
+        boxShadow: `0 8px 20px -10px ${bg}80, inset 0 0 0 1px rgba(255,255,255,0.06)`,
       }}
       aria-hidden
     >
@@ -131,8 +136,8 @@ const StatCard: React.FC<{
   </Card>
 );
 
-const StatusPill: React.FC<{ status: SenderStatus }> = ({ status }) => {
-  const meta = STATUS_META[status] ?? STATUS_META.Disconnected;
+const StatusPill: React.FC<{ status: string }> = ({ status }) => {
+  const meta = statusMeta(status);
   const Icon = meta.icon;
   return (
     <span
@@ -145,8 +150,8 @@ const StatusPill: React.FC<{ status: SenderStatus }> = ({ status }) => {
   );
 };
 
-const ProviderBadge: React.FC<{ provider: SenderProvider }> = ({ provider }) => {
-  const meta = PROVIDER_META[provider] ?? PROVIDER_META["Custom SMTP"];
+const ProviderBadge: React.FC<{ provider: string }> = ({ provider }) => {
+  const meta = providerMeta(provider);
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
@@ -158,8 +163,288 @@ const ProviderBadge: React.FC<{ provider: SenderProvider }> = ({ provider }) => 
       >
         {meta.short}
       </span>
-      {provider}
+      {provider || "Unknown"}
     </span>
+  );
+};
+
+/* Microsoft 4-square logo (mono-friendly, uses currentColor) */
+const OutlookLogo: React.FC<{ size?: number }> = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+    <rect x="3"  y="3"  width="8" height="8" rx="1" fill="#F25022" />
+    <rect x="13" y="3"  width="8" height="8" rx="1" fill="#7FBA00" />
+    <rect x="3"  y="13" width="8" height="8" rx="1" fill="#00A4EF" />
+    <rect x="13" y="13" width="8" height="8" rx="1" fill="#FFB900" />
+  </svg>
+);
+
+/* Google "G" logo */
+const GoogleLogo: React.FC<{ size?: number }> = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden>
+    <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3.1l5.7-5.7C34.5 6.3 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
+    <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.1 18.9 12 24 12c3.1 0 5.8 1.2 8 3.1l5.7-5.7C34.5 6.3 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
+    <path fill="#4CAF50" d="M24 44c5.4 0 10.3-2.1 13.9-5.5l-6.4-5.4C29.4 34.6 26.8 36 24 36c-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.6 39.6 16.2 44 24 44z" />
+    <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.3 5.6l6.4 5.4C41.9 35.6 44 30.3 44 24c0-1.3-.1-2.4-.4-3.5z" />
+  </svg>
+);
+
+/* ─────────────────────────── Form shape ─────────────────────────── */
+
+interface FormState {
+  display_name: string;
+  email: string;
+  provider: string;
+  status: string;
+  daily_limit: number;
+  hourly_limit: number;
+}
+
+const EMPTY_FORM: FormState = {
+  display_name: "",
+  email: "",
+  provider: "Outlook",
+  status: "Active",
+  daily_limit: 500,
+  hourly_limit: 100,
+};
+
+/* ─────────────────────────── Connect modal ─────────────────────────── */
+
+const PROVIDERS = [
+  {
+    id: "outlook" as const,
+    label: "Outlook / Microsoft 365",
+    description: "Connect a Microsoft work, school, or personal account.",
+    Logo: OutlookLogo,
+    accent: "#0078D4",
+    endpoint: "/sender-accounts/oauth/outlook/start",
+  },
+  {
+    id: "gmail" as const,
+    label: "Gmail / Google Workspace",
+    description: "Connect a Google account with Gmail send permissions.",
+    Logo: GoogleLogo,
+    accent: "#EA4335",
+    endpoint: "/sender-accounts/oauth/gmail/start",
+  },
+];
+
+const ConnectModal: React.FC<{
+  busyId: string | null;
+  error: string | null;
+  onClose: () => void;
+  onConnect: (providerId: "outlook" | "gmail") => void;
+}> = ({ busyId, error, onClose, onConnect }) => {
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      onClick={() => !busyId && onClose()}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-xl rounded-3xl overflow-hidden soft-ring modal-pop"
+        style={{ background: C.surface }}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 p-5 md:p-6 border-b" style={{ borderColor: C.border }}>
+          <div className="flex items-start gap-3.5 min-w-0">
+            <div
+              className="shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
+              style={{ background: C.primarySoft, boxShadow: `inset 0 0 0 1px ${C.primaryRing}` }}
+            >
+              <Link2 size={18} style={{ color: C.primary }} />
+            </div>
+            <div className="min-w-0">
+              <h2
+                style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }}
+                className="text-[16px] md:text-[18px] font-bold text-white truncate"
+              >
+                Connect a sender account
+              </h2>
+              <p className="text-[12px] mt-0.5" style={{ color: C.textMuted }}>
+                Authorize a mailbox with an OAuth provider. You'll be redirected back when done.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={!!busyId}
+            aria-label="Close"
+            className="shrink-0 p-2 rounded-2xl transition-colors disabled:opacity-50"
+            style={{ background: C.inner, color: C.textMuted, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5 md:p-6 space-y-3">
+          {error && (
+            <div
+              className="rounded-2xl px-3.5 py-3 flex items-start gap-3 text-[12.5px]"
+              style={{ background: C.dangerSoft, color: C.danger, boxShadow: `inset 0 0 0 1px ${C.dangerRing}` }}
+            >
+              <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {PROVIDERS.map((p) => {
+            const Logo = p.Logo;
+            const busy = busyId === p.id;
+            const disabled = !!busyId && !busy;
+
+            return (
+              <button
+                key={p.id}
+                onClick={() => onConnect(p.id)}
+                disabled={disabled || busy}
+                className="w-full text-left rounded-2xl px-4 py-3.5 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 disabled:cursor-not-allowed flex items-center gap-4"
+                style={{
+                  background: C.inner,
+                  boxShadow: `inset 0 0 0 1px ${C.border}`,
+                }}
+              >
+                <span
+                  className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
+                  style={{ background: "rgba(255,255,255,0.03)", boxShadow: `inset 0 0 0 1px ${C.border}` }}
+                >
+                  <Logo size={22} />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[13.5px] font-semibold" style={{ color: C.dark }}>
+                    {p.label}
+                  </span>
+                  <span className="block text-[11.5px] mt-0.5" style={{ color: C.textMuted }}>
+                    {p.description}
+                  </span>
+                </span>
+                <span
+                  className="shrink-0 inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-xl"
+                  style={{
+                    color: p.accent,
+                    background: `${p.accent}1A`,
+                    boxShadow: `inset 0 0 0 1px ${p.accent}44`,
+                  }}
+                >
+                  {busy ? (
+                    <>
+                      <Loader2 size={12} className="animate-spin" /> Redirecting…
+                    </>
+                  ) : (
+                    <>
+                      Connect <ExternalLink size={12} />
+                    </>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+
+          <p className="text-[11px] leading-relaxed pt-1" style={{ color: C.textMuted }}>
+            We never see your password. The provider issues a scoped token that only allows sending
+            email from the account you select. You can revoke access anytime from the provider's
+            security settings.
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 p-5 md:p-6 border-t" style={{ borderColor: C.border }}>
+          <button
+            onClick={onClose}
+            disabled={!!busyId}
+            className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-colors disabled:opacity-50"
+            style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─────────────────────────── Delete confirm ─────────────────────────── */
+
+const DeleteConfirmModal: React.FC<{
+  account: SenderAccount | null;
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}> = ({ account, busy, onCancel, onConfirm }) => {
+  if (!account) return null;
+  const meta = providerMeta(account.provider);
+  const label = account.display_name || account.email;
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      onClick={() => !busy && onCancel()}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-3xl overflow-hidden soft-ring modal-pop"
+        style={{ background: C.surface }}
+      >
+        <div className="p-5 md:p-6 border-b" style={{ borderColor: C.border }}>
+          <div className="flex items-start gap-3.5">
+            <div
+              className="shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
+              style={{ background: C.dangerSoft, boxShadow: `inset 0 0 0 1px ${C.dangerRing}` }}
+            >
+              <Link2Off size={18} style={{ color: C.danger }} />
+            </div>
+            <div className="min-w-0">
+              <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-bold text-white break-words">
+                Disconnect “{label}”?
+              </h3>
+              <p className="text-[12.5px] mt-0.5" style={{ color: C.textMuted }}>
+                The saved OAuth token will be deleted. You can reconnect later.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="mx-5 md:mx-6 mt-4 rounded-2xl px-3.5 py-3 flex items-center gap-3 text-[12px]"
+          style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+        >
+          <Avatar name={account.display_name || account.email} brand={meta.brand} size={32} />
+          <div className="min-w-0">
+            <p className="truncate font-medium" style={{ color: C.dark }}>
+              {account.display_name || "Unnamed"}
+            </p>
+            <p className="truncate text-[11px]" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+              {account.email}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 p-5 md:p-6">
+          <button
+            onClick={onCancel}
+            disabled={busy}
+            className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-colors disabled:opacity-50"
+            style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold disabled:opacity-60"
+            style={{ background: C.danger, color: "#0B0E13", boxShadow: "0 12px 30px -12px rgba(248,113,113,0.55)" }}
+          >
+            {busy ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+            Disconnect
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -167,23 +452,66 @@ const ProviderBadge: React.FC<{ provider: SenderProvider }> = ({ provider }) => 
 
 const AdminSenderAccounts = () => {
   const context = useContext(SenderAccContext);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [providerFilter, setProviderFilter] = useState<string>("All");
-  const [showModal, setShowModal] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<SenderAccount | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [flash, setFlash] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  const [formData, setFormData] = useState<Partial<SenderAccount>>({
-    email: "",
-    name: "",
-    provider: "Gmail",
-    status: "Active",
-    dailyLimit: 500,
-    hourlyLimit: 100,
-  });
+  // Modal state
+  const [showConnect, setShowConnect] = useState(false);
+  const [connectBusyId, setConnectBusyId] = useState<string | null>(null);
+  const [connectError, setConnectError] = useState<string | null>(null);
+
+  const [editingAccount, setEditingAccount] = useState<SenderAccount | null>(null);
+  const [formData, setFormData] = useState<FormState>(EMPTY_FORM);
+  const [deleteTarget, setDeleteTarget] = useState<SenderAccount | null>(null);
+
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showFlash = (type: "success" | "error", msg: string) => {
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    setFlash({ type, msg });
+    flashTimer.current = setTimeout(() => setFlash(null), 3500);
+  };
+
+  useEffect(() => () => {
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+  }, []);
+
+  /* ── Read OAuth redirect params on mount ── */
+  useEffect(() => {
+    const connected = searchParams.get("connected");
+    const errorCode = searchParams.get("error");
+
+    if (connected) {
+      showFlash("success", `Connected ${connected === "gmail" ? "Gmail" : "Outlook"} account.`);
+      // Refresh list, then strip the query params so a page reload doesn't refire.
+      context?.fetchAllSenderAccounts?.();
+      const next = new URLSearchParams(searchParams);
+      next.delete("connected");
+      next.delete("error");
+      setSearchParams(next, { replace: true });
+    } else if (errorCode) {
+      const human =
+        errorCode === "access_denied"    ? "You cancelled the consent screen." :
+        errorCode === "invalid_state"    ? "OAuth state check failed. Please retry." :
+        errorCode === "exchange_failed"  ? "Token exchange with the provider failed." :
+        errorCode === "provider_error"   ? "The provider returned an error." :
+        `Connection failed (${errorCode}).`;
+      showFlash("error", human);
+      const next = new URLSearchParams(searchParams);
+      next.delete("connected");
+      next.delete("error");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!context) {
     return (
@@ -196,7 +524,7 @@ const AdminSenderAccounts = () => {
   const {
     senderAcc,
     loading,
-    addSenderAccount,
+    error,
     updateSenderAccount,
     deleteSenderAccount,
     fetchAllSenderAccounts,
@@ -212,7 +540,7 @@ const AdminSenderAccounts = () => {
       result = result.filter(
         (a) =>
           (a.email ?? "").toLowerCase().includes(q) ||
-          (a.name ?? "").toLowerCase().includes(q) ||
+          (a.display_name ?? "").toLowerCase().includes(q) ||
           (a.provider ?? "").toLowerCase().includes(q)
       );
     }
@@ -223,85 +551,140 @@ const AdminSenderAccounts = () => {
   }, [accounts, search, statusFilter, providerFilter]);
 
   const activeCount = accounts.filter((a) => a.status === "Active").length;
-  const emailsToday = accounts.reduce((sum, a) => sum + (a.sentToday ?? 0), 0);
-  const dailyCapacity = accounts.reduce((sum, a) => sum + (a.dailyLimit ?? 0), 0);
+  const emailsToday = accounts.reduce((sum, a) => sum + (a.emails_sent_today ?? 0), 0);
+  const dailyCapacity = accounts.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0);
 
   const hasActiveFilters = !!search || statusFilter !== "All" || providerFilter !== "All";
 
-  const handleAddAccount = () => {
-    setEditingAccount(null);
-    setFormData({
-      email: "",
-      name: "",
-      provider: "Gmail",
-      status: "Active",
-      dailyLimit: 500,
-      hourlyLimit: 100,
-    });
-    setShowModal(true);
+  /* ── Connect flow ── */
+
+  const openConnectModal = () => {
+    setConnectError(null);
+    setConnectBusyId(null);
+    setShowConnect(true);
   };
 
-  const handleEditAccount = (account: SenderAccount) => {
-    setEditingAccount(account);
-    setFormData({ ...account });
-    setShowModal(true);
-  };
+  const handleConnect = async (providerId: "outlook" | "gmail") => {
+    setConnectError(null);
+    setConnectBusyId(providerId);
 
-  const handleDeleteAccount = async (id: number) => {
-    const confirmed = window.confirm("Are you sure you want to delete this sender account?");
-    if (!confirmed) return;
     try {
-      await deleteSenderAccount(id);
-    } catch (error) {
-      console.error("Failed to delete sender account:", error);
-      alert("Failed to delete sender account.");
+      const provider = PROVIDERS.find((p) => p.id === providerId);
+      if (!provider) throw new Error("Unknown provider");
+
+      // Ask the backend for the provider's authorize URL.
+      // Expected response: { authorize_url: string }  (or { url } / { redirect_url })
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL ?? "http://localhost:8000"}${provider.endpoint}`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            // If your backend also accepts a Bearer token for this endpoint,
+            // the axios interceptor path will pick it up automatically when
+            // you swap `fetch` for `api.post`. This raw fetch is used so we
+            // don't depend on the axios instance here.
+            ...(localStorage.getItem("access_token")
+              ? { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
+              : {}),
+          },
+          body: JSON.stringify({
+            redirect_uri: `${window.location.origin}/admin/senders-account`,
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        const detail = await res.text().catch(() => "");
+        throw new Error(detail || `Backend returned ${res.status}`);
+      }
+
+      const data = await res.json();
+      const authorizeUrl: string | undefined =
+        data?.authorize_url ?? data?.url ?? data?.redirect_url;
+
+      if (!authorizeUrl) {
+        throw new Error("Backend did not return an authorize_url.");
+      }
+
+      // Leave the app — user lands on Microsoft/Google consent screen.
+      window.location.href = authorizeUrl;
+    } catch (e: any) {
+      setConnectError(e?.message ?? "Failed to start OAuth flow.");
+      setConnectBusyId(null);
     }
   };
 
-  const handleSaveAccount = async () => {
-    if (!formData.email || !formData.name) {
-      alert("Please fill in all required fields");
+  /* ── Edit flow ── */
+
+  const openEditModal = (account: SenderAccount) => {
+    setActionError(null);
+    setEditingAccount(account);
+    setFormData({
+      display_name: account.display_name ?? "",
+      email: account.email ?? "",
+      provider: account.provider ?? "Outlook",
+      status: account.status ?? "Active",
+      daily_limit: account.daily_limit ?? 500,
+      hourly_limit: account.hourly_limit ?? 100,
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingAccount) return;
+
+    const display_name = formData.display_name.trim();
+    if (!display_name) {
+      setActionError("Display name is required.");
       return;
     }
 
+    setSaving(true);
+    setActionError(null);
+
     try {
-      setSaving(true);
-
-      if (editingAccount) {
-        await updateSenderAccount(editingAccount.id, {
-          name: formData.name,
-          provider: formData.provider,
-          status: formData.status,
-          dailyLimit: formData.dailyLimit,
-          hourlyLimit: formData.hourlyLimit,
-        } as any);
-      } else {
-        await addSenderAccount({
-          email: formData.email,
-          name: formData.name,
-          provider: formData.provider,
-        } as any);
-      }
-
-      setShowModal(false);
+      const payload: UpdateSenderAccountInput = {
+        display_name,
+        status: formData.status,
+        daily_limit: formData.daily_limit,
+        hourly_limit: formData.hourly_limit,
+      };
+      await updateSenderAccount(editingAccount.id, payload);
       setEditingAccount(null);
-    } catch (error) {
-      console.error("Failed to save sender account:", error);
-      alert("Failed to save sender account.");
+    } catch (e: any) {
+      const msg = e?.response?.data?.detail ?? e?.message ?? "Failed to update sender account.";
+      setActionError(msg);
     } finally {
       setSaving(false);
     }
   };
 
+  /* ── Delete flow ── */
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeletingId(deleteTarget.id);
+    try {
+      await deleteSenderAccount(deleteTarget.id);
+      setDeleteTarget(null);
+    } catch (e: any) {
+      const msg = e?.response?.data?.detail ?? e?.message ?? "Failed to disconnect sender account.";
+      setActionError(msg);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const getUsagePercent = (sent: number, limit: number) => {
     if (!limit || limit <= 0) return 0;
-    return Math.min((sent / limit) * 100, 100);
+    return Math.max(0, Math.min((sent / limit) * 100, 100));
   };
 
   const usageTone = (percent: number) =>
-    percent >= 90 ? { fg: C.danger, track: C.dangerSoft } :
+    percent >= 90 ? { fg: C.danger,  track: C.dangerSoft  } :
     percent >= 70 ? { fg: C.warning, track: C.warningSoft } :
-    { fg: C.success, track: C.successSoft };
+                    { fg: C.success, track: C.successSoft };
 
   return (
     <div className="flex min-h-screen overflow-hidden" style={{ background: C.bg, fontFamily: FONT.body }}>
@@ -349,7 +732,7 @@ const AdminSenderAccounts = () => {
         <div className="glow-top">
           <div className="max-w-[1320px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
 
-            {/* ── Header ─────────────────────────── */}
+            {/* Header */}
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
               <div className="flex items-start gap-3 md:gap-4">
                 <button
@@ -380,21 +763,63 @@ const AdminSenderAccounts = () => {
                     Sender accounts
                   </h1>
                   <p className="mt-2 text-[14px] md:text-[15px] max-w-lg" style={{ color: C.textMuted }}>
-                    Manage sender accounts across all workspaces.
+                    Connect mailboxes via OAuth. No passwords, no SMTP credentials.
                   </p>
                 </div>
               </div>
 
               <button
-                onClick={handleAddAccount}
+                onClick={openConnectModal}
                 className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5 self-start md:self-auto"
                 style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.65)" }}
               >
-                <Plus size={15} /> Add sender account
+                <Plus size={15} /> Connect account
               </button>
             </header>
 
-            {/* ── Stats ──────────────────────────── */}
+            {/* Flash toast */}
+            {flash && (
+              <div
+                className="mb-5 rounded-2xl px-4 py-3 flex items-start gap-3 text-[12.5px] float-in"
+                style={{
+                  background: flash.type === "success" ? C.successSoft : C.dangerSoft,
+                  color: flash.type === "success" ? C.success : C.danger,
+                  boxShadow: `inset 0 0 0 1px ${flash.type === "success" ? C.successRing : C.dangerRing}`,
+                }}
+              >
+                {flash.type === "success"
+                  ? <CheckCircle size={15} className="mt-0.5 shrink-0" />
+                  : <AlertTriangle size={15} className="mt-0.5 shrink-0" />}
+                <span className="flex-1">{flash.msg}</span>
+                <button
+                  onClick={() => setFlash(null)}
+                  className="shrink-0 p-1 rounded-lg hover:bg-black/20"
+                  aria-label="Dismiss"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            )}
+
+            {/* Persistent error */}
+            {(actionError || error) && (
+              <div
+                className="mb-5 rounded-2xl px-4 py-3 flex items-start gap-3 text-[12.5px]"
+                style={{ background: C.dangerSoft, color: C.danger, boxShadow: `inset 0 0 0 1px ${C.dangerRing}` }}
+              >
+                <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+                <span className="flex-1">{actionError || error}</span>
+                <button
+                  onClick={() => setActionError(null)}
+                  className="shrink-0 p-1 rounded-lg hover:bg-black/20"
+                  aria-label="Dismiss"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            )}
+
+            {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
               <StatCard title="Total accounts"  value={String(accounts.length)}          icon={AtSign}        accent={C.primary} accentSoft={C.primarySoft} accentRing={C.primaryRing} />
               <StatCard title="Active"          value={String(activeCount)}              icon={CheckCircle2}  accent={C.success} accentSoft={C.successSoft} accentRing={C.successRing} />
@@ -402,7 +827,7 @@ const AdminSenderAccounts = () => {
               <StatCard title="Daily capacity"  value={dailyCapacity.toLocaleString()}   icon={Mail}          accent={C.violet}  accentSoft={C.violetSoft}  accentRing={C.violetRing} />
             </div>
 
-            {/* ── Command bar ────────────────────── */}
+            {/* Command bar */}
             <div className="rounded-3xl p-3 mb-5 soft-ring sticky top-3 z-20"
               style={{ background: "rgba(20,24,33,0.85)", backdropFilter: "blur(10px)" }}>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
@@ -442,7 +867,7 @@ const AdminSenderAccounts = () => {
                       style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
                       aria-label="Filter by status"
                     >
-                      {FILTERS.map((f) => <option key={f} value={f}>{f === "All" ? "All statuses" : f}</option>)}
+                      {STATUS_FILTERS.map((f) => <option key={f} value={f}>{f === "All" ? "All statuses" : f}</option>)}
                     </select>
                   </div>
 
@@ -490,7 +915,7 @@ const AdminSenderAccounts = () => {
               </div>
             </div>
 
-            {/* ── Table ──────────────────────────── */}
+            {/* Table */}
             <div className="rounded-3xl overflow-hidden soft-ring" style={{ background: C.surface }}>
               <div className="overflow-x-auto">
                 <table className="w-full text-left" style={{ minWidth: 880 }}>
@@ -506,7 +931,6 @@ const AdminSenderAccounts = () => {
                   </thead>
 
                   <tbody>
-                    {/* Loading */}
                     {loading && accounts.length === 0 && (
                       <tr>
                         <td colSpan={6}>
@@ -518,22 +942,22 @@ const AdminSenderAccounts = () => {
                       </tr>
                     )}
 
-                    {/* Rows */}
                     {!loading && filteredAccounts.map((account) => {
-                      const dailyPercent = getUsagePercent(account.sentToday, account.dailyLimit);
-                      const hourlyPercent = getUsagePercent(account.sentThisHour, account.hourlyLimit);
+                      const dailyPercent = getUsagePercent(account.emails_sent_today, account.daily_limit);
+                      const hourlyPercent = getUsagePercent(account.emails_sent_hour, account.hourly_limit);
                       const dailyTone = usageTone(dailyPercent);
                       const hourlyTone = usageTone(hourlyPercent);
+                      const isDeleting = deletingId === account.id;
+                      const meta = providerMeta(account.provider);
 
                       return (
                         <tr key={account.id} className="asa-row float-in transition-colors" style={{ borderBottom: `1px solid ${C.border}` }}>
-                          {/* Account */}
                           <td className="px-4 md:px-6 py-3.5">
                             <div className="flex items-center gap-3 min-w-0">
-                              <Avatar name={account.name} size={36} />
+                              <Avatar name={account.display_name} brand={meta.brand} size={36} />
                               <div className="min-w-0">
                                 <p className="text-[13.5px] font-medium truncate" style={{ color: C.dark }}>
-                                  {account.name || "Unnamed"}
+                                  {account.display_name || "Unnamed"}
                                 </p>
                                 <p className="text-[11px] truncate" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
                                   {account.email}
@@ -542,21 +966,17 @@ const AdminSenderAccounts = () => {
                             </div>
                           </td>
 
-                          {/* Provider */}
                           <td className="px-3 py-3.5"><ProviderBadge provider={account.provider} /></td>
-
-                          {/* Status */}
                           <td className="px-3 py-3.5"><StatusPill status={account.status} /></td>
 
-                          {/* Daily */}
                           <td className="px-3 py-3.5">
                             <div className="w-[140px]">
                               <div className="flex items-center justify-between text-[11px] mb-1.5">
                                 <span style={{ color: C.textMuted, fontFamily: FONT.mono }}>
-                                  {account.sentToday?.toLocaleString?.() ?? account.sentToday}
+                                  {account.emails_sent_today.toLocaleString()}
                                 </span>
                                 <span style={{ color: C.dark, fontFamily: FONT.mono }}>
-                                  / {account.dailyLimit?.toLocaleString?.() ?? account.dailyLimit}
+                                  / {account.daily_limit.toLocaleString()}
                                 </span>
                               </div>
                               <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: C.inner }}>
@@ -571,15 +991,14 @@ const AdminSenderAccounts = () => {
                             </div>
                           </td>
 
-                          {/* Hourly */}
                           <td className="px-3 py-3.5">
                             <div className="w-[140px]">
                               <div className="flex items-center justify-between text-[11px] mb-1.5">
                                 <span style={{ color: C.textMuted, fontFamily: FONT.mono }}>
-                                  {account.sentThisHour?.toLocaleString?.() ?? account.sentThisHour}
+                                  {account.emails_sent_hour.toLocaleString()}
                                 </span>
                                 <span style={{ color: C.dark, fontFamily: FONT.mono }}>
-                                  / {account.hourlyLimit?.toLocaleString?.() ?? account.hourlyLimit}
+                                  / {account.hourly_limit.toLocaleString()}
                                 </span>
                               </div>
                               <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: C.inner }}>
@@ -594,26 +1013,26 @@ const AdminSenderAccounts = () => {
                             </div>
                           </td>
 
-                          {/* Actions */}
                           <td className="px-4 md:px-6 py-3.5 text-right">
                             <div className="asa-actions flex items-center justify-end gap-1">
                               <button
-                                onClick={() => handleEditAccount(account)}
-                                aria-label={`Edit ${account.name || account.email}`}
+                                onClick={() => openEditModal(account)}
+                                aria-label={`Edit ${account.display_name || account.email}`}
                                 className="p-1.5 rounded-lg transition-colors hover:bg-[#1B2130]"
                                 style={{ color: C.textMuted }}
                               >
                                 <Edit size={13} />
                               </button>
                               <button
-                                onClick={() => handleDeleteAccount(account.id)}
-                                aria-label={`Delete ${account.name || account.email}`}
-                                className="p-1.5 rounded-lg transition-colors"
+                                onClick={() => setDeleteTarget(account)}
+                                disabled={isDeleting}
+                                aria-label={`Disconnect ${account.display_name || account.email}`}
+                                className="p-1.5 rounded-lg transition-colors disabled:opacity-50"
                                 style={{ color: C.danger }}
                                 onMouseEnter={(e) => (e.currentTarget.style.background = C.dangerSoft)}
                                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                               >
-                                <Trash2 size={13} />
+                                {isDeleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
                               </button>
                             </div>
                           </td>
@@ -621,7 +1040,6 @@ const AdminSenderAccounts = () => {
                       );
                     })}
 
-                    {/* Empty */}
                     {!loading && filteredAccounts.length === 0 && (
                       <tr>
                         <td colSpan={6}>
@@ -630,23 +1048,23 @@ const AdminSenderAccounts = () => {
                               className="w-14 h-14 mb-4 rounded-2xl flex items-center justify-center"
                               style={{ background: C.primarySoft, boxShadow: `inset 0 0 0 1px ${C.primaryRing}` }}
                             >
-                              <AtSign size={26} style={{ color: C.primary }} />
+                              <Link2 size={26} style={{ color: C.primary }} />
                             </div>
                             <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-semibold text-[#F2F0EB]">
-                              {accounts.length === 0 ? "No sender accounts yet" : "No accounts match"}
+                              {accounts.length === 0 ? "No connected accounts" : "No accounts match"}
                             </h3>
                             <p className="mt-2 text-[13px] max-w-md" style={{ color: C.textMuted }}>
                               {accounts.length === 0
-                                ? "Add your first sender account to get started."
+                                ? "Connect a Gmail or Outlook mailbox to start sending."
                                 : "Try adjusting your search or filters."}
                             </p>
                             {accounts.length === 0 ? (
                               <button
-                                onClick={handleAddAccount}
+                                onClick={openConnectModal}
                                 className="mt-5 inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
                                 style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.6)" }}
                               >
-                                <Plus size={13} /> Add sender account
+                                <Plus size={13} /> Connect account
                               </button>
                             ) : (
                               <button
@@ -664,108 +1082,95 @@ const AdminSenderAccounts = () => {
                   </tbody>
                 </table>
               </div>
-
-              {/* Pagination strip (kept minimal — the current data is fully client-side) */}
-              <div className="flex items-center justify-between gap-3 px-4 md:px-6 py-3.5 border-t" style={{ borderColor: C.border }}>
-                <span className="text-[11.5px]" style={{ color: C.textMuted }}>
-                  Showing <span style={{ color: C.dark, fontFamily: FONT.mono }}>{filteredAccounts.length}</span> of{" "}
-                  <span style={{ color: C.dark, fontFamily: FONT.mono }}>{accounts.length}</span> accounts
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    aria-label="Previous page"
-                    disabled
-                    className="inline-flex items-center justify-center rounded-2xl p-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                    style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                  >
-                    <ChevronLeft size={14} />
-                  </button>
-                  <span
-                    className="min-w-[36px] rounded-2xl px-3 py-2 text-[12px] font-medium text-center"
-                    style={{ background: C.primary, color: "#fff", boxShadow: "0 10px 24px -10px rgba(255,106,57,0.6)" }}
-                  >
-                    1
-                  </span>
-                  <button
-                    aria-label="Next page"
-                    disabled
-                    className="inline-flex items-center justify-center rounded-2xl p-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                    style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                  >
-                    <ChevronRight size={14} />
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         </div>
       </main>
 
-      {/* ── Add / Edit modal ───────────────── */}
-      {showModal && (
+      {/* Connect modal */}
+      {showConnect && (
+        <ConnectModal
+          busyId={connectBusyId}
+          error={connectError}
+          onClose={() => {
+            if (connectBusyId) return;
+            setShowConnect(false);
+          }}
+          onConnect={handleConnect}
+        />
+      )}
+
+      {/* Edit modal */}
+      {editingAccount && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-          onClick={() => setShowModal(false)}
+          onClick={() => !saving && setEditingAccount(null)}
           role="dialog"
           aria-modal="true"
-          aria-label={editingAccount ? "Edit sender account" : "Add sender account"}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-2xl rounded-3xl overflow-hidden soft-ring modal-pop"
             style={{ background: C.surface }}
           >
-            {/* Header */}
             <div className="flex items-start justify-between gap-3 p-5 md:p-6 border-b" style={{ borderColor: C.border }}>
               <div className="flex items-start gap-3.5 min-w-0">
                 <div
                   className="shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
-                  style={{ background: C.primarySoft, boxShadow: `inset 0 0 0 1px ${C.primaryRing}` }}
+                  style={{
+                    background: providerMeta(editingAccount.provider).bg,
+                    boxShadow: `inset 0 0 0 1px ${providerMeta(editingAccount.provider).ring}`,
+                  }}
                 >
-                  <AtSign size={18} style={{ color: C.primary }} />
+                  <AtSign size={18} style={{ color: providerMeta(editingAccount.provider).fg }} />
                 </div>
                 <div className="min-w-0">
                   <h2 style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }} className="text-[16px] md:text-[18px] font-bold text-white truncate">
-                    {editingAccount ? "Edit sender account" : "Add sender account"}
+                    Edit sender account
                   </h2>
                   <p className="text-[12px] mt-0.5" style={{ color: C.textMuted }}>
-                    {editingAccount
-                      ? "Update the sender account configuration."
-                      : "Add a new sender account to the platform."}
+                    Update display name, limits, and status.
                   </p>
                 </div>
               </div>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => setEditingAccount(null)}
+                disabled={saving}
                 aria-label="Close"
-                className="shrink-0 p-2 rounded-2xl transition-colors"
+                className="shrink-0 p-2 rounded-2xl transition-colors disabled:opacity-50"
                 style={{ background: C.inner, color: C.textMuted, boxShadow: `inset 0 0 0 1px ${C.border}` }}
               >
                 <X size={15} />
               </button>
             </div>
 
-            {/* Body */}
             <div className="p-5 md:p-6 space-y-5 max-h-[65vh] overflow-y-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Email address" required>
-                  <input
-                    type="email"
-                    value={formData.email || ""}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="sender@company.com"
-                    className={inputCls}
-                    style={inputStyle}
-                    onFocus={onFocusIn}
-                    onBlur={onFocusOut}
-                  />
-                </Field>
+              {/* Connected account summary (read-only) */}
+              <div
+                className="rounded-2xl px-3.5 py-3 flex items-center gap-3"
+                style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+              >
+                <Avatar
+                  name={editingAccount.display_name || editingAccount.email}
+                  brand={providerMeta(editingAccount.provider).brand}
+                  size={36}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12.5px] font-medium" style={{ color: C.dark }}>
+                    {editingAccount.email}
+                  </p>
+                  <p className="truncate text-[11px] mt-0.5" style={{ color: C.textMuted }}>
+                    Connected via {editingAccount.provider} OAuth
+                  </p>
+                </div>
+              </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Display name" required>
                   <input
                     type="text"
-                    value={formData.name || ""}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    value={formData.display_name}
+                    onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
                     placeholder="Marketing"
                     className={inputCls}
                     style={inputStyle}
@@ -773,26 +1178,11 @@ const AdminSenderAccounts = () => {
                     onBlur={onFocusOut}
                   />
                 </Field>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Provider">
-                  <select
-                    value={formData.provider || "Gmail"}
-                    onChange={(e) => setFormData({ ...formData, provider: e.target.value as SenderProvider })}
-                    className={inputCls}
-                    style={inputStyle}
-                  >
-                    <option value="Gmail">Gmail</option>
-                    <option value="Outlook">Outlook</option>
-                    <option value="Custom SMTP">Custom SMTP</option>
-                  </select>
-                </Field>
 
                 <Field label="Status">
                   <select
-                    value={formData.status || "Active"}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as SenderStatus })}
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                     className={inputCls}
                     style={inputStyle}
                   >
@@ -807,8 +1197,9 @@ const AdminSenderAccounts = () => {
                 <Field label="Daily limit">
                   <input
                     type="number"
-                    value={formData.dailyLimit ?? 500}
-                    onChange={(e) => setFormData({ ...formData, dailyLimit: parseInt(e.target.value) || 0 })}
+                    min={0}
+                    value={formData.daily_limit}
+                    onChange={(e) => setFormData({ ...formData, daily_limit: parseInt(e.target.value) || 0 })}
                     className={inputCls}
                     style={{ ...inputStyle, fontFamily: FONT.mono }}
                     onFocus={onFocusIn}
@@ -819,8 +1210,9 @@ const AdminSenderAccounts = () => {
                 <Field label="Hourly limit">
                   <input
                     type="number"
-                    value={formData.hourlyLimit ?? 100}
-                    onChange={(e) => setFormData({ ...formData, hourlyLimit: parseInt(e.target.value) || 0 })}
+                    min={0}
+                    value={formData.hourly_limit}
+                    onChange={(e) => setFormData({ ...formData, hourly_limit: parseInt(e.target.value) || 0 })}
                     className={inputCls}
                     style={{ ...inputStyle, fontFamily: FONT.mono }}
                     onFocus={onFocusIn}
@@ -828,29 +1220,44 @@ const AdminSenderAccounts = () => {
                   />
                 </Field>
               </div>
+
+              <p className="text-[11px] leading-relaxed" style={{ color: C.textMuted }}>
+                Email and provider can't be changed — they're tied to the connected OAuth grant.
+                To switch mailboxes, disconnect and connect a new one.
+              </p>
             </div>
 
-            {/* Footer */}
             <div className="flex items-center justify-end gap-2 p-5 md:p-6 border-t" style={{ borderColor: C.border }}>
               <button
-                onClick={() => setShowModal(false)}
-                className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-colors"
+                onClick={() => setEditingAccount(null)}
+                disabled={saving}
+                className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-colors disabled:opacity-50"
                 style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
               >
                 Cancel
               </button>
               <button
-                onClick={handleSaveAccount}
-                disabled={saving || loading}
+                onClick={handleSaveEdit}
+                disabled={saving}
                 className="inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold text-white transition-all disabled:opacity-60 disabled:cursor-not-allowed hover:-translate-y-0.5 disabled:hover:translate-y-0"
                 style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.6)" }}
               >
                 {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-                {saving ? "Saving…" : editingAccount ? "Update account" : "Create account"}
+                {saving ? "Saving…" : "Save changes"}
               </button>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Delete confirm */}
+      {deleteTarget && (
+        <DeleteConfirmModal
+          account={deleteTarget}
+          busy={deletingId === deleteTarget.id}
+          onCancel={() => !deletingId && setDeleteTarget(null)}
+          onConfirm={handleConfirmDelete}
+        />
       )}
     </div>
   );

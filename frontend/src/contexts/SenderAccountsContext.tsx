@@ -1,119 +1,80 @@
-import { createContext, useEffect, useState, type ReactNode } from "react";
-
+// frontend/src/contexts/SenderAccountsContext.tsx
+import React, { createContext, useCallback, useEffect, useState } from "react";
 import {
-  getSenderAccount,
-  updateSenderAccount,
-  deleteSenderAccount,
   getAllSenderAccounts,
-  addSenderAccount,
+  addSenderAccount as apiAdd,
+  updateSenderAccount as apiUpdate,
+  deleteSenderAccount as apiDelete,
 } from "../services/SenderService";
-
 import type {
   SenderAccount,
   CreateSenderAccountInput,
   UpdateSenderAccountInput,
 } from "../types/SenderAccount";
 
-type SenderAccountProp = {
-  children: ReactNode;
-};
-
-type SenderAccountContextType = {
+interface SenderAccContextValue {
   senderAcc: SenderAccount[];
   loading: boolean;
-
-  fetchSenderAccount: (id: number) => Promise<void>;
+  error: string | null;
   fetchAllSenderAccounts: () => Promise<void>;
-
-  addSenderAccount: (data: CreateSenderAccountInput) => Promise<void>;
-
-  updateSenderAccount: (
-    id: number,
-    data: UpdateSenderAccountInput
-  ) => Promise<void>;
-
+  addSenderAccount: (data: CreateSenderAccountInput) => Promise<SenderAccount>;
+  updateSenderAccount: (id: number, data: UpdateSenderAccountInput) => Promise<SenderAccount>;
   deleteSenderAccount: (id: number) => Promise<void>;
-};
+}
 
-export const SenderAccContext =
-  createContext<SenderAccountContextType | undefined>(undefined);
+export const SenderAccContext = createContext<SenderAccContextValue | null>(null);
 
-// API might return an array, null, or { data: [...] } — always end up with an array
-const toArray = (payload: unknown): SenderAccount[] => {
-  if (Array.isArray(payload)) return payload as SenderAccount[];
-  const inner = (payload as { data?: unknown } | null)?.data;
-  return Array.isArray(inner) ? (inner as SenderAccount[]) : [];
-};
-
-export const SenderAccountsContext = ({ children }: SenderAccountProp) => {
+export const SenderAccountsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [senderAcc, setSenderAcc] = useState<SenderAccount[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchSenderAccount = async (id: number) => {
+  const fetchAllSenderAccounts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      const data = await getSenderAccount(id);
-      setSenderAcc(data ? [data] : []);
-    } catch (err) {
-      console.error("Failed to fetch sender account:", err);
-      setSenderAcc([]);
+      const rows = await getAllSenderAccounts();
+      setSenderAcc(rows);
+    } catch (e: any) {
+      setError(e?.response?.data?.detail ?? e?.message ?? "Failed to load sender accounts");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchAllSenderAccounts = async () => {
-    try {
-      setLoading(true);
-      const data = await getAllSenderAccounts();
-      setSenderAcc(toArray(data));
-    } catch (err) {
-      console.error("Failed to fetch sender accounts:", err);
-      setSenderAcc([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const addSenderAccount = useCallback(async (data: CreateSenderAccountInput) => {
+    const created = await apiAdd(data);
+    setSenderAcc((prev) => [created, ...prev]);
+    return created;
+  }, []);
 
-  const addSenderAccountHandler = async (data: CreateSenderAccountInput) => {
-    const newAccount = await addSenderAccount(data);
-    setSenderAcc((prev) => [...prev, newAccount]);
-  };
+  const updateSenderAccount = useCallback(
+    async (id: number, data: UpdateSenderAccountInput) => {
+      const updated = await apiUpdate(id, data);
+      setSenderAcc((prev) => prev.map((a) => (a.id === id ? updated : a)));
+      return updated;
+    },
+    []
+  );
 
-  const updateSenderAccountHandler = async (
-    id: number,
-    data: UpdateSenderAccountInput
-  ) => {
-    const updatedAccount = await updateSenderAccount(id, data);
-    setSenderAcc((prev) =>
-      prev.map((account) => (account.id === id ? updatedAccount : account))
-    );
-  };
-
-  const deleteSenderAccountHandler = async (id: number) => {
-    await deleteSenderAccount(id);
-    setSenderAcc((prev) => prev.filter((account) => account.id !== id));
-  };
+  const deleteSenderAccount = useCallback(async (id: number) => {
+    await apiDelete(id);
+    setSenderAcc((prev) => prev.filter((a) => a.id !== id));
+  }, []);
 
   useEffect(() => {
     fetchAllSenderAccounts();
-  }, []);
+  }, [fetchAllSenderAccounts]);
 
-  return (
-    <SenderAccContext.Provider
-      value={{
-        senderAcc,
-        loading,
-        fetchSenderAccount,
-        fetchAllSenderAccounts,
-        addSenderAccount: addSenderAccountHandler,
-        updateSenderAccount: updateSenderAccountHandler,
-        deleteSenderAccount: deleteSenderAccountHandler,
-      }}
-    >
-      {children}
-    </SenderAccContext.Provider>
-  );
+  const value: SenderAccContextValue = {
+    senderAcc,
+    loading,
+    error,
+    fetchAllSenderAccounts,
+    addSenderAccount,
+    updateSenderAccount,
+    deleteSenderAccount,
+  };
+
+  return <SenderAccContext.Provider value={value}>{children}</SenderAccContext.Provider>;
 };
-
-export default SenderAccountsContext;
