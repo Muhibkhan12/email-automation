@@ -1,15 +1,19 @@
 // EmailTemplatesAdmin.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent, ComponentType, CSSProperties, DragEvent, ElementType, FC, ReactNode } from "react";
 import AdminSidebar from "./AdminSidebar";
 import {
   Plus, Search, Trash2, CheckCircle2, Clock, Code2, Eye, Save, X,
   Monitor, Smartphone, Tablet, FileCode, Braces, LayoutTemplate,
   Inbox, Check, Menu, Sparkles, Wand2, AlertCircle, ArrowLeft,
   Loader2, AlertTriangle, RefreshCw, ChevronRight, Tag,
+  Pencil, Copy, ClipboardCopy, Upload, Link2, FileUp, Clipboard,
+  Link, Globe, FileText, CheckCircle,
 } from "lucide-react";
 
 import { useHtmlTemplates } from "../../contexts/HtmlTemplatesContext";
 import type { HtmlTemplates } from "../../types/HtmlTemplatesTypes";
+import type { TemplatePayload } from "../../services/TemplateService";
 
 /* ─────────────── Tokens ─────────────── */
 
@@ -46,11 +50,12 @@ const COLOR = {
   textBody: "#C7C9CE",
 };
 
+type Id = number | string;
 type Category = "Welcome" | "Promotional" | "Newsletter" | "Transactional";
 type Status = "Published" | "Draft";
 
 interface Template {
-  id: number;
+  id: Id;
   name: string;
   subject: string;
   category: Category;
@@ -77,17 +82,56 @@ const variableDescriptions: Record<string, string> = {
   "{{unsubscribe_link}}": "Unsubscribe link",
 };
 
+/* ─────────────── Helpers ─────────────── */
+
+const formatUpdated = (v?: string) => {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (isNaN(+d)) return v;
+  const s = (Date.now() - +d) / 1000;
+  if (s < 60) return "Just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
+  return d.toLocaleDateString();
+};
+
+const escapeHtml = (s: string) =>
+  s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+const toPayload = (t: Template): TemplatePayload => ({
+  name: t.name,
+  subject: t.subject,
+  category: t.category,
+  status: t.status,
+  html: t.html,
+});
+
+const errMsg = (e: unknown) => (e instanceof Error ? e.message : "Something went wrong");
+
+const looksLikeHtml = (s: string) => /<\/?[a-z][\s\S]*>/i.test(s.trim());
+
 /* ─────────────── Adapter ─────────────── */
+
+const normCategory = (v: unknown): Category =>
+  categories.find((c) => c.toLowerCase() === String(v ?? "").toLowerCase()) ?? "Welcome";
+
+const normStatus = (v: unknown): Status =>
+  String(v ?? "").toLowerCase() === "published" ? "Published" : "Draft";
 
 const mapApiTemplate = (raw: HtmlTemplates, index: number): Template => {
   const r = raw as any;
   return {
-    id: typeof r.id === "number" ? r.id : index,
+    id: r.id ?? r._id ?? index,
     name: r.name ?? r.title ?? r.template_name ?? "Untitled Template",
     subject: r.subject ?? r.subject_line ?? "",
-    category: (r.category as Category) ?? "Welcome",
-    status: (r.status as Status) ?? "Draft",
-    updatedAt: r.updated_at ?? r.updatedAt ?? "—",
+    category: normCategory(r.category),
+    status: normStatus(r.status),
+    updatedAt: formatUpdated(r.updated_at ?? r.updatedAt),
     html: r.html ?? r.body ?? r.content ?? "",
   };
 };
@@ -212,7 +256,47 @@ ${body}
   return base(rows[category]);
 };
 
-const nextId = (list: Template[]) => (list.length ? Math.max(...list.map((t) => t.id)) + 1 : 1);
+const aiHtml = (prompt: string) => `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Generated Email</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.05);">
+          <tr>
+            <td style="padding:48px 32px;text-align:center;">
+              <div style="font-size:40px;margin-bottom:8px;">✨</div>
+              <h1 style="margin:0;font-size:24px;color:#0f172a;font-weight:700;">${escapeHtml(prompt)}</h1>
+              <p style="margin:12px 0 0;font-size:15px;color:#64748b;line-height:1.6;">
+                Hi {{first_name}}, this template was generated based on your request.
+              </p>
+              <p style="margin:12px 0 0;font-size:14px;color:#94a3b8;line-height:1.6;">
+                Customize this template by editing the HTML or adding variables.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 32px 40px;text-align:center;">
+              <a href="#" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600;">Learn More</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 32px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9;">
+              <p style="margin:0;">You're receiving this because you're part of {{company}}.</p>
+              <p style="margin:4px 0 0;"><a href="{{unsubscribe_link}}" style="color:#94a3b8;text-decoration:underline;">Unsubscribe</a></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 
 /* ─────────────── Editor (fullscreen) ─────────────── */
 
@@ -220,19 +304,23 @@ type Device = "desktop" | "tablet" | "mobile";
 
 interface TemplateEditorProps {
   template: Template;
-  onSave: (template: Template) => void;
+  onSave: (template: Template) => Promise<Template>;
   onClose: () => void;
-  onDelete?: () => void;
+  onDelete?: () => Promise<boolean>;
 }
 
 const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }: TemplateEditorProps) => {
   const [template, setTemplate] = useState<Template>(initialTemplate);
   const [device, setDevice] = useState<Device>("desktop");
   const [savedFlash, setSavedFlash] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const isDirty = JSON.stringify(initialTemplate) !== JSON.stringify(template);
+  const isDirty =
+    JSON.stringify(toPayload(initialTemplate)) !== JSON.stringify(toPayload(template));
 
   const updateTemplate = (patch: Partial<Template>) => setTemplate((prev) => ({ ...prev, ...patch }));
 
@@ -253,13 +341,29 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
     });
   };
 
-  const handleSave = () => {
-    if (!isDirty) return;
-    const saved = { ...template, updatedAt: "Just now" };
-    onSave(saved);
-    setTemplate(saved);
-    setSavedFlash(true);
-    setTimeout(() => setSavedFlash(false), 1500);
+  const handleSave = async () => {
+    if (!isDirty || saving) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const saved = await onSave(template);
+      setTemplate(saved);
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 1500);
+    } catch (e) {
+      setSaveError(errMsg(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!onDelete) return;
+    setDeleting(true);
+    const ok = await onDelete();
+    setDeleting(false);
+    if (ok) onClose();
+    else setShowDeleteConfirm(false);
   };
 
   useEffect(() => {
@@ -273,7 +377,7 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [template, isDirty, showDeleteConfirm]);
+  }, [template, isDirty, showDeleteConfirm, saving]);
 
   const statusMeta =
     template.status === "Published"
@@ -317,6 +421,14 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
                   </span>
                 </>
               )}
+              {saveError && (
+                <>
+                  <span style={{ color: COLOR.border }}>·</span>
+                  <span className="text-[11px] font-medium" style={{ color: COLOR.danger }}>
+                    {saveError}
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
@@ -345,18 +457,20 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
               {template.status}
             </button>
 
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              aria-label="Delete template"
-              className="inline-flex items-center justify-center rounded-2xl p-2.5 transition-colors"
-              style={{ background: COLOR.dangerSoft, color: COLOR.danger, boxShadow: `inset 0 0 0 1px ${COLOR.dangerRing}` }}
-            >
-              <Trash2 size={13} />
-            </button>
+            {onDelete && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                aria-label="Delete template"
+                className="inline-flex items-center justify-center rounded-2xl p-2.5 transition-colors"
+                style={{ background: COLOR.dangerSoft, color: COLOR.danger, boxShadow: `inset 0 0 0 1px ${COLOR.dangerRing}` }}
+              >
+                <Trash2 size={13} />
+              </button>
+            )}
 
             <button
               onClick={handleSave}
-              disabled={!isDirty}
+              disabled={!isDirty || saving}
               className="inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold text-white transition-all disabled:opacity-60 disabled:cursor-not-allowed hover:-translate-y-0.5 disabled:hover:translate-y-0"
               style={{
                 background: isDirty ? COLOR.primary : COLOR.inner,
@@ -364,8 +478,14 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
                 boxShadow: isDirty ? "0 12px 30px -12px rgba(255,106,57,0.6)" : `inset 0 0 0 1px ${COLOR.border}`,
               }}
             >
-              {savedFlash ? <Check size={13} /> : <Save size={13} />}
-              {savedFlash ? "Saved" : "Save"}
+              {saving ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : savedFlash ? (
+                <Check size={13} />
+              ) : (
+                <Save size={13} />
+              )}
+              {saving ? "Saving" : savedFlash ? "Saved" : "Save"}
             </button>
           </div>
         </div>
@@ -450,7 +570,7 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
                 { id: "desktop", icon: Monitor },
                 { id: "tablet", icon: Tablet },
                 { id: "mobile", icon: Smartphone },
-              ] as { id: Device; icon: React.ElementType }[]).map(({ id, icon: Icon }) => {
+              ] as { id: Device; icon: ElementType }[]).map(({ id, icon: Icon }) => {
                 const active = device === id;
                 return (
                   <button
@@ -491,7 +611,7 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
       {showDeleteConfirm && onDelete && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-          onClick={() => setShowDeleteConfirm(false)}
+          onClick={() => !deleting && setShowDeleteConfirm(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -509,7 +629,7 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
                 <div className="min-w-0">
                   <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-bold text-white">Delete template?</h3>
                   <p className="text-[12.5px] mt-0.5" style={{ color: COLOR.textMuted }}>
-                    This action cannot be undone.
+                    This permanently removes it from the database.
                   </p>
                 </div>
               </div>
@@ -517,17 +637,19 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
             <div className="flex items-center justify-end gap-2 p-4 md:p-5">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
                 className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-colors"
                 style={{ background: COLOR.inner, color: COLOR.textBody, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
               >
                 Cancel
               </button>
               <button
-                onClick={() => { onDelete(); onClose(); }}
-                className="inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold"
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                className="inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold disabled:opacity-60"
                 style={{ background: COLOR.danger, color: "#0B0E13", boxShadow: "0 12px 30px -12px rgba(248,113,113,0.55)" }}
               >
-                <Trash2 size={13} /> Delete
+                {deleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />} Delete
               </button>
             </div>
           </div>
@@ -539,11 +661,11 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
 
 /* ─────────────── Stat tile ─────────────── */
 
-const StatCard: React.FC<{
+const StatCard: FC<{
   title: string;
   value: string;
   description: string;
-  icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>;
+  icon: ComponentType<{ size?: number; className?: string; style?: CSSProperties }>;
   accent: string;
   accentSoft: string;
   accentRing: string;
@@ -567,7 +689,7 @@ const StatCard: React.FC<{
 
 /* ─────────────── Filter pill ─────────────── */
 
-const FilterPill: React.FC<{ label: string; active: boolean; onClick: () => void; small?: boolean }> = ({ label, active, onClick, small }) => (
+const FilterPill: FC<{ label: string; active: boolean; onClick: () => void; small?: boolean }> = ({ label, active, onClick, small }) => (
   <button
     onClick={onClick}
     className={`rounded-full px-3 ${small ? "py-1 text-[11px]" : "py-1.5 text-[12px]"} font-medium transition-all`}
@@ -581,470 +703,266 @@ const FilterPill: React.FC<{ label: string; active: boolean; onClick: () => void
   </button>
 );
 
-/* ─────────────── Main page ─────────────── */
+/* ─────────────── Card action button ─────────────── */
 
-const EmailTemplatesAdmin = () => {
-  const { templates: apiTemplates, loading, error, refetch } = useHtmlTemplates();
+const ActionBtn: FC<{
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+  children: ReactNode;
+}> = ({ label, onClick, disabled, danger, children }) => (
+  <button
+    type="button"
+    title={label}
+    aria-label={label}
+    disabled={disabled}
+    onClick={(e) => {
+      e.stopPropagation();
+      onClick();
+    }}
+    className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50"
+    style={{
+      background: "rgba(11,14,18,0.82)",
+      backdropFilter: "blur(6px)",
+      color: danger ? COLOR.danger : COLOR.textBody,
+      boxShadow: `inset 0 0 0 1px ${danger ? COLOR.dangerRing : COLOR.border}`,
+    }}
+  >
+    {children}
+  </button>
+);
 
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<Category | "All">("All");
-  const [statusFilter, setStatusFilter] = useState<"All" | "Published" | "Draft">("All");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showNewModal, setShowNewModal] = useState(false);
-  const [showAIGenerate, setShowAIGenerate] = useState(false);
-  const [generationPrompt, setGenerationPrompt] = useState("");
-  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+/* ─────────────── Delete confirm (list) ─────────────── */
 
-  useEffect(() => {
-    if (!apiTemplates) return;
-    setTemplates(apiTemplates.map(mapApiTemplate));
-  }, [apiTemplates]);
-
-  const filtered = useMemo(
-    () =>
-      templates.filter((t) => {
-        const matchesSearch =
-          t.name.toLowerCase().includes(search.toLowerCase()) ||
-          t.subject.toLowerCase().includes(search.toLowerCase());
-        const matchesCategory = categoryFilter === "All" || t.category === categoryFilter;
-        const matchesStatus = statusFilter === "All" || t.status === statusFilter;
-        return matchesSearch && matchesCategory && matchesStatus;
-      }),
-    [templates, search, categoryFilter, statusFilter]
-  );
-
-  const handleCreate = (name: string, subject: string, category: Category) => {
-    const newId = nextId(templates);
-    const created: Template = {
-      id: newId,
-      name: name.trim() || "Untitled Template",
-      subject: subject.trim() || "New email subject",
-      category,
-      status: "Draft",
-      updatedAt: "Just now",
-      html: starterHtml(category),
-    };
-    setTemplates((prev) => [created, ...prev]);
-    setShowNewModal(false);
-    setEditingTemplate(created);
-  };
-
-  const handleSaveTemplate = (saved: Template) =>
-    setTemplates((prev) => prev.map((t) => (t.id === saved.id ? saved : t)));
-
-  const handleDeleteTemplate = (id: number) => {
-    setTemplates((prev) => prev.filter((t) => t.id !== id));
-    if (editingTemplate?.id === id) setEditingTemplate(null);
-  };
-
-  const handleAIGenerate = () => {
-    if (!generationPrompt.trim()) return;
-
-    const newHtml = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Generated Email</title>
-</head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 0;">
-    <tr>
-      <td align="center">
-        <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.05);">
-          <tr>
-            <td style="padding:48px 32px;text-align:center;">
-              <div style="font-size:40px;margin-bottom:8px;">✨</div>
-              <h1 style="margin:0;font-size:24px;color:#0f172a;font-weight:700;">${generationPrompt}</h1>
-              <p style="margin:12px 0 0;font-size:15px;color:#64748b;line-height:1.6;">
-                Hi {{first_name}}, this template was generated based on your request.
-              </p>
-              <p style="margin:12px 0 0;font-size:14px;color:#94a3b8;line-height:1.6;">
-                Customize this template by editing the HTML or adding variables.
-              </p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:0 32px 40px;text-align:center;">
-              <a href="#" style="display:inline-block;background:#0f172a;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600;">Learn More</a>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:20px 32px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9;">
-              <p style="margin:0;">You're receiving this because you're part of {{company}}.</p>
-              <p style="margin:4px 0 0;"><a href="{{unsubscribe_link}}" style="color:#94a3b8;text-decoration:underline;">Unsubscribe</a></p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-
-    const newId = nextId(templates);
-    const aiTemplate: Template = {
-      id: newId,
-      name: `AI Generated: ${generationPrompt.substring(0, 30)}${generationPrompt.length > 30 ? "…" : ""}`,
-      subject: generationPrompt,
-      category: "Promotional",
-      status: "Draft",
-      updatedAt: "Just now",
-      html: newHtml,
-    };
-    setTemplates((prev) => [aiTemplate, ...prev]);
-    setShowAIGenerate(false);
-    setGenerationPrompt("");
-    setEditingTemplate(aiTemplate);
-  };
-
-  return (
-    <div className="flex min-h-screen overflow-hidden" style={{ background: COLOR.bg, fontFamily: FONT.body }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
-        @keyframes ping { 75%, 100% { transform: scale(2.4); opacity: 0; } }
-        .ping { animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite; }
-        @keyframes floatIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-        .float-in { animation: floatIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
-        @keyframes modalPop { from { opacity: 0; transform: scale(0.98) translateY(6px); } to { opacity: 1; transform: none; } }
-        .modal-pop { animation: modalPop 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
-
-        .etm-main::-webkit-scrollbar { width: 10px; }
-        .etm-main::-webkit-scrollbar-track { background: transparent; }
-        .etm-main::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 10px; border: 2px solid #0B0E13; }
-        .etm-main::-webkit-scrollbar-thumb:hover { background: #2A2F3B; }
-
-        .soft-ring { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 1px 0 rgba(255,255,255,0.02); }
-        .glow-top {
-          background:
-            radial-gradient(900px 240px at 50% -80px, rgba(255,106,57,0.10), transparent 70%),
-            radial-gradient(700px 200px at 20% -60px, rgba(52,211,153,0.06), transparent 70%);
-        }
-        select option { background: #141821; color: #E8E6E1; }
-
-        textarea::-webkit-scrollbar { width: 10px; }
-        textarea::-webkit-scrollbar-track { background: transparent; }
-        textarea::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 8px; }
-      `}</style>
-
-      {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      <div className={`
-        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        <AdminSidebar onClose={() => setSidebarOpen(false)} />
-      </div>
-
-      <main className="etm-main flex-1 overflow-y-auto" style={{ background: COLOR.bg, height: "100vh", width: "100%" }}>
-        <div className="glow-top">
-          <div className="max-w-[1320px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
-
-            {/* ── Header ─────────────────────────── */}
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
-              <div className="flex items-start gap-3 md:gap-4">
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="lg:hidden mt-1 p-2 rounded-2xl text-[#C7C9CE] transition-colors soft-ring"
-                  style={{ background: COLOR.surface }}
-                >
-                  <Menu size={18} />
-                </button>
-                <div>
-                  <div className="flex items-center gap-2 mb-2.5">
-                    <span className="text-[10px] font-medium tracking-widest uppercase" style={{ color: COLOR.textMuted }}>Content</span>
-                    <ChevronRight size={10} style={{ color: "#3A3F4A" }} />
-                    <span className="text-[10px] font-medium tracking-widest uppercase" style={{ color: COLOR.primary }}>Templates</span>
-                  </div>
-                  <h1
-                    style={{ fontFamily: FONT.display, letterSpacing: "-0.025em" }}
-                    className="text-[28px] md:text-[34px] lg:text-[40px] font-bold leading-[1.05]"
-                  >
-                    <span style={{ color: COLOR.dark }}>Email templates</span>
-                  </h1>
-                  <p className="mt-2 text-[14px] md:text-[15px] max-w-lg" style={{ color: COLOR.textMuted }}>
-                    Build and manage the HTML templates used across every campaign.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  onClick={refetch}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-[13px] font-medium transition-all soft-ring hover:-translate-y-0.5"
-                  style={{ background: COLOR.surface, color: COLOR.textBody }}
-                >
-                  <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-                  <span className="hidden sm:inline">Refresh</span>
-                </button>
-                <button
-                  onClick={() => setShowAIGenerate(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-[13px] font-semibold transition-all hover:-translate-y-0.5"
-                  style={{
-                    background: COLOR.warningSoft,
-                    color: COLOR.warning,
-                    boxShadow: `inset 0 0 0 1px ${COLOR.warningRing}`,
-                  }}
-                >
-                  <Sparkles size={14} />
-                  <span className="hidden sm:inline">AI generate</span>
-                </button>
-                <button
-                  onClick={() => setShowNewModal(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5"
-                  style={{ background: COLOR.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.65)" }}
-                >
-                  <Plus size={14} /> New template
-                </button>
-              </div>
-            </header>
-
-            {/* ── Stats ──────────────────────────── */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-              <StatCard title="Total templates" value={String(templates.length)} description="Across all categories" icon={LayoutTemplate} accent={COLOR.neutral} accentSoft={COLOR.neutralSoft} accentRing={COLOR.neutralRing} />
-              <StatCard title="Published"       value={String(templates.filter((t) => t.status === "Published").length)} description="Live and in use" icon={CheckCircle2} accent={COLOR.success} accentSoft={COLOR.successSoft} accentRing={COLOR.successRing} />
-              <StatCard title="Drafts"          value={String(templates.filter((t) => t.status === "Draft").length)} description="Not yet published" icon={Clock} accent={COLOR.warning} accentSoft={COLOR.warningSoft} accentRing={COLOR.warningRing} />
-              <StatCard title="Categories"      value={String(categories.length)} description="Welcome · Promo · News · Txn" icon={FileCode} accent={COLOR.primary} accentSoft={COLOR.primarySoft} accentRing={COLOR.primaryRing} />
-            </div>
-
-            {/* ── Filters ────────────────────────── */}
-            <div className="rounded-3xl p-3 md:p-4 mb-6 md:mb-8 soft-ring" style={{ background: COLOR.surface }}>
-              <div
-                className="flex items-center gap-2 rounded-2xl px-3.5 py-2.5 transition-all"
-                style={{ background: COLOR.inner, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
-                onFocusCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px rgba(255,106,57,0.5), 0 0 0 4px rgba(255,106,57,0.10)`)}
-                onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${COLOR.border}`)}
-              >
-                <Search size={14} style={{ color: COLOR.textMuted }} className="shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Search templates by name or subject…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-transparent text-[13.5px] outline-none"
-                  style={{ color: COLOR.textBody }}
-                />
-                {search && (
-                  <button
-                    onClick={() => setSearch("")}
-                    className="shrink-0 text-[10px] px-1.5 py-0.5 rounded transition-colors hover:bg-[#1B2130]"
-                    style={{ color: COLOR.textMuted }}
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-
-              <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                <span className="text-[10.5px] uppercase tracking-wider mr-1" style={{ color: COLOR.textMuted }}>Category</span>
-                <FilterPill label="All" active={categoryFilter === "All"} onClick={() => setCategoryFilter("All")} small />
-                {categories.map((c) => (
-                  <FilterPill key={c} label={c} active={categoryFilter === c} onClick={() => setCategoryFilter(c)} small />
-                ))}
-              </div>
-
-              <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                <span className="text-[10.5px] uppercase tracking-wider mr-1" style={{ color: COLOR.textMuted }}>Status</span>
-                <FilterPill label="All"       active={statusFilter === "All"}       onClick={() => setStatusFilter("All")}       small />
-                <FilterPill label="Published" active={statusFilter === "Published"} onClick={() => setStatusFilter("Published")} small />
-                <FilterPill label="Draft"     active={statusFilter === "Draft"}     onClick={() => setStatusFilter("Draft")}     small />
-              </div>
-            </div>
-
-            {/* ── Content ────────────────────────── */}
-            {loading && templates.length === 0 ? (
-              <div className="rounded-3xl p-14 flex flex-col items-center justify-center soft-ring" style={{ background: COLOR.surface }}>
-                <Loader2 size={26} className="animate-spin" style={{ color: COLOR.primary }} />
-                <p className="mt-3 text-[13px]" style={{ color: COLOR.textMuted }}>Loading templates…</p>
-              </div>
-            ) : !loading && error && templates.length === 0 ? (
-              <div className="rounded-3xl p-12 flex flex-col items-center justify-center text-center soft-ring" style={{ background: COLOR.surface }}>
-                <div className="w-14 h-14 mb-4 rounded-2xl flex items-center justify-center"
-                  style={{ background: COLOR.dangerSoft, boxShadow: `inset 0 0 0 1px ${COLOR.dangerRing}` }}>
-                  <AlertTriangle size={26} style={{ color: COLOR.danger }} />
-                </div>
-                <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-semibold" ><span style={{ color: COLOR.dark }}>Couldn't load templates</span></h3>
-                <p className="mt-2 text-[13px] max-w-md" style={{ color: COLOR.textMuted }}>{error}</p>
-                <button
-                  onClick={refetch}
-                  className="mt-5 inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
-                  style={{ background: COLOR.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.6)" }}
-                >
-                  <RefreshCw size={13} /> Try again
-                </button>
-              </div>
-            ) : templates.length === 0 ? (
-              <div className="rounded-3xl p-12 flex flex-col items-center justify-center text-center soft-ring" style={{ background: COLOR.surface }}>
-                <div className="w-14 h-14 mb-4 rounded-2xl flex items-center justify-center"
-                  style={{ background: COLOR.primarySoft, boxShadow: `inset 0 0 0 1px ${COLOR.primaryRing}` }}>
-                  <Inbox size={26} style={{ color: COLOR.primary }} />
-                </div>
-                <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-semibold"><span style={{ color: COLOR.dark }}>No templates yet</span></h3>
-                <p className="mt-2 text-[13px]" style={{ color: COLOR.textMuted }}>Create your first template to get started.</p>
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="rounded-3xl p-12 flex flex-col items-center justify-center text-center soft-ring" style={{ background: COLOR.surface }}>
-                <div className="w-14 h-14 mb-4 rounded-2xl flex items-center justify-center"
-                  style={{ background: COLOR.neutralSoft, boxShadow: `inset 0 0 0 1px ${COLOR.neutralRing}` }}>
-                  <Inbox size={26} style={{ color: COLOR.neutral }} />
-                </div>
-                <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-semibold"><span style={{ color: COLOR.dark }}>No templates match</span></h3>
-                <p className="mt-2 text-[13px] mb-5" style={{ color: COLOR.textMuted }}>Try adjusting your search or filters.</p>
-                <button
-                  onClick={() => { setSearch(""); setCategoryFilter("All"); setStatusFilter("All"); }}
-                  className="text-[12.5px] font-medium"
-                  style={{ color: COLOR.primary }}
-                >
-                  Clear filters
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filtered.map((t, i) => {
-                  const published = t.status === "Published";
-                  const meta = published
-                    ? { fg: COLOR.success, bg: COLOR.successSoft, ring: COLOR.successRing, label: "Published" }
-                    : { fg: COLOR.warning, bg: COLOR.warningSoft, ring: COLOR.warningRing, label: "Draft" };
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => setEditingTemplate(t)}
-                      className="group float-in rounded-3xl overflow-hidden soft-ring text-left transition-all hover:-translate-y-0.5"
-                      style={{ background: "linear-gradient(180deg, #141821 0%, #10141D 100%)", animationDelay: `${Math.min(i * 20, 200)}ms` }}
-                    >
-                      {/* preview */}
-                      <div
-                        className="relative h-40 overflow-hidden"
-                        style={{
-                          background:
-                            "radial-gradient(280px 160px at 20% -20%, rgba(255,106,57,0.10), transparent 60%), #0F131C",
-                        }}
-                      >
-                        {t.html ? (
-                          <div
-                            className="origin-top-left"
-                            style={{
-                              width: "1280px",
-                              height: "1280px",
-                              transform: "scale(0.30)",
-                              transformOrigin: "top left",
-                              pointerEvents: "none",
-                            }}
-                          >
-                            <iframe
-                              title={`preview-${t.id}`}
-                              srcDoc={t.html}
-                              sandbox=""
-                              loading="lazy"
-                              referrerPolicy="no-referrer"
-                              className="w-full h-full border-0"
-                              style={{ background: "#fff" }}
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center p-4">
-                            <FileCode size={22} style={{ color: COLOR.textMuted }} />
-                          </div>
-                        )}
-
-                        <span
-                          className="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-medium"
-                          style={{
-                            background: "rgba(11,14,18,0.78)",
-                            backdropFilter: "blur(6px)",
-                            color: meta.fg,
-                            boxShadow: `inset 0 0 0 1px ${meta.ring}`,
-                          }}
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: meta.fg, boxShadow: `0 0 6px ${meta.fg}` }} />
-                          {meta.label}
-                        </span>
-                      </div>
-
-                      {/* meta */}
-                      <div className="p-4">
-                        <p className="text-[13.5px] font-semibold truncate" style={{ color: COLOR.dark }}>{t.name}</p>
-                        <p className="text-[11.5px] truncate mt-0.5" style={{ color: COLOR.textMuted, fontFamily: FONT.mono }}>
-                          {t.subject || "(no subject)"}
-                        </p>
-
-                        <div className="mt-4 flex items-center justify-between gap-2">
-                          <span
-                            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-[10.5px]"
-                            style={{ background: COLOR.inner, color: COLOR.textBody, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
-                          >
-                            <Tag size={10} /> {t.category}
-                          </span>
-                          <span className="text-[10.5px]" style={{ color: COLOR.textMuted, fontFamily: FONT.mono }}>
-                            {t.updatedAt}
-                          </span>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+const DeleteConfirmModal: FC<{
+  name: string;
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}> = ({ name, busy, onCancel, onConfirm }) => (
+  <div
+    className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+    onClick={() => !busy && onCancel()}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      className="w-full max-w-md rounded-3xl overflow-hidden soft-ring modal-pop"
+      style={{ background: COLOR.surface }}
+    >
+      <div className="p-5 md:p-6 border-b" style={{ borderColor: COLOR.border }}>
+        <div className="flex items-start gap-3.5">
+          <div
+            className="shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
+            style={{ background: COLOR.dangerSoft, boxShadow: `inset 0 0 0 1px ${COLOR.dangerRing}` }}
+          >
+            <Trash2 size={18} style={{ color: COLOR.danger }} />
+          </div>
+          <div className="min-w-0">
+            <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-bold text-white break-words">
+              Delete “{name}”?
+            </h3>
+            <p className="text-[12.5px] mt-0.5" style={{ color: COLOR.textMuted }}>
+              This permanently removes it from the database.
+            </p>
           </div>
         </div>
-      </main>
-
-      {/* ── Modals ─────────────────────────────── */}
-      {showNewModal && <NewTemplateModal onClose={() => setShowNewModal(false)} onCreate={handleCreate} />}
-      {showAIGenerate && (
-        <AIGenerateModal
-          onClose={() => setShowAIGenerate(false)}
-          onGenerate={handleAIGenerate}
-          prompt={generationPrompt}
-          setPrompt={setGenerationPrompt}
-        />
-      )}
-      {editingTemplate && (
-        <TemplateEditor
-          template={editingTemplate}
-          onSave={handleSaveTemplate}
-          onClose={() => setEditingTemplate(null)}
-          onDelete={() => handleDeleteTemplate(editingTemplate.id)}
-        />
-      )}
+      </div>
+      <div className="flex justify-end gap-2 p-4 md:p-5">
+        <button
+          onClick={onCancel}
+          disabled={busy}
+          className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium"
+          style={{ background: COLOR.inner, color: COLOR.textBody, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onConfirm}
+          disabled={busy}
+          className="inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold disabled:opacity-60"
+          style={{ background: COLOR.danger, color: "#0B0E13", boxShadow: "0 12px 30px -12px rgba(248,113,113,0.55)" }}
+        >
+          {busy ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />} Delete
+        </button>
+      </div>
     </div>
-  );
-};
+  </div>
+);
 
-/* ─────────────── New template modal ─────────────── */
+/* ─────────────── New template modal (REWRITTEN) ─────────────── */
 
-const NewTemplateModal: React.FC<{
+type CreateMode = "starter" | "paste" | "upload" | "url";
+
+interface NewTemplateModalProps {
+  busy: boolean;
   onClose: () => void;
-  onCreate: (name: string, subject: string, category: Category) => void;
-}> = ({ onClose, onCreate }) => {
+  onCreate: (payload: {
+    name: string;
+    subject: string;
+    category: Category;
+    status: Status;
+    html: string;
+  }) => void;
+}
+
+const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }) => {
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [category, setCategory] = useState<Category>("Welcome");
+  const [status, setStatus] = useState<Status>("Draft");
+  const [mode, setMode] = useState<CreateMode>("starter");
 
-  const inputStyle: React.CSSProperties = {
+  // Paste mode
+  const [pasteHtml, setPasteHtml] = useState("");
+
+  // Upload mode
+  const [fileName, setFileName] = useState<string>("");
+  const [fileHtml, setFileHtml] = useState<string>("");
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // URL mode
+  const [url, setUrl] = useState("");
+  const [fetchingUrl, setFetchingUrl] = useState(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
+  const [urlHtml, setUrlHtml] = useState("");
+
+  // Live preview toggle
+  const [showPreview, setShowPreview] = useState(true);
+
+  /* Derive the HTML that will actually be used based on the active mode. */
+  const resolvedHtml = useMemo(() => {
+    if (mode === "starter") return starterHtml(category);
+    if (mode === "paste") return pasteHtml;
+    if (mode === "upload") return fileHtml;
+    if (mode === "url") return urlHtml;
+    return "";
+  }, [mode, category, pasteHtml, fileHtml, urlHtml]);
+
+  const htmlSourceLabel: Record<CreateMode, string> = {
+    starter: "Starter boilerplate",
+    paste: "Pasted HTML",
+    upload: "Uploaded file",
+    url: "Fetched from URL",
+  };
+
+  const canSubmit = !!resolvedHtml.trim() && !busy;
+
+  /* ── File handling ── */
+  const readFile = (file: File) => {
+    if (!file) return;
+    if (!/\.html?$/i.test(file.name) && file.type !== "text/html") {
+      // still attempt to read — some browsers don't set type for .html
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setFileHtml(String(e.target?.result ?? ""));
+      setFileName(file.name);
+      // Auto-fill the template name if the user hasn't typed one yet.
+      if (!name) {
+        const base = file.name.replace(/\.html?$/i, "").replace(/[-_]+/g, " ").trim();
+        if (base) setName(base.charAt(0).toUpperCase() + base.slice(1));
+      }
+    };
+    reader.onerror = () => setFileHtml("");
+    reader.readAsText(file);
+  };
+
+  const onFileInput = (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) readFile(f);
+  };
+
+  const onDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) readFile(f);
+  };
+
+  /* ── Clipboard paste for paste mode ── */
+  const pasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) setPasteHtml(text);
+    } catch {
+      /* clipboard access denied — ignore */
+    }
+  };
+
+  /* ── Fetch from URL ── */
+  const fetchFromUrl = async () => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    setFetchingUrl(true);
+    setUrlError(null);
+    try {
+      const res = await fetch(trimmed, { mode: "cors" });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+      const text = await res.text();
+      if (!looksLikeHtml(text)) throw new Error("Response doesn't look like HTML");
+      setUrlHtml(text);
+      if (!name) {
+        try {
+          const u = new URL(trimmed);
+          const base = u.pathname.split("/").filter(Boolean).pop()?.replace(/\.html?$/i, "") || u.hostname;
+          setName(base.charAt(0).toUpperCase() + base.slice(1));
+        } catch {
+          /* ignore */
+        }
+      }
+    } catch (e) {
+      setUrlError(errMsg(e));
+      setUrlHtml("");
+    } finally {
+      setFetchingUrl(false);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!canSubmit) return;
+    onCreate({
+      name: name.trim() || "Untitled Template",
+      subject: subject.trim() || "New email subject",
+      category,
+      status,
+      html: resolvedHtml,
+    });
+  };
+
+  const inputStyle: CSSProperties = {
     background: COLOR.inner,
     color: COLOR.textBody,
     boxShadow: `inset 0 0 0 1px ${COLOR.border}`,
   };
 
+  const focusRing = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    e.currentTarget.style.boxShadow = `inset 0 0 0 1px rgba(255,106,57,0.5), 0 0 0 4px rgba(255,106,57,0.10)`;
+  };
+  const blurRing = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${COLOR.border}`;
+  };
+
+  const modeTabs: { id: CreateMode; label: string; icon: ElementType; hint: string }[] = [
+    { id: "starter", label: "Starter", icon: LayoutTemplate, hint: "Category boilerplate" },
+    { id: "paste", label: "Paste HTML", icon: Clipboard, hint: "Paste raw HTML" },
+    { id: "upload", label: "Upload file", icon: FileUp, hint: ".html / .htm" },
+    { id: "url", label: "From URL", icon: Globe, hint: "Fetch remote HTML" },
+  ];
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-      onClick={onClose}
+      onClick={() => !busy && onClose()}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg rounded-3xl overflow-hidden soft-ring modal-pop"
+        className="w-full max-w-5xl max-h-[92vh] rounded-3xl overflow-hidden soft-ring modal-pop flex flex-col"
         style={{ background: COLOR.surface }}
       >
-        <div className="flex items-start justify-between gap-3 p-5 md:p-6 border-b" style={{ borderColor: COLOR.border }}>
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 p-5 md:p-6 border-b flex-shrink-0" style={{ borderColor: COLOR.border }}>
           <div className="flex items-start gap-3.5">
             <div
               className="shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center"
@@ -1053,14 +971,15 @@ const NewTemplateModal: React.FC<{
               <LayoutTemplate size={16} style={{ color: COLOR.primary }} />
             </div>
             <div>
-              <h2 style={{ fontFamily: FONT.display }} className="text-[16px] font-bold text-white">New template</h2>
+              <h2 style={{ fontFamily: FONT.display }} className="text-[16px] font-bold text-white">New HTML template</h2>
               <p className="text-[12px] mt-0.5" style={{ color: COLOR.textMuted }}>
-                Start from a category-matched boilerplate.
+                Build from a starter, paste HTML, upload a file, or fetch from a URL.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
+            disabled={busy}
             className="shrink-0 p-2 rounded-2xl transition-colors"
             style={{ background: COLOR.inner, color: COLOR.textMuted, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
             aria-label="Close"
@@ -1069,71 +988,307 @@ const NewTemplateModal: React.FC<{
           </button>
         </div>
 
-        <div className="p-5 md:p-6 space-y-4">
-          <div>
-            <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: COLOR.textBody }}>Template name</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Cart Abandonment — Reminder"
-              className="w-full rounded-2xl px-3.5 py-2.5 text-[13px] outline-none transition-all"
-              style={inputStyle}
-              onFocus={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px rgba(255,106,57,0.5), 0 0 0 4px rgba(255,106,57,0.10)`)}
-              onBlur={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${COLOR.border}`)}
-            />
-          </div>
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-2">
+          {/* ── Left: form ── */}
+          <div className="p-5 md:p-6 space-y-4 border-b lg:border-b-0 lg:border-r" style={{ borderColor: COLOR.border }}>
 
-          <div>
-            <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: COLOR.textBody }}>Subject line</label>
-            <input
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder="e.g. You left something behind"
-              className="w-full rounded-2xl px-3.5 py-2.5 text-[13px] outline-none transition-all"
-              style={inputStyle}
-              onFocus={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px rgba(255,106,57,0.5), 0 0 0 4px rgba(255,106,57,0.10)`)}
-              onBlur={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${COLOR.border}`)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: COLOR.textBody }}>Category</label>
-            <div className="grid grid-cols-2 gap-2">
-              {categories.map((c) => {
-                const active = category === c;
-                return (
-                  <button
-                    key={c}
-                    onClick={() => setCategory(c)}
-                    className="rounded-2xl px-3.5 py-2.5 text-[12.5px] font-medium text-left transition-all"
-                    style={{
-                      background: active ? COLOR.primarySoft : COLOR.inner,
-                      color: active ? COLOR.primary : COLOR.textBody,
-                      boxShadow: `inset 0 0 0 1px ${active ? COLOR.primaryRing : COLOR.border}`,
-                    }}
-                  >
-                    {c}
-                  </button>
-                );
-              })}
+            {/* Name + Subject */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: COLOR.textBody }}>Template name</label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Cart Abandonment"
+                  className="w-full rounded-2xl px-3.5 py-2.5 text-[13px] outline-none transition-all"
+                  style={inputStyle}
+                  onFocus={focusRing}
+                  onBlur={blurRing}
+                />
+              </div>
+              <div>
+                <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: COLOR.textBody }}>Subject line</label>
+                <input
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="e.g. You left something behind"
+                  className="w-full rounded-2xl px-3.5 py-2.5 text-[13px] outline-none transition-all"
+                  style={inputStyle}
+                  onFocus={focusRing}
+                  onBlur={blurRing}
+                />
+              </div>
             </div>
+
+            {/* Category + status */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: COLOR.textBody }}>Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as Category)}
+                  className="w-full rounded-2xl px-3.5 py-2.5 text-[13px] outline-none cursor-pointer"
+                  style={inputStyle}
+                >
+                  {categories.map((c) => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: COLOR.textBody }}>Initial status</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["Draft", "Published"] as Status[]).map((s) => {
+                    const active = status === s;
+                    return (
+                      <button
+                        key={s}
+                        onClick={() => setStatus(s)}
+                        className="rounded-2xl px-3 py-2.5 text-[12.5px] font-medium transition-all"
+                        style={{
+                          background: active ? (s === "Published" ? COLOR.successSoft : COLOR.warningSoft) : COLOR.inner,
+                          color: active ? (s === "Published" ? COLOR.success : COLOR.warning) : COLOR.textBody,
+                          boxShadow: `inset 0 0 0 1px ${active ? (s === "Published" ? COLOR.successRing : COLOR.warningRing) : COLOR.border}`,
+                        }}
+                      >
+                        {s}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* HTML source tabs */}
+            <div>
+              <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: COLOR.textBody }}>HTML source</label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {modeTabs.map(({ id, label, icon: Icon }) => {
+                  const active = mode === id;
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => setMode(id)}
+                      className="flex flex-col items-center gap-1 rounded-2xl px-2 py-2.5 text-[11.5px] font-medium transition-all"
+                      style={{
+                        background: active ? COLOR.primarySoft : COLOR.inner,
+                        color: active ? COLOR.primary : COLOR.textBody,
+                        boxShadow: `inset 0 0 0 1px ${active ? COLOR.primaryRing : COLOR.border}`,
+                      }}
+                    >
+                      <Icon size={14} />
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Mode-specific UI */}
+            {mode === "starter" && (
+              <div
+                className="rounded-2xl p-3.5 flex items-start gap-3"
+                style={{ background: COLOR.inner, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+              >
+                <FileText size={15} style={{ color: COLOR.textMuted }} className="mt-0.5 shrink-0" />
+                <div className="text-[12px] leading-relaxed" style={{ color: COLOR.textMuted }}>
+                  A <span style={{ color: COLOR.textBody, fontWeight: 600 }}>{category}</span> boilerplate will be generated with
+                  standard email variables (<span style={{ fontFamily: FONT.mono }}>{"{{first_name}}"}</span>, <span style={{ fontFamily: FONT.mono }}>{"{{company}}"}</span>, etc.) already wired in.
+                </div>
+              </div>
+            )}
+
+            {mode === "paste" && (
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11.5px] font-medium" style={{ color: COLOR.textBody }}>Paste HTML</label>
+                  <button
+                    onClick={pasteFromClipboard}
+                    className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] transition-colors"
+                    style={{ background: COLOR.inner, color: COLOR.textBody, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+                  >
+                    <Clipboard size={11} /> Paste from clipboard
+                  </button>
+                </div>
+                <textarea
+                  value={pasteHtml}
+                  onChange={(e) => setPasteHtml(e.target.value)}
+                  placeholder="<!DOCTYPE html>…"
+                  rows={8}
+                  spellCheck={false}
+                  className="w-full rounded-2xl px-3.5 py-2.5 text-[12px] outline-none transition-all resize-none"
+                  style={{ fontFamily: FONT.mono, ...inputStyle }}
+                  onFocus={focusRing}
+                  onBlur={blurRing}
+                />
+                {pasteHtml && !looksLikeHtml(pasteHtml) && (
+                  <p className="mt-1.5 inline-flex items-center gap-1 text-[11px]" style={{ color: COLOR.warning }}>
+                    <AlertCircle size={11} /> This doesn't look like HTML — double-check before creating.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {mode === "upload" && (
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".html,.htm,text/html"
+                  className="hidden"
+                  onChange={onFileInput}
+                />
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={onDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all"
+                  style={{
+                    background: dragOver ? COLOR.primarySoft : COLOR.inner,
+                    boxShadow: `inset 0 0 0 1px ${dragOver ? COLOR.primaryRing : COLOR.border}`,
+                    border: `1px dashed ${dragOver ? COLOR.primary : COLOR.borderHover}`,
+                  }}
+                >
+                  <div
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center mb-2"
+                    style={{ background: COLOR.primarySoft, boxShadow: `inset 0 0 0 1px ${COLOR.primaryRing}` }}
+                  >
+                    <Upload size={16} style={{ color: COLOR.primary }} />
+                  </div>
+                  <p className="text-[12.5px] font-medium" style={{ color: COLOR.textBody }}>
+                    {fileName ? `Selected: ${fileName}` : "Drop an .html file here"}
+                  </p>
+                  <p className="text-[11px] mt-0.5" style={{ color: COLOR.textMuted }}>
+                    or click to browse
+                  </p>
+                </div>
+                {fileHtml && (
+                  <p className="mt-2 inline-flex items-center gap-1 text-[11px]" style={{ color: COLOR.success }}>
+                    <CheckCircle size={11} /> {fileHtml.length.toLocaleString()} chars loaded
+                  </p>
+                )}
+              </div>
+            )}
+
+            {mode === "url" && (
+              <div>
+                <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: COLOR.textBody }}>HTML URL</label>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="flex items-center gap-2 rounded-2xl px-3.5 py-2.5 flex-1 min-w-0"
+                    style={inputStyle}
+                  >
+                    <Link2 size={13} style={{ color: COLOR.textMuted }} className="shrink-0" />
+                    <input
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      placeholder="https://example.com/template.html"
+                      className="w-full bg-transparent outline-none text-[13px]"
+                      style={{ color: COLOR.textBody }}
+                      onFocus={focusRing}
+                      onBlur={blurRing}
+                    />
+                  </div>
+                  <button
+                    onClick={fetchFromUrl}
+                    disabled={!url.trim() || fetchingUrl}
+                    className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2.5 text-[12px] font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ background: COLOR.primary, color: "#fff" }}
+                  >
+                    {fetchingUrl ? <Loader2 size={13} className="animate-spin" /> : <Link size={13} />}
+                    Fetch
+                  </button>
+                </div>
+                {urlError && (
+                  <p className="mt-1.5 inline-flex items-center gap-1 text-[11px]" style={{ color: COLOR.danger }}>
+                    <AlertTriangle size={11} /> {urlError}
+                  </p>
+                )}
+                {urlHtml && !urlError && (
+                  <p className="mt-1.5 inline-flex items-center gap-1 text-[11px]" style={{ color: COLOR.success }}>
+                    <CheckCircle size={11} /> {urlHtml.length.toLocaleString()} chars loaded
+                  </p>
+                )}
+                <p className="mt-1.5 text-[11px]" style={{ color: COLOR.textMuted }}>
+                  The URL must allow cross-origin requests (CORS).
+                </p>
+              </div>
+            )}
+
+            {/* Source summary */}
+            <div
+              className="rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-3"
+              style={{ background: COLOR.inner, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+            >
+              <span className="inline-flex items-center gap-1.5 text-[11.5px]" style={{ color: COLOR.textMuted }}>
+                <Code2 size={12} /> {htmlSourceLabel[mode]}
+              </span>
+              <span className="text-[11px]" style={{ color: COLOR.textBody, fontFamily: FONT.mono }}>
+                {resolvedHtml.length.toLocaleString()} chars
+              </span>
+            </div>
+          </div>
+
+          {/* ── Right: live preview ── */}
+          <div className="p-5 md:p-6 flex flex-col min-h-[320px]">
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-2">
+                <Eye size={13} style={{ color: COLOR.textMuted }} />
+                <span className="text-[11.5px] font-medium uppercase tracking-widest" style={{ color: COLOR.textMuted }}>
+                  Live preview
+                </span>
+              </div>
+              <button
+                onClick={() => setShowPreview((v) => !v)}
+                className="rounded-lg px-2 py-1 text-[11px] transition-colors"
+                style={{ background: COLOR.inner, color: COLOR.textBody, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+              >
+                {showPreview ? "Hide" : "Show"}
+              </button>
+            </div>
+            {showPreview && (
+              <div
+                className="flex-1 rounded-2xl overflow-hidden flex items-start justify-center"
+                style={{ background: COLOR.inner, boxShadow: `inset 0 0 0 1px ${COLOR.border}`, minHeight: 260 }}
+              >
+                {resolvedHtml ? (
+                  <iframe
+                    title="New template preview"
+                    srcDoc={resolvedHtml}
+                    sandbox=""
+                    className="w-full h-full bg-white border-0"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center p-6">
+                    <FileCode size={22} style={{ color: COLOR.textMuted }} />
+                    <p className="mt-2 text-[12px]" style={{ color: COLOR.textMuted }}>
+                      HTML preview will appear here.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 p-5 md:p-6 border-t" style={{ borderColor: COLOR.border }}>
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 p-5 md:p-6 border-t flex-shrink-0" style={{ borderColor: COLOR.border }}>
           <button
             onClick={onClose}
+            disabled={busy}
             className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-colors"
             style={{ background: COLOR.inner, color: COLOR.textBody, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
           >
             Cancel
           </button>
           <button
-            onClick={() => onCreate(name, subject, category)}
-            className="inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
-            style={{ background: COLOR.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.6)" }}
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className="inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+            style={{ background: canSubmit ? COLOR.primary : COLOR.inner, color: canSubmit ? "#fff" : COLOR.textMuted, boxShadow: canSubmit ? "0 12px 30px -12px rgba(255,106,57,0.6)" : `inset 0 0 0 1px ${COLOR.border}` }}
           >
-            <Plus size={13} /> Create template
+            {busy ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+            Create template
           </button>
         </div>
       </div>
@@ -1143,22 +1298,24 @@ const NewTemplateModal: React.FC<{
 
 /* ─────────────── AI modal ─────────────── */
 
-const AIGenerateModal: React.FC<{
+const AIGenerateModal: FC<{
+  busy: boolean;
   onClose: () => void;
   onGenerate: () => void;
   prompt: string;
   setPrompt: (value: string) => void;
-}> = ({ onClose, onGenerate, prompt, setPrompt }) => {
+}> = ({ busy, onClose, onGenerate, prompt, setPrompt }) => {
   const quickPrompts = [
     { label: "Welcome", prompt: "A friendly welcome email for new users with a 20% discount" },
     { label: "Promotion", prompt: "A promotional email announcing a flash sale with urgency" },
     { label: "Newsletter", prompt: "A monthly newsletter with product updates and industry news" },
   ];
+  const canGenerate = !!prompt.trim() && !busy;
 
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-      onClick={onClose}
+      onClick={() => !busy && onClose()}
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -1182,6 +1339,7 @@ const AIGenerateModal: React.FC<{
           </div>
           <button
             onClick={onClose}
+            disabled={busy}
             className="shrink-0 p-2 rounded-2xl transition-colors"
             style={{ background: COLOR.inner, color: COLOR.textMuted, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
             aria-label="Close"
@@ -1229,6 +1387,7 @@ const AIGenerateModal: React.FC<{
         <div className="flex items-center justify-end gap-2 p-5 md:p-6 border-t" style={{ borderColor: COLOR.border }}>
           <button
             onClick={onClose}
+            disabled={busy}
             className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-colors"
             style={{ background: COLOR.inner, color: COLOR.textBody, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
           >
@@ -1236,18 +1395,544 @@ const AIGenerateModal: React.FC<{
           </button>
           <button
             onClick={onGenerate}
-            disabled={!prompt.trim()}
+            disabled={!canGenerate}
             className="inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed hover:-translate-y-0.5 disabled:hover:translate-y-0"
             style={{
-              background: prompt.trim() ? COLOR.warning : COLOR.inner,
-              color: prompt.trim() ? "#0B0E13" : COLOR.textMuted,
-              boxShadow: prompt.trim() ? "0 12px 30px -12px rgba(251,191,36,0.55)" : `inset 0 0 0 1px ${COLOR.border}`,
+              background: canGenerate ? COLOR.warning : COLOR.inner,
+              color: canGenerate ? "#0B0E13" : COLOR.textMuted,
+              boxShadow: canGenerate ? "0 12px 30px -12px rgba(251,191,36,0.55)" : `inset 0 0 0 1px ${COLOR.border}`,
             }}
           >
-            <Wand2 size={13} /> Generate template
+            {busy ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} />} Generate template
           </button>
         </div>
       </div>
+    </div>
+  );
+};
+
+/* ─────────────── Main page ─────────────── */
+
+const EmailTemplatesAdmin = () => {
+  const {
+    templates: apiTemplates,
+    loading,
+    error,
+    refetch,
+    createTemplate,
+    updateTemplate,
+    deleteTemplate,
+  } = useHtmlTemplates();
+
+  const templates = useMemo(() => apiTemplates.map(mapApiTemplate), [apiTemplates]);
+
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<Category | "All">("All");
+  const [statusFilter, setStatusFilter] = useState<"All" | "Published" | "Draft">("All");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showNewModal, setShowNewModal] = useState(false);
+  const [showAIGenerate, setShowAIGenerate] = useState(false);
+  const [generationPrompt, setGenerationPrompt] = useState("");
+  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+
+  const [busyId, setBusyId] = useState<Id | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Template | null>(null);
+  const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const notify = (type: "success" | "error", msg: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast({ type, msg });
+    toastTimer.current = setTimeout(() => setToast(null), 3000);
+  };
+
+  useEffect(() => () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+  }, []);
+
+  const filtered = useMemo(
+    () =>
+      templates.filter((t) => {
+        const q = search.toLowerCase();
+        const matchesSearch =
+          t.name.toLowerCase().includes(q) || t.subject.toLowerCase().includes(q);
+        const matchesCategory = categoryFilter === "All" || t.category === categoryFilter;
+        const matchesStatus = statusFilter === "All" || t.status === statusFilter;
+        return matchesSearch && matchesCategory && matchesStatus;
+      }),
+    [templates, search, categoryFilter, statusFilter]
+  );
+
+  /* ── CREATE ── */
+  const createAndOpen = async (payload: TemplatePayload) => {
+    setCreating(true);
+    try {
+      const created = await createTemplate(payload);
+      const mapped = mapApiTemplate(created, 0);
+      if (mapped.updatedAt === "—") mapped.updatedAt = "Just now";
+      setShowNewModal(false);
+      setShowAIGenerate(false);
+      setGenerationPrompt("");
+      setEditingTemplate(mapped);
+      notify("success", "Template created");
+    } catch (e) {
+      notify("error", errMsg(e));
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  // New modal hands us the full payload (name, subject, category, status, html).
+  const handleCreateFromModal = (payload: {
+    name: string;
+    subject: string;
+    category: Category;
+    status: Status;
+    html: string;
+  }) => createAndOpen(payload);
+
+  const handleAIGenerate = () => {
+    const p = generationPrompt.trim();
+    if (!p) return;
+    createAndOpen({
+      name: `AI Generated: ${p.substring(0, 30)}${p.length > 30 ? "…" : ""}`,
+      subject: p,
+      category: "Promotional",
+      status: "Draft",
+      html: aiHtml(p),
+    });
+  };
+
+  /* ── UPDATE ── */
+  const handleSaveTemplate = async (t: Template): Promise<Template> => {
+    const updated = await updateTemplate(t.id, toPayload(t));
+    const mapped = mapApiTemplate(updated, 0);
+    const result: Template = {
+      ...mapped,
+      id: t.id,
+      updatedAt: mapped.updatedAt === "—" ? "Just now" : mapped.updatedAt,
+    };
+    setEditingTemplate(result);
+    return result;
+  };
+
+  /* ── ACTIONS ── */
+  const handleToggleStatus = async (t: Template) => {
+    setBusyId(t.id);
+    try {
+      const status: Status = t.status === "Published" ? "Draft" : "Published";
+      await updateTemplate(t.id, { ...toPayload(t), status });
+      notify("success", status === "Published" ? "Template published" : "Moved to drafts");
+    } catch (e) {
+      notify("error", errMsg(e));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleDuplicate = async (t: Template) => {
+    setBusyId(t.id);
+    try {
+      await createTemplate({ ...toPayload(t), name: `${t.name} (copy)`, status: "Draft" });
+      notify("success", "Template duplicated");
+    } catch (e) {
+      notify("error", errMsg(e));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleCopyHtml = async (t: Template) => {
+    try {
+      await navigator.clipboard.writeText(t.html);
+      notify("success", "HTML copied");
+    } catch {
+      notify("error", "Couldn't copy to clipboard");
+    }
+  };
+
+  /* ── DELETE ── */
+  const handleDelete = async (t: Template): Promise<boolean> => {
+    setBusyId(t.id);
+    try {
+      await deleteTemplate(t.id);
+      setDeleteTarget(null);
+      setEditingTemplate((cur) => (cur?.id === t.id ? null : cur));
+      notify("success", "Template deleted");
+      return true;
+    } catch (e) {
+      notify("error", errMsg(e));
+      return false;
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen overflow-hidden" style={{ background: COLOR.bg, fontFamily: FONT.body }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        @keyframes ping { 75%, 100% { transform: scale(2.4); opacity: 0; } }
+        .ping { animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite; }
+        @keyframes floatIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .float-in { animation: floatIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        @keyframes modalPop { from { opacity: 0; transform: scale(0.98) translateY(6px); } to { opacity: 1; transform: none; } }
+        .modal-pop { animation: modalPop 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+        .etm-main::-webkit-scrollbar { width: 10px; }
+        .etm-main::-webkit-scrollbar-track { background: transparent; }
+        .etm-main::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 10px; border: 2px solid #0B0E13; }
+        .etm-main::-webkit-scrollbar-thumb:hover { background: #2A2F3B; }
+
+        .soft-ring { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 1px 0 rgba(255,255,255,0.02); }
+        .glow-top {
+          background:
+            radial-gradient(900px 240px at 50% -80px, rgba(255,106,57,0.10), transparent 70%),
+            radial-gradient(700px 200px at 20% -60px, rgba(52,211,153,0.06), transparent 70%);
+        }
+        select option { background: #141821; color: #E8E6E1; }
+
+        textarea::-webkit-scrollbar { width: 10px; }
+        textarea::-webkit-scrollbar-track { background: transparent; }
+        textarea::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 8px; }
+      `}</style>
+
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <div className={`
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+      `}>
+        <AdminSidebar onClose={() => setSidebarOpen(false)} />
+      </div>
+
+      <main className="etm-main flex-1 overflow-y-auto" style={{ background: COLOR.bg, height: "100vh", width: "100%" }}>
+        <div className="glow-top">
+          <div className="max-w-[1320px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
+
+            {/* ── Header ─────────────────────────── */}
+            <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
+              <div className="flex items-start gap-3 md:gap-4">
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden mt-1 p-2 rounded-2xl text-[#C7C9CE] transition-colors soft-ring"
+                  style={{ background: COLOR.surface }}
+                >
+                  <Menu size={18} />
+                </button>
+                <div>
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <span className="text-[10px] font-medium tracking-widest uppercase" style={{ color: COLOR.textMuted }}>Content</span>
+                    <ChevronRight size={10} style={{ color: "#3A3F4A" }} />
+                    <span className="text-[10px] font-medium tracking-widest uppercase" style={{ color: COLOR.primary }}>Templates</span>
+                  </div>
+                  <h1
+                    style={{ fontFamily: FONT.display, letterSpacing: "-0.025em" }}
+                    className="text-[28px] md:text-[34px] lg:text-[40px] font-bold leading-[1.05]"
+                  >
+                    <span style={{ color: COLOR.dark }}>Email templates</span>
+                  </h1>
+                  <p className="mt-2 text-[14px] md:text-[15px] max-w-lg" style={{ color: COLOR.textMuted }}>
+                    Build and manage the HTML templates used across every campaign.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={refetch}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-[13px] font-medium transition-all soft-ring hover:-translate-y-0.5"
+                  style={{ background: COLOR.surface, color: COLOR.textBody }}
+                >
+                  <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+                  <span className="hidden sm:inline">Refresh</span>
+                </button>
+                <button
+                  onClick={() => setShowNewModal(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5"
+                  style={{ background: COLOR.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.65)" }}
+                >
+                  <Plus size={14} /> New template
+                </button>
+              </div>
+            </header>
+
+            {/* ── Stats ──────────────────────────── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+              <StatCard title="Total templates" value={String(templates.length)} description="Across all categories" icon={LayoutTemplate} accent={COLOR.neutral} accentSoft={COLOR.neutralSoft} accentRing={COLOR.neutralRing} />
+              <StatCard title="Published" value={String(templates.filter((t) => t.status === "Published").length)} description="Live and in use" icon={CheckCircle2} accent={COLOR.success} accentSoft={COLOR.successSoft} accentRing={COLOR.successRing} />
+              <StatCard title="Drafts" value={String(templates.filter((t) => t.status === "Draft").length)} description="Not yet published" icon={Clock} accent={COLOR.warning} accentSoft={COLOR.warningSoft} accentRing={COLOR.warningRing} />
+              <StatCard title="Categories" value={String(categories.length)} description="Welcome · Promo · News · Txn" icon={FileCode} accent={COLOR.primary} accentSoft={COLOR.primarySoft} accentRing={COLOR.primaryRing} />
+            </div>
+
+            {/* ── Filters ────────────────────────── */}
+            <div className="rounded-3xl p-3 md:p-4 mb-6 md:mb-8 soft-ring" style={{ background: COLOR.surface }}>
+              <div
+                className="flex items-center gap-2 rounded-2xl px-3.5 py-2.5 transition-all"
+                style={{ background: COLOR.inner, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+                onFocusCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px rgba(255,106,57,0.5), 0 0 0 4px rgba(255,106,57,0.10)`)}
+                onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${COLOR.border}`)}
+              >
+                <Search size={14} style={{ color: COLOR.textMuted }} className="shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search templates by name or subject…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full bg-transparent text-[13.5px] outline-none"
+                  style={{ color: COLOR.textBody }}
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch("")}
+                    className="shrink-0 text-[10px] px-1.5 py-0.5 rounded transition-colors hover:bg-[#1B2130]"
+                    style={{ color: COLOR.textMuted }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10.5px] uppercase tracking-wider mr-1" style={{ color: COLOR.textMuted }}>Category</span>
+                <FilterPill label="All" active={categoryFilter === "All"} onClick={() => setCategoryFilter("All")} small />
+                {categories.map((c) => (
+                  <FilterPill key={c} label={c} active={categoryFilter === c} onClick={() => setCategoryFilter(c)} small />
+                ))}
+              </div>
+
+              <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10.5px] uppercase tracking-wider mr-1" style={{ color: COLOR.textMuted }}>Status</span>
+                <FilterPill label="All" active={statusFilter === "All"} onClick={() => setStatusFilter("All")} small />
+                <FilterPill label="Published" active={statusFilter === "Published"} onClick={() => setStatusFilter("Published")} small />
+                <FilterPill label="Draft" active={statusFilter === "Draft"} onClick={() => setStatusFilter("Draft")} small />
+              </div>
+            </div>
+
+            {/* ── Content ────────────────────────── */}
+            {loading && templates.length === 0 ? (
+              <div className="rounded-3xl p-14 flex flex-col items-center justify-center soft-ring" style={{ background: COLOR.surface }}>
+                <Loader2 size={26} className="animate-spin" style={{ color: COLOR.primary }} />
+                <p className="mt-3 text-[13px]" style={{ color: COLOR.textMuted }}>Loading templates…</p>
+              </div>
+            ) : !loading && error && templates.length === 0 ? (
+              <div className="rounded-3xl p-12 flex flex-col items-center justify-center text-center soft-ring" style={{ background: COLOR.surface }}>
+                <div className="w-14 h-14 mb-4 rounded-2xl flex items-center justify-center"
+                  style={{ background: COLOR.dangerSoft, boxShadow: `inset 0 0 0 1px ${COLOR.dangerRing}` }}>
+                  <AlertTriangle size={26} style={{ color: COLOR.danger }} />
+                </div>
+                <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-semibold"><span style={{ color: COLOR.dark }}>Couldn't load templates</span></h3>
+                <p className="mt-2 text-[13px] max-w-md" style={{ color: COLOR.textMuted }}>{error}</p>
+                <button
+                  onClick={refetch}
+                  className="mt-5 inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
+                  style={{ background: COLOR.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.6)" }}
+                >
+                  <RefreshCw size={13} /> Try again
+                </button>
+              </div>
+            ) : templates.length === 0 ? (
+              <div className="rounded-3xl p-12 flex flex-col items-center justify-center text-center soft-ring" style={{ background: COLOR.surface }}>
+                <div className="w-14 h-14 mb-4 rounded-2xl flex items-center justify-center"
+                  style={{ background: COLOR.primarySoft, boxShadow: `inset 0 0 0 1px ${COLOR.primaryRing}` }}>
+                  <Inbox size={26} style={{ color: COLOR.primary }} />
+                </div>
+                <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-semibold"><span style={{ color: COLOR.dark }}>No templates yet</span></h3>
+                <p className="mt-2 text-[13px]" style={{ color: COLOR.textMuted }}>Create your first template to get started.</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="rounded-3xl p-12 flex flex-col items-center justify-center text-center soft-ring" style={{ background: COLOR.surface }}>
+                <div className="w-14 h-14 mb-4 rounded-2xl flex items-center justify-center"
+                  style={{ background: COLOR.neutralSoft, boxShadow: `inset 0 0 0 1px ${COLOR.neutralRing}` }}>
+                  <Inbox size={26} style={{ color: COLOR.neutral }} />
+                </div>
+                <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-semibold"><span style={{ color: COLOR.dark }}>No templates match</span></h3>
+                <p className="mt-2 text-[13px] mb-5" style={{ color: COLOR.textMuted }}>Try adjusting your search or filters.</p>
+                <button
+                  onClick={() => { setSearch(""); setCategoryFilter("All"); setStatusFilter("All"); }}
+                  className="text-[12.5px] font-medium"
+                  style={{ color: COLOR.primary }}
+                >
+                  Clear filters
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filtered.map((t, i) => {
+                  const published = t.status === "Published";
+                  const busy = busyId === t.id;
+                  const meta = published
+                    ? { fg: COLOR.success, ring: COLOR.successRing, label: "Published" }
+                    : { fg: COLOR.warning, ring: COLOR.warningRing, label: "Draft" };
+                  return (
+                    <div
+                      key={t.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setEditingTemplate(t)}
+                      onKeyDown={(e) => {
+                        if (e.target === e.currentTarget && e.key === "Enter") setEditingTemplate(t);
+                      }}
+                      className="group float-in rounded-3xl overflow-hidden soft-ring text-left transition-all hover:-translate-y-0.5 cursor-pointer"
+                      style={{ background: "linear-gradient(180deg, #141821 0%, #10141D 100%)", animationDelay: `${Math.min(i * 20, 200)}ms` }}
+                    >
+                      {/* preview */}
+                      <div
+                        className="relative h-40 overflow-hidden"
+                        style={{
+                          background:
+                            "radial-gradient(280px 160px at 20% -20%, rgba(255,106,57,0.10), transparent 60%), #0F131C",
+                        }}
+                      >
+                        {t.html ? (
+                          <div
+                            className="origin-top-left"
+                            style={{
+                              width: "1280px",
+                              height: "1280px",
+                              transform: "scale(0.30)",
+                              transformOrigin: "top left",
+                              pointerEvents: "none",
+                            }}
+                          >
+                            <iframe
+                              title={`preview-${t.id}`}
+                              srcDoc={t.html}
+                              sandbox=""
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full border-0"
+                              style={{ background: "#fff" }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center p-4">
+                            <FileCode size={22} style={{ color: COLOR.textMuted }} />
+                          </div>
+                        )}
+
+                        {/* actions */}
+                        <div className="absolute top-3 left-3 z-10 flex gap-1.5 transition-opacity lg:opacity-0 lg:group-hover:opacity-100 focus-within:opacity-100">
+                          <ActionBtn label="Edit" onClick={() => setEditingTemplate(t)}>
+                            <Pencil size={12} />
+                          </ActionBtn>
+                          <ActionBtn label="Duplicate" disabled={busy} onClick={() => handleDuplicate(t)}>
+                            <Copy size={12} />
+                          </ActionBtn>
+                          <ActionBtn label="Copy HTML" onClick={() => handleCopyHtml(t)}>
+                            <ClipboardCopy size={12} />
+                          </ActionBtn>
+                          <ActionBtn label={published ? "Unpublish" : "Publish"} disabled={busy} onClick={() => handleToggleStatus(t)}>
+                            {published ? <Clock size={12} /> : <CheckCircle2 size={12} />}
+                          </ActionBtn>
+                          <ActionBtn label="Delete" danger onClick={() => setDeleteTarget(t)}>
+                            <Trash2 size={12} />
+                          </ActionBtn>
+                        </div>
+
+                        <span
+                          className="absolute top-3 right-3 z-10 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-medium"
+                          style={{
+                            background: "rgba(11,14,18,0.78)",
+                            backdropFilter: "blur(6px)",
+                            color: meta.fg,
+                            boxShadow: `inset 0 0 0 1px ${meta.ring}`,
+                          }}
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: meta.fg, boxShadow: `0 0 6px ${meta.fg}` }} />
+                          {meta.label}
+                        </span>
+
+                        {busy && (
+                          <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/50">
+                            <Loader2 size={20} className="animate-spin" style={{ color: COLOR.primary }} />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* meta */}
+                      <div className="p-4">
+                        <p className="text-[13.5px] font-semibold truncate" style={{ color: COLOR.dark }}>{t.name}</p>
+                        <p className="text-[11.5px] truncate mt-0.5" style={{ color: COLOR.textMuted, fontFamily: FONT.mono }}>
+                          {t.subject || "(no subject)"}
+                        </p>
+
+                        <div className="mt-4 flex items-center justify-between gap-2">
+                          <span
+                            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-[10.5px]"
+                            style={{ background: COLOR.inner, color: COLOR.textBody, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+                          >
+                            <Tag size={10} /> {t.category}
+                          </span>
+                          <span className="text-[10.5px]" style={{ color: COLOR.textMuted, fontFamily: FONT.mono }}>
+                            {t.updatedAt}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      {/* ── Modals ─────────────────────────────── */}
+      {showNewModal && (
+        <NewTemplateModal
+          busy={creating}
+          onClose={() => setShowNewModal(false)}
+          onCreate={handleCreateFromModal}
+        />
+      )}
+      {showAIGenerate && (
+        <AIGenerateModal
+          busy={creating}
+          onClose={() => setShowAIGenerate(false)}
+          onGenerate={handleAIGenerate}
+          prompt={generationPrompt}
+          setPrompt={setGenerationPrompt}
+        />
+      )}
+      {editingTemplate && (
+        <TemplateEditor
+          key={editingTemplate.id}
+          template={editingTemplate}
+          onSave={handleSaveTemplate}
+          onClose={() => setEditingTemplate(null)}
+          onDelete={() => handleDelete(editingTemplate)}
+        />
+      )}
+      {deleteTarget && (
+        <DeleteConfirmModal
+          name={deleteTarget.name}
+          busy={busyId === deleteTarget.id}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={() => handleDelete(deleteTarget)}
+        />
+      )}
+
+      {/* ── Toast ──────────────────────────────── */}
+      {toast && (
+        <div
+          className="fixed bottom-5 right-5 z-[70] float-in rounded-2xl px-4 py-3 text-[12.5px] font-medium"
+          style={{
+            background: COLOR.surface,
+            color: toast.type === "success" ? COLOR.success : COLOR.danger,
+            boxShadow: `inset 0 0 0 1px ${toast.type === "success" ? COLOR.successRing : COLOR.dangerRing}, 0 20px 40px -20px rgba(0,0,0,0.7)`,
+          }}
+        >
+          {toast.msg}
+        </div>
+      )}
     </div>
   );
 };
