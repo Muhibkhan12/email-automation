@@ -22,6 +22,9 @@ def validate_file(file: UploadFile):
     return{
         "message" : "Route Valid"
     }
+
+
+
 def save_file_to_storage(file: UploadFile):
     os.makedirs(
         UPLOAD_DIR,

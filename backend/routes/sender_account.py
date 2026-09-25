@@ -19,7 +19,6 @@ router = APIRouter(
     tags=["Sender Account"],
 )
 
-
 @router.get("/my")
 def get_my_senders_accounts(
     current_user : User = Depends(GetCurrentUser),
@@ -27,14 +26,12 @@ def get_my_senders_accounts(
 ):
     return get_my_senders_accounts_using_id(current_user,db)
 
-
 @router.get("/all")
 def getAllSenderAccounts(
     current_user: User = Depends(GetCurrentUser),
     db: Session = Depends(get_db),
 ):
     return get_all_sender_accounts(current_user.id, db)
-
 
 @router.get("/{id}")
 def getAccount(
@@ -44,7 +41,6 @@ def getAccount(
 ):
     return get_account_by_id(id, current_user.id, db)
 
-
 @router.post("/")
 def addSenderAccount(
     credentials: addSenderAccountSchema,
@@ -52,7 +48,6 @@ def addSenderAccount(
     db: Session = Depends(get_db),
 ):
     return add_sender_account(db=db, credentials=credentials, user_id=current_user.id)
-
 
 @router.put("/{id}")
 def updateSenderAcc(
@@ -62,7 +57,6 @@ def updateSenderAcc(
     db: Session = Depends(get_db),
 ):
     return update_sender_account(id, db, credentials, current_user.id)
-
 
 @router.delete("/{id}")
 def deleteAccount(

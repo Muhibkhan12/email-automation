@@ -22,7 +22,6 @@ router = APIRouter(
     tags=["HTML Templates"]
 )
 
-
 # ADMIN + EMPLOYEE
 @router.get(
     "/",
