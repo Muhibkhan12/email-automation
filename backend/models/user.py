@@ -6,7 +6,7 @@ from datetime import datetime, UTC
 from database import Base
 
 
-class UserRole(enum.Enum):
+class UserRole(str, enum.Enum):
     ADMIN = "ADMIN"
     EMPLOYEE = "EMPLOYEE"
 

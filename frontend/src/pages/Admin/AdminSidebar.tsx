@@ -1,10 +1,14 @@
 // AdminSidebar.tsx
-import { NavLink } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, BarChart3, Bell, Mail, FileText,
   Settings as SettingsIcon, Users, AtSign, ListOrdered,
   Megaphone, ChevronRight, ShieldCheck, Activity, X,
+  LogOut, Shield, UserCog, User as UserIcon, Loader2,
 } from 'lucide-react'
+import { getProfile, logoutUser } from '../../services/AuthServices'
+import type { User } from '../../types/UserTypes'
 
 /* ─────────────── tokens ─────────────── */
 
@@ -12,6 +16,9 @@ const COLOR = {
   primary: '#FF6A39',
   primarySoft: 'rgba(255,106,57,0.12)',
   primaryRing: 'rgba(255,106,57,0.22)',
+  danger: '#F87171',
+  dangerSoft: 'rgba(248,113,113,0.10)',
+  dangerRing: 'rgba(248,113,113,0.22)',
   success: '#34D399',
   successSoft: 'rgba(52,211,153,0.12)',
   successRing: 'rgba(52,211,153,0.22)',
@@ -20,6 +27,7 @@ const COLOR = {
   panel: '#0E131C',
   panelTop: '#10141D',
   surface: '#141821',
+  inner: '#0F131C',
   border: '#1A1F2B',
   borderHover: '#232938',
   textMuted: '#7A8092',
@@ -28,6 +36,14 @@ const COLOR = {
 
 const FONT_MONO = "'JetBrains Mono', monospace"
 const FONT_DISPLAY = "'Space Grotesk', sans-serif"
+
+/* ─────────────── helpers ─────────────── */
+
+const initialsOf = (name?: string) => {
+  if (!name) return '??'
+  const parts = name.trim().split(/\s+/).slice(0, 2)
+  return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || '??'
+}
 
 /* ─────────────── nav config ─────────────── */
 
@@ -84,7 +100,6 @@ const NavItem = ({ path, name, icon: Icon, badge, onClose }: NavItemProps) => (
   >
     {({ isActive }: { isActive: boolean }) => (
       <>
-        {/* Active rail */}
         <span
           aria-hidden
           className="absolute left-0 top-1/2 -translate-y-1/2 h-4 md:h-5 w-[3px] rounded-full transition-all duration-200"
@@ -95,7 +110,6 @@ const NavItem = ({ path, name, icon: Icon, badge, onClose }: NavItemProps) => (
           }}
         />
 
-        {/* Background plate */}
         <span
           aria-hidden
           className={`absolute inset-0 rounded-xl transition-colors ${
@@ -105,7 +119,6 @@ const NavItem = ({ path, name, icon: Icon, badge, onClose }: NavItemProps) => (
           }`}
         />
 
-        {/* Icon plate */}
         <span
           className={`relative shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
             isActive
@@ -154,6 +167,203 @@ const NavItem = ({ path, name, icon: Icon, badge, onClose }: NavItemProps) => (
   </NavLink>
 )
 
+/* ─────────────── hooks ─────────────── */
+
+const useEscape = (active: boolean, handler: () => void) => {
+  useEffect(() => {
+    if (!active) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handler()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [active, handler])
+}
+
+const useClickOutside = <T extends HTMLElement>(active: boolean, handler: () => void) => {
+  const ref = useRef<T>(null)
+  useEffect(() => {
+    if (!active) return
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) handler()
+    }
+    window.addEventListener('mousedown', onDown)
+    return () => window.removeEventListener('mousedown', onDown)
+  }, [active, handler])
+  return ref
+}
+
+/* ─────────────── profile menu ─────────────── */
+
+interface ProfileMenuProps {
+  onClose: () => void
+  user: User | null
+  loadingUser: boolean
+  compact?: boolean
+}
+
+const ProfileMenu = ({ onClose, user, loadingUser, compact }: ProfileMenuProps) => {
+  const navigate = useNavigate()
+  const [confirmingLogout, setConfirmingLogout] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  useEscape(true, onClose)
+
+  const handleLogout = async () => {
+    if (!confirmingLogout) {
+      setConfirmingLogout(true)
+      setTimeout(() => setConfirmingLogout(false), 4000)
+      return
+    }
+
+    try {
+      setLoggingOut(true)
+      await logoutUser()
+    } catch (err) {
+      console.warn('Logout request failed, clearing local session anyway:', err)
+    } finally {
+      setLoggingOut(false)
+      onClose()
+      navigate('/')
+    }
+  }
+
+  const displayName = user?.username || 'Signed in'
+  const displayEmail = user?.email || '—'
+  const initials = initialsOf(user?.username)
+
+  const menuItems: { label: string; icon: React.ElementType; onClick: () => void }[] = [
+    { label: 'View profile',     icon: UserIcon, onClick: () => { onClose(); navigate('/admin/profile') } },
+    { label: 'Account settings', icon: UserCog,  onClick: () => { onClose(); navigate('/admin/settings') } },
+  ]
+
+  const wrapperCls = compact
+    ? 'absolute left-2 right-2 bottom-full mb-2'
+    : 'absolute left-2 right-2 bottom-full mb-2 md:left-2 md:right-2'
+
+  return (
+    <div
+      role="menu"
+      aria-label="Profile menu"
+      className={`${wrapperCls} rounded-2xl overflow-hidden float-in`}
+      style={{
+        background: COLOR.surface,
+        boxShadow: `inset 0 0 0 1px ${COLOR.borderHover}, 0 30px 60px -20px rgba(0,0,0,0.8)`,
+        zIndex: 50,
+      }}
+    >
+      {/* Header */}
+      <div className="p-3 border-b" style={{ borderColor: COLOR.border }}>
+        <div className="flex items-center gap-3">
+          <div
+            className="relative shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ background: COLOR.primarySoft, boxShadow: `inset 0 0 0 1px ${COLOR.primaryRing}` }}
+          >
+            {loadingUser ? (
+              <Loader2 size={16} className="animate-spin" style={{ color: COLOR.primary }} />
+            ) : (
+              <span className="text-[12px] font-bold" style={{ color: COLOR.primary, fontFamily: FONT_MONO }}>
+                {initials}
+              </span>
+            )}
+            <span
+              className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
+              style={{ background: COLOR.success, borderColor: COLOR.surface, boxShadow: `0 0 8px ${COLOR.success}88` }}
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[13px] font-semibold truncate" style={{ color: COLOR.dark, fontFamily: FONT_DISPLAY }}>
+              {loadingUser ? 'Loading…' : displayName}
+            </p>
+            <p className="text-[11px] truncate" style={{ color: COLOR.textMuted, fontFamily: FONT_MONO }}>
+              {loadingUser ? '—' : displayEmail}
+            </p>
+          </div>
+        </div>
+
+        {user?.role && (
+          <span
+            className="mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-medium"
+            style={{ background: COLOR.primarySoft, color: COLOR.primary, boxShadow: `inset 0 0 0 1px ${COLOR.primaryRing}` }}
+          >
+            <Shield size={10} />
+            {user.role}
+          </span>
+        )}
+      </div>
+
+      {/* Items */}
+      <div className="p-1.5">
+        {menuItems.map(({ label, icon: Icon, onClick }) => (
+          <button
+            key={label}
+            role="menuitem"
+            onClick={onClick}
+            className="group w-full flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[12.5px] transition-colors"
+            style={{ color: COLOR.textBody }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = COLOR.surface
+              e.currentTarget.style.color = COLOR.dark
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.color = COLOR.textBody
+            }}
+          >
+            <span
+              className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+              style={{ background: COLOR.inner, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+            >
+              <Icon size={13} style={{ color: COLOR.textMuted }} />
+            </span>
+            <span className="flex-1 truncate">{label}</span>
+            <ChevronRight
+              size={13}
+              className="shrink-0 transition-transform group-hover:translate-x-0.5"
+              style={{ color: COLOR.border }}
+            />
+          </button>
+        ))}
+      </div>
+
+      {/* Logout */}
+      <div className="p-1.5 pt-0">
+        <button
+          role="menuitem"
+          onClick={handleLogout}
+          disabled={loggingOut}
+          className="w-full flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[12.5px] font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          style={{
+            background: confirmingLogout ? COLOR.dangerSoft : 'transparent',
+            color: COLOR.danger,
+            boxShadow: confirmingLogout ? `inset 0 0 0 1px ${COLOR.dangerRing}` : 'none',
+          }}
+          onMouseEnter={(e) => {
+            if (!confirmingLogout) e.currentTarget.style.background = COLOR.dangerSoft
+          }}
+          onMouseLeave={(e) => {
+            if (!confirmingLogout) e.currentTarget.style.background = 'transparent'
+          }}
+        >
+          <span
+            className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center"
+            style={{ background: COLOR.dangerSoft, boxShadow: `inset 0 0 0 1px ${COLOR.dangerRing}` }}
+          >
+            {loggingOut ? (
+              <Loader2 size={13} className="animate-spin" style={{ color: COLOR.danger }} />
+            ) : (
+              <LogOut size={13} style={{ color: COLOR.danger }} />
+            )}
+          </span>
+          <span className="flex-1 truncate">
+            {loggingOut ? 'Signing out…' : confirmingLogout ? 'Click again to confirm' : 'Log out'}
+          </span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
 /* ─────────────── sidebar ─────────────── */
 
 interface AdminSidebarProps {
@@ -161,6 +371,35 @@ interface AdminSidebarProps {
 }
 
 const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
+  const isMobile = !!onClose
+  const [profileOpen, setProfileOpen] = useState(false)
+  const containerRef = useClickOutside<HTMLDivElement>(profileOpen, () => setProfileOpen(false))
+
+  /* ── Load the real user once, at the sidebar level ── */
+  const [user, setUser] = useState<User | null>(null)
+  const [loadingUser, setLoadingUser] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const data = await getProfile()
+        if (!cancelled) setUser(data)
+      } catch (err) {
+        console.warn('Failed to load admin profile for sidebar:', err)
+      } finally {
+        if (!cancelled) setLoadingUser(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const displayName = user?.username ?? ''
+  const displayEmail = user?.email ?? ''
+  const initials = initialsOf(user?.username)
+
   return (
     <div
       className="w-64 md:w-64 h-screen flex flex-col"
@@ -175,6 +414,9 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
         .asb-nav::-webkit-scrollbar-track { background: transparent; }
         .asb-nav::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 10px; }
         .asb-nav::-webkit-scrollbar-thumb:hover { background: #2A2F3B; }
+
+        @keyframes floatIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .float-in { animation: floatIn 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
       `}</style>
 
       {/* ── Brand row ────────────────────────── */}
@@ -248,7 +490,7 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
             className="text-[11px] md:text-xs font-semibold"
             style={{ color: COLOR.primary, fontFamily: FONT_DISPLAY }}
           >
-            Super Admin
+            {user?.role ? user.role : 'Signed in'}
           </span>
         </div>
 
@@ -285,11 +527,7 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
 
             <div className="space-y-1">
               {group.items.map((item) => (
-                <NavItem
-                  key={item.path}
-                  {...item}
-                  onClose={onClose}
-                />
+                <NavItem key={item.path} {...item} onClose={onClose} />
               ))}
             </div>
           </div>
@@ -297,18 +535,27 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
       </nav>
 
       {/* ── Footer account ───────────────────── */}
-      <div className="px-2 md:px-3 py-3 md:py-4 shrink-0 border-t" style={{ borderColor: COLOR.border }}>
+      <div ref={containerRef} className="relative px-2 md:px-3 py-3 md:py-4 shrink-0 border-t" style={{ borderColor: COLOR.border }}>
+        {profileOpen && (
+          <ProfileMenu
+            user={user}
+            loadingUser={loadingUser}
+            compact={isMobile}
+            onClose={() => setProfileOpen(false)}
+          />
+        )}
+
         <button
           type="button"
+          onClick={() => setProfileOpen((o) => !o)}
+          aria-haspopup="menu"
+          aria-expanded={profileOpen}
           className="group w-full flex items-center gap-2.5 md:gap-3 px-2 md:px-2.5 py-2 md:py-2.5 rounded-xl text-left transition-colors"
-          style={{ background: 'transparent' }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = COLOR.surface
-            e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${COLOR.borderHover}`
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent'
-            e.currentTarget.style.boxShadow = 'none'
+          style={{
+            background: profileOpen ? COLOR.surface : 'transparent',
+            boxShadow: profileOpen
+              ? `inset 0 0 0 1px ${COLOR.borderHover}`
+              : 'inset 0 0 0 1px transparent',
           }}
         >
           <div
@@ -318,12 +565,16 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
               boxShadow: `inset 0 0 0 1px ${COLOR.primaryRing}`,
             }}
           >
-            <span
-              className="text-[10.5px] md:text-[11.5px] font-bold"
-              style={{ color: COLOR.primary, fontFamily: FONT_MONO }}
-            >
-              SA
-            </span>
+            {loadingUser ? (
+              <Loader2 size={14} className="animate-spin" style={{ color: COLOR.primary }} />
+            ) : (
+              <span
+                className="text-[10.5px] md:text-[11.5px] font-bold"
+                style={{ color: COLOR.primary, fontFamily: FONT_MONO }}
+              >
+                {initials}
+              </span>
+            )}
             <span
               className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
               style={{ background: COLOR.success, borderColor: COLOR.panelTop, boxShadow: `0 0 8px ${COLOR.success}88` }}
@@ -331,24 +582,33 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
           </div>
 
           <div className="flex-1 min-w-0">
-            <p
-              className="text-[12px] md:text-[13px] font-semibold truncate"
-              style={{ color: COLOR.dark, fontFamily: FONT_DISPLAY }}
-            >
-              Super Admin
-            </p>
-            <p
-              className="text-[10px] md:text-[11px] truncate"
-              style={{ color: COLOR.textMuted, fontFamily: FONT_MONO }}
-            >
-              admin@mailforge.io
-            </p>
+            {loadingUser ? (
+              <>
+                <div className="h-[10px] w-24 rounded bg-[#1A1F2B] animate-pulse" />
+                <div className="h-[9px] w-32 rounded bg-[#1A1F2B] animate-pulse mt-1.5" />
+              </>
+            ) : (
+              <>
+                <p
+                  className="text-[12px] md:text-[13px] font-semibold truncate"
+                  style={{ color: COLOR.dark, fontFamily: FONT_DISPLAY }}
+                >
+                  {displayName || 'Signed in'}
+                </p>
+                <p
+                  className="text-[10px] md:text-[11px] truncate"
+                  style={{ color: COLOR.textMuted, fontFamily: FONT_MONO }}
+                >
+                  {displayEmail || '—'}
+                </p>
+              </>
+            )}
           </div>
 
           <ChevronRight
             size={14}
-            className="shrink-0 transition-all group-hover:translate-x-0.5"
-            style={{ color: COLOR.border }}
+            className={`shrink-0 transition-all ${profileOpen ? 'rotate-90' : 'group-hover:translate-x-0.5'}`}
+            style={{ color: profileOpen ? COLOR.primary : COLOR.border }}
           />
         </button>
       </div>

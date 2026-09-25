@@ -18,15 +18,15 @@ export const addUser = async(data : UserLogin) => {
     return response.data
 }
 
-export const updateUser = async(id : number, data : UpdateUser) => {
-    const response = await api.post<User>(`/auth/user/${id}`,data)
-    return response.data
-}
+export const updateUser = async (id: number, data: UpdateUser) => {
+  const response = await api.put<User>(`/auth/users/${id}`, data);
+  return response.data;
+};
 
-export const deleteUser = async(id : number) => {
-    const response = await api.delete<User>(`auth/user/delete/${id}`)
-    return response.data
-}
+export const deleteUser = async (id: number) => {
+  const response = await api.delete<User>(`/auth/users/${id}`);
+  return response.data;
+};
 
 export const getUsersWithSenderAccounts = async () => {
     const response = await api.get<UserWithSenderAccounts[]>(`/auth/users/sender-accounts`)

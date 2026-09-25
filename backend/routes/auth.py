@@ -66,8 +66,9 @@ def profile(current_user : User = Depends(GetCurrentUser)):
         "created_at": current_user.created_at,
         "updated_at": current_user.updated_at,
     }
-@router.post("/user/update/{id}")
-def update_user(credentials : UpdateUser,user_id : int, db:Session = Depends(get_db) ):
+
+@router.put("/users/{user_id}")
+def update_user(user_id: int, credentials: UpdateUser, db: Session = Depends(get_db)):
     return updateUser(db, user_id, credentials)
 
 @router.post("/user/delete/{id}")
@@ -90,6 +91,6 @@ def get_send_acc_with_users( db : Session = Depends(get_db)):
 def get_send_acc_with_user_id(user_id : int, db : Session = Depends(get_db)):
     return userByIdWithSenAcc(db, user_id)
 
-@router.delete("users/delete/{id}")
+@router.delete("/users/{user_id}")
 def delete_user(user_id : int, db : Session = Depends(get_db) ):
-    return deleteUser(user_id, db)
+    return deleteUser(db, user_id)

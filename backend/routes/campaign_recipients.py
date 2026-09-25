@@ -16,7 +16,6 @@ from services.user import (
     require_admin
 )
 
-
 router = APIRouter(
     prefix="/recipient",
     tags=["recipients"]
@@ -33,13 +32,6 @@ def get_recipients(
         page=page,
         limit=limit
     )
-
-
-# =========================================================
-# GET RECIPIENT BY ID
-# ADMIN + EMPLOYEE
-# Employee → only their own recipient
-# =========================================================
 
 @router.get("/{id}")
 def get_data_by_id(

@@ -87,7 +87,7 @@ def GetCurrentUser(token: str = Depends(oauth2_scheme), db: Session = Depends(ge
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User doesn't exist"
         )
-    return user    
+    return user
 
 def ForgetPassword(db: Session, credetntial : ForgetSchema):
     pass
@@ -128,11 +128,13 @@ def userByIdWithSenAcc(db : Session, user_id : int):
         )
     return user
 
-def updateUser(db : Session, user_id : int, credentials : UpdateUser):
+def updateUser(db: Session, user_id: int, credentials: UpdateUser):
     user = getUserById(db, user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
     if credentials.username is not None:
         user.username = credentials.username
-
     if credentials.email is not None:
         user.email = credentials.email
 
@@ -141,7 +143,7 @@ def updateUser(db : Session, user_id : int, credentials : UpdateUser):
 
     return {
         "user": user,
-        "message" : "User Updated Successfully"
+        "message": "User Updated Successfully"
     }
 
 def deleteUser(db:Session, user_id : int):

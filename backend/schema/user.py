@@ -33,4 +33,4 @@ class GetCurrentUserSchema(BaseModel):
 class UpdateUser(BaseModel):
     username : str | None = None
     email: EmailStr | None = None
-    role : UserRole
+    role : UserRole | None = None
