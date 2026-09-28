@@ -2,36 +2,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Plus,
-  RefreshCw,
-  Inbox,
-  PauseCircle,
-  CheckCircle2,
-  XCircle,
-  PlayCircle,
-  FileEdit,
-  Megaphone,
-  Menu,
-  SlidersHorizontal,
-  LayoutGrid,
-  List,
-  Search,
-  ChevronRight,
-  ChevronLeft,
-  Clock,
-  Send,
-  MoreHorizontal,
-  Trash2,
-  Pencil,
-  Loader2,
-  AlertTriangle,
-  X,
-  ArrowUpRight,
-  ArrowDownRight,
-  Sparkles,
-  Filter as FilterIcon,
-  Hash,
-  AtSign,
+  Plus, RefreshCw, Inbox, PauseCircle, CheckCircle2, XCircle, PlayCircle,
+  FileEdit, Megaphone, Menu, LayoutGrid, List, Search, ArrowUpRight,
+  ArrowDownRight, ChevronRight, ChevronLeft, Clock, Send, Trash2,
+  Pencil, Loader2, AlertTriangle, X, AtSign, Users, MailCheck, MailX,
+  MailWarning, ExternalLink, Hash, BarChart3, FileCode, FileSpreadsheet,
 } from "lucide-react";
 
 import { useCampaigns } from "../../../contexts/CampaignContext";
@@ -40,6 +15,7 @@ import {
   updateCampaign,
   deleteCampaign,
   startCampaign,
+  getCampaignById,
 } from "../../../services/CampaignService";
 import AdminSidebar from "../AdminSidebar";
 
@@ -67,6 +43,9 @@ const C = {
   blue: "#60A5FA",
   blueSoft: "rgba(96,165,250,0.10)",
   blueRing: "rgba(96,165,250,0.22)",
+  violet: "#A78BFA",
+  violetSoft: "rgba(167,139,250,0.10)",
+  violetRing: "rgba(167,139,250,0.22)",
   neutral: "#9BA0A8",
   neutralSoft: "rgba(155,160,168,0.10)",
   neutralRing: "rgba(155,160,168,0.22)",
@@ -83,51 +62,65 @@ const C = {
 
 /* ─────────────────────────── Status meta ─────────────────────────── */
 
+// ✅ Statuses come back Title Case from the API. Keys match exactly.
 const STATUS_META = {
-  DRAFT:     { label: "Draft",     fg: C.neutral, bg: C.neutralSoft, ring: C.neutralRing, Icon: FileEdit     },
-  READY:     { label: "Ready",     fg: C.blue,    bg: C.blueSoft,    ring: C.blueRing,    Icon: CheckCircle2 },
-  RUNNING:   { label: "Running",   fg: C.primary, bg: C.primarySoft, ring: C.primaryRing, Icon: PlayCircle   },
-  PAUSED:    { label: "Paused",    fg: C.warning, bg: C.warningSoft, ring: C.warningRing, Icon: PauseCircle  },
-  COMPLETED: { label: "Completed", fg: C.success, bg: C.successSoft, ring: C.successRing, Icon: CheckCircle2 },
-  CANCELLED: { label: "Cancelled", fg: C.danger,  bg: C.dangerSoft,  ring: C.dangerRing,  Icon: XCircle      },
+  Draft:     { label: "Draft",     fg: C.neutral, bg: C.neutralSoft, ring: C.neutralRing, Icon: FileEdit },
+  Ready:     { label: "Ready",     fg: C.blue,    bg: C.blueSoft,    ring: C.blueRing,    Icon: CheckCircle2 },
+  Running:   { label: "Running",   fg: C.primary, bg: C.primarySoft, ring: C.primaryRing, Icon: PlayCircle },
+  Paused:    { label: "Paused",    fg: C.warning, bg: C.warningSoft, ring: C.warningRing, Icon: PauseCircle },
+  Completed: { label: "Completed", fg: C.success, bg: C.successSoft, ring: C.successRing, Icon: CheckCircle2 },
+  Cancelled: { label: "Cancelled", fg: C.danger,  bg: C.dangerSoft,  ring: C.dangerRing,  Icon: XCircle },
 };
 
-const FALLBACK_META = STATUS_META.DRAFT;
+// Accept any case from the API — normalize before looking up.
+const normalizeStatus = (s) => {
+  if (!s) return "Draft";
+  const map = {
+    draft: "Draft",
+    ready: "Ready",
+    running: "Running",
+    paused: "Paused",
+    completed: "Completed",
+    cancelled: "Cancelled",
+    canceled: "Cancelled",
+  };
+  return map[String(s).toLowerCase()] ?? "Draft";
+};
 
-const STATUS_OPTIONS = [
-  "DRAFT",
-  "READY",
-  "RUNNING",
-  "PAUSED",
-  "COMPLETED",
-  "CANCELLED",
-];
+const FALLBACK_META = STATUS_META.Draft;
 
-const FILTER_KEYS = ["ALL", ...STATUS_OPTIONS];
+const STATUS_OPTIONS = ["Draft", "Ready", "Running", "Paused", "Completed", "Cancelled"];
+const FILTER_KEYS = ["All", ...STATUS_OPTIONS];
+
+const LOG_STATUS_META = {
+  Sent:      { fg: C.blue,    bg: C.blueSoft,    ring: C.blueRing,    Icon: Clock },
+  Delivered: { fg: C.success, bg: C.successSoft, ring: C.successRing, Icon: CheckCircle2 },
+  Bounced:   { fg: C.warning, bg: C.warningSoft, ring: C.warningRing, Icon: MailWarning },
+  Failed:    { fg: C.danger,  bg: C.dangerSoft,  ring: C.dangerRing,  Icon: MailX },
+  Pending:   { fg: C.neutral, bg: C.neutralSoft, ring: C.neutralRing, Icon: MailWarning },
+  Queued:    { fg: C.blue,    bg: C.blueSoft,    ring: C.blueRing,    Icon: Clock },
+  Sending:   { fg: C.warning, bg: C.warningSoft, ring: C.warningRing, Icon: MailWarning },
+};
+
+/* ─────────────────────────── Helpers ─────────────────────────── */
 
 const formatDate = (iso) => {
   try {
     return new Date(iso).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
+      year: "numeric", month: "short", day: "numeric",
     });
   } catch {
     return "—";
   }
 };
 
-const relativeTime = (iso) => {
+const formatDateTime = (iso) => {
+  if (!iso) return "—";
   try {
-    const diff = Date.now() - new Date(iso).getTime();
-    const mins = Math.round(diff / 60000);
-    if (mins < 1) return "just now";
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.round(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.round(hours / 24);
-    if (days < 30) return `${days}d ago`;
-    return formatDate(iso);
+    return new Date(iso).toLocaleString(undefined, {
+      month: "short", day: "numeric", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    });
   } catch {
     return "—";
   }
@@ -135,38 +128,36 @@ const relativeTime = (iso) => {
 
 /* ─────────────────────────── Primitives ─────────────────────────── */
 
-const Card = ({ children, className = "", ...rest }) => (
-  <div
-    className={`rounded-3xl soft-ring transition-colors ${className}`}
-    style={{ background: C.surface }}
-    {...rest}
-  >
+const Card = ({ children, className = "" }) => (
+  <div className={`rounded-3xl soft-ring transition-colors ${className}`} style={{ background: C.surface }}>
     {children}
   </div>
 );
 
+const Pill = ({ fg, bg, ring, children, Icon }) => (
+  <span
+    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
+    style={{ background: bg, color: fg, boxShadow: `inset 0 0 0 1px ${ring}` }}
+  >
+    {Icon && <Icon size={11} />}
+    {children}
+  </span>
+);
+
 const StatusPill = ({ status, withIcon = true }) => {
-  const meta = STATUS_META[status] ?? FALLBACK_META;
-  const Icon = meta.Icon;
+  const key = normalizeStatus(status);
+  const meta = STATUS_META[key] ?? FALLBACK_META;
   return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
-      style={{
-        background: meta.bg,
-        color: meta.fg,
-        boxShadow: `inset 0 0 0 1px ${meta.ring}`,
-      }}
-    >
-      {withIcon ? (
-        <Icon size={11} />
+    <Pill fg={meta.fg} bg={meta.bg} ring={meta.ring} Icon={withIcon ? meta.Icon : null}>
+      {withIcon === false ? (
+        <>
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: meta.fg, boxShadow: `0 0 6px ${meta.fg}` }} />
+          {meta.label}
+        </>
       ) : (
-        <span
-          className="w-1.5 h-1.5 rounded-full"
-          style={{ background: meta.fg, boxShadow: `0 0 6px ${meta.fg}` }}
-        />
+        meta.label
       )}
-      {meta.label}
-    </span>
+    </Pill>
   );
 };
 
@@ -182,94 +173,61 @@ const SectionHeader = ({ icon: Icon, title, subtitle, right }) => (
       >
         <Icon size={15} style={{ color: C.primary }} /> {title}
       </h2>
-      {subtitle && (
-        <p className="text-[11.5px] mt-0.5" style={{ color: C.textMuted }}>
-          {subtitle}
-        </p>
-      )}
+      {subtitle && <p className="text-[11.5px] mt-0.5" style={{ color: C.textMuted }}>{subtitle}</p>}
     </div>
     {right}
   </div>
 );
 
-const Sparkline = ({ points, color }) => {
-  const max = Math.max(...points, 1);
-  const min = Math.min(...points, 0);
-  const range = max - min || 1;
-  const w = 100;
-  const h = 24;
-  const step = w / (points.length - 1);
-  const path = points
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${i * step} ${h - ((p - min) / range) * h}`)
-    .join(" ");
-  const area = `${path} L ${w} ${h} L 0 ${h} Z`;
-  const id = `sg-${color.replace(/[^a-z0-9]/gi, "")}`;
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="w-full h-[24px]">
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.28" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={area} fill={`url(#${id})`} />
-      <path d={path} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-};
-
-const StatCard = ({ title, value, hint, icon: Icon, accent, spark = [2, 3, 3, 4, 5, 4, 6] }) => (
-  <Card className="p-4 md:p-5 float-in relative overflow-hidden">
-    <div
-      aria-hidden
-      className="absolute -top-16 -right-16 w-40 h-40 rounded-full pointer-events-none"
-      style={{ background: `radial-gradient(circle, ${accent}22, transparent 70%)` }}
-    />
-    <div className="relative flex items-start justify-between mb-3">
+const StatCard = ({ title, value, change, trend, icon: Icon, accent }) => (
+  <Card className="p-4 md:p-5 float-in">
+    <div className="flex items-start justify-between mb-4">
       <div
         className="w-9 h-9 rounded-xl flex items-center justify-center"
         style={{ background: `${accent}1A`, boxShadow: `inset 0 0 0 1px ${accent}33` }}
       >
         <Icon size={15} style={{ color: accent }} />
       </div>
+      <span
+        className="inline-flex items-center gap-0.5 rounded-lg px-2 py-0.5 text-[11px] font-medium whitespace-nowrap"
+        style={{
+          background: trend === "up" ? C.successSoft : C.dangerSoft,
+          color: trend === "up" ? C.success : C.danger,
+          boxShadow: `inset 0 0 0 1px ${trend === "up" ? C.successRing : C.dangerRing}`,
+          fontFamily: FONT.mono,
+        }}
+      >
+        {trend === "up" ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
+        {change}
+      </span>
     </div>
-    <p
-      className="relative text-[26px] font-bold leading-none tracking-tight"
-      style={{ fontFamily: FONT.mono, color: C.dark }}
-    >
+    <p className="text-[26px] font-bold leading-none tracking-tight" style={{ fontFamily: FONT.mono, color: C.dark }}>
       {value}
     </p>
-    <p className="relative text-[11.5px] mt-2 mb-3" style={{ color: C.textMuted }}>
-      {title}
-      {hint && <span style={{ color: C.textMuted }}> · {hint}</span>}
-    </p>
-    <div className="relative opacity-80">
-      <Sparkline points={spark} color={accent} />
-    </div>
+    <p className="text-[11.5px] mt-2" style={{ color: C.textMuted }}>{title}</p>
   </Card>
 );
 
 /* ─────────────────────────── Grid card ─────────────────────────── */
 
-const CampaignCard = ({ c, onEdit, onDelete, onStart, busy }) => {
-  const meta = STATUS_META[c.status] ?? FALLBACK_META;
+const CampaignCard = ({ c, onEdit, onDelete, onStart, onOpen, busy }) => {
+  const key = normalizeStatus(c.status);
+  const meta = STATUS_META[key] ?? FALLBACK_META;
   const Icon = meta.Icon;
+  const recipientCount = Array.isArray(c.recipients) ? c.recipients.length : 0;
 
   return (
     <div
-      className="group relative rounded-2xl soft-ring transition-all hover:-translate-y-1 overflow-hidden float-in"
+      onClick={() => onOpen(c)}
+      className="group relative rounded-2xl soft-ring transition-all hover:-translate-y-0.5 overflow-hidden cursor-pointer"
       style={{ background: C.inner }}
     >
       <span
-        className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full transition-all group-hover:top-2 group-hover:bottom-2"
-        style={{
-          background: meta.fg,
-          opacity: 0.85,
-          boxShadow: `0 0 12px ${meta.fg}66`,
-        }}
+        className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full"
+        style={{ background: meta.fg, opacity: 0.85, boxShadow: `0 0 12px ${meta.fg}66` }}
       />
 
-      <Link to={`/admin/campaigns/${c.id}`} className="block pl-5 pr-4 pt-4 pb-3">
+      <div className="pl-5 pr-4 pt-4 pb-3">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
@@ -280,65 +238,68 @@ const CampaignCard = ({ c, onEdit, onDelete, onStart, busy }) => {
           <StatusPill status={c.status} withIcon={false} />
         </div>
 
-        <h3
-          className="text-[14.5px] font-semibold tracking-tight truncate"
-          style={{ fontFamily: FONT.display, color: C.dark }}
-        >
+        <h3 className="text-[14.5px] font-semibold tracking-tight truncate" style={{ fontFamily: FONT.display, color: C.dark }}>
           {c.campaign_name}
         </h3>
         <p className="mt-1 text-[12px] truncate" style={{ color: C.textMuted }}>
           {c.subject || "No subject"}
         </p>
 
-        <div className="mt-3 flex items-center gap-3 text-[10.5px]" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
-          <span className="inline-flex items-center gap-1">
-            <Hash size={10} /> {c.id}
-          </span>
-          {c.template_id ? (
-            <span className="inline-flex items-center gap-1 truncate">
-              <FileEdit size={10} /> tpl {c.template_id}
+        <div className="mt-3 space-y-1.5">
+          <div className="flex items-center gap-2 text-[11px] min-w-0">
+            <AtSign size={11} style={{ color: C.textMuted }} className="shrink-0" />
+            <span className="truncate" style={{ color: C.textBody, fontFamily: FONT.mono }}>
+              {c.sender_account?.email
+                || c.sender_account?.display_name
+                || (c.sender_account_id ? `#${c.sender_account_id}` : "No sender")}
             </span>
-          ) : null}
+          </div>
+          <div className="flex items-center gap-2 text-[11px] min-w-0">
+            <FileCode size={11} style={{ color: C.textMuted }} className="shrink-0" />
+            <span className="truncate" style={{ color: C.textBody, fontFamily: FONT.mono }}>
+              {c.template?.name || (c.template_id ? `#${c.template_id}` : "No template")}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-[11px] min-w-0">
+            <Users size={11} style={{ color: C.textMuted }} className="shrink-0" />
+            <span style={{ color: C.textBody, fontFamily: FONT.mono }}>
+              {recipientCount} recipient{recipientCount === 1 ? "" : "s"}
+            </span>
+          </div>
         </div>
 
         <div
           className="mt-3 pt-3 flex items-center justify-between text-[11px] border-t"
           style={{ borderColor: C.border, fontFamily: FONT.mono, color: C.textMuted }}
         >
+          <span>#{c.id}</span>
           <span className="inline-flex items-center gap-1">
-            <Clock size={11} /> {relativeTime(c.created_at)}
+            <Clock size={11} /> {formatDate(c.created_at)}
           </span>
-          <ChevronRight size={12} className="opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
         </div>
-      </Link>
+      </div>
 
-      {/* Action row */}
-      <div className="px-3 pb-3 pt-1 flex items-center gap-1.5">
-        {c.status === "READY" || c.status === "PAUSED" ? (
+      <div
+        className="px-3 pb-3 pt-0 flex items-center gap-1.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {key === "Ready" || key === "Paused" ? (
           <button
             onClick={() => onStart(c)}
             disabled={busy}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11.5px] font-medium transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
-            style={{
-              background: C.primarySoft,
-              color: C.primary,
-              boxShadow: `inset 0 0 0 1px ${C.primaryRing}`,
-            }}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11.5px] font-medium transition-colors disabled:opacity-50"
+            style={{ background: C.primarySoft, color: C.primary, boxShadow: `inset 0 0 0 1px ${C.primaryRing}` }}
           >
             <PlayCircle size={12} /> Start
           </button>
         ) : (
-          <Link
-            to={`/admin/campaigns/${c.id}`}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11.5px] font-medium transition-all hover:-translate-y-0.5"
-            style={{
-              background: C.primarySoft,
-              color: C.primary,
-              boxShadow: `inset 0 0 0 1px ${C.primaryRing}`,
-            }}
+          <button
+            onClick={() => onOpen(c)}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11.5px] font-medium"
+            style={{ background: C.primarySoft, color: C.primary, boxShadow: `inset 0 0 0 1px ${C.primaryRing}` }}
           >
             <Send size={12} /> Open
-          </Link>
+          </button>
         )}
 
         <button
@@ -364,14 +325,473 @@ const CampaignCard = ({ c, onEdit, onDelete, onStart, busy }) => {
   );
 };
 
-/* ─────────────────────────── Drawer ─────────────────────────── */
+/* ─────────────────────────── Campaign detail drawer ─────────────────────────── */
+
+const DetailRow = ({ icon: Icon, label, children }) => (
+  <div className="flex items-start gap-3">
+    <div
+      className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center"
+      style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+    >
+      <Icon size={13} style={{ color: C.textMuted }} />
+    </div>
+    <div className="min-w-0 flex-1">
+      <p className="text-[10.5px] uppercase tracking-wider" style={{ color: C.textMuted }}>{label}</p>
+      <div className="text-[13px] mt-0.5 min-w-0" style={{ color: C.textBody }}>{children}</div>
+    </div>
+  </div>
+);
+
+const StatBox = ({ label, value, fg, bg, ring, Icon }) => (
+  <div className="rounded-2xl p-3" style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}>
+    <div className="flex items-center gap-2 mb-1.5">
+      <div
+        className="w-6 h-6 rounded-lg flex items-center justify-center"
+        style={{ background: bg, boxShadow: `inset 0 0 0 1px ${ring}` }}
+      >
+        <Icon size={11} style={{ color: fg }} />
+      </div>
+      <span className="text-[10.5px] uppercase tracking-wider" style={{ color: C.textMuted }}>{label}</span>
+    </div>
+    <p className="text-[20px] font-bold leading-none" style={{ fontFamily: FONT.mono, color: C.dark }}>
+      {value}
+    </p>
+  </div>
+);
+
+const CampaignDetailDrawer = ({ open, campaign, onClose }) => {
+  const [detail, setDetail] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || !campaign?.id) return;
+    let cancelled = false;
+    setDetail(campaign); // show what we already have immediately
+    setLoading(true);
+
+    (async () => {
+      try {
+        const data = await getCampaignById(campaign.id);
+        if (!cancelled) setDetail(data);
+      } catch (e) {
+        console.warn("Falling back to list data:", e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [open, campaign]);
+
+  if (!open || !campaign) return null;
+
+  const c = detail || campaign;
+  const statusKey = normalizeStatus(c.status);
+  const statusMeta = STATUS_META[statusKey] ?? FALLBACK_META;
+
+  // Resolve sender — the API gives us `sender_account: { id, display_name, email }`
+  const senderEmail = c.sender_account?.email ?? "—";
+  const senderName = c.sender_account?.display_name ?? c.sender_account?.name ?? "—";
+  const senderId = c.sender_account?.id ?? c.sender_account_id;
+
+  // Resolve template
+  const template = c.template ?? null;
+
+  const recipients = Array.isArray(c.recipients) ? c.recipients : [];
+  const logs = Array.isArray(c.email_logs) ? c.email_logs : [];
+  const uploads = Array.isArray(c.uploads) ? c.uploads : [];
+
+  // Recipient status breakdown — the API currently returns all as "Pending"
+  const recipientsByStatus = recipients.reduce((acc, r) => {
+    const k = r.status || "Pending";
+    acc[k] = (acc[k] || 0) + 1;
+    return acc;
+  }, {});
+
+  // Log status breakdown
+  const logsByStatus = logs.reduce((acc, l) => {
+    const k = l.status || "Pending";
+    acc[k] = (acc[k] || 0) + 1;
+    return acc;
+  }, {});
+
+  // Map log.recipient_id → recipient for display
+  const recipientById = recipients.reduce((acc, r) => {
+    acc[r.id] = r;
+    return acc;
+  }, {});
+
+  const totalSent = logsByStatus.Sent ?? 0;
+  const totalFailed = logsByStatus.Failed ?? 0;
+  const totalPending = logsByStatus.Pending ?? 0;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex">
+      <div className="flex-1 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <aside
+        className="w-full max-w-2xl h-full overflow-y-auto border-l flex flex-col"
+        style={{ background: C.surface, borderColor: C.border }}
+      >
+        {/* Header */}
+        <div
+          className="flex items-start justify-between gap-4 px-5 md:px-6 py-4 md:py-5 border-b sticky top-0 z-10"
+          style={{ background: C.surface, borderColor: C.border }}
+        >
+          <div className="flex items-start gap-3.5 min-w-0">
+            <div
+              className="shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
+              style={{ background: statusMeta.bg, boxShadow: `inset 0 0 0 1px ${statusMeta.ring}` }}
+            >
+              <statusMeta.Icon size={18} style={{ color: statusMeta.fg }} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10.5px] uppercase tracking-widest" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+                campaign #{c.id}
+              </p>
+              <h2
+                className="text-[16px] md:text-[18px] font-bold tracking-tight truncate"
+                style={{ fontFamily: FONT.display, color: C.dark }}
+              >
+                {c.campaign_name}
+              </h2>
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                <StatusPill status={c.status} />
+                <span className="text-[11px] truncate" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+                  {c.subject || "—"}
+                </span>
+                {loading && (
+                  <span className="text-[10.5px] inline-flex items-center gap-1" style={{ color: C.textMuted }}>
+                    <Loader2 size={10} className="animate-spin" /> refreshing…
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="shrink-0 p-2 rounded-xl transition-colors"
+            style={{ color: C.textMuted, background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+            aria-label="Close"
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 p-5 md:p-6 space-y-6">
+
+          {/* Overview */}
+          <section>
+            <SectionHeader icon={Megaphone} title="Overview" />
+            <div className="mt-4 space-y-3">
+              <DetailRow icon={FileEdit} label="Subject">
+                <span style={{ fontFamily: FONT.mono }}>{c.subject || "—"}</span>
+              </DetailRow>
+              <DetailRow icon={Hash} label="Campaign ID">
+                <span style={{ fontFamily: FONT.mono }}>#{c.id}</span>
+              </DetailRow>
+              <DetailRow icon={Clock} label="Created">
+                <span style={{ fontFamily: FONT.mono }}>{formatDateTime(c.created_at)}</span>
+              </DetailRow>
+              <DetailRow icon={Clock} label="Last updated">
+                <span style={{ fontFamily: FONT.mono }}>{formatDateTime(c.updated_at)}</span>
+              </DetailRow>
+            </div>
+          </section>
+
+          {/* Sender */}
+          <section>
+            <SectionHeader
+              icon={AtSign}
+              title="Sender account"
+              right={
+                senderId && (
+                  <Link
+                    to={`/admin/senders-account`}
+                    className="inline-flex items-center gap-1 text-[11.5px] font-medium"
+                    style={{ color: C.primary }}
+                  >
+                    Manage <ExternalLink size={11} />
+                  </Link>
+                )
+              }
+            />
+            <div className="mt-4">
+              <div
+                className="rounded-2xl p-4 flex items-center gap-4"
+                style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+              >
+                <div
+                  className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
+                  style={{ background: C.primarySoft, boxShadow: `inset 0 0 0 1px ${C.primaryRing}` }}
+                >
+                  <AtSign size={16} style={{ color: C.primary }} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[13.5px] font-semibold truncate" style={{ color: C.dark }}>
+                    {senderName}
+                  </p>
+                  <p className="text-[11.5px] mt-0.5 truncate" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+                    {senderEmail}
+                  </p>
+                </div>
+                {senderId && (
+                  <span className="ml-auto text-[10.5px] font-mono shrink-0" style={{ color: C.textMuted }}>
+                    #{senderId}
+                  </span>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* Template */}
+          <section>
+            <SectionHeader
+              icon={FileCode}
+              title="Template"
+              right={
+                template?.id && (
+                  <Link
+                    to={`/admin/templates`}
+                    className="inline-flex items-center gap-1 text-[11.5px] font-medium"
+                    style={{ color: C.primary }}
+                  >
+                    Open <ExternalLink size={11} />
+                  </Link>
+                )
+              }
+            />
+            <div className="mt-4">
+              {template ? (
+                <div className="rounded-2xl overflow-hidden" style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}>
+                  <div className="p-4 flex items-start justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
+                      <p className="text-[13.5px] font-semibold truncate" style={{ color: C.dark }}>
+                        {template.name || `Template #${template.id}`}
+                      </p>
+                      <p className="text-[11.5px] mt-0.5" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+                        #{template.id}
+                      </p>
+                    </div>
+                  </div>
+                  {template.html_content ? (
+                    <iframe
+                      title="Template preview"
+                      srcDoc={template.html_content}
+                      sandbox=""
+                      className="w-full bg-white"
+                      style={{ height: 240, border: 0, borderTop: `1px solid ${C.border}` }}
+                    />
+                  ) : (
+                    <p className="px-4 py-3 text-[12px]" style={{ color: C.textMuted, borderTop: `1px solid ${C.border}` }}>
+                      Preview not available.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div
+                  className="rounded-2xl p-4 text-[12.5px]"
+                  style={{ background: C.inner, color: C.textMuted, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+                >
+                  {c.template_id ? `Template #${c.template_id} (details not loaded)` : "No template attached."}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Recipients */}
+          <section>
+            <SectionHeader
+              icon={Users}
+              title="Recipients"
+              subtitle={`${recipients.length} total`}
+              right={
+                <Link
+                  to={`/admin/campaigns/${c.id}/recipients`}
+                  className="inline-flex items-center gap-1 text-[11.5px] font-medium"
+                  style={{ color: C.primary }}
+                >
+                  View all <ExternalLink size={11} />
+                </Link>
+              }
+            />
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <StatBox label="Total"    value={recipients.length}                 fg={C.primary} bg={C.primarySoft} ring={C.primaryRing} Icon={Users} />
+              <StatBox label="Sent"     value={totalSent}                          fg={C.success} bg={C.successSoft} ring={C.successRing} Icon={MailCheck} />
+              <StatBox label="Failed"   value={totalFailed}                        fg={C.danger}  bg={C.dangerSoft}  ring={C.dangerRing}  Icon={MailX} />
+              <StatBox label="Pending"  value={totalPending || recipients.length}  fg={C.warning} bg={C.warningSoft} ring={C.warningRing} Icon={MailWarning} />
+            </div>
+
+            {recipients.length > 0 && (
+              <ul className="mt-4 space-y-1.5">
+                {recipients.slice(0, 6).map((r) => (
+                  <li
+                    key={r.id}
+                    className="flex items-center justify-between gap-3 rounded-xl px-3 py-2"
+                    style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[12.5px] font-medium truncate" style={{ color: C.dark }}>
+                        {r.name || r.email || `Recipient #${r.id}`}
+                      </p>
+                      {r.email && (
+                        <p className="text-[11px] truncate" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+                          {r.email}
+                        </p>
+                      )}
+                    </div>
+                    {r.status && LOG_STATUS_META[r.status] && (
+                      <Pill
+                        fg={LOG_STATUS_META[r.status].fg}
+                        bg={LOG_STATUS_META[r.status].bg}
+                        ring={LOG_STATUS_META[r.status].ring}
+                      >
+                        {r.status}
+                      </Pill>
+                    )}
+                  </li>
+                ))}
+                {recipients.length > 6 && (
+                  <li className="text-[11.5px] text-center pt-1" style={{ color: C.textMuted }}>
+                    + {recipients.length - 6} more
+                  </li>
+                )}
+              </ul>
+            )}
+          </section>
+
+          {/* Delivery */}
+          <section>
+            <SectionHeader
+              icon={BarChart3}
+              title="Delivery"
+              subtitle={logs.length ? `${logs.length} events logged` : "No logs yet"}
+              right={
+                <Link
+                  to={`/admin/emaillogs`}
+                  className="inline-flex items-center gap-1 text-[11.5px] font-medium"
+                  style={{ color: C.primary }}
+                >
+                  Open logs <ExternalLink size={11} />
+                </Link>
+              }
+            />
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <StatBox label="Sent"      value={logsByStatus.Sent ?? 0}      fg={C.blue}    bg={C.blueSoft}    ring={C.blueRing}    Icon={Clock} />
+              <StatBox label="Delivered" value={logsByStatus.Delivered ?? 0} fg={C.success} bg={C.successSoft} ring={C.successRing} Icon={CheckCircle2} />
+              <StatBox label="Bounced"   value={logsByStatus.Bounced ?? 0}   fg={C.warning} bg={C.warningSoft} ring={C.warningRing} Icon={MailWarning} />
+              <StatBox label="Failed"    value={logsByStatus.Failed ?? 0}    fg={C.danger}  bg={C.dangerSoft}  ring={C.dangerRing}  Icon={MailX} />
+            </div>
+
+            {logs.length > 0 && (
+              <ul className="mt-4 space-y-1.5">
+                {logs.slice(0, 6).map((l) => {
+                  const r = recipientById[l.recipient_id];
+                  return (
+                    <li
+                      key={l.id}
+                      className="flex items-center justify-between gap-3 rounded-xl px-3 py-2"
+                      style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-[12px] truncate" style={{ color: C.dark }}>
+                          {r?.email || r?.name || `Recipient #${l.recipient_id ?? "—"}`}
+                        </p>
+                        <p className="text-[10.5px] truncate" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+                          {formatDateTime(l.sent_at)}
+                        </p>
+                      </div>
+                      {l.status && LOG_STATUS_META[l.status] && (
+                        <Pill
+                          fg={LOG_STATUS_META[l.status].fg}
+                          bg={LOG_STATUS_META[l.status].bg}
+                          ring={LOG_STATUS_META[l.status].ring}
+                          Icon={LOG_STATUS_META[l.status].Icon}
+                        >
+                          {l.status}
+                        </Pill>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+
+          {/* Uploads */}
+          {uploads.length > 0 && (
+            <section>
+              <SectionHeader
+                icon={FileSpreadsheet}
+                title="Source files"
+                subtitle={`${uploads.length} upload${uploads.length === 1 ? "" : "s"} linked`}
+              />
+              <ul className="mt-4 space-y-2">
+                {uploads.map((u) => (
+                  <li
+                    key={u.id}
+                    className="rounded-2xl p-3.5 flex items-center justify-between gap-3"
+                    style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+                        style={{ background: C.primarySoft, boxShadow: `inset 0 0 0 1px ${C.primaryRing}` }}
+                      >
+                        <FileSpreadsheet size={14} style={{ color: C.primary }} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[12.5px] font-medium truncate" style={{ color: C.dark }}>
+                          {u.original_filename || "Untitled file"}
+                        </p>
+                        <p className="text-[11px] mt-0.5" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+                          {u.processed_records ?? 0} / {u.total_records ?? 0} processed
+                        </p>
+                      </div>
+                    </div>
+                    <Pill
+                      fg={LOG_STATUS_META[u.status === "uploaded" ? "Pending" : "Sent"]?.fg ?? C.neutral}
+                      bg={LOG_STATUS_META[u.status === "uploaded" ? "Pending" : "Sent"]?.bg ?? C.neutralSoft}
+                      ring={LOG_STATUS_META[u.status === "uploaded" ? "Pending" : "Sent"]?.ring ?? C.neutralRing}
+                    >
+                      {u.status || "uploaded"}
+                    </Pill>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div
+          className="px-5 md:px-6 py-4 border-t flex items-center justify-between gap-2 sticky bottom-0"
+          style={{ background: C.surface, borderColor: C.border }}
+        >
+          <span className="text-[11px]" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+            #{c.id} · {statusMeta.label}
+          </span>
+          <button
+            onClick={onClose}
+            className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-colors"
+            style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+          >
+            Close
+          </button>
+        </div>
+      </aside>
+    </div>
+  );
+};
+
+/* ─────────────────────────── Create / edit drawer ─────────────────────────── */
 
 const EMPTY_FORM = {
   campaign_name: "",
   subject: "",
   template_id: "",
   sender_account_id: "",
-  status: "DRAFT",
+  status: "Draft",
 };
 
 const CampaignDrawer = ({ open, initial, onClose, onSaved }) => {
@@ -389,7 +809,7 @@ const CampaignDrawer = ({ open, initial, onClose, onSaved }) => {
         subject: initial.subject ?? "",
         template_id: String(initial.template_id ?? ""),
         sender_account_id: String(initial.sender_account_id ?? ""),
-        status: initial.status ?? "DRAFT",
+        status: normalizeStatus(initial.status),
       });
     } else {
       setForm(EMPTY_FORM);
@@ -422,9 +842,7 @@ const CampaignDrawer = ({ open, initial, onClose, onSaved }) => {
       onClose();
     } catch (e) {
       console.error(e);
-      setErr(
-        e?.response?.data?.detail || e?.message || "Failed to save campaign."
-      );
+      setErr(e?.response?.data?.detail || e?.message || "Failed to save campaign.");
     } finally {
       setSubmitting(false);
     }
@@ -432,34 +850,17 @@ const CampaignDrawer = ({ open, initial, onClose, onSaved }) => {
 
   if (!open) return null;
 
-  const currentMeta = STATUS_META[form.status] ?? FALLBACK_META;
-
   return (
     <div className="fixed inset-0 z-[60] flex">
       <div className="flex-1 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <aside
-        className="w-full max-w-md h-full overflow-y-auto border-l flex flex-col"
+        className="w-full max-w-md h-full overflow-y-auto border-l"
         style={{ background: C.surface, borderColor: C.border }}
       >
-        {/* Header */}
-        <div
-          className="flex items-center justify-between px-5 py-4 border-b sticky top-0 z-10"
-          style={{ background: C.surface, borderColor: C.border }}
-        >
-          <div>
-            <p
-              className="text-[10.5px] uppercase tracking-widest"
-              style={{ color: C.textMuted, fontFamily: FONT.mono }}
-            >
-              {isEdit ? `campaign #${initial.id}` : "new campaign"}
-            </p>
-            <h2
-              className="mt-0.5 text-[16px] font-semibold tracking-tight"
-              style={{ fontFamily: FONT.display, color: C.dark }}
-            >
-              {isEdit ? "Edit campaign" : "Create campaign"}
-            </h2>
-          </div>
+        <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: C.border }}>
+          <h2 className="text-[15px] font-semibold tracking-tight" style={{ fontFamily: FONT.display, color: C.dark }}>
+            {isEdit ? "Edit campaign" : "New campaign"}
+          </h2>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg hover:bg-[#1B2130]"
@@ -470,134 +871,52 @@ const CampaignDrawer = ({ open, initial, onClose, onSaved }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
-          <div className="p-5 space-y-6 flex-1">
-            {/* Section: Basics */}
-            <section className="space-y-4">
-              <SectionLabel icon={Megaphone} label="Basics" />
-              <Field
-                label="Campaign name"
-                value={form.campaign_name}
-                onChange={set("campaign_name")}
-                placeholder="Summer promotion"
-                required
-              />
-              <Field
-                label="Subject"
-                value={form.subject}
-                onChange={set("subject")}
-                placeholder="Our biggest sale of the year"
-                required
-                hint={`${form.subject.length}/80`}
-                maxLength={80}
-              />
-            </section>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <Field label="Campaign name" value={form.campaign_name} onChange={set("campaign_name")} placeholder="Summer promotion" required />
+          <Field label="Subject" value={form.subject} onChange={set("subject")} placeholder="Our biggest sale of the year" required />
+          <Field label="Template ID" value={form.template_id} onChange={set("template_id")} placeholder="2" type="number" />
+          <Field label="Sender account ID" value={form.sender_account_id} onChange={set("sender_account_id")} placeholder="1" type="number" />
 
-            {/* Section: Configuration */}
-            <section className="space-y-4">
-              <SectionLabel icon={SlidersHorizontal} label="Configuration" />
-              <Field
-                label="Template ID"
-                value={form.template_id}
-                onChange={set("template_id")}
-                placeholder="1"
-                type="number"
-                icon={FileEdit}
-              />
-              <Field
-                label="Sender account ID"
-                value={form.sender_account_id}
-                onChange={set("sender_account_id")}
-                placeholder="1"
-                type="number"
-                icon={AtSign}
-              />
+          <label className="block">
+            <span className="block mb-1.5 text-[11px] font-medium" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+              Status
+            </span>
+            <select
+              value={form.status}
+              onChange={set("status")}
+              className="w-full rounded-2xl px-3 py-2.5 text-[13px] outline-none"
+              style={{ background: C.inner, color: C.dark, boxShadow: `inset 0 0 0 1px ${C.border}`, fontFamily: FONT.body }}
+            >
+              {STATUS_OPTIONS.map((s) => (
+                <option key={s} value={s}>{STATUS_META[s].label}</option>
+              ))}
+            </select>
+          </label>
 
-              <label className="block">
-                <span
-                  className="block mb-1.5 text-[11px] font-medium"
-                  style={{ color: C.textMuted, fontFamily: FONT.mono }}
-                >
-                  Status
-                </span>
-                <div className="relative">
-                  <select
-                    value={form.status}
-                    onChange={set("status")}
-                    className="w-full appearance-none rounded-2xl px-3 py-2.5 pr-9 text-[13px] outline-none"
-                    style={{
-                      background: C.inner,
-                      color: C.dark,
-                      boxShadow: `inset 0 0 0 1px ${C.border}`,
-                      fontFamily: FONT.body,
-                    }}
-                  >
-                    {STATUS_OPTIONS.map((s) => (
-                      <option key={s} value={s}>
-                        {STATUS_META[s].label}
-                      </option>
-                    ))}
-                  </select>
-                  <span
-                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full"
-                    style={{
-                      background: currentMeta.fg,
-                      boxShadow: `0 0 6px ${currentMeta.fg}`,
-                    }}
-                  />
-                </div>
-              </label>
-            </section>
+          {err && (
+            <div
+              className="rounded-2xl px-3.5 py-2.5 text-[12px] flex items-start gap-2"
+              style={{ background: C.dangerSoft, color: C.danger, boxShadow: `inset 0 0 0 1px ${C.dangerRing}` }}
+            >
+              <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+              <span>{err}</span>
+            </div>
+          )}
 
-            {err && (
-              <div
-                className="rounded-2xl px-3.5 py-2.5 text-[12px] flex items-start gap-2 float-in"
-                style={{
-                  background: C.dangerSoft,
-                  color: C.danger,
-                  boxShadow: `inset 0 0 0 1px ${C.dangerRing}`,
-                }}
-              >
-                <AlertTriangle size={13} className="mt-0.5 shrink-0" />
-                <span>{err}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div
-            className="px-5 py-4 border-t flex items-center gap-2 sticky bottom-0"
-            style={{ background: C.surface, borderColor: C.border }}
-          >
+          <div className="flex items-center gap-2 pt-2">
             <button
               type="submit"
               disabled={submitting}
               className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5 disabled:opacity-60"
-              style={{
-                background: C.primary,
-                boxShadow: "0 12px 30px -12px rgba(255,106,57,0.7)",
-              }}
+              style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.7)" }}
             >
-              {submitting ? (
-                <>
-                  <Loader2 size={13} className="animate-spin" />
-                  Saving…
-                </>
-              ) : isEdit ? (
-                "Save changes"
-              ) : (
-                "Create campaign"
-              )}
+              {submitting ? (<><Loader2 size={13} className="animate-spin" /> Saving…</>) : isEdit ? "Save changes" : "Create campaign"}
             </button>
             <button
               type="button"
               onClick={onClose}
               className="rounded-2xl px-4 py-2.5 text-[13px] font-medium"
-              style={{
-                background: C.inner,
-                color: C.textBody,
-                boxShadow: `inset 0 0 0 1px ${C.border}`,
-              }}
+              style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
             >
               Cancel
             </button>
@@ -608,64 +927,21 @@ const CampaignDrawer = ({ open, initial, onClose, onSaved }) => {
   );
 };
 
-const SectionLabel = ({ icon: Icon, label }) => (
-  <div className="flex items-center gap-2">
-    <Icon size={12} style={{ color: C.primary }} />
-    <span
-      className="text-[10.5px] uppercase tracking-widest"
-      style={{ color: C.textMuted, fontFamily: FONT.mono }}
-    >
-      {label}
-    </span>
-    <span className="flex-1 h-px" style={{ background: C.border }} />
-  </div>
-);
-
-const Field = ({
-  label,
-  value,
-  onChange,
-  placeholder,
-  required,
-  type = "text",
-  icon: Icon,
-  hint,
-  maxLength,
-}) => (
+const Field = ({ label, value, onChange, placeholder, required, type = "text" }) => (
   <label className="block">
-    <span
-      className="mb-1.5 flex items-center justify-between text-[11px] font-medium"
-      style={{ color: C.textMuted, fontFamily: FONT.mono }}
-    >
-      <span>
-        {label}
-        {required && <span style={{ color: C.primary }}> *</span>}
-      </span>
-      {hint && <span>{hint}</span>}
+    <span className="block mb-1.5 text-[11px] font-medium" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+      {label}
+      {required && <span style={{ color: C.primary }}> *</span>}
     </span>
-    <div className="relative">
-      {Icon && (
-        <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: C.textMuted }}>
-          <Icon size={13} />
-        </span>
-      )}
-      <input
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        required={required}
-        maxLength={maxLength}
-        className="w-full rounded-2xl px-3 py-2.5 text-[13px] outline-none"
-        style={{
-          background: C.inner,
-          color: C.dark,
-          boxShadow: `inset 0 0 0 1px ${C.border}`,
-          fontFamily: FONT.body,
-          paddingLeft: Icon ? 34 : undefined,
-        }}
-      />
-    </div>
+    <input
+      type={type}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      required={required}
+      className="w-full rounded-2xl px-3 py-2.5 text-[13px] outline-none"
+      style={{ background: C.inner, color: C.dark, boxShadow: `inset 0 0 0 1px ${C.border}`, fontFamily: FONT.body }}
+    />
   </label>
 );
 
@@ -676,10 +952,7 @@ const ConfirmDialog = ({ open, title, body, confirmLabel, onConfirm, onCancel, b
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onCancel} />
-      <div
-        className="relative w-full max-w-sm rounded-3xl p-5 soft-ring float-in"
-        style={{ background: C.surface }}
-      >
+      <div className="relative w-full max-w-sm rounded-3xl p-5 soft-ring" style={{ background: C.surface }}>
         <div className="flex items-start gap-3">
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -688,15 +961,10 @@ const ConfirmDialog = ({ open, title, body, confirmLabel, onConfirm, onCancel, b
             <AlertTriangle size={15} style={{ color: C.danger }} />
           </div>
           <div className="min-w-0">
-            <h3
-              className="text-[14px] font-semibold tracking-tight"
-              style={{ fontFamily: FONT.display, color: C.dark }}
-            >
+            <h3 className="text-[14px] font-semibold tracking-tight" style={{ fontFamily: FONT.display, color: C.dark }}>
               {title}
             </h3>
-            <p className="mt-1 text-[12.5px]" style={{ color: C.textMuted }}>
-              {body}
-            </p>
+            <p className="mt-1 text-[12.5px]" style={{ color: C.textMuted }}>{body}</p>
           </div>
         </div>
         <div className="mt-5 flex items-center gap-2 justify-end">
@@ -704,11 +972,7 @@ const ConfirmDialog = ({ open, title, body, confirmLabel, onConfirm, onCancel, b
             onClick={onCancel}
             disabled={busy}
             className="rounded-2xl px-4 py-2 text-[12.5px] font-medium"
-            style={{
-              background: C.inner,
-              color: C.textBody,
-              boxShadow: `inset 0 0 0 1px ${C.border}`,
-            }}
+            style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
           >
             Cancel
           </button>
@@ -730,17 +994,23 @@ const ConfirmDialog = ({ open, title, body, confirmLabel, onConfirm, onCancel, b
 /* ─────────────────────────── Page ─────────────────────────── */
 
 export default function Campaigns() {
-  const { campaigns, loading, error, fetchAll } = useCampaigns();
+  const {
+    allCampaigns: campaigns,
+    allLoading: loading,
+    allError: error,
+    fetchAll,
+  } = useCampaigns();
 
   const [refreshing, setRefreshing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [now, setNow] = useState("");
-  const [filter, setFilter] = useState("ALL");
+  const [filter, setFilter] = useState("All");
   const [query, setQuery] = useState("");
   const [view, setView] = useState("grid");
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [detailTarget, setDetailTarget] = useState(null);
   const [confirmTarget, setConfirmTarget] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -751,13 +1021,7 @@ export default function Campaigns() {
 
   useEffect(() => {
     const tick = () =>
-      setNow(
-        new Date().toLocaleTimeString(undefined, {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        })
-      );
+      setNow(new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
@@ -774,39 +1038,37 @@ export default function Campaigns() {
 
   const stats = useMemo(() => {
     const total = campaigns.length;
-    const running = campaigns.filter((c) => c.status === "RUNNING").length;
-    const completed = campaigns.filter((c) => c.status === "COMPLETED").length;
-    const drafts = campaigns.filter((c) => c.status === "DRAFT").length;
+    const running = campaigns.filter((c) => normalizeStatus(c.status) === "Running").length;
+    const completed = campaigns.filter((c) => normalizeStatus(c.status) === "Completed").length;
+    const drafts = campaigns.filter((c) => normalizeStatus(c.status) === "Draft").length;
+
     return [
-      { title: "Total campaigns", value: String(total),     hint: "all time",     icon: Megaphone,    accent: C.primary, spark: [3, 4, 4, 5, 6, 6, 7] },
-      { title: "Running now",     value: String(running),   hint: "active",       icon: PlayCircle,   accent: C.blue,    spark: [1, 1, 2, 1, 3, 2, 3] },
-      { title: "Completed",       value: String(completed), hint: "finished",     icon: CheckCircle2, accent: C.success, spark: [2, 3, 3, 4, 5, 6, 7] },
-      { title: "Drafts",          value: String(drafts),    hint: "not sent yet", icon: FileEdit,     accent: C.warning, spark: [5, 4, 4, 3, 4, 3, 2] },
+      { title: "Total campaigns", value: String(total),     change: "+6.2%",                 trend: "up",   icon: Megaphone,    accent: C.primary },
+      { title: "Running now",     value: String(running),   change: running ? "+3.1%" : "0%", trend: "up",   icon: PlayCircle,   accent: C.blue    },
+      { title: "Completed",       value: String(completed), change: "+12.4%",                trend: "up",   icon: CheckCircle2, accent: C.success },
+      { title: "Drafts",          value: String(drafts),    change: "-2.0%",                 trend: "down", icon: FileEdit,     accent: C.warning },
     ];
   }, [campaigns]);
 
   const visibleCampaigns = useMemo(() => {
     const q = query.trim().toLowerCase();
     return campaigns.filter((c) => {
-      const matchesStatus = filter === "ALL" || c.status === filter;
+      const key = normalizeStatus(c.status);
+      const matchesStatus = filter === "All" || key === filter;
       const matchesQuery =
         !q ||
         (c.campaign_name ?? "").toLowerCase().includes(q) ||
-        (c.subject ?? "").toLowerCase().includes(q);
+        (c.subject ?? "").toLowerCase().includes(q) ||
+        (c.sender_account?.email ?? "").toLowerCase().includes(q) ||
+        (c.sender_account?.display_name ?? "").toLowerCase().includes(q) ||
+        (c.template?.name ?? "").toLowerCase().includes(q);
       return matchesStatus && matchesQuery;
     });
   }, [campaigns, filter, query]);
 
-  const openCreate = () => {
-    setEditing(null);
-    setDrawerOpen(true);
-  };
-
-  const openEdit = (c) => {
-    setEditing(c);
-    setDrawerOpen(true);
-  };
-
+  const openCreate = () => { setEditing(null); setDrawerOpen(true); };
+  const openEdit = (c) => { setEditing(c); setDrawerOpen(true); };
+  const openDetail = (c) => setDetailTarget(c);
   const askDelete = (c) => setConfirmTarget(c);
 
   const confirmDelete = async () => {
@@ -836,26 +1098,18 @@ export default function Campaigns() {
   };
 
   return (
-    <div
-      className="flex min-h-screen overflow-hidden"
-      style={{ background: C.bg, fontFamily: FONT.body }}
-    >
+    <div className="flex min-h-screen overflow-hidden" style={{ background: C.bg, fontFamily: FONT.body }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
         @keyframes ping { 75%, 100% { transform: scale(2.4); opacity: 0; } }
         .ping { animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite; }
-        @keyframes floatIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-        .float-in { animation: floatIn 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        @keyframes floatIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .float-in { animation: floatIn 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
         .cmp-main::-webkit-scrollbar { width: 10px; }
         .cmp-main::-webkit-scrollbar-track { background: transparent; }
         .cmp-main::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 10px; border: 2px solid #0B0E13; }
         .cmp-main::-webkit-scrollbar-thumb:hover { background: #2A2F3B; }
         .soft-ring { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 1px 0 rgba(255,255,255,0.02); }
-        .glow-top {
-          background:
-            radial-gradient(900px 240px at 50% -80px, rgba(255,106,57,0.10), transparent 70%),
-            radial-gradient(700px 200px at 20% -60px, rgba(52,211,153,0.06), transparent 70%);
-        }
         .cmp-row:hover { background: ${C.rowHover}; }
         .cmp-row .cmp-actions { opacity: 0; transition: opacity 0.15s ease; }
         .cmp-row:hover .cmp-actions, .cmp-row:focus-within .cmp-actions { opacity: 1; }
@@ -873,395 +1127,312 @@ export default function Campaigns() {
         />
       )}
 
-      <div
-        className={`
-          fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-        `}
-      >
+      <div className={`
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out
+        ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+      `}>
         <AdminSidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      <main
-        className="cmp-main flex-1 overflow-y-auto"
-        style={{ background: C.bg, height: "100vh", width: "100%" }}
-      >
-        <div className="glow-top">
-          <div className="max-w-[1320px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
+      <main className="cmp-main flex-1 overflow-y-auto" style={{ background: C.bg, height: "100vh", width: "100%" }}>
+        <div className="max-w-[1320px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
 
-            {/* Header */}
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
-              <div className="flex items-start gap-3 md:gap-4">
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="lg:hidden mt-1 p-2 rounded-2xl text-[#C7C9CE] transition-colors soft-ring"
-                  style={{ background: C.surface }}
-                  aria-label="Open menu"
-                >
-                  <Menu size={18} />
-                </button>
-
-                <div>
-                  <div className="flex flex-wrap items-center gap-2 mb-2.5">
-                    <span
-                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                      style={{
-                        background: C.successSoft,
-                        color: C.success,
-                        boxShadow: `inset 0 0 0 1px ${C.successRing}`,
-                      }}
-                    >
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 ping" />
-                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      </span>
-                      Live
-                    </span>
-                    <span className="text-[11px]" style={{ color: "#5A6172", fontFamily: FONT.mono }}>
-                      · {campaigns.length} campaigns
-                    </span>
-                    <span className="text-[11px]" style={{ color: "#5A6172", fontFamily: FONT.mono }}>
-                      · {now || "--:--:--"}
-                    </span>
-                  </div>
-
-                  <h1
-                    style={{ fontFamily: FONT.display, letterSpacing: "-0.025em" }}
-                    className="text-[28px] md:text-[34px] lg:text-[40px] font-bold leading-[1.05] text-[#F2F0EB]"
-                  >
-                    Campaigns
-                  </h1>
-                  <p className="mt-2 text-[14px] md:text-[15px] max-w-lg" style={{ color: C.textMuted }}>
-                    Create, monitor, and manage all your email campaigns in one place.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 self-start md:self-auto">
-                <button
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-[13px] font-medium transition-all soft-ring hover:-translate-y-0.5"
-                  style={{ background: C.surface, color: C.textBody }}
-                >
-                  <SlidersHorizontal size={14} />
-                  Filters
-                </button>
-                <button
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-[13px] font-medium transition-all soft-ring hover:-translate-y-0.5 disabled:opacity-60"
-                  style={{ background: C.surface, color: C.textBody }}
-                >
-                  <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
-                  Refresh
-                </button>
-                <button
-                  onClick={openCreate}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5"
-                  style={{
-                    background: C.primary,
-                    boxShadow: "0 12px 30px -12px rgba(255,106,57,0.7)",
-                  }}
-                >
-                  <Plus size={14} />
-                  New campaign
-                </button>
-              </div>
-            </header>
-
-            {error && (
-              <div
-                className="mb-6 rounded-2xl px-4 py-3 text-[12.5px] flex items-start gap-2"
-                style={{
-                  background: C.dangerSoft,
-                  color: C.danger,
-                  boxShadow: `inset 0 0 0 1px ${C.dangerRing}`,
-                }}
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
+            <div className="flex items-start gap-3 md:gap-4">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden mt-1 p-2 rounded-2xl text-[#C7C9CE] transition-colors soft-ring"
+                style={{ background: C.surface }}
+                aria-label="Open menu"
               >
-                <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
+                <Menu size={18} />
+              </button>
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-              {stats.map((s) => (
-                <StatCard key={s.title} {...s} />
-              ))}
+              <div>
+                <div className="flex flex-wrap items-center gap-2 mb-2.5">
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
+                    style={{ background: C.successSoft, color: C.success, boxShadow: `inset 0 0 0 1px ${C.successRing}` }}
+                  >
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 ping" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    </span>
+                    Live
+                  </span>
+                  <span className="text-[11px]" style={{ color: "#5A6172", fontFamily: FONT.mono }}>
+                    · {campaigns.length} campaigns
+                  </span>
+                  <span className="text-[11px]" style={{ color: "#5A6172", fontFamily: FONT.mono }}>
+                    · {now || "--:--:--"}
+                  </span>
+                </div>
+
+                <h1
+                  style={{ fontFamily: FONT.display, letterSpacing: "-0.025em" }}
+                  className="text-[28px] md:text-[34px] lg:text-[40px] font-bold leading-[1.05] text-[#F2F0EB]"
+                >
+                  Campaigns
+                </h1>
+                <p className="mt-2 text-[14px] md:text-[15px] max-w-lg" style={{ color: C.textMuted }}>
+                  Inspect every campaign — sender, template, recipients, and delivery, all in one place.
+                </p>
+              </div>
             </div>
 
-            {/* Toolbar */}
-            <Card className="mb-6 md:mb-8 p-3 md:p-4">
-              <div className="flex flex-col md:flex-row md:items-center gap-3">
-                <div
-                  className="flex items-center gap-2 rounded-2xl px-3 py-2 flex-1 min-w-0"
-                  style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                >
-                  <Search size={14} style={{ color: C.textMuted }} />
-                  <input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search campaigns…"
-                    className="bg-transparent outline-none border-0 text-[12.5px] flex-1 min-w-0"
-                    style={{ color: C.dark, fontFamily: FONT.body }}
-                  />
-                  {query && (
-                    <button
-                      onClick={() => setQuery("")}
-                      className="p-0.5 rounded"
-                      style={{ color: C.textMuted }}
-                      aria-label="Clear search"
-                    >
-                      <X size={12} />
-                    </button>
-                  )}
-                </div>
+            <div className="flex items-center gap-2 self-start md:self-auto">
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-[13px] font-medium transition-all soft-ring hover:-translate-y-0.5 disabled:opacity-60"
+                style={{ background: C.surface, color: C.textBody }}
+              >
+                <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+                Refresh
+              </button>
+              <button
+                onClick={openCreate}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5"
+                style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.7)" }}
+              >
+                <Plus size={14} />
+                New campaign
+              </button>
+            </div>
+          </header>
 
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span
-                    className="hidden md:inline-flex items-center gap-1 text-[10.5px] uppercase tracking-widest mr-1"
-                    style={{ color: C.textMuted, fontFamily: FONT.mono }}
-                  >
-                    <FilterIcon size={11} /> status
-                  </span>
-                  {FILTER_KEYS.map((key) => {
-                    const meta =
-                      key === "ALL"
-                        ? { fg: C.textBody, bg: C.inner, ring: C.border, label: "All" }
-                        : STATUS_META[key];
-                    const active = filter === key;
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => setFilter(key)}
-                        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-medium transition-all hover:-translate-y-0.5"
-                        style={{
-                          background: active ? meta.bg : "transparent",
-                          color: active ? meta.fg : C.textMuted,
-                          boxShadow: `inset 0 0 0 1px ${active ? meta.ring : C.border}`,
-                        }}
-                      >
-                        <span
-                          className="w-1.5 h-1.5 rounded-full"
-                          style={{
-                            background: active ? meta.fg : C.border,
-                            boxShadow: active ? `0 0 6px ${meta.fg}` : "none",
-                          }}
-                        />
-                        {meta.label}
-                      </button>
-                    );
-                  })}
-                </div>
+          {error && (
+            <div
+              className="mb-6 rounded-2xl px-4 py-3 text-[12.5px]"
+              style={{ background: C.dangerSoft, color: C.danger, boxShadow: `inset 0 0 0 1px ${C.dangerRing}` }}
+            >
+              {error}
+            </div>
+          )}
 
-                <div
-                  className="flex items-center rounded-2xl p-0.5 shrink-0"
-                  style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                >
-                  <button
-                    onClick={() => setView("grid")}
-                    aria-label="Grid view"
-                    className="p-1.5 rounded-xl transition-colors"
-                    style={{
-                      background: view === "grid" ? C.surface : "transparent",
-                      color: view === "grid" ? C.dark : C.textMuted,
-                    }}
-                  >
-                    <LayoutGrid size={14} />
-                  </button>
-                  <button
-                    onClick={() => setView("table")}
-                    aria-label="Table view"
-                    className="p-1.5 rounded-xl transition-colors"
-                    style={{
-                      background: view === "table" ? C.surface : "transparent",
-                      color: view === "table" ? C.dark : C.textMuted,
-                    }}
-                  >
-                    <List size={14} />
-                  </button>
-                </div>
-              </div>
-            </Card>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+            {stats.map((s) => <StatCard key={s.title} {...s} />)}
+          </div>
 
-            {/* Loading skeleton */}
-            {loading && campaigns.length === 0 && (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-[180px] rounded-2xl animate-pulse"
-                    style={{ background: C.surface, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Empty */}
-            {!loading && campaigns.length === 0 && !error && (
-              <Card className="p-10 text-center float-in">
-                <div
-                  className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
-                  style={{ background: C.primarySoft, boxShadow: `inset 0 0 0 1px ${C.primaryRing}` }}
-                >
-                  <Sparkles size={22} style={{ color: C.primary }} strokeWidth={1.8} />
-                </div>
-                <h2
-                  className="text-[16px] font-semibold tracking-tight"
-                  style={{ fontFamily: FONT.display, color: C.dark }}
-                >
-                  No campaigns yet
-                </h2>
-                <p className="mt-1.5 text-[12.5px] max-w-sm mx-auto" style={{ color: C.textMuted }}>
-                  Create your first campaign to start sending emails to your recipients.
-                </p>
-                <button
-                  onClick={openCreate}
-                  className="mt-6 inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
-                  style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.7)" }}
-                >
-                  <Plus size={14} />
-                  Create campaign
-                </button>
-              </Card>
-            )}
-
-            {/* No matches */}
-            {!loading && campaigns.length > 0 && visibleCampaigns.length === 0 && (
-              <Card className="p-8 text-center float-in">
-                <div
-                  className="mx-auto w-12 h-12 rounded-2xl flex items-center justify-center mb-3"
-                  style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                >
-                  <Search size={18} style={{ color: C.textMuted }} />
-                </div>
-                <p className="text-[13px] font-medium" style={{ color: C.dark }}>
-                  No campaigns match your filters
-                </p>
-                <p className="mt-1 text-[12px]" style={{ color: C.textMuted }}>
-                  Try adjusting your search or clearing the status filter.
-                </p>
-                <button
-                  onClick={() => {
-                    setFilter("ALL");
-                    setQuery("");
-                  }}
-                  className="mt-4 inline-flex items-center gap-1.5 rounded-2xl px-4 py-2 text-[12px] font-medium"
-                  style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                >
-                  Clear filters
-                </button>
-              </Card>
-            )}
-
-            {/* Grid */}
-            {!loading && visibleCampaigns.length > 0 && view === "grid" && (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {visibleCampaigns.map((c) => (
-                  <CampaignCard
-                    key={c.id}
-                    c={c}
-                    busy={busy}
-                    onEdit={openEdit}
-                    onDelete={askDelete}
-                    onStart={handleStart}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Table */}
-            {!loading && visibleCampaigns.length > 0 && view === "table" && (
-              <Card className="overflow-hidden float-in">
-                <SectionHeader
-                  icon={Megaphone}
-                  title="All campaigns"
-                  subtitle={`${visibleCampaigns.length} of ${campaigns.length} shown`}
-                  right={
-                    <span className="text-[11px]" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
-                      {filter === "ALL" ? "no filter" : filter.toLowerCase()}
-                    </span>
-                  }
+          <Card className="mb-6 md:mb-8 p-3 md:p-4">
+            <div className="flex flex-col md:flex-row md:items-center gap-3">
+              <div
+                className="flex items-center gap-2 rounded-2xl px-3 py-2 flex-1 min-w-0"
+                style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+              >
+                <Search size={14} style={{ color: C.textMuted }} />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search by name, subject, sender, or template…"
+                  className="bg-transparent outline-none border-0 text-[12.5px] flex-1 min-w-0"
+                  style={{ color: C.dark, fontFamily: FONT.body }}
                 />
+              </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left" style={{ minWidth: 980 }}>
-                    <thead className="cmp-thead">
-                      <tr
-                        className="text-[10px] uppercase tracking-widest"
-                        style={{ color: C.textMuted, borderBottom: `1px solid ${C.border}` }}
-                      >
-                        <th className="px-4 md:px-6 py-3 font-medium">ID</th>
-                        <th className="px-3 py-3 font-medium">Campaign</th>
-                        <th className="px-3 py-3 font-medium">Subject</th>
-                        <th className="px-3 py-3 font-medium">Status</th>
-                        <th className="px-3 py-3 font-medium text-right">Template</th>
-                        <th className="px-4 md:px-6 py-3 font-medium text-right">Created</th>
-                        <th className="px-4 md:px-6 py-3 font-medium text-right">
-                          <span className="sr-only">Actions</span>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {visibleCampaigns.map((c) => (
+              <div className="flex flex-wrap items-center gap-1.5">
+                {FILTER_KEYS.map((key) => {
+                  const meta = key === "All"
+                    ? { fg: C.textBody, bg: C.inner, ring: C.border, label: "All" }
+                    : STATUS_META[key];
+                  const active = filter === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setFilter(key)}
+                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-medium transition-all"
+                      style={{
+                        background: active ? meta.bg : "transparent",
+                        color: active ? meta.fg : C.textMuted,
+                        boxShadow: `inset 0 0 0 1px ${active ? meta.ring : C.border}`,
+                      }}
+                    >
+                      <span
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{
+                          background: active ? meta.fg : C.border,
+                          boxShadow: active ? `0 0 6px ${meta.fg}` : "none",
+                        }}
+                      />
+                      {meta.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center rounded-2xl p-0.5 shrink-0" style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}>
+                <button
+                  onClick={() => setView("grid")}
+                  aria-label="Grid view"
+                  className="p-1.5 rounded-xl transition-colors"
+                  style={{ background: view === "grid" ? C.surface : "transparent", color: view === "grid" ? C.dark : C.textMuted }}
+                >
+                  <LayoutGrid size={14} />
+                </button>
+                <button
+                  onClick={() => setView("table")}
+                  aria-label="Table view"
+                  className="p-1.5 rounded-xl transition-colors"
+                  style={{ background: view === "table" ? C.surface : "transparent", color: view === "table" ? C.dark : C.textMuted }}
+                >
+                  <List size={14} />
+                </button>
+              </div>
+            </div>
+          </Card>
+
+          {loading && campaigns.length === 0 && (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-[220px] rounded-2xl animate-pulse"
+                  style={{ background: C.surface, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+                />
+              ))}
+            </div>
+          )}
+
+          {!loading && campaigns.length === 0 && !error && (
+            <Card className="p-10 text-center">
+              <div
+                className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+                style={{ background: C.primarySoft, boxShadow: `inset 0 0 0 1px ${C.primaryRing}` }}
+              >
+                <Inbox size={22} style={{ color: C.primary }} strokeWidth={1.8} />
+              </div>
+              <h2 className="text-[16px] font-semibold tracking-tight" style={{ fontFamily: FONT.display, color: C.dark }}>
+                No campaigns yet
+              </h2>
+              <p className="mt-1.5 text-[12.5px] max-w-sm mx-auto" style={{ color: C.textMuted }}>
+                Create your first campaign to start sending emails to your recipients.
+              </p>
+              <button
+                onClick={openCreate}
+                className="mt-6 inline-flex items-center gap-2 rounded-2xl px-5 py-2.5 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
+                style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.7)" }}
+              >
+                <Plus size={14} />
+                Create campaign
+              </button>
+            </Card>
+          )}
+
+          {!loading && campaigns.length > 0 && visibleCampaigns.length === 0 && (
+            <Card className="p-8 text-center">
+              <p className="text-[13px]" style={{ color: C.textMuted }}>No campaigns match your filters.</p>
+              <button
+                onClick={() => { setFilter("All"); setQuery(""); }}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-2xl px-4 py-2 text-[12px] font-medium"
+                style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+              >
+                Clear filters
+              </button>
+            </Card>
+          )}
+
+          {!loading && visibleCampaigns.length > 0 && view === "grid" && (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {visibleCampaigns.map((c) => (
+                <CampaignCard
+                  key={c.id}
+                  c={c}
+                  busy={busy}
+                  onEdit={openEdit}
+                  onDelete={askDelete}
+                  onStart={handleStart}
+                  onOpen={openDetail}
+                />
+              ))}
+            </div>
+          )}
+
+          {!loading && visibleCampaigns.length > 0 && view === "table" && (
+            <Card className="overflow-hidden">
+              <SectionHeader
+                icon={Megaphone}
+                title="All campaigns"
+                subtitle={`${visibleCampaigns.length} of ${campaigns.length} shown`}
+                right={
+                  <span className="text-[11px]" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+                    {filter === "All" ? "no filter" : filter.toLowerCase()}
+                  </span>
+                }
+              />
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left" style={{ minWidth: 1100 }}>
+                  <thead className="cmp-thead">
+                    <tr className="text-[10px] uppercase tracking-widest" style={{ color: C.textMuted, borderBottom: `1px solid ${C.border}` }}>
+                      <th className="px-4 md:px-6 py-3 font-medium">ID</th>
+                      <th className="px-3 py-3 font-medium">Campaign</th>
+                      <th className="px-3 py-3 font-medium">Sender</th>
+                      <th className="px-3 py-3 font-medium">Template</th>
+                      <th className="px-3 py-3 font-medium text-right">Recipients</th>
+                      <th className="px-3 py-3 font-medium">Status</th>
+                      <th className="px-4 md:px-6 py-3 font-medium text-right">Created</th>
+                      <th className="px-4 md:px-6 py-3 font-medium text-right"><span className="sr-only">Actions</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleCampaigns.map((c) => {
+                      const key = normalizeStatus(c.status);
+                      const recipientCount = Array.isArray(c.recipients) ? c.recipients.length : 0;
+                      return (
                         <tr
                           key={c.id}
-                          className="cmp-row transition-colors"
+                          className="cmp-row transition-colors cursor-pointer"
                           style={{ borderBottom: `1px solid ${C.border}` }}
+                          onClick={() => openDetail(c)}
                         >
                           <td className="px-4 md:px-6 py-3.5">
-                            <span style={{ fontFamily: FONT.mono, color: C.textMuted, fontSize: 11.5 }}>
-                              #{c.id}
-                            </span>
+                            <span style={{ fontFamily: FONT.mono, color: C.textMuted, fontSize: 11.5 }}>#{c.id}</span>
                           </td>
                           <td className="px-3 py-3.5">
-                            <Link
-                              to={`/admin/campaigns/${c.id}`}
-                              className="text-[12.5px] font-medium hover:underline"
-                              style={{ color: C.dark }}
-                            >
+                            <p className="text-[12.5px] font-medium truncate max-w-[220px]" style={{ color: C.dark }}>
                               {c.campaign_name}
-                            </Link>
+                            </p>
+                            <p className="text-[11px] truncate max-w-[220px]" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+                              {c.subject || "—"}
+                            </p>
                           </td>
                           <td className="px-3 py-3.5">
-                            <span
-                              className="text-[12px] truncate block max-w-[260px]"
-                              style={{ fontFamily: FONT.mono, color: C.textMuted }}
-                            >
-                              {c.subject || "—"}
+                            <span className="text-[12px] truncate block max-w-[200px]" style={{ color: C.textBody, fontFamily: FONT.mono }}>
+                              {c.sender_account?.email || (c.sender_account_id ? `#${c.sender_account_id}` : "—")}
                             </span>
                           </td>
                           <td className="px-3 py-3.5">
-                            <StatusPill status={c.status} />
+                            <span className="text-[12px] truncate block max-w-[160px]" style={{ color: C.textBody, fontFamily: FONT.mono }}>
+                              {c.template?.name || (c.template_id ? `#${c.template_id}` : "—")}
+                            </span>
                           </td>
-                          <td
-                            className="px-3 py-3.5 text-right text-[12px]"
-                            style={{ fontFamily: FONT.mono, color: C.textMuted }}
-                          >
-                            {c.template_id ?? "—"}
+                          <td className="px-3 py-3.5 text-right text-[12.5px]" style={{ fontFamily: FONT.mono, color: C.textBody }}>
+                            {recipientCount}
                           </td>
-                          <td
-                            className="px-4 md:px-6 py-3.5 text-right text-[11.5px] whitespace-nowrap"
-                            style={{ fontFamily: FONT.mono, color: C.textMuted }}
-                          >
+                          <td className="px-3 py-3.5"><StatusPill status={c.status} /></td>
+                          <td className="px-4 md:px-6 py-3.5 text-right text-[11.5px] whitespace-nowrap" style={{ fontFamily: FONT.mono, color: C.textMuted }}>
                             {formatDate(c.created_at)}
                           </td>
-                          <td className="px-4 md:px-6 py-3.5 text-right">
+                          <td className="px-4 md:px-6 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="cmp-actions flex items-center justify-end gap-1.5">
-                              {(c.status === "READY" || c.status === "PAUSED") && (
+                              {(key === "Ready" || key === "Paused") && (
                                 <button
                                   onClick={() => handleStart(c)}
                                   disabled={busy}
                                   className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[11.5px] font-medium transition-colors disabled:opacity-50"
-                                  style={{
-                                    background: C.primarySoft,
-                                    color: C.primary,
-                                    boxShadow: `inset 0 0 0 1px ${C.primaryRing}`,
-                                  }}
+                                  style={{ background: C.primarySoft, color: C.primary, boxShadow: `inset 0 0 0 1px ${C.primaryRing}` }}
                                 >
-                                  <PlayCircle size={11} />
-                                  Start
+                                  <PlayCircle size={11} /> Start
                                 </button>
                               )}
+                              <button
+                                onClick={() => openDetail(c)}
+                                className="p-1.5 rounded-lg transition-colors hover:bg-[#1B2130]"
+                                style={{ color: C.textMuted }}
+                                aria-label="View details"
+                              >
+                                <ExternalLink size={14} />
+                              </button>
                               <button
                                 onClick={() => openEdit(c)}
                                 disabled={busy}
@@ -1280,65 +1451,44 @@ export default function Campaigns() {
                               >
                                 <Trash2 size={14} />
                               </button>
-                              <Link
-                                to={`/admin/campaigns/${c.id}`}
-                                className="p-1.5 rounded-lg transition-colors hover:bg-[#1B2130]"
-                                style={{ color: C.textMuted }}
-                                aria-label="More"
-                              >
-                                <MoreHorizontal size={14} />
-                              </Link>
                             </div>
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
-                <div
-                  className="flex flex-wrap items-center justify-between gap-3 px-4 md:px-6 py-3.5 border-t"
-                  style={{ borderColor: C.border }}
-                >
-                  <span className="text-[11.5px]" style={{ color: C.textMuted }}>
-                    Showing{" "}
-                    <span style={{ color: C.dark, fontFamily: FONT.mono }}>
-                      1–{visibleCampaigns.length}
-                    </span>{" "}
-                    of{" "}
-                    <span style={{ color: C.dark, fontFamily: FONT.mono }}>
-                      {campaigns.length}
-                    </span>{" "}
-                    campaigns
+              <div className="flex flex-wrap items-center justify-between gap-3 px-4 md:px-6 py-3.5 border-t" style={{ borderColor: C.border }}>
+                <span className="text-[11.5px]" style={{ color: C.textMuted }}>
+                  Showing <span style={{ color: C.dark, fontFamily: FONT.mono }}>1–{visibleCampaigns.length}</span> of{" "}
+                  <span style={{ color: C.dark, fontFamily: FONT.mono }}>{campaigns.length}</span> campaigns
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    disabled
+                    className="inline-flex items-center justify-center rounded-2xl p-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <span className="min-w-[36px] rounded-2xl px-3 py-2 text-[12px] font-medium text-center" style={{ background: C.primary, color: "#fff" }}>
+                    1
                   </span>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      disabled
-                      className="inline-flex items-center justify-center rounded-2xl p-2 disabled:opacity-40 disabled:cursor-not-allowed"
-                      style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                      aria-label="Previous page"
-                    >
-                      <ChevronLeft size={14} />
-                    </button>
-                    <span
-                      className="min-w-[36px] rounded-2xl px-3 py-2 text-[12px] font-medium text-center"
-                      style={{ background: C.primary, color: "#fff" }}
-                    >
-                      1
-                    </span>
-                    <button
-                      disabled
-                      className="inline-flex items-center justify-center rounded-2xl p-2 disabled:opacity-40 disabled:cursor-not-allowed"
-                      style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                      aria-label="Next page"
-                    >
-                      <ChevronRight size={14} />
-                    </button>
-                  </div>
+                  <button
+                    disabled
+                    className="inline-flex items-center justify-center rounded-2xl p-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+                    aria-label="Next page"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
                 </div>
-              </Card>
-            )}
-          </div>
+              </div>
+            </Card>
+          )}
         </div>
       </main>
 
@@ -1349,14 +1499,16 @@ export default function Campaigns() {
         onSaved={fetchAll}
       />
 
+      <CampaignDetailDrawer
+        open={!!detailTarget}
+        campaign={detailTarget}
+        onClose={() => setDetailTarget(null)}
+      />
+
       <ConfirmDialog
         open={!!confirmTarget}
         title="Delete this campaign?"
-        body={
-          confirmTarget
-            ? `“${confirmTarget.campaign_name}” will be permanently removed. This cannot be undone.`
-            : ""
-        }
+        body={confirmTarget ? `“${confirmTarget.campaign_name}” will be permanently removed. This cannot be undone.` : ""}
         confirmLabel="Delete"
         busy={busy}
         onCancel={() => setConfirmTarget(null)}

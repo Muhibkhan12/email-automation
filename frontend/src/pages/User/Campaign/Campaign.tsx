@@ -1,5 +1,5 @@
 // UserCampaigns.tsx
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCampaigns } from '../../../contexts/CampaignContext';
 import type { Campaign } from '../../../services/CampaignService';
@@ -49,11 +49,25 @@ const relativeTime = (iso: string) => {
 
 const UserCampaigns: React.FC = () => {
   const navigate = useNavigate();
-  const { campaigns, loading, error, refetch } = useCampaigns();
+
+  // ✅ USER SLICE — read only this user's campaigns
+  const {
+    myCampaigns: campaigns,
+    myLoading: loading,
+    myError: error,
+    fetchMine,
+    refetch,          // still points to fetchMine in the context — used by Refresh / Try again
+  } = useCampaigns();
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | Campaign['status']>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+
+  /* Fetch this user's campaigns on mount */
+  useEffect(() => {
+    fetchMine();
+  }, [fetchMine]);
 
   const filteredCampaigns = useMemo(
     () =>
@@ -116,7 +130,7 @@ const UserCampaigns: React.FC = () => {
         <div className="glow-top">
           <div className="max-w-[1180px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
 
-            {/* ── Header ───────────────────────────── */}
+            {/* Header */}
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8 md:mb-10">
               <div className="flex items-start gap-3 md:gap-4">
                 <button
@@ -176,7 +190,7 @@ const UserCampaigns: React.FC = () => {
               </div>
             </header>
 
-            {/* ── Filters ──────────────────────────── */}
+            {/* Filters */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5 md:mb-6">
               <div
                 className="flex items-center gap-2 rounded-2xl px-3 py-2.5 flex-1 min-w-0 transition-all"
@@ -216,7 +230,7 @@ const UserCampaigns: React.FC = () => {
               </div>
             </div>
 
-            {/* ── Loading ──────────────────────────── */}
+            {/* Loading */}
             {loading && (
               <div className="text-center py-16">
                 <div className="w-7 h-7 border-2 border-[#FF6A39] border-t-transparent rounded-full animate-spin mx-auto" />
@@ -224,11 +238,13 @@ const UserCampaigns: React.FC = () => {
               </div>
             )}
 
-            {/* ── Error ────────────────────────────── */}
+            {/* Error */}
             {!loading && error && (
               <div className="text-center py-16 rounded-3xl" style={{ background: "rgba(248,113,113,0.05)", boxShadow: "inset 0 0 0 1px rgba(248,113,113,0.22)" }}>
-                <div className="w-12 h-12 mx-auto mb-3 rounded-2xl flex items-center justify-center"
-                  style={{ background: "rgba(248,113,113,0.10)", boxShadow: "inset 0 0 0 1px rgba(248,113,113,0.22)" }}>
+                <div
+                  className="w-12 h-12 mx-auto mb-3 rounded-2xl flex items-center justify-center"
+                  style={{ background: "rgba(248,113,113,0.10)", boxShadow: "inset 0 0 0 1px rgba(248,113,113,0.22)" }}
+                >
                   <AlertTriangle className="w-5 h-5 text-[#F87171]" />
                 </div>
                 <p className="text-sm text-[#F87171] mb-3">{error}</p>
@@ -242,15 +258,19 @@ const UserCampaigns: React.FC = () => {
               </div>
             )}
 
-            {/* ── Empty ────────────────────────────── */}
+            {/* Empty */}
             {!loading && !error && filteredCampaigns.length === 0 && (
-              <div className="text-center py-20 rounded-3xl" style={{ background: "linear-gradient(180deg, #141821 0%, #10141D 100%)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04)" }}>
-                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center"
-                  style={{ background: "#1B2130", boxShadow: "inset 0 0 0 1px #232938" }}>
+              <div
+                className="text-center py-20 rounded-3xl"
+                style={{ background: "linear-gradient(180deg, #141821 0%, #10141D 100%)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04)" }}
+              >
+                <div
+                  className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center"
+                  style={{ background: "#1B2130", boxShadow: "inset 0 0 0 1px #232938" }}
+                >
                   {campaigns.length === 0
                     ? <Sparkles className="w-6 h-6 text-[#FF6A39]" />
-                    : <Inbox className="w-6 h-6 text-[#6A7080]" />
-                  }
+                    : <Inbox className="w-6 h-6 text-[#6A7080]" />}
                 </div>
                 <p className="text-[14px] font-medium" style={{ color: "#F2F0EB" }}>
                   {campaigns.length === 0 ? "No campaigns yet" : "No campaigns match"}
@@ -274,7 +294,7 @@ const UserCampaigns: React.FC = () => {
               </div>
             )}
 
-            {/* ── Campaign list ───────────────────── */}
+            {/* Campaign list */}
             {!loading && !error && filteredCampaigns.length > 0 && (
               <>
                 <div className="flex items-center justify-between mb-3 md:mb-4">
@@ -303,28 +323,22 @@ const UserCampaigns: React.FC = () => {
                           boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04), 0 1px 0 rgba(255,255,255,0.02)",
                         }}
                       >
-                        {/* status accent rail */}
                         <span
                           className="absolute left-0 top-4 bottom-4 w-1 rounded-r-full"
                           style={{ background: s.fg, opacity: 0.75, boxShadow: `0 0 12px ${s.fg}66` }}
                         />
 
-                        {/* Icon plate */}
                         <div
                           className="shrink-0 w-11 h-11 md:w-12 md:h-12 rounded-2xl flex items-center justify-center ml-2 transition-transform group-hover:scale-105"
                           style={{
                             background: `linear-gradient(135deg, ${s.fg}22, ${s.fg}08)`,
                             boxShadow: `inset 0 0 0 1px ${s.ring}`,
+                            color: s.fg,
                           }}
                         >
                           <StatusIcon size={18} />
-                          <span className="hidden" style={{ color: s.fg }} />
-                          <style>{``}</style>
-                          {/* Icon color via inline style on the SVG children */}
-                          <span className="sr-only" style={{ color: s.fg }} />
                         </div>
 
-                        {/* Title + subject */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 min-w-0">
                             <h3 className="font-semibold text-[#F2F0EB] text-[14px] md:text-[15px] truncate">
@@ -343,7 +357,6 @@ const UserCampaigns: React.FC = () => {
                           </p>
                         </div>
 
-                        {/* Meta */}
                         <div className="shrink-0 hidden md:flex flex-col items-end gap-1">
                           <span className="text-[11px] text-[#7A8092] font-mono whitespace-nowrap">
                             {relativeTime(campaign.updated_at)}
@@ -353,7 +366,6 @@ const UserCampaigns: React.FC = () => {
                           </span>
                         </div>
 
-                        {/* Chevron */}
                         <ChevronRight
                           size={16}
                           className="shrink-0 text-[#3A404F] group-hover:text-[#FF6A39] group-hover:translate-x-0.5 transition-all"
