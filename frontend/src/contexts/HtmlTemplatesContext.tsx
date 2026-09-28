@@ -54,6 +54,19 @@ const getId = (t: unknown): string => {
   return String(r?.id ?? r?._id ?? "");
 };
 
+/**
+ * Drops null / undefined values so an API response that omits or nulls a
+ * field (e.g. `html: null`) can't overwrite the value we just sent.
+ */
+const stripNullish = (obj: unknown): Record<string, unknown> => {
+  if (!obj || typeof obj !== "object") return {};
+  return Object.fromEntries(
+    Object.entries(obj as Record<string, unknown>).filter(
+      ([, v]) => v !== null && v !== undefined
+    )
+  );
+};
+
 const apiError = (err: unknown): Error => {
   const e = err as any;
   const msg =
@@ -102,11 +115,11 @@ const HtmlTemplatesProvider = ({ children }: HtmlTemplatesProp) => {
   const createTemplate = useCallback(async (payload: TemplatePayload) => {
     try {
       const created = await createHtmlTemplates(payload);
-      // fallback in case the API returns an empty body
-      const item: HtmlTemplates = {
+      // payload is the fallback; API values win, but never null/undefined ones
+      const item = {
         ...(payload as unknown as HtmlTemplates),
-        ...created,
-      };
+        ...stripNullish(created),
+      } as HtmlTemplates;
       setTemplates((prev) => [item, ...prev]);
       return item;
     } catch (err) {
@@ -119,11 +132,18 @@ const HtmlTemplatesProvider = ({ children }: HtmlTemplatesProp) => {
     async (id: number | string, payload: TemplatePayload) => {
       try {
         const updated = await editHtmlTemplates(id, payload);
-        let merged: HtmlTemplates = { ...(payload as unknown as HtmlTemplates), id };
+        const safe = stripNullish(updated);
+
+        let merged = {
+          ...(payload as unknown as HtmlTemplates),
+          ...safe,
+          id,
+        } as HtmlTemplates;
+
         setTemplates((prev) =>
           prev.map((t) => {
             if (getId(t) !== String(id)) return t;
-            merged = { ...t, ...payload, ...updated } as HtmlTemplates;
+            merged = { ...t, ...payload, ...safe } as HtmlTemplates;
             return merged;
           })
         );

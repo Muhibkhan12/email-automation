@@ -9,7 +9,7 @@ class AddHTMLSchema(BaseModel):
 
 class UpdateHtmlTemplateSchema(BaseModel):
     name : Optional[str] =  None
-    html_contenct : Optional[str] = None
+    html_content : Optional[str] = None
     description : Optional[str] = None
     is_active : Optional[bool] = None
 

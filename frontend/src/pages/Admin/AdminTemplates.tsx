@@ -14,6 +14,7 @@ import {
 import { useHtmlTemplates } from "../../contexts/HtmlTemplatesContext";
 import type { HtmlTemplates } from "../../types/HtmlTemplatesTypes";
 import type { TemplatePayload } from "../../services/TemplateService";
+import { getHTMLTemplatesById } from "../../services/TemplateService";
 
 /* ─────────────── Tokens ─────────────── */
 
@@ -125,6 +126,8 @@ const normStatus = (v: unknown): Status =>
 
 const mapApiTemplate = (raw: HtmlTemplates, index: number): Template => {
   const r = raw as any;
+  // Debug helper: uncomment to see the real field names your API returns.
+  // console.log("raw template from API:", r);
   return {
     id: r.id ?? r._id ?? index,
     name: r.name ?? r.title ?? r.template_name ?? "Untitled Template",
@@ -132,7 +135,15 @@ const mapApiTemplate = (raw: HtmlTemplates, index: number): Template => {
     category: normCategory(r.category),
     status: normStatus(r.status),
     updatedAt: formatUpdated(r.updated_at ?? r.updatedAt),
-    html: r.html ?? r.body ?? r.content ?? "",
+    html:
+      r.html ??
+      r.html_content ??
+      r.htmlContent ??
+      r.html_body ??
+      r.body ??
+      r.content ??
+      r.template ??
+      "",
   };
 };
 
@@ -790,7 +801,7 @@ const DeleteConfirmModal: FC<{
   </div>
 );
 
-/* ─────────────── New template modal (REWRITTEN) ─────────────── */
+/* ─────────────── New template modal ─────────────── */
 
 type CreateMode = "starter" | "paste" | "upload" | "url";
 
@@ -1464,12 +1475,45 @@ const EmailTemplatesAdmin = () => {
     [templates, search, categoryFilter, statusFilter]
   );
 
+  /* ── OPEN EDITOR ──
+     The editor copies its `template` prop into state only once, so the full
+     template (including HTML) must be loaded BEFORE the editor is mounted. */
+  const openEditor = async (t: Template) => {
+    // The list response already contained the HTML — open immediately.
+    if (t.html.trim()) {
+      setEditingTemplate(t);
+      return;
+    }
+
+    // Otherwise fetch the full template (list endpoint likely omits `html`).
+    setBusyId(t.id); // shows the spinner overlay on the card
+    try {
+      const full = await getHTMLTemplatesById(t.id);
+      const mapped = mapApiTemplate(full, 0);
+      setEditingTemplate({
+        ...mapped,
+        id: t.id,
+        name: mapped.name === "Untitled Template" ? t.name : mapped.name,
+        subject: mapped.subject || t.subject,
+        updatedAt: mapped.updatedAt === "—" ? t.updatedAt : mapped.updatedAt,
+      });
+    } catch (e) {
+      notify("error", errMsg(e));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   /* ── CREATE ── */
   const createAndOpen = async (payload: TemplatePayload) => {
     setCreating(true);
     try {
       const created = await createTemplate(payload);
       const mapped = mapApiTemplate(created, 0);
+      // keep what we sent if the API didn't echo these fields back
+      mapped.html = mapped.html || payload.html;
+      mapped.subject = mapped.subject || payload.subject;
+      if (mapped.name === "Untitled Template") mapped.name = payload.name;
       if (mapped.updatedAt === "—") mapped.updatedAt = "Just now";
       setShowNewModal(false);
       setShowAIGenerate(false);
@@ -1511,6 +1555,9 @@ const EmailTemplatesAdmin = () => {
     const result: Template = {
       ...mapped,
       id: t.id,
+      name: mapped.name === "Untitled Template" ? t.name : mapped.name,
+      subject: mapped.subject || t.subject,
+      html: mapped.html || t.html, // keep the code if the API doesn't echo it
       updatedAt: mapped.updatedAt === "—" ? "Just now" : mapped.updatedAt,
     };
     setEditingTemplate(result);
@@ -1521,8 +1568,15 @@ const EmailTemplatesAdmin = () => {
   const handleToggleStatus = async (t: Template) => {
     setBusyId(t.id);
     try {
+      // If the list didn't include the HTML, load it first so we don't
+      // overwrite the stored HTML with an empty string.
+      let html = t.html;
+      if (!html.trim()) {
+        const full = await getHTMLTemplatesById(t.id);
+        html = mapApiTemplate(full, 0).html;
+      }
       const status: Status = t.status === "Published" ? "Draft" : "Published";
-      await updateTemplate(t.id, { ...toPayload(t), status });
+      await updateTemplate(t.id, { ...toPayload(t), html, status });
       notify("success", status === "Published" ? "Template published" : "Moved to drafts");
     } catch (e) {
       notify("error", errMsg(e));
@@ -1534,7 +1588,12 @@ const EmailTemplatesAdmin = () => {
   const handleDuplicate = async (t: Template) => {
     setBusyId(t.id);
     try {
-      await createTemplate({ ...toPayload(t), name: `${t.name} (copy)`, status: "Draft" });
+      let html = t.html;
+      if (!html.trim()) {
+        const full = await getHTMLTemplatesById(t.id);
+        html = mapApiTemplate(full, 0).html;
+      }
+      await createTemplate({ ...toPayload(t), html, name: `${t.name} (copy)`, status: "Draft" });
       notify("success", "Template duplicated");
     } catch (e) {
       notify("error", errMsg(e));
@@ -1545,7 +1604,12 @@ const EmailTemplatesAdmin = () => {
 
   const handleCopyHtml = async (t: Template) => {
     try {
-      await navigator.clipboard.writeText(t.html);
+      let html = t.html;
+      if (!html.trim()) {
+        const full = await getHTMLTemplatesById(t.id);
+        html = mapApiTemplate(full, 0).html;
+      }
+      await navigator.clipboard.writeText(html);
       notify("success", "HTML copied");
     } catch {
       notify("error", "Couldn't copy to clipboard");
@@ -1776,9 +1840,9 @@ const EmailTemplatesAdmin = () => {
                       key={t.id}
                       role="button"
                       tabIndex={0}
-                      onClick={() => setEditingTemplate(t)}
+                      onClick={() => openEditor(t)}
                       onKeyDown={(e) => {
-                        if (e.target === e.currentTarget && e.key === "Enter") setEditingTemplate(t);
+                        if (e.target === e.currentTarget && e.key === "Enter") openEditor(t);
                       }}
                       className="group float-in rounded-3xl overflow-hidden soft-ring text-left transition-all hover:-translate-y-0.5 cursor-pointer"
                       style={{ background: "linear-gradient(180deg, #141821 0%, #10141D 100%)", animationDelay: `${Math.min(i * 20, 200)}ms` }}
@@ -1820,7 +1884,7 @@ const EmailTemplatesAdmin = () => {
 
                         {/* actions */}
                         <div className="absolute top-3 left-3 z-10 flex gap-1.5 transition-opacity lg:opacity-0 lg:group-hover:opacity-100 focus-within:opacity-100">
-                          <ActionBtn label="Edit" onClick={() => setEditingTemplate(t)}>
+                          <ActionBtn label="Edit" disabled={busy} onClick={() => openEditor(t)}>
                             <Pencil size={12} />
                           </ActionBtn>
                           <ActionBtn label="Duplicate" disabled={busy} onClick={() => handleDuplicate(t)}>
