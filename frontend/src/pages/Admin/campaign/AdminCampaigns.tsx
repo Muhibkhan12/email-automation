@@ -62,7 +62,6 @@ const C = {
 
 /* ─────────────────────────── Status meta ─────────────────────────── */
 
-// ✅ Statuses come back Title Case from the API. Keys match exactly.
 const STATUS_META = {
   Draft:     { label: "Draft",     fg: C.neutral, bg: C.neutralSoft, ring: C.neutralRing, Icon: FileEdit },
   Ready:     { label: "Ready",     fg: C.blue,    bg: C.blueSoft,    ring: C.blueRing,    Icon: CheckCircle2 },
@@ -72,7 +71,6 @@ const STATUS_META = {
   Cancelled: { label: "Cancelled", fg: C.danger,  bg: C.dangerSoft,  ring: C.dangerRing,  Icon: XCircle },
 };
 
-// Accept any case from the API — normalize before looking up.
 const normalizeStatus = (s) => {
   if (!s) return "Draft";
   const map = {
@@ -104,7 +102,13 @@ const LOG_STATUS_META = {
 
 /* ─────────────────────────── Helpers ─────────────────────────── */
 
+const formatNumber = (n) => {
+  if (n === null || n === undefined) return "0";
+  return Number(n).toLocaleString();
+};
+
 const formatDate = (iso) => {
+  if (!iso) return "—";
   try {
     return new Date(iso).toLocaleDateString(undefined, {
       year: "numeric", month: "short", day: "numeric",
@@ -119,8 +123,29 @@ const formatDateTime = (iso) => {
   try {
     return new Date(iso).toLocaleString(undefined, {
       month: "short", day: "numeric", year: "numeric",
-      hour: "2-digit", minute: "2-digit",
+      hour: "numeric", minute: "2-digit",
     });
+  } catch {
+    return "—";
+  }
+};
+
+const formatRelative = (iso) => {
+  if (!iso) return "—";
+  try {
+    const then = new Date(iso).getTime();
+    const now = Date.now();
+    const s = Math.max(1, Math.floor((now - then) / 1000));
+    if (s < 60) return "just now";
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    const d = Math.floor(h / 24);
+    if (d < 7) return `${d}d ago`;
+    const w = Math.floor(d / 7);
+    if (w < 5) return `${w}w ago`;
+    return formatDate(iso);
   } catch {
     return "—";
   }
@@ -208,6 +233,21 @@ const StatCard = ({ title, value, change, trend, icon: Icon, accent }) => (
   </Card>
 );
 
+const Meta = ({ label, value, mono = false, title }) => (
+  <div className="min-w-0">
+    <p className="text-[10px] uppercase tracking-widest mb-1" style={{ color: C.textMuted }}>
+      {label}
+    </p>
+    <p
+      className="text-[12.5px] truncate"
+      title={title ?? (typeof value === "string" ? value : undefined)}
+      style={{ color: C.textBody, fontFamily: mono ? FONT.mono : FONT.body }}
+    >
+      {value}
+    </p>
+  </div>
+);
+
 /* ─────────────────────────── Grid card ─────────────────────────── */
 
 const CampaignCard = ({ c, onEdit, onDelete, onStart, onOpen, busy }) => {
@@ -263,18 +303,23 @@ const CampaignCard = ({ c, onEdit, onDelete, onStart, onOpen, busy }) => {
           <div className="flex items-center gap-2 text-[11px] min-w-0">
             <Users size={11} style={{ color: C.textMuted }} className="shrink-0" />
             <span style={{ color: C.textBody, fontFamily: FONT.mono }}>
-              {recipientCount} recipient{recipientCount === 1 ? "" : "s"}
+              {formatNumber(recipientCount)} recipient{recipientCount === 1 ? "" : "s"}
             </span>
           </div>
         </div>
 
         <div
           className="mt-3 pt-3 flex items-center justify-between text-[11px] border-t"
-          style={{ borderColor: C.border, fontFamily: FONT.mono, color: C.textMuted }}
+          style={{ borderColor: C.border, color: C.textMuted }}
         >
-          <span>#{c.id}</span>
-          <span className="inline-flex items-center gap-1">
-            <Clock size={11} /> {formatDate(c.created_at)}
+          <span style={{ fontFamily: FONT.mono }} title={formatDateTime(c.created_at)}>
+            {formatRelative(c.created_at)}
+          </span>
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5"
+            style={{ background: C.neutralSoft, color: C.neutral, fontFamily: FONT.mono, fontSize: 10.5 }}
+          >
+            #{c.id}
           </span>
         </div>
       </div>
@@ -366,7 +411,7 @@ const CampaignDetailDrawer = ({ open, campaign, onClose }) => {
   useEffect(() => {
     if (!open || !campaign?.id) return;
     let cancelled = false;
-    setDetail(campaign); // show what we already have immediately
+    setDetail(campaign);
     setLoading(true);
 
     (async () => {
@@ -389,33 +434,22 @@ const CampaignDetailDrawer = ({ open, campaign, onClose }) => {
   const statusKey = normalizeStatus(c.status);
   const statusMeta = STATUS_META[statusKey] ?? FALLBACK_META;
 
-  // Resolve sender — the API gives us `sender_account: { id, display_name, email }`
   const senderEmail = c.sender_account?.email ?? "—";
   const senderName = c.sender_account?.display_name ?? c.sender_account?.name ?? "—";
   const senderId = c.sender_account?.id ?? c.sender_account_id;
 
-  // Resolve template
   const template = c.template ?? null;
 
   const recipients = Array.isArray(c.recipients) ? c.recipients : [];
   const logs = Array.isArray(c.email_logs) ? c.email_logs : [];
   const uploads = Array.isArray(c.uploads) ? c.uploads : [];
 
-  // Recipient status breakdown — the API currently returns all as "Pending"
-  const recipientsByStatus = recipients.reduce((acc, r) => {
-    const k = r.status || "Pending";
-    acc[k] = (acc[k] || 0) + 1;
-    return acc;
-  }, {});
-
-  // Log status breakdown
   const logsByStatus = logs.reduce((acc, l) => {
     const k = l.status || "Pending";
     acc[k] = (acc[k] || 0) + 1;
     return acc;
   }, {});
 
-  // Map log.recipient_id → recipient for display
   const recipientById = recipients.reduce((acc, r) => {
     acc[r.id] = r;
     return acc;
@@ -455,13 +489,18 @@ const CampaignDetailDrawer = ({ open, campaign, onClose }) => {
                 {c.campaign_name}
               </h2>
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                <StatusPill status={c.status} />
-                <span className="text-[11px] truncate" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
-                  {c.subject || "—"}
+                <StatusPill status={c.status} withIcon={false} />
+                <span style={{ color: C.textMuted, fontFamily: FONT.mono, fontSize: 11 }}>·</span>
+                <span
+                  className="text-[11.5px] truncate max-w-[280px]"
+                  style={{ color: C.textMuted }}
+                  title={c.subject || ""}
+                >
+                  {c.subject || "No subject"}
                 </span>
                 {loading && (
                   <span className="text-[10.5px] inline-flex items-center gap-1" style={{ color: C.textMuted }}>
-                    <Loader2 size={10} className="animate-spin" /> refreshing…
+                    <Loader2 size={10} className="animate-spin" /> refreshing
                   </span>
                 )}
               </div>
@@ -483,19 +522,15 @@ const CampaignDetailDrawer = ({ open, campaign, onClose }) => {
           {/* Overview */}
           <section>
             <SectionHeader icon={Megaphone} title="Overview" />
-            <div className="mt-4 space-y-3">
-              <DetailRow icon={FileEdit} label="Subject">
-                <span style={{ fontFamily: FONT.mono }}>{c.subject || "—"}</span>
-              </DetailRow>
-              <DetailRow icon={Hash} label="Campaign ID">
-                <span style={{ fontFamily: FONT.mono }}>#{c.id}</span>
-              </DetailRow>
-              <DetailRow icon={Clock} label="Created">
-                <span style={{ fontFamily: FONT.mono }}>{formatDateTime(c.created_at)}</span>
-              </DetailRow>
-              <DetailRow icon={Clock} label="Last updated">
-                <span style={{ fontFamily: FONT.mono }}>{formatDateTime(c.updated_at)}</span>
-              </DetailRow>
+            <div
+              className="mt-4 rounded-2xl p-4 grid grid-cols-2 gap-x-4 gap-y-3.5"
+              style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+            >
+              <Meta label="Campaign ID" value={`#${c.id}`} mono />
+              <Meta label="Status" value={statusMeta.label} />
+              <Meta label="Subject" value={c.subject || "—"} mono />
+              <Meta label="Created" value={formatDateTime(c.created_at)} mono title={c.created_at} />
+              <Meta label="Last updated" value={formatDateTime(c.updated_at)} mono title={c.updated_at} />
             </div>
           </section>
 
@@ -527,7 +562,7 @@ const CampaignDetailDrawer = ({ open, campaign, onClose }) => {
                 >
                   <AtSign size={16} style={{ color: C.primary }} />
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-[13.5px] font-semibold truncate" style={{ color: C.dark }}>
                     {senderName}
                   </p>
@@ -536,7 +571,7 @@ const CampaignDetailDrawer = ({ open, campaign, onClose }) => {
                   </p>
                 </div>
                 {senderId && (
-                  <span className="ml-auto text-[10.5px] font-mono shrink-0" style={{ color: C.textMuted }}>
+                  <span className="text-[10.5px] shrink-0" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
                     #{senderId}
                   </span>
                 )}
@@ -604,7 +639,7 @@ const CampaignDetailDrawer = ({ open, campaign, onClose }) => {
             <SectionHeader
               icon={Users}
               title="Recipients"
-              subtitle={`${recipients.length} total`}
+              subtitle={`${formatNumber(recipients.length)} total`}
               right={
                 <Link
                   to={`/admin/campaigns/${c.id}/recipients`}
@@ -616,10 +651,10 @@ const CampaignDetailDrawer = ({ open, campaign, onClose }) => {
               }
             />
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <StatBox label="Total"    value={recipients.length}                 fg={C.primary} bg={C.primarySoft} ring={C.primaryRing} Icon={Users} />
-              <StatBox label="Sent"     value={totalSent}                          fg={C.success} bg={C.successSoft} ring={C.successRing} Icon={MailCheck} />
-              <StatBox label="Failed"   value={totalFailed}                        fg={C.danger}  bg={C.dangerSoft}  ring={C.dangerRing}  Icon={MailX} />
-              <StatBox label="Pending"  value={totalPending || recipients.length}  fg={C.warning} bg={C.warningSoft} ring={C.warningRing} Icon={MailWarning} />
+              <StatBox label="Total"   value={formatNumber(recipients.length)}  fg={C.primary} bg={C.primarySoft} ring={C.primaryRing} Icon={Users} />
+              <StatBox label="Sent"    value={formatNumber(totalSent)}          fg={C.success} bg={C.successSoft} ring={C.successRing} Icon={MailCheck} />
+              <StatBox label="Failed"  value={formatNumber(totalFailed)}        fg={C.danger}  bg={C.dangerSoft}  ring={C.dangerRing}  Icon={MailX} />
+              <StatBox label="Pending" value={formatNumber(totalPending || recipients.length)} fg={C.warning} bg={C.warningSoft} ring={C.warningRing} Icon={MailWarning} />
             </div>
 
             {recipients.length > 0 && (
@@ -630,11 +665,11 @@ const CampaignDetailDrawer = ({ open, campaign, onClose }) => {
                     className="flex items-center justify-between gap-3 rounded-xl px-3 py-2"
                     style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
                   >
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-[12.5px] font-medium truncate" style={{ color: C.dark }}>
                         {r.name || r.email || `Recipient #${r.id}`}
                       </p>
-                      {r.email && (
+                      {r.email && r.name && (
                         <p className="text-[11px] truncate" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
                           {r.email}
                         </p>
@@ -653,7 +688,7 @@ const CampaignDetailDrawer = ({ open, campaign, onClose }) => {
                 ))}
                 {recipients.length > 6 && (
                   <li className="text-[11.5px] text-center pt-1" style={{ color: C.textMuted }}>
-                    + {recipients.length - 6} more
+                    + {formatNumber(recipients.length - 6)} more
                   </li>
                 )}
               </ul>
@@ -665,7 +700,7 @@ const CampaignDetailDrawer = ({ open, campaign, onClose }) => {
             <SectionHeader
               icon={BarChart3}
               title="Delivery"
-              subtitle={logs.length ? `${logs.length} events logged` : "No logs yet"}
+              subtitle={logs.length ? `${formatNumber(logs.length)} events logged` : "No logs yet"}
               right={
                 <Link
                   to={`/admin/emaillogs`}
@@ -677,10 +712,10 @@ const CampaignDetailDrawer = ({ open, campaign, onClose }) => {
               }
             />
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <StatBox label="Sent"      value={logsByStatus.Sent ?? 0}      fg={C.blue}    bg={C.blueSoft}    ring={C.blueRing}    Icon={Clock} />
-              <StatBox label="Delivered" value={logsByStatus.Delivered ?? 0} fg={C.success} bg={C.successSoft} ring={C.successRing} Icon={CheckCircle2} />
-              <StatBox label="Bounced"   value={logsByStatus.Bounced ?? 0}   fg={C.warning} bg={C.warningSoft} ring={C.warningRing} Icon={MailWarning} />
-              <StatBox label="Failed"    value={logsByStatus.Failed ?? 0}    fg={C.danger}  bg={C.dangerSoft}  ring={C.dangerRing}  Icon={MailX} />
+              <StatBox label="Sent"      value={formatNumber(logsByStatus.Sent ?? 0)}      fg={C.blue}    bg={C.blueSoft}    ring={C.blueRing}    Icon={Clock} />
+              <StatBox label="Delivered" value={formatNumber(logsByStatus.Delivered ?? 0)} fg={C.success} bg={C.successSoft} ring={C.successRing} Icon={CheckCircle2} />
+              <StatBox label="Bounced"   value={formatNumber(logsByStatus.Bounced ?? 0)}   fg={C.warning} bg={C.warningSoft} ring={C.warningRing} Icon={MailWarning} />
+              <StatBox label="Failed"    value={formatNumber(logsByStatus.Failed ?? 0)}    fg={C.danger}  bg={C.dangerSoft}  ring={C.dangerRing}  Icon={MailX} />
             </div>
 
             {logs.length > 0 && (
@@ -698,6 +733,8 @@ const CampaignDetailDrawer = ({ open, campaign, onClose }) => {
                           {r?.email || r?.name || `Recipient #${l.recipient_id ?? "—"}`}
                         </p>
                         <p className="text-[10.5px] truncate" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+                          {formatRelative(l.sent_at)}
+                          <span style={{ color: C.border }}> · </span>
                           {formatDateTime(l.sent_at)}
                         </p>
                       </div>
@@ -724,7 +761,7 @@ const CampaignDetailDrawer = ({ open, campaign, onClose }) => {
               <SectionHeader
                 icon={FileSpreadsheet}
                 title="Source files"
-                subtitle={`${uploads.length} upload${uploads.length === 1 ? "" : "s"} linked`}
+                subtitle={`${formatNumber(uploads.length)} upload${uploads.length === 1 ? "" : "s"} linked`}
               />
               <ul className="mt-4 space-y-2">
                 {uploads.map((u) => (
@@ -745,7 +782,7 @@ const CampaignDetailDrawer = ({ open, campaign, onClose }) => {
                           {u.original_filename || "Untitled file"}
                         </p>
                         <p className="text-[11px] mt-0.5" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
-                          {u.processed_records ?? 0} / {u.total_records ?? 0} processed
+                          {formatNumber(u.processed_records ?? 0)} / {formatNumber(u.total_records ?? 0)} processed
                         </p>
                       </div>
                     </div>
@@ -1043,10 +1080,10 @@ export default function Campaigns() {
     const drafts = campaigns.filter((c) => normalizeStatus(c.status) === "Draft").length;
 
     return [
-      { title: "Total campaigns", value: String(total),     change: "+6.2%",                 trend: "up",   icon: Megaphone,    accent: C.primary },
-      { title: "Running now",     value: String(running),   change: running ? "+3.1%" : "0%", trend: "up",   icon: PlayCircle,   accent: C.blue    },
-      { title: "Completed",       value: String(completed), change: "+12.4%",                trend: "up",   icon: CheckCircle2, accent: C.success },
-      { title: "Drafts",          value: String(drafts),    change: "-2.0%",                 trend: "down", icon: FileEdit,     accent: C.warning },
+      { title: "Total campaigns", value: formatNumber(total),     change: "+6.2%",                 trend: "up",   icon: Megaphone,    accent: C.primary },
+      { title: "Running now",     value: formatNumber(running),   change: running ? "+3.1%" : "0%", trend: "up",   icon: PlayCircle,   accent: C.blue    },
+      { title: "Completed",       value: formatNumber(completed), change: "+12.4%",                trend: "up",   icon: CheckCircle2, accent: C.success },
+      { title: "Drafts",          value: formatNumber(drafts),    change: "-2.0%",                 trend: "down", icon: FileEdit,     accent: C.warning },
     ];
   }, [campaigns]);
 
@@ -1161,10 +1198,10 @@ export default function Campaigns() {
                     Live
                   </span>
                   <span className="text-[11px]" style={{ color: "#5A6172", fontFamily: FONT.mono }}>
-                    · {campaigns.length} campaigns
+                    · {formatNumber(campaigns.length)} campaigns
                   </span>
                   <span className="text-[11px]" style={{ color: "#5A6172", fontFamily: FONT.mono }}>
-                    · {now || "--:--:--"}
+                    · updated {now || "--:--:--"}
                   </span>
                 </div>
 
@@ -1352,7 +1389,7 @@ export default function Campaigns() {
               <SectionHeader
                 icon={Megaphone}
                 title="All campaigns"
-                subtitle={`${visibleCampaigns.length} of ${campaigns.length} shown`}
+                subtitle={`${formatNumber(visibleCampaigns.length)} of ${formatNumber(campaigns.length)} shown`}
                 right={
                   <span className="text-[11px]" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
                     {filter === "All" ? "no filter" : filter.toLowerCase()}
@@ -1386,13 +1423,15 @@ export default function Campaigns() {
                           onClick={() => openDetail(c)}
                         >
                           <td className="px-4 md:px-6 py-3.5">
-                            <span style={{ fontFamily: FONT.mono, color: C.textMuted, fontSize: 11.5 }}>#{c.id}</span>
+                            <span style={{ fontFamily: FONT.mono, color: C.textMuted, fontSize: 11 }}>
+                              {c.id}
+                            </span>
                           </td>
                           <td className="px-3 py-3.5">
                             <p className="text-[12.5px] font-medium truncate max-w-[220px]" style={{ color: C.dark }}>
                               {c.campaign_name}
                             </p>
-                            <p className="text-[11px] truncate max-w-[220px]" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
+                            <p className="text-[11px] truncate max-w-[220px]" style={{ color: C.textMuted }}>
                               {c.subject || "—"}
                             </p>
                           </td>
@@ -1406,12 +1445,16 @@ export default function Campaigns() {
                               {c.template?.name || (c.template_id ? `#${c.template_id}` : "—")}
                             </span>
                           </td>
-                          <td className="px-3 py-3.5 text-right text-[12.5px]" style={{ fontFamily: FONT.mono, color: C.textBody }}>
-                            {recipientCount}
+                          <td className="px-3 py-3.5 text-right text-[12.5px] tabular-nums" style={{ fontFamily: FONT.mono, color: C.textBody }}>
+                            {formatNumber(recipientCount)}
                           </td>
                           <td className="px-3 py-3.5"><StatusPill status={c.status} /></td>
-                          <td className="px-4 md:px-6 py-3.5 text-right text-[11.5px] whitespace-nowrap" style={{ fontFamily: FONT.mono, color: C.textMuted }}>
-                            {formatDate(c.created_at)}
+                          <td
+                            className="px-4 md:px-6 py-3.5 text-right text-[11.5px] whitespace-nowrap"
+                            style={{ fontFamily: FONT.mono, color: C.textMuted }}
+                            title={formatDateTime(c.created_at)}
+                          >
+                            {formatRelative(c.created_at)}
                           </td>
                           <td className="px-4 md:px-6 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="cmp-actions flex items-center justify-end gap-1.5">
@@ -1462,8 +1505,8 @@ export default function Campaigns() {
 
               <div className="flex flex-wrap items-center justify-between gap-3 px-4 md:px-6 py-3.5 border-t" style={{ borderColor: C.border }}>
                 <span className="text-[11.5px]" style={{ color: C.textMuted }}>
-                  Showing <span style={{ color: C.dark, fontFamily: FONT.mono }}>1–{visibleCampaigns.length}</span> of{" "}
-                  <span style={{ color: C.dark, fontFamily: FONT.mono }}>{campaigns.length}</span> campaigns
+                  Showing <span style={{ color: C.dark, fontFamily: FONT.mono }}>1–{formatNumber(visibleCampaigns.length)}</span> of{" "}
+                  <span style={{ color: C.dark, fontFamily: FONT.mono }}>{formatNumber(campaigns.length)}</span> campaigns
                 </span>
                 <div className="flex items-center gap-1.5">
                   <button
