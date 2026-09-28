@@ -21,7 +21,7 @@ import Register from "../pages/Register";
 // ================= ADMIN PAGES =================
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 import EmailTemplatesAdmin from "../pages/Admin/AdminTemplates";
-import AdminCampaigns from "../pages/Admin/AdminCampaigns";
+import AdminCampaigns from "../pages/Admin/campaign/AdminCampaigns";
 import AdminAnalytics from "../pages/Admin/AdminAnalytics";
 import AdminUsers from "../pages/Admin/AdminUsersPage";
 import AdminEmailLogs from "../pages/Admin/AdminEmaillogs";
