@@ -37,8 +37,6 @@ def get_my_campaigns(
         current_user
     )
 
-
-
 @router.get(
     "/",
     dependencies=[Depends(require_admin)]
