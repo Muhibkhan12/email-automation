@@ -329,7 +329,7 @@ const Login = () => {
                 {/* Caps lock */}
                 {capsOn && (
                   <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-[#FBBF24]">
-                    <Info size={11} /> Caps Lock is on
+                    <Info size={11} /> Caps Lock is On
                   </p>
                 )}
               </Field>
