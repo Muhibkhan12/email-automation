@@ -22,15 +22,24 @@ def get_all_campaigns(db: Session):
     }
 
 def get_campaign_by_id(db: Session, id: int):
+
     campaign = (
         db.query(Campaign)
+        .options(
+            selectinload(Campaign.user),
+            selectinload(Campaign.template),
+            selectinload(Campaign.sender_account),
+            selectinload(Campaign.recipients),
+            selectinload(Campaign.uploads),
+            selectinload(Campaign.email_logs),
+        )
         .filter(Campaign.id == id)
         .first()
     )
 
     if not campaign:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=404,
             detail="Campaign doesn't exist"
         )
 

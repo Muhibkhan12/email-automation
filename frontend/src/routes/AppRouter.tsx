@@ -28,6 +28,7 @@ import AdminEmailLogs from "../pages/Admin/AdminEmaillogs";
 import AdminQueueMonitor from "../pages/Admin/AdminQueuemonitor";
 import AdminSettings from "../pages/Admin/AdminSettings";
 import AdminSenderAccounts from "../pages/Admin/AdminSenderAccount";
+import AdminCampaignRecipients from "../pages/Admin/campaign/AdminRecipients";
 
 // ================= ROUTE GUARDS =================
 import UserRoute from "./UserRoutes";
@@ -132,6 +133,8 @@ const AppRouter = () => {
 
           {/* Full path: /admin/analytics */}
           <Route path="analytics" element={<AdminAnalytics />} />
+
+          <Route path="campaigns/:id/recipients" element={<AdminCampaignRecipients />} />
 
           {/* Full path: /admin/templates */}
           <Route path="templates" element={<EmailTemplatesAdmin />} />
