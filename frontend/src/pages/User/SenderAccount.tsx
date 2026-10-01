@@ -294,41 +294,6 @@ const SenderAccountsPage = () => {
                 </div>
               )}
             </section>
-
-            {/* ── Sending configuration ─────────── */}
-            <section className="rounded-3xl p-5 md:p-6 soft-ring"
-              style={{ background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" }}>
-              <div className="mb-5">
-                <h2 className="text-[15px] font-semibold flex items-center gap-2" style={{ color: "#F2F0EB" }}>
-                  <Settings2 size={15} className="text-[#FF6A39]" />
-                  Sending configuration
-                </h2>
-                <p className="text-[12px] mt-0.5" style={{ color: "#7A8092" }}>
-                  How your accounts are used during campaigns.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <SettingCard
-                  icon={Shuffle}
-                  title="Account rotation"
-                  description="Automatically rotate between active sender accounts."
-                  enabled
-                />
-                <SettingCard
-                  icon={Timer}
-                  title="Rate limiting"
-                  description="Respect hourly and daily limits for each account."
-                  enabled
-                />
-                <SettingCard
-                  icon={RotateCcw}
-                  title="Automatic retry"
-                  description="Retry failed email jobs using another sender."
-                  enabled
-                />
-              </div>
-            </section>
           </div>
         </div>
       </main>
