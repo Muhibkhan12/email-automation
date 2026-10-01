@@ -9,22 +9,14 @@ const FONT = {
   mono: "'JetBrains Mono', monospace",
 };
 
-export interface SelectOption {
-  id: number;
-  label: string;
-}
-
 interface Props {
   onClose: () => void;
   /**
-   * startNow = true  -> create the campaign as READY and start it
-   * startNow = false -> just save it as a DRAFT
+   * startNow = true  -> save as Draft, then start it (backend flips Draft -> Running)
+   * startNow = false -> just save it as a Draft
    * Throw an Error from here to show a message inside the modal.
    */
   onSubmit: (data: CreateCampaignData, startNow: boolean) => Promise<void>;
-  /** Optional: pass these to get dropdowns. Without them, plain ID inputs are shown. */
-  templates?: SelectOption[];
-  senderAccounts?: SelectOption[];
 }
 
 const inputBase =
@@ -44,20 +36,15 @@ const Label: React.FC<{ htmlFor: string; children: React.ReactNode; hint?: strin
   </label>
 );
 
-const StartCampaignModal: React.FC<Props> = ({
-  onClose, onSubmit, templates, senderAccounts,
-}) => {
+const StartCampaignModal: React.FC<Props> = ({ onClose, onSubmit }) => {
   const [campaignName, setCampaignName] = useState('');
   const [subject, setSubject] = useState('');
-  const [templateId, setTemplateId] = useState('');
-  const [senderId, setSenderId] = useState('');
   const [submitting, setSubmitting] = useState<null | 'start' | 'draft'>(null);
   const [error, setError] = useState<string | null>(null);
   const firstFieldRef = useRef<HTMLInputElement>(null);
 
   const busy = submitting !== null;
 
-  /* focus first field, lock body scroll, close on Esc */
   useEffect(() => {
     firstFieldRef.current?.focus();
     const prevOverflow = document.body.style.overflow;
@@ -77,14 +64,14 @@ const StartCampaignModal: React.FC<Props> = ({
 
     if (!campaignName.trim()) return setError('Give your campaign a name.');
     if (!subject.trim()) return setError('Add an email subject line.');
-    if (!templateId || Number(templateId) <= 0) return setError('Choose a template.');
 
-    const data: CreateCampaignData = {
+    // Backend enum is title-cased: 'Draft' | 'Ready' | 'Running' | ...
+    // Always create as Draft; the /start endpoint handles the transition.
+    const data = {
       campaign_name: campaignName.trim(),
       subject: subject.trim(),
-      template_id: Number(templateId),
-      ...(senderId ? { sender_account_id: Number(senderId) } : {}),
-    };
+      status: 'Draft',
+    } as CreateCampaignData;
 
     setSubmitting(startNow ? 'start' : 'draft');
     try {
@@ -109,17 +96,13 @@ const StartCampaignModal: React.FC<Props> = ({
         @media (prefers-reduced-motion: reduce) { .sc-in { animation: none; } }
         .sc-scroll::-webkit-scrollbar { width: 8px; }
         .sc-scroll::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 10px; }
-        .sc-num::-webkit-outer-spin-button, .sc-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        .sc-num { -moz-appearance: textfield; }
       `}</style>
 
-      {/* backdrop */}
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={() => !busy && onClose()}
       />
 
-      {/* panel */}
       <div
         className="sc-in relative w-full sm:max-w-[520px] max-h-[92vh] flex flex-col rounded-t-3xl sm:rounded-3xl overflow-hidden"
         style={{
@@ -128,7 +111,6 @@ const StartCampaignModal: React.FC<Props> = ({
           fontFamily: FONT.body,
         }}
       >
-        {/* header */}
         <div className="flex items-start justify-between gap-4 px-5 md:px-6 pt-5 md:pt-6 pb-4">
           <div className="flex items-center gap-3">
             <div
@@ -150,7 +132,7 @@ const StartCampaignModal: React.FC<Props> = ({
                 Start a campaign
               </h2>
               <p className="text-[12px] mt-0.5" style={{ color: '#7A8092' }}>
-                Fill in the details and launch.
+                Give it a name and a subject to launch.
               </p>
             </div>
           </div>
@@ -164,7 +146,6 @@ const StartCampaignModal: React.FC<Props> = ({
           </button>
         </div>
 
-        {/* body */}
         <div className="sc-scroll flex-1 overflow-y-auto px-5 md:px-6 pb-2 space-y-4">
           <div>
             <Label htmlFor="sc-name">Campaign name</Label>
@@ -191,64 +172,6 @@ const StartCampaignModal: React.FC<Props> = ({
             />
           </div>
 
-          <div>
-            <Label htmlFor="sc-template">Template</Label>
-            {templates && templates.length > 0 ? (
-              <select
-                id="sc-template"
-                value={templateId}
-                onChange={(e) => setTemplateId(e.target.value)}
-                className={`${inputBase} cursor-pointer`}
-                style={inputStyle}
-              >
-                <option value="">Select a template…</option>
-                {templates.map((t) => (
-                  <option key={t.id} value={t.id}>{t.label}</option>
-                ))}
-              </select>
-            ) : (
-              <input
-                id="sc-template"
-                type="number"
-                min={1}
-                value={templateId}
-                onChange={(e) => setTemplateId(e.target.value)}
-                placeholder="Template ID"
-                className={`${inputBase} sc-num`}
-                style={inputStyle}
-              />
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="sc-sender" hint="optional">Sender account</Label>
-            {senderAccounts && senderAccounts.length > 0 ? (
-              <select
-                id="sc-sender"
-                value={senderId}
-                onChange={(e) => setSenderId(e.target.value)}
-                className={`${inputBase} cursor-pointer`}
-                style={inputStyle}
-              >
-                <option value="">Default sender</option>
-                {senderAccounts.map((s) => (
-                  <option key={s.id} value={s.id}>{s.label}</option>
-                ))}
-              </select>
-            ) : (
-              <input
-                id="sc-sender"
-                type="number"
-                min={1}
-                value={senderId}
-                onChange={(e) => setSenderId(e.target.value)}
-                placeholder="Sender account ID"
-                className={`${inputBase} sc-num`}
-                style={inputStyle}
-              />
-            )}
-          </div>
-
           {error && (
             <div
               className="flex items-start gap-2 rounded-2xl px-3.5 py-2.5 text-[12.5px]"
@@ -265,7 +188,6 @@ const StartCampaignModal: React.FC<Props> = ({
           )}
         </div>
 
-        {/* footer */}
         <div
           className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 px-5 md:px-6 py-4 mt-2"
           style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}
