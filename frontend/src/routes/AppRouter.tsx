@@ -52,7 +52,6 @@ const AppRouter = () => {
       {/* Full path: /register */}
       <Route path="/register" element={<Register />} />
 
-
       {/* Full path: /404 */}
       <Route path="/404" element={<NotFound />} />
 

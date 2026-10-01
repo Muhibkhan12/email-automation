@@ -17,9 +17,7 @@ router = APIRouter(
 
 @router.get("/connect")
 async def connect_outlook():
-
     auth_url = OAuthService.generate_auth_url()
-
     return RedirectResponse(
         url=auth_url,
         status_code=302

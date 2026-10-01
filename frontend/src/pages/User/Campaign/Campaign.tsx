@@ -1,10 +1,16 @@
 // UserCampaigns.tsx
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useCampaigns } from '../../../contexts/CampaignContext';
-import type { Campaign } from '../../../services/CampaignService';
+import {
+  createCampaign,
+  startCampaign,
+  type Campaign,
+  type CampaignStatus,
+  type CreateCampaignData,
+} from '../../../services/CampaignService';
 import Sidebar from '../Sidebar';
 import CampaignModal from './CampaignModel';
+import StartCampaignModal from './UserCampaignModal';
 import {
   Menu, RefreshCw, Search, Plus, Megaphone, Rocket, PauseCircle,
   CheckCircle2, XCircle, FileEdit, ChevronRight, Inbox, AlertTriangle,
@@ -17,19 +23,28 @@ const FONT = {
   mono: "'JetBrains Mono', monospace",
 };
 
-const STATUS_STYLES: Record<
-  Campaign['status'],
-  { bg: string; fg: string; ring: string; label: string; Icon: React.ComponentType<{ size?: number }> }
-> = {
-  Draft:     { bg: "rgba(155,160,168,0.10)", fg: "#9BA0A8", ring: "rgba(155,160,168,0.22)", label: "Draft",     Icon: FileEdit },
-  Ready:     { bg: "rgba(59,130,246,0.10)",  fg: "#60A5FA", ring: "rgba(59,130,246,0.22)",  label: "Ready",     Icon: Rocket },
-  Running:   { bg: "rgba(34,197,94,0.10)",   fg: "#34D399", ring: "rgba(34,197,94,0.22)",   label: "Running",   Icon: Megaphone },
-  Paused:    { bg: "rgba(234,179,8,0.10)",   fg: "#FBBF24", ring: "rgba(234,179,8,0.22)",   label: "Paused",    Icon: PauseCircle },
-  Completed: { bg: "rgba(139,92,246,0.10)",  fg: "#A78BFA", ring: "rgba(139,92,246,0.22)",  label: "Completed", Icon: CheckCircle2 },
-  Cancelled: { bg: "rgba(239,68,68,0.10)",   fg: "#F87171", ring: "rgba(239,68,68,0.22)",   label: "Cancelled", Icon: XCircle },
+type StatusStyle = {
+  bg: string; fg: string; ring: string; label: string;
+  Icon: React.ComponentType<{ size?: number }>;
+};
+
+// Keys are uppercase to match CampaignStatus from CampaignService.
+const STATUS_STYLES: Record<CampaignStatus, StatusStyle> = {
+  DRAFT:     { bg: "rgba(155,160,168,0.10)", fg: "#9BA0A8", ring: "rgba(155,160,168,0.22)", label: "Draft",     Icon: FileEdit },
+  READY:     { bg: "rgba(59,130,246,0.10)",  fg: "#60A5FA", ring: "rgba(59,130,246,0.22)",  label: "Ready",     Icon: Rocket },
+  RUNNING:   { bg: "rgba(34,197,94,0.10)",   fg: "#34D399", ring: "rgba(34,197,94,0.22)",   label: "Running",   Icon: Megaphone },
+  PAUSED:    { bg: "rgba(234,179,8,0.10)",   fg: "#FBBF24", ring: "rgba(234,179,8,0.22)",   label: "Paused",    Icon: PauseCircle },
+  COMPLETED: { bg: "rgba(139,92,246,0.10)",  fg: "#A78BFA", ring: "rgba(139,92,246,0.22)",  label: "Completed", Icon: CheckCircle2 },
+  CANCELLED: { bg: "rgba(239,68,68,0.10)",   fg: "#F87171", ring: "rgba(239,68,68,0.22)",   label: "Cancelled", Icon: XCircle },
 };
 
 /* ───────────────────────── helpers ───────────────────────── */
+
+// Works whether the backend sends "Running" or "RUNNING".
+const normalizeStatus = (s?: string): CampaignStatus => {
+  const up = (s || '').toUpperCase() as CampaignStatus;
+  return up in STATUS_STYLES ? up : 'DRAFT';
+};
 
 const relativeTime = (iso: string) => {
   const d = new Date(iso).getTime();
@@ -45,11 +60,19 @@ const relativeTime = (iso: string) => {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 };
 
+// Pull a readable message out of an axios / FastAPI error.
+const apiErrorMessage = (err: any, fallback: string) => {
+  const detail = err?.response?.data?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail) && detail.length) {
+    return detail.map((d: any) => d?.msg || JSON.stringify(d)).join(', ');
+  }
+  return err?.response?.data?.message || err?.message || fallback;
+};
+
 /* ───────────────────────── page ───────────────────────── */
 
 const UserCampaigns: React.FC = () => {
-  const navigate = useNavigate();
-
   // ✅ USER SLICE — read only this user's campaigns
   const {
     myCampaigns: campaigns,
@@ -60,33 +83,66 @@ const UserCampaigns: React.FC = () => {
   } = useCampaigns();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'all' | Campaign['status']>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | CampaignStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [showStartModal, setShowStartModal] = useState(false);
 
   /* Fetch this user's campaigns on mount */
   useEffect(() => {
     fetchMine();
   }, [fetchMine]);
 
+  /* Submit from the Start Campaign modal.
+     Only campaign_name + subject are collected from the form.
+     Every other column is intentionally left for the backend to default to NULL. */
+  const handleStartCampaign = async (data: CreateCampaignData, startNow: boolean) => {
+    const payload = {
+      campaign_name: data.campaign_name,
+      subject: data.subject,
+      status: startNow ? ('READY' as const) : ('DRAFT' as const),
+    };
+
+    let created: Campaign;
+    try {
+      created = await createCampaign(payload as CreateCampaignData);
+    } catch (err: any) {
+      throw new Error(apiErrorMessage(err, 'Could not create the campaign.'));
+    }
+
+    if (startNow) {
+      try {
+        await startCampaign(created.id);
+      } catch (err: any) {
+        // campaign exists now — refresh list so it shows up, then tell the user
+        await fetchMine();
+        throw new Error(
+          `Campaign was created but couldn't be started: ${apiErrorMessage(err, 'start request failed')}`
+        );
+      }
+    }
+
+    await fetchMine();
+  };
+
   const filteredCampaigns = useMemo(
     () =>
       campaigns.filter((c) => {
-        const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
+        const matchesStatus = statusFilter === 'all' || normalizeStatus(c.status) === statusFilter;
         const q = searchQuery.toLowerCase();
         const matchesSearch =
-          c.campaign_name.toLowerCase().includes(q) ||
-          c.subject.toLowerCase().includes(q);
+          (c.campaign_name ?? '').toLowerCase().includes(q) ||
+          (c.subject ?? '').toLowerCase().includes(q);
         return matchesStatus && matchesSearch;
       }),
     [campaigns, statusFilter, searchQuery]
   );
 
-  const statusOptions: Array<'all' | Campaign['status']> = [
-    'all', 'Draft', 'Ready', 'Running', 'Paused', 'Completed', 'Cancelled',
+  const statusOptions: Array<'all' | CampaignStatus> = [
+    'all', 'DRAFT', 'READY', 'RUNNING', 'PAUSED', 'COMPLETED', 'CANCELLED',
   ];
 
-  const activeCampaigns = campaigns.filter(c => c.status === "Running").length;
+  const activeCampaigns = campaigns.filter(c => normalizeStatus(c.status) === "RUNNING").length;
 
   return (
     <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: "#0B0E13" }}>
@@ -180,12 +236,12 @@ const UserCampaigns: React.FC = () => {
                   <span className="hidden sm:inline">Refresh</span>
                 </button>
                 <button
-                  onClick={() => navigate('/upload')}
+                  onClick={() => setShowStartModal(true)}
                   className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl font-semibold text-[13px] transition-all hover:-translate-y-0.5"
                   style={{ background: "#FF6A39", color: "#fff", boxShadow: "0 12px 30px -12px rgba(255,106,57,0.65)" }}
                 >
                   <Plus size={15} />
-                  New campaign
+                  Start campaign
                 </button>
               </div>
             </header>
@@ -277,19 +333,19 @@ const UserCampaigns: React.FC = () => {
                 </p>
                 <p className="text-[12px] mt-1.5 mb-5 max-w-sm mx-auto" style={{ color: "#7A8092" }}>
                   {campaigns.length === 0
-                    ? "Upload a recipient list and pick a template to get started."
+                    ? "Start your first campaign to see it here."
                     : "Try a different search or status filter."}
                 </p>
                 <button
                   onClick={() =>
                     campaigns.length === 0
-                      ? navigate('/upload')
+                      ? setShowStartModal(true)
                       : (setSearchQuery(''), setStatusFilter('all'))
                   }
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
                   style={{ background: "#FF6A39", boxShadow: "0 10px 24px -10px rgba(255,106,57,0.6)" }}
                 >
-                  {campaigns.length === 0 ? (<><Plus size={14} /> Create campaign</>) : "Clear filters"}
+                  {campaigns.length === 0 ? (<><Plus size={14} /> Start campaign</>) : "Clear filters"}
                 </button>
               </div>
             )}
@@ -311,7 +367,7 @@ const UserCampaigns: React.FC = () => {
 
                 <div className="space-y-3">
                   {filteredCampaigns.map((campaign) => {
-                    const s = STATUS_STYLES[campaign.status];
+                    const s = STATUS_STYLES[normalizeStatus(campaign.status)];
                     const StatusIcon = s.Icon;
                     return (
                       <div
@@ -384,6 +440,13 @@ const UserCampaigns: React.FC = () => {
         <CampaignModal
           campaign={selectedCampaign}
           onClose={() => setSelectedCampaign(null)}
+        />
+      )}
+
+      {showStartModal && (
+        <StartCampaignModal
+          onClose={() => setShowStartModal(false)}
+          onSubmit={handleStartCampaign}
         />
       )}
     </div>
