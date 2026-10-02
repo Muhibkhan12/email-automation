@@ -5,6 +5,8 @@ import {
   Settings as SettingsIcon, User as UserIcon, AtSign, ListOrdered,
   Megaphone, UploadCloud, Users, ChevronRight, Menu, X, Sparkles,
   LogOut, Shield, UserCog, Loader2,
+  Rocket,
+  Send,
 } from 'lucide-react'
 import { getProfile, logoutUser } from '../../services/AuthServices'
 import type { User } from '../../types/UserTypes'
@@ -56,6 +58,7 @@ const navGroups = [
   {
     label: 'Campaigns',
     items: [
+      { name: 'Start Campaign', path: '/user/start-campaign', icon: Send },
       { name: 'Campaign',   path: '/user/campaign',   icon: Megaphone },
       { name: 'Templates',  path: '/user/templates',  icon: FileStack },
       { name: 'Recipients', path: '/user/recipients', icon: Users },

@@ -13,6 +13,7 @@ import Upload from "../pages/User/Upload";
 import Recipients from "../pages/User/Recipients";
 import Analytics from "../pages/User/Analytics";
 import CampaignRecipients from "../pages/User/Campaign/CampaignRecipients";
+import CampaignCreatePage from "../pages/User/StartCamapign";
 
 // ================= PUBLIC PAGES =================
 import Login from "../pages/Login";
@@ -75,6 +76,8 @@ const AppRouter = () => {
 
           {/* Full path: /user/dashboard */}
           <Route path="dashboard" element={<Dashboard />} />
+
+          <Route path="start-campaign" element={<CampaignCreatePage/>} />
 
           {/* Full path: /user/emaillogs */}
           <Route path="emaillogs" element={<EmailLogs />} />
