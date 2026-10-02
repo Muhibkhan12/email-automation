@@ -85,7 +85,7 @@ const StartCampaignModal: React.FC<Props> = ({ onClose, onSubmit }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-6"
+      className="fixed inset-0 z-60 flex items-end sm:items-center justify-center sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="start-campaign-title"
@@ -104,7 +104,7 @@ const StartCampaignModal: React.FC<Props> = ({ onClose, onSubmit }) => {
       />
 
       <div
-        className="sc-in relative w-full sm:max-w-[520px] max-h-[92vh] flex flex-col rounded-t-3xl sm:rounded-3xl overflow-hidden"
+        className="sc-in relative w-full sm:max-w-130 max-h-[92vh] flex flex-col rounded-t-3xl sm:rounded-3xl overflow-hidden"
         style={{
           background: 'linear-gradient(180deg, #141821 0%, #10141D 100%)',
           boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06), 0 30px 80px -20px rgba(0,0,0,0.8)',

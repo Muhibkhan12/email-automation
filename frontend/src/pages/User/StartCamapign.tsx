@@ -371,13 +371,13 @@ const CampaignCreatePage = () => {
       `}</style>
 
       {sidebarOpen && <div className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />}
-      <div className={`fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+      <div className={`fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-300 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       <main className="flex-1 overflow-y-auto" style={{ height: "100vh", background: "#0B0E13" }}>
         <div className="glow-top">
-          <div className="max-w-[860px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-12">
+          <div className="max-w-215 mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-12">
 
             {/* Header */}
             <header className="flex items-start gap-3 md:gap-4 mb-8">
@@ -583,7 +583,7 @@ const CampaignCreatePage = () => {
                         <Notice tone="warn">No templates found. Create one on the Templates page first.</Notice>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                          <div className="md:col-span-2 space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
+                          <div className="md:col-span-2 space-y-2.5 max-h-90 overflow-y-auto pr-1">
                             {templates.map((t) => {
                               const id = tplId(t);
                               const sel = id === templateId;
@@ -604,10 +604,10 @@ const CampaignCreatePage = () => {
                               tplHtml(template) ? (
                                 <iframe title="Template preview" sandbox="" srcDoc={tplHtml(template)} className="w-full bg-white" style={{ height: 360, border: 0 }} />
                               ) : (
-                                <div className="h-[280px] flex items-center justify-center text-[12.5px]" style={{ color: "#6A7080" }}>This template has no HTML content</div>
+                                <div className="h-70 flex items-center justify-center text-[12.5px]" style={{ color: "#6A7080" }}>This template has no HTML content</div>
                               )
                             ) : (
-                              <div className="h-[280px] flex items-center justify-center text-[12.5px]" style={{ color: "#6A7080" }}>Select a template to preview it</div>
+                              <div className="h-70 flex items-center justify-center text-[12.5px]" style={{ color: "#6A7080" }}>Select a template to preview it</div>
                             )}
                           </div>
                         </div>
@@ -825,7 +825,7 @@ const Notice = ({ tone, children }: { tone: "error" | "warn"; children: React.Re
 };
 
 const Modal = ({ onClose, children }: { onClose: () => void; children: React.ReactNode }) => (
-  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+  <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
     <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-md rounded-3xl p-6 float-in"
       style={{ background: "#141823", boxShadow: "inset 0 0 0 1px #232938, 0 30px 60px -20px rgba(0,0,0,0.6)" }}>
       <button onClick={onClose} aria-label="Close" className="absolute top-4 right-4 p-2 rounded-2xl text-[#8A90A0]" style={{ background: "#0F131C", boxShadow: RING }}>

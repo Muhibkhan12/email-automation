@@ -102,7 +102,7 @@ const NavItem = ({ path, name, icon: Icon, onClose }: NavItemProps) => (
       <>
         <span
           aria-hidden
-          className="absolute left-0 top-1/2 -translate-y-1/2 h-4 md:h-5 w-[3px] rounded-full transition-all duration-200"
+          className="absolute left-0 top-1/2 -translate-y-1/2 h-4 md:h-5 w-0.75 rounded-full transition-all duration-200"
           style={{
             background: COLOR.primary,
             opacity: isActive ? 1 : 0,
@@ -126,7 +126,7 @@ const NavItem = ({ path, name, icon: Icon, onClose }: NavItemProps) => (
         >
           <Icon
             size={14}
-            className="md:w-[15px] md:h-[15px]"
+            className="md:w-3.75 md:h-3.75"
             strokeWidth={2}
             style={{ color: isActive ? COLOR.primary : COLOR.textMuted }}
           />
@@ -141,7 +141,7 @@ const NavItem = ({ path, name, icon: Icon, onClose }: NavItemProps) => (
         {isActive && (
           <ChevronRight
             size={13}
-            className="relative shrink-0 md:w-[14px] md:h-[14px]"
+            className="relative shrink-0 md:w-3.5 md:h-3.5"
             style={{ color: COLOR.primary }}
           />
         )}
@@ -482,8 +482,8 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
           <div className="flex-1 min-w-0">
             {loadingUser ? (
               <>
-                <div className="h-[10px] w-24 rounded bg-[#1A1F2B] animate-pulse" />
-                <div className="h-[9px] w-32 rounded bg-[#1A1F2B] animate-pulse mt-1.5" />
+                <div className="h-2.5 w-24 rounded bg-[#1A1F2B] animate-pulse" />
+                <div className="h-2.25 w-32 rounded bg-[#1A1F2B] animate-pulse mt-1.5" />
               </>
             ) : (
               <>
@@ -595,7 +595,7 @@ const SidebarWithMobile = () => {
 
   return (
     <>
-      <div className="hidden lg:block h-screen sticky top-0 flex-shrink-0">
+      <div className="hidden lg:block h-screen sticky top-0 shrink-0">
         <Sidebar />
       </div>
 

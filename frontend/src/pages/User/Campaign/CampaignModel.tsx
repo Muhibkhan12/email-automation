@@ -116,7 +116,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
       onClick={onClose}
       style={{ fontFamily: FONT.body, animation: 'cm-fade 0.15s ease-out' }}
     >
@@ -245,7 +245,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
                   </div>
                   <div className="w-full h-1.5 rounded-full bg-[#1F242E] overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-[#FF6A39] to-[#FF8A5C] transition-all duration-500"
+                      className="h-full rounded-full bg-linear-to-r from-[#FF6A39] to-[#FF8A5C] transition-all duration-500"
                       style={{
                         width: `${
                           upload.total_records
@@ -295,7 +295,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
                 title="Template preview"
                 srcDoc={campaign.template.html_content}
                 sandbox=""
-                className="w-full h-[420px] bg-white"
+                className="w-full h-105 bg-white"
               />
             </div>
           )}

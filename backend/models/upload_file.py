@@ -12,6 +12,7 @@ from sqlalchemy import (
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from models.campaign_recipients import CampaignRecipient
 from database import Base
 
 
@@ -30,11 +31,6 @@ class Upload(Base):
         Integer,
         primary_key=True,
         index=True
-    )
-    user_id : Mapped[int ]  = mapped_column(
-        Integer,
-        ForeignKey("user.id");
-        nullable=
     )
 
     campaign_id: Mapped[int] = mapped_column(
