@@ -237,7 +237,7 @@ const ConnectModal: React.FC<{
 }> = ({ busyId, error, onClose, onConnect }) => {
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
       onClick={() => !busyId && onClose()}
       role="dialog"
       aria-modal="true"
@@ -380,7 +380,7 @@ const DeleteConfirmModal: React.FC<{
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
       onClick={() => !busy && onCancel()}
       role="dialog"
       aria-modal="true"
@@ -399,7 +399,7 @@ const DeleteConfirmModal: React.FC<{
               <Link2Off size={18} style={{ color: C.danger }} />
             </div>
             <div className="min-w-0">
-              <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-bold text-white break-words">
+              <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-bold text-white wrap-break-word">
                 Disconnect “{label}”?
               </h3>
               <p className="text-[12.5px] mt-0.5" style={{ color: C.textMuted }}>
@@ -722,7 +722,7 @@ const AdminSenderAccounts = () => {
       )}
 
       <div className={`
-        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out
+        fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-300 ease-out
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}>
         <AdminSidebar onClose={() => setSidebarOpen(false)} />
@@ -730,7 +730,7 @@ const AdminSenderAccounts = () => {
 
       <main className="asa-main flex-1 overflow-y-auto" style={{ background: C.bg, height: "100vh", width: "100%" }}>
         <div className="glow-top">
-          <div className="max-w-[1320px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
+          <div className="max-w-330 mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
 
             {/* Header */}
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
@@ -924,8 +924,8 @@ const AdminSenderAccounts = () => {
                       <th className="px-4 md:px-6 py-3 font-medium" scope="col">Account</th>
                       <th className="px-3 py-3 font-medium" scope="col">Provider</th>
                       <th className="px-3 py-3 font-medium" scope="col">Status</th>
-                      <th className="px-3 py-3 font-medium w-[160px]" scope="col">Daily</th>
-                      <th className="px-3 py-3 font-medium w-[160px]" scope="col">Hourly</th>
+                      <th className="px-3 py-3 font-medium w-40" scope="col">Daily</th>
+                      <th className="px-3 py-3 font-medium w-40" scope="col">Hourly</th>
                       <th className="px-4 md:px-6 py-3 font-medium text-right" scope="col"><span className="sr-only">Actions</span></th>
                     </tr>
                   </thead>
@@ -970,7 +970,7 @@ const AdminSenderAccounts = () => {
                           <td className="px-3 py-3.5"><StatusPill status={account.status} /></td>
 
                           <td className="px-3 py-3.5">
-                            <div className="w-[140px]">
+                            <div className="w-35">
                               <div className="flex items-center justify-between text-[11px] mb-1.5">
                                 <span style={{ color: C.textMuted, fontFamily: FONT.mono }}>
                                   {account.emails_sent_today.toLocaleString()}
@@ -992,7 +992,7 @@ const AdminSenderAccounts = () => {
                           </td>
 
                           <td className="px-3 py-3.5">
-                            <div className="w-[140px]">
+                            <div className="w-35">
                               <div className="flex items-center justify-between text-[11px] mb-1.5">
                                 <span style={{ color: C.textMuted, fontFamily: FONT.mono }}>
                                   {account.emails_sent_hour.toLocaleString()}
@@ -1103,7 +1103,7 @@ const AdminSenderAccounts = () => {
       {/* Edit modal */}
       {editingAccount && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
           onClick={() => !saving && setEditingAccount(null)}
           role="dialog"
           aria-modal="true"
