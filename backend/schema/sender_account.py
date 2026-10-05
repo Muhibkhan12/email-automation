@@ -13,21 +13,23 @@ class addSenderAccountSchema(BaseModel):
     hourly_limit : int
     emails_sent_today : int
     status : str
-    created_at : str
-    updated_at : str
+    created_at : datetime
+    updated_at : datetime
     emails_sent_hour : int
     
 class SenderAccountResponse(BaseModel):
-    email : EmailStr	
-    display_name : str	
-    provider : str	
-    status : str	
-    created_at : str	
-    updated_at : str	
-    emails_sent_hour : str	
-
+    email : EmailStr
+    display_name : str
+    provider : str
+    status : str
+    created_at : datetime
+    updated_at : datetime
+    emails_sent_hour : int
+    emails_sent_today : int
+    daily_limit : int
+    hourly_limit : int
     model_config = {
-        "form_attributes" : True
+        "from_attributes" : True
     }
 
 class updateSenderAccout(BaseModel):

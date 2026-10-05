@@ -1,12 +1,12 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from schema.sender_account import addSenderAccountSchema, updateSenderAccout
+from schema.sender_account import SenderAccountResponse, addSenderAccountSchema, updateSenderAccout
 from models.sender_account import SenderAccount
 from models.user import User
 
 
-def _get_owned_account(id: int, user_id: int, db: Session) -> SenderAccount:
+def get_owned_account(id: int, user_id: int, db: Session):
     account = (
         db.query(SenderAccount)
         .filter(SenderAccount.id == id, SenderAccount.user_id == user_id)
@@ -18,7 +18,6 @@ def _get_owned_account(id: int, user_id: int, db: Session) -> SenderAccount:
             detail="Sender Account not found",
         )
     return account
-
 
 def add_sender_account(db: Session, credentials: addSenderAccountSchema, user_id: int):
     existing_data = (
@@ -50,14 +49,13 @@ def add_sender_account(db: Session, credentials: addSenderAccountSchema, user_id
         "account": account,
     }
 
-
 def update_sender_account(
     id: int,
     db: Session,
     credentials: updateSenderAccout,
     user_id: int,
 ):
-    sender_account = _get_owned_account(id, user_id, db)
+    sender_account = get_owned_account(id, user_id, db)
 
     if credentials.email is not None:
         existing_email = (
@@ -91,7 +89,7 @@ def update_sender_account(
     }
 
 def delete_sender_account(id: int, db: Session, user_id: int):
-    existing_account = _get_owned_account(id, user_id, db)
+    existing_account = get_owned_account(id, user_id, db)
 
     db.delete(existing_account)
     try:
@@ -104,7 +102,7 @@ def delete_sender_account(id: int, db: Session, user_id: int):
 
 # GET /sender-accounts/{id}  -> ONE account by its id
 def get_account_by_id(id: int, user_id: int, db: Session):
-    account = _get_owned_account(id, user_id, db)
+    account = get_owned_account(id, user_id, db)
     return {
         "message": "Account Exist",
         "account": account,
@@ -115,7 +113,7 @@ def get_all_sender_accounts(user_id: int, db: Session):
     data = (
         db.query(SenderAccount).all()
     )
-    return {"accounts": data}
+    return data
 
 def get_my_senders_accounts_using_id(current_user : id , db : Session):
         data = (

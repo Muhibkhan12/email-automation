@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from models.user import User
-from schema.sender_account import addSenderAccountSchema, updateSenderAccout
+from schema.sender_account import SenderAccountResponse, addSenderAccountSchema, updateSenderAccout
 from services.user import GetCurrentUser
 from services.sender_accounts import (
     add_sender_account,
@@ -26,7 +26,7 @@ def get_my_senders_accounts(
 ):
     return get_my_senders_accounts_using_id(current_user,db)
 
-@router.get("/all")
+@router.get("/all", response_model=list[SenderAccountResponse])
 def getAllSenderAccounts(
     current_user: User = Depends(GetCurrentUser),
     db: Session = Depends(get_db),
