@@ -1,12 +1,3 @@
-/*
-  Drop-in replacement for the AddAccountModal in SenderAccountsPage.tsx.
-
-  Needs these imports at the top of the page:
-    import { useMicrosoftConnect } from "../../hooks/useMicrosoftConnect";
-  (Mail, X, AlertTriangle, Loader2 are already imported there.)
-  Also uses: FONT, Field, Provider, SenderAccContext, CreateSenderAccountInput from the page.
-*/
-
 const MicrosoftLogo = () => (
   <svg width="16" height="16" viewBox="0 0 21 21" aria-hidden>
     <rect x="1" y="1" width="9" height="9" fill="#F25022" />

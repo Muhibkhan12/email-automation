@@ -11,6 +11,10 @@ import type {
   CreateSenderAccountInput,
 } from "../../types/SenderAccount";
 
+/* ─────────────── MS Auth route ─────────────── */
+// 👇 point this at your backend OAuth start endpoint
+const MS_AUTH_URL = "http://localhost:8000/api/oauth/outlook/connect";
+
 const FONT = {
   display: "'Space Grotesk', sans-serif",
   body: "'Inter', sans-serif",
@@ -54,7 +58,6 @@ const normalizeProvider = (p?: string): Provider => {
 
 const SenderAccountsPage = () => {
   const ctx = useContext(SenderAccContext);
-  const [showAddAccount, setShowAddAccount] = useState(false);
   const [search, setSearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -74,6 +77,11 @@ const SenderAccountsPage = () => {
   const activeCount = senderAcc.filter((a) => normalizeStatus(a.status) === "Active").length;
   const emailsToday = senderAcc.reduce((sum, a) => sum + (a.emails_sent_today ?? 0), 0);
   const dailyCapacity = senderAcc.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0);
+
+  /* ── Redirect to Microsoft OAuth ── */
+  const handleAddAccount = () => {
+    window.location.href = MS_AUTH_URL;
+  };
 
   const handleDelete = async (id: number) => {
     if (!window.confirm("Delete this sender account?")) return;
@@ -168,7 +176,7 @@ const SenderAccountsPage = () => {
               </div>
 
               <button
-                onClick={() => setShowAddAccount(true)}
+                onClick={handleAddAccount}
                 className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[13px] font-semibold self-start md:self-auto transition-all hover:-translate-y-0.5"
                 style={{ background: "#FF6A39", color: "#fff", boxShadow: "0 12px 30px -12px rgba(255,106,57,0.65)" }}
               >
@@ -262,14 +270,14 @@ const SenderAccountsPage = () => {
                   </div>
                   <p className="text-[14px] font-medium" style={{ color: "#F2F0EB" }}>No sender accounts yet</p>
                   <p className="text-[12px] mt-1.5 mb-5" style={{ color: "#7A8092" }}>
-                    Connect an account to start sending campaigns.
+                    Connect a Microsoft account to start sending campaigns.
                   </p>
                   <button
-                    onClick={() => setShowAddAccount(true)}
+                    onClick={handleAddAccount}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
                     style={{ background: "#FF6A39", boxShadow: "0 10px 24px -10px rgba(255,106,57,0.6)" }}
                   >
-                    <Plus size={14} /> Add account
+                    <Plus size={14} /> Connect Microsoft account
                   </button>
                 </div>
               )}
@@ -297,8 +305,6 @@ const SenderAccountsPage = () => {
           </div>
         </div>
       </main>
-
-      {showAddAccount && <AddAccountModal onClose={() => setShowAddAccount(false)} />}
     </div>
   );
 };
@@ -452,6 +458,7 @@ const SenderAccountRow: React.FC<{
         <div className="lg:col-span-3 flex items-center lg:justify-end gap-2 flex-wrap">
           {disconnected ? (
             <button
+              onClick={() => { window.location.href = MS_AUTH_URL; }}
               className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[12px] font-semibold text-white transition-all hover:-translate-y-0.5"
               style={{ background: "#FF6A39", boxShadow: "0 10px 24px -10px rgba(255,106,57,0.6)" }}
             >
@@ -486,256 +493,5 @@ const SenderAccountRow: React.FC<{
     </li>
   );
 };
-
-/* ─────────────── Setting card ─────────────── */
-
-interface SettingCardProps {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  title: string;
-  description: string;
-  enabled: boolean;
-}
-
-const SettingCard = ({ icon: Icon, title, description, enabled }: SettingCardProps) => {
-  const [active, setActive] = useState(enabled);
-
-  return (
-    <div
-      className="rounded-2xl p-4 transition-all"
-      style={{ background: "#0F131C", boxShadow: "inset 0 0 0 1px #1A1F2B" }}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex gap-3 min-w-0">
-          <span
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-            style={{ background: active ? "rgba(255,106,57,0.10)" : "#141823", color: active ? "#FF6A39" : "#7A8092", boxShadow: active ? "inset 0 0 0 1px rgba(255,106,57,0.22)" : "inset 0 0 0 1px #1A1F2B" }}
-          >
-            <Icon size={15} />
-          </span>
-          <div className="min-w-0">
-            <h3 className="text-[13.5px] font-semibold" style={{ color: "#F2F0EB" }}>{title}</h3>
-            <p className="mt-1 text-[11.5px] leading-5" style={{ color: "#7A8092" }}>{description}</p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => setActive(!active)}
-          role="switch"
-          aria-checked={active}
-          aria-label={title}
-          className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
-          style={{ background: active ? "#FF6A39" : "#232938" }}
-        >
-          <span
-            className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all"
-            style={{ left: active ? 22 : 2 }}
-          />
-        </button>
-      </div>
-    </div>
-  );
-};
-
-/* ─────────────── Add account modal ─────────────── */
-
-const AddAccountModal = ({ onClose }: { onClose: () => void }) => {
-  const ctx = useContext(SenderAccContext);
-  const [provider, setProvider] = useState<Provider>("Gmail");
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [dailyLimit, setDailyLimit] = useState("500");
-  const [hourlyLimit, setHourlyLimit] = useState("50");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = async () => {
-    if (!ctx) return;
-    const payload: CreateSenderAccountInput = {
-      display_name: name.trim(),
-      email: email.trim(),
-      provider,
-      daily_limit: Number(dailyLimit) || 0,
-      hourly_limit: Number(hourlyLimit) || 0,
-    };
-    try {
-      setSaving(true);
-      setError(null);
-      await ctx.addSenderAccount(payload);
-      onClose();
-    } catch (err) {
-      console.error("Failed to add sender account:", err);
-      setError("Could not connect this account. Check the details and try again.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const inputBase =
-    "w-full rounded-2xl px-4 py-2.5 text-[13px] outline-none transition-all";
-  const inputStyle: React.CSSProperties = {
-    background: "#0F131C",
-    color: "#E8E6E1",
-    boxShadow: "inset 0 0 0 1px #1A1F2B",
-  };
-  const focusIn = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) =>
-    (e.currentTarget.style.boxShadow = "inset 0 0 0 1px rgba(255,106,57,0.55), 0 0 0 4px rgba(255,106,57,0.10)");
-  const focusOut = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) =>
-    (e.currentTarget.style.boxShadow = "inset 0 0 0 1px #1A1F2B");
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-      onClick={onClose}>
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg rounded-3xl overflow-hidden float-in"
-        style={{ background: "#141823", boxShadow: "inset 0 0 0 1px #232938, 0 30px 60px -20px rgba(0,0,0,0.6)" }}
-      >
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 p-5 md:p-6 border-b border-[#1A1F2B]">
-          <div className="flex items-start gap-3.5 min-w-0">
-            <div className="shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
-              style={{ background: "rgba(255,106,57,0.10)", boxShadow: "inset 0 0 0 1px rgba(255,106,57,0.22)" }}>
-              <Mail size={18} className="text-[#FF6A39]" />
-            </div>
-            <div className="min-w-0">
-              <h2 style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }}
-                className="text-[16px] md:text-[18px] font-bold text-white truncate">
-                Add sender account
-              </h2>
-              <p className="text-[12px] mt-0.5" style={{ color: "#8A90A0" }}>
-                Connect an account for sending campaigns.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="shrink-0 p-2 rounded-2xl text-[#8A90A0] hover:text-[#E8E6E1] transition-colors"
-            style={{ background: "#0F131C", boxShadow: "inset 0 0 0 1px #1A1F2B" }}
-          >
-            <X size={15} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="p-5 md:p-6 space-y-4 max-h-[65vh] overflow-y-auto">
-          <Field label="Email address">
-            <input
-              type="email"
-              placeholder="marketing@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={inputBase}
-              style={inputStyle}
-              onFocus={focusIn}
-              onBlur={focusOut}
-            />
-          </Field>
-
-          <Field label="Display name">
-            <input
-              type="text"
-              placeholder="Marketing"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className={inputBase}
-              style={inputStyle}
-              onFocus={focusIn}
-              onBlur={focusOut}
-            />
-          </Field>
-
-          <Field label="Provider">
-            <select
-              value={provider}
-              onChange={(e) => setProvider(e.target.value as Provider)}
-              className={inputBase}
-              style={inputStyle}
-              onFocus={focusIn}
-              onBlur={focusOut}
-            >
-              <option>Gmail</option>
-              <option>Outlook</option>
-              <option>Custom SMTP</option>
-            </select>
-          </Field>
-
-          <div className="grid grid-cols-2 gap-3 rounded-2xl p-4"
-            style={{ background: "#0F131C", boxShadow: "inset 0 0 0 1px #1A1F2B" }}>
-            <Field label="Daily limit" compact>
-              <input
-                type="number" min={0} placeholder="500"
-                value={dailyLimit}
-                onChange={(e) => setDailyLimit(e.target.value)}
-                className={inputBase}
-                style={{ ...inputStyle, background: "#141823" }}
-                onFocus={focusIn}
-                onBlur={focusOut}
-              />
-            </Field>
-            <Field label="Hourly limit" compact>
-              <input
-                type="number" min={0} placeholder="50"
-                value={hourlyLimit}
-                onChange={(e) => setHourlyLimit(e.target.value)}
-                className={inputBase}
-                style={{ ...inputStyle, background: "#141823" }}
-                onFocus={focusIn}
-                onBlur={focusOut}
-              />
-            </Field>
-          </div>
-
-          {error && (
-            <div className="flex items-start gap-2 rounded-2xl px-3.5 py-2.5"
-              style={{ background: "rgba(248,113,113,0.08)", boxShadow: "inset 0 0 0 1px rgba(248,113,113,0.22)" }}>
-              <AlertTriangle size={14} className="text-[#F87171] shrink-0 mt-0.5" />
-              <p className="text-[12px]" style={{ color: "#F87171" }}>{error}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between gap-3 p-5 md:p-6 border-t border-[#1A1F2B]">
-          <span className="text-[11px]" style={{ color: "#5A6172", fontFamily: FONT.mono }}>
-            credentials encrypted at rest
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onClose}
-              className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-colors"
-              style={{ background: "#0F131C", color: "#DADEE7", boxShadow: "inset 0 0 0 1px #1A1F2B" }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={saving || !email || !name}
-              className="rounded-2xl px-5 py-2.5 text-[12.5px] font-semibold text-white transition-all disabled:opacity-50 disabled:hover:translate-y-0 hover:-translate-y-0.5"
-              style={{ background: "#FF6A39", boxShadow: "0 12px 30px -12px rgba(255,106,57,0.65)" }}
-            >
-              {saving ? "Connecting…" : "Connect account"}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/* Small label wrapper */
-const Field: React.FC<{ label: string; compact?: boolean; children: React.ReactNode }> = ({
-  label, compact, children,
-}) => (
-  <div>
-    <label
-      className={`block font-medium mb-1.5 ${compact ? "text-[10.5px]" : "text-[12px]"}`}
-      style={{ color: compact ? "#8A90A0" : "#C7C9CE", textTransform: compact ? "uppercase" : "none", letterSpacing: compact ? "0.06em" : "0" }}
-    >
-      {label}
-    </label>
-    {children}
-  </div>
-);
 
 export default SenderAccountsPage;
