@@ -32,6 +32,11 @@ class Upload(Base):
         primary_key=True,
         index=True
     )
+    # user_id : Mapped[int] = mapped_column(
+    #     Integer, 
+    #     ForeignKey("user.id"),
+    #     index=True
+    # )
 
     campaign_id: Mapped[int] = mapped_column(
         ForeignKey("campaigns.id"),

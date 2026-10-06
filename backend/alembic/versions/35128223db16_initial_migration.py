@@ -98,6 +98,7 @@ def upgrade() -> None:
     op.create_table(
         'uploads',
         sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('user_id', sa.Integer(), nullable=False),
         sa.Column('campaign_id', sa.Integer(), nullable=False),
         sa.Column('original_filename', sa.String(length=255), nullable=False),
         sa.Column('stored_filename', sa.String(length=255), nullable=False),
