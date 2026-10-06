@@ -1,19 +1,11 @@
-import { useContext, useState } from "react";
+import React, { useContext, useState } from "react";
 import Sidebar from "./Sidebar";
 import {
   Mail, CheckCircle2, AlertTriangle, XCircle, Gauge, Layers,
-  Plus, X, Search, Zap, Settings2, Trash2, Shuffle, Timer,
-  RotateCcw, Wifi, Menu, Loader2, ArrowUpRight, Inbox,
+  Plus, Search, Zap, Settings2, Trash2, Wifi, Menu, Loader2, Inbox,
 } from "lucide-react";
 import { SenderAccContext } from "../../contexts/SenderAccountsContext";
-import type {
-  SenderAccount,
-  CreateSenderAccountInput,
-} from "../../types/SenderAccount";
-
-/* ─────────────── MS Auth route ─────────────── */
-// 👇 point this at your backend OAuth start endpoint
-const MS_AUTH_URL = "http://localhost:8000/api/oauth/outlook/connect";
+import type { SenderAccount } from "../../types/SenderAccount";
 
 const FONT = {
   display: "'Space Grotesk', sans-serif",
@@ -78,9 +70,13 @@ const SenderAccountsPage = () => {
   const emailsToday = senderAcc.reduce((sum, a) => sum + (a.emails_sent_today ?? 0), 0);
   const dailyCapacity = senderAcc.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0);
 
-  /* ── Redirect to Microsoft OAuth ── */
   const handleAddAccount = () => {
-    window.location.href = MS_AUTH_URL;
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      alert("You must be logged in.");
+      return;
+    }
+    window.location.href = `/api/oauth/outlook/connect?token=${encodeURIComponent(token)}`;
   };
 
   const handleDelete = async (id: number) => {
@@ -126,7 +122,7 @@ const SenderAccountsPage = () => {
       )}
 
       <div className={`
-        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out
+        fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-300 ease-out
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
@@ -256,6 +252,7 @@ const SenderAccountsPage = () => {
                       account={account as any}
                       first={i === 0}
                       onDelete={() => handleDelete(account.id)}
+                      onReconnect={handleAddAccount}
                     />
                   ))}
                 </ul>
@@ -274,10 +271,11 @@ const SenderAccountsPage = () => {
                   </p>
                   <button
                     onClick={handleAddAccount}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
-                    style={{ background: "#FF6A39", boxShadow: "0 10px 24px -10px rgba(255,106,57,0.6)" }}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5"
+                    style={{ background: "#FF6A39", boxShadow: "0 12px 30px -12px rgba(255,106,57,0.65)" }}
                   >
-                    <Plus size={14} /> Connect Microsoft account
+                    <Plus size={15} />
+                    Add sender account
                   </button>
                 </div>
               )}
@@ -394,12 +392,12 @@ const SenderAccountRow: React.FC<{
   account: AccountWithCampaigns;
   first?: boolean;
   onDelete: () => void;
-}> = ({ account, first, onDelete }) => {
+  onReconnect: () => void;
+}> = ({ account, first, onDelete, onReconnect }) => {
   const provider = normalizeProvider(account.provider);
   const status = normalizeStatus(account.status);
   const p = providerMeta[provider];
   const s = statusMeta[status];
-  const StatusIcon = s.icon;
 
   const sentToday = account.emails_sent_today ?? 0;
   const dailyLimit = account.daily_limit ?? 0;
@@ -458,7 +456,7 @@ const SenderAccountRow: React.FC<{
         <div className="lg:col-span-3 flex items-center lg:justify-end gap-2 flex-wrap">
           {disconnected ? (
             <button
-              onClick={() => { window.location.href = MS_AUTH_URL; }}
+              onClick={onReconnect}
               className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[12px] font-semibold text-white transition-all hover:-translate-y-0.5"
               style={{ background: "#FF6A39", boxShadow: "0 10px 24px -10px rgba(255,106,57,0.6)" }}
             >

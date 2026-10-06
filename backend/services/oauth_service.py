@@ -7,14 +7,14 @@ from config import settings
 class OAuthService:
 
     @staticmethod
-    def generate_auth_url():
+    def generate_auth_url(state: str = "123456"):
         params = {
             "client_id": settings.MS_CLIENT_ID,
             "response_type": "code",
             "redirect_uri": settings.MS_REDIRECT_URI,
             "scope": "offline_access Mail.Send User.Read",
             "response_mode": "query",
-            "state": "123456",
+            "state": state,
         }
 
         auth_url = (
@@ -28,7 +28,6 @@ class OAuthService:
 
     @staticmethod
     async def exchange_code_for_token(code: str):
-
         token_url = (
             f"https://login.microsoftonline.com/"
             f"{settings.MS_TENANT_ID}"
@@ -53,12 +52,8 @@ class OAuthService:
 
     @staticmethod
     async def get_user_profile(access_token: str):
-
         url = "https://graph.microsoft.com/v1.0/me"
-
-        headers = {
-            "Authorization": f"Bearer {access_token}"
-        }
+        headers = {"Authorization": f"Bearer {access_token}"}
 
         async with httpx.AsyncClient() as client:
             response = await client.get(url, headers=headers)
@@ -70,7 +65,6 @@ class OAuthService:
 
     @staticmethod
     async def refresh_access_token(refresh_token: str):
-
         token_url = (
             f"https://login.microsoftonline.com/"
             f"{settings.MS_TENANT_ID}"
