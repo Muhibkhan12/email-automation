@@ -3,6 +3,9 @@ import enum
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, UTC
+from models.campaigns import Campaign
+from models.sender_account import SenderAccount
+from models.upload_file import Upload
 from database import Base
 
 
@@ -44,5 +47,9 @@ class User(Base):
     )
     templates = relationship(
         "HTMLTemplate",
+        back_populates="user"
+    )
+    uploads :  Mapped[list["Upload"]] = relationship(
+        "Upload",
         back_populates="user"
     )

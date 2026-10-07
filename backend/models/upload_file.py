@@ -1,7 +1,5 @@
 import enum
-
 from datetime import datetime, UTC
-
 from sqlalchemy import (
     ForeignKey,
     String,
@@ -32,11 +30,12 @@ class Upload(Base):
         primary_key=True,
         index=True
     )
-    # user_id : Mapped[int] = mapped_column(
-    #     Integer, 
-    #     ForeignKey("user.id"),
-    #     index=True
-    # )
+    user_id : Mapped[int] = mapped_column(
+        Integer, 
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True
+    )
 
     campaign_id: Mapped[int] = mapped_column(
         ForeignKey("campaigns.id"),
@@ -97,6 +96,11 @@ class Upload(Base):
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC)
+    )
+
+    user = relationship(
+        "User",
+        back_populates="uploads"
     )
 
 
