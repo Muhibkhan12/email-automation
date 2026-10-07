@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import {
-  FileSpreadsheet, CheckCircle2, XCircle, Loader2, X, Menu, Clock, Users,
-  Eye, Pencil, Lock, Plus, Trash2, Upload as UploadIcon, PlayCircle,
+  FileSpreadsheet, CheckCircle2, XCircle, Loader2, X, Menu, Users,
+  Pencil, Lock, Trash2, Upload as UploadIcon, PlayCircle,
 } from "lucide-react";
 import { useUpload } from "../../contexts/UploadContext";
 
@@ -15,8 +15,9 @@ const FONT = {
 type Status = "Uploaded" | "Running" | "Completed" | "Failed";
 
 interface UploadCardData {
-  id: string;
+  id: number;
   name: string;
+  campaignId: number;
   rows: number;
   addedCount: number;
   skippedCount: number;
@@ -24,17 +25,18 @@ interface UploadCardData {
   status: Status;
 }
 
-// Map whatever your backend sends -> one of the 4 statuses. Adjust to your values.
 const toStatus = (raw?: string): Status => {
   const s = (raw ?? "").toLowerCase();
   if (["failed", "error"].includes(s)) return "Failed";
   if (["running", "processing", "sending", "in_progress"].includes(s)) return "Running";
   if (["completed", "complete", "done", "success", "sent"].includes(s)) return "Completed";
-  return "Uploaded"; // "uploaded", "pending", "" ...
+  return "Uploaded";
 };
 
-// Preview + edit are only allowed in this status.
-const canOpen = (s: Status) => s === "Uploaded";
+// Rename is only allowed before the file is used.
+const canEdit = (s: Status) => s === "Uploaded";
+// Don't delete a file while it's being processed.
+const canDelete = (s: Status) => s !== "Running";
 
 const formatDate = (iso?: string) => {
   if (!iso) return "—";
@@ -44,7 +46,11 @@ const formatDate = (iso?: string) => {
 };
 
 const getErrorMessage = (err: any): string =>
-  err?.response?.data?.message || err?.response?.data?.error || err?.message || "Something went wrong.";
+  err?.response?.data?.detail ||
+  err?.response?.data?.message ||
+  err?.response?.data?.error ||
+  err?.message ||
+  "Something went wrong.";
 
 /* ───────────── Primitives ───────────── */
 
@@ -78,14 +84,15 @@ const Stat: React.FC<{ label: string; value: number; tone?: string }> = ({ label
 
 const UploadCard: React.FC<{
   u: UploadCardData;
-  onPreview: () => void;
-  onEdit: () => void;
-}> = ({ u, onPreview, onEdit }) => {
-  const open = canOpen(u.status);
+  deleting: boolean;
+  onRename: () => void;
+  onDelete: () => void;
+}> = ({ u, deleting, onRename, onDelete }) => {
+  const editable = canEdit(u.status);
   const lockedReason =
     u.status === "Running" ? "Locked while the campaign is running"
     : u.status === "Completed" ? "Locked — this file has already been used"
-    : "Failed files can't be opened";
+    : "Failed files can't be renamed";
 
   return (
     <article className="flex flex-col rounded-2xl bg-[#141821] ring-1 ring-[#232833] hover:ring-[#333A48] transition-colors">
@@ -95,7 +102,9 @@ const UploadCard: React.FC<{
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-medium text-[#E8E6E1] truncate" title={u.name}>{u.name}</p>
-          <p className="mt-0.5 text-[11px] text-[#6B727C]">{u.uploadedAt}</p>
+          <p className="mt-0.5 text-[11px] text-[#6B727C]">
+            Campaign #{u.campaignId} · {u.uploadedAt}
+          </p>
         </div>
         <StatusPill status={u.status} />
       </div>
@@ -107,91 +116,49 @@ const UploadCard: React.FC<{
       </div>
 
       <div className="mt-auto flex items-center gap-2 px-4 md:px-5 py-3 border-t border-[#1F242E]">
-        {open ? (
-          <>
-            <button
-              onClick={onPreview}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-[#E8E6E1] bg-[#1B1F29] ring-1 ring-[#232833] hover:bg-[#232833] transition-colors"
-            >
-              <Eye size={13} /> Preview
-            </button>
-            <button
-              onClick={onEdit}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-white bg-[#FF6A39] hover:bg-[#e85a2c] transition-colors"
-            >
-              <Pencil size={13} /> Edit data
-            </button>
-          </>
+        {editable ? (
+          <button
+            onClick={onRename}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-white bg-[#FF6A39] hover:bg-[#e85a2c] transition-colors"
+          >
+            <Pencil size={13} /> Rename
+          </button>
         ) : (
           <p className="inline-flex items-center gap-1.5 text-[11px] text-[#6B727C]">
             <Lock size={12} /> {lockedReason}
           </p>
+        )}
+        {canDelete(u.status) && (
+          <button
+            onClick={onDelete}
+            disabled={deleting}
+            className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition-colors"
+          >
+            {deleting ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />} Delete
+          </button>
         )}
       </div>
     </article>
   );
 };
 
-/* ───────────── Preview / Edit modal ───────────── */
+/* ───────────── Rename modal ───────────── */
 
-type Row = Record<string, any>;
-
-const DataModal: React.FC<{
-  upload: UploadCardData;
-  initialMode: "preview" | "edit";
-  onClose: () => void;
-}> = ({ upload, initialMode, onClose }) => {
-  const { fetchRows, saveRows } = useUpload();
-  const [mode, setMode] = useState<"preview" | "edit">(initialMode);
-  const [headers, setHeaders] = useState<string[]>([]);
-  const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(true);
+const RenameModal: React.FC<{ upload: UploadCardData; onClose: () => void }> = ({ upload, onClose }) => {
+  const { renameFile } = useUpload();
+  const [name, setName] = useState(upload.name);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [dirty, setDirty] = useState(false);
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const data = await fetchRows(upload.id);
-        if (!alive) return;
-        setHeaders(data.headers);
-        setRows(data.rows);
-      } catch (e) {
-        if (alive) setError(getErrorMessage(e));
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => { alive = false; };
-  }, [upload.id, fetchRows]);
-
-  const editing = mode === "edit";
-
-  const setCell = (r: number, h: string, v: string) => {
-    setRows(prev => prev.map((row, i) => (i === r ? { ...row, [h]: v } : row)));
-    setDirty(true);
-  };
-  const addRow = () => {
-    setRows(prev => [...prev, Object.fromEntries(headers.map(h => [h, ""]))]);
-    setDirty(true);
-  };
-  const removeRow = (r: number) => {
-    setRows(prev => prev.filter((_, i) => i !== r));
-    setDirty(true);
-  };
-
-  const emailKey = headers.find(h => h.toLowerCase() === "email");
-  const invalidEmail = (row: Row) =>
-    !!emailKey && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(row[emailKey] ?? "").trim());
-  const invalidCount = editing && emailKey ? rows.filter(invalidEmail).length : 0;
+  const trimmed = name.trim();
+  const unchanged = trimmed === upload.name;
 
   const handleSave = async () => {
+    if (!trimmed || unchanged) return;
     setSaving(true);
     setError(null);
     try {
-      await saveRows(upload.id, rows);
+      await renameFile(upload.id, trimmed);
       onClose();
     } catch (e) {
       setError(getErrorMessage(e));
@@ -200,121 +167,42 @@ const DataModal: React.FC<{
     }
   };
 
-  const handleClose = () => {
-    if (editing && dirty && !window.confirm("Discard your unsaved changes?")) return;
-    onClose();
-  };
-
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 md:p-6 bg-black/70 backdrop-blur-sm" onClick={handleClose}>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 md:p-6 bg-black/70 backdrop-blur-sm" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
-        className="w-full max-w-5xl max-h-[90vh] flex flex-col rounded-2xl bg-[#141821] ring-1 ring-[#232833] overflow-hidden"
+        className="w-full max-w-md flex flex-col rounded-2xl bg-[#141821] ring-1 ring-[#232833] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center gap-3 px-4 md:px-5 py-4 border-b border-[#1F242E]">
-          <div className="min-w-0 flex-1">
-            <p style={{ fontFamily: FONT.display }} className="text-base font-semibold text-white truncate">{upload.name}</p>
-            <p className="text-[11px] text-[#6B727C]">{rows.length.toLocaleString()} rows · {headers.length} columns</p>
-          </div>
-          <div className="inline-flex rounded-lg bg-[#0D1015] ring-1 ring-[#232833] p-0.5">
-            {(["preview", "edit"] as const).map(m => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  mode === m ? "bg-[#FF6A39] text-white" : "text-[#9BA0A8] hover:text-white"
-                }`}
-              >
-                {m === "preview" ? "Preview" : "Edit"}
-              </button>
-            ))}
-          </div>
-          <button onClick={handleClose} className="p-1.5 rounded-lg text-[#6B727C] hover:text-[#E8E6E1] hover:bg-[#232833] transition-colors" aria-label="Close">
+          <p style={{ fontFamily: FONT.display }} className="flex-1 text-base font-semibold text-white">Rename file</p>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-[#6B727C] hover:text-[#E8E6E1] hover:bg-[#232833] transition-colors" aria-label="Close">
             <X size={16} />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-auto mf-main">
-          {loading ? (
-            <div className="text-center py-20">
-              <Loader2 className="w-7 h-7 spin text-[#FF6A39] mx-auto" />
-              <p className="text-xs text-[#6B727C] mt-2">Loading rows…</p>
-            </div>
-          ) : rows.length === 0 && !editing ? (
-            <p className="text-center text-sm text-[#9BA0A8] py-20">This file has no rows.</p>
-          ) : (
-            <table className="w-full text-left" style={{ minWidth: "560px" }}>
-              <thead className="sticky top-0 z-10 bg-[#141821]">
-                <tr className="text-[10px] uppercase tracking-widest text-[#6B727C]">
-                  <th className="px-3 py-2.5 w-10 font-medium">#</th>
-                  {headers.map(h => <th key={h} className="px-2 py-2.5 font-medium whitespace-nowrap">{h}</th>)}
-                  {editing && <th className="w-10" />}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, r) => (
-                  <tr key={r} className="border-t border-[#1F242E]">
-                    <td className="px-3 py-1.5 text-[11px] font-mono text-[#6B727C]">{r + 1}</td>
-                    {headers.map(h => (
-                      <td key={h} className="px-2 py-1.5">
-                        {editing ? (
-                          <input
-                            value={String(row[h] ?? "")}
-                            onChange={(e) => setCell(r, h, e.target.value)}
-                            className={`w-full min-w-[120px] rounded-md bg-[#0D1015] px-2 py-1.5 text-[12px] font-mono text-[#E8E6E1] outline-none ring-1 focus:ring-[#FF6A39] ${
-                              h === emailKey && invalidEmail(row) ? "ring-red-400/60" : "ring-[#232833]"
-                            }`}
-                          />
-                        ) : (
-                          <span className="px-2 text-[12px] font-mono text-[#C7C9CE] whitespace-nowrap">{String(row[h] ?? "")}</span>
-                        )}
-                      </td>
-                    ))}
-                    {editing && (
-                      <td className="px-2">
-                        <button onClick={() => removeRow(r)} className="p-1.5 rounded-md text-[#6B727C] hover:text-red-400 hover:bg-red-500/10" aria-label={`Delete row ${r + 1}`}>
-                          <Trash2 size={13} />
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {editing && !loading && (
-            <div className="px-4 py-3 border-t border-[#1F242E]">
-              <button onClick={addRow} className="inline-flex items-center gap-1.5 text-xs font-medium text-[#FF6A39] hover:underline">
-                <Plus size={13} /> Add row
-              </button>
-            </div>
-          )}
+        <div className="px-4 md:px-5 py-4">
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSave()}
+            className="w-full rounded-md bg-[#0D1015] px-3 py-2 text-[13px] text-[#E8E6E1] outline-none ring-1 ring-[#232833] focus:ring-[#FF6A39]"
+          />
+          {error && <p className="mt-2 text-[11px] text-red-400">{error}</p>}
         </div>
 
-        {/* Footer */}
-        {(editing || error) && (
-          <div className="flex items-center gap-3 px-4 md:px-5 py-3 border-t border-[#1F242E]">
-            <p className="flex-1 text-[11px] text-red-400">
-              {error ?? (invalidCount > 0 ? `${invalidCount} row${invalidCount > 1 ? "s have" : " has"} an invalid email.` : "")}
-            </p>
-            {editing && (
-              <>
-                <button onClick={handleClose} className="px-3 py-2 rounded-lg text-xs font-medium text-[#C7C9CE] hover:bg-[#232833]">Cancel</button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving || !dirty || loading}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-[#FF6A39] hover:bg-[#e85a2c] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {saving && <Loader2 size={12} className="spin" />} Save changes
-                </button>
-              </>
-            )}
-          </div>
-        )}
+        <div className="flex items-center justify-end gap-3 px-4 md:px-5 py-3 border-t border-[#1F242E]">
+          <button onClick={onClose} className="px-3 py-2 rounded-lg text-xs font-medium text-[#C7C9CE] hover:bg-[#232833]">Cancel</button>
+          <button
+            onClick={handleSave}
+            disabled={saving || !trimmed || unchanged}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-[#FF6A39] hover:bg-[#e85a2c] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving && <Loader2 size={12} className="spin" />} Save
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -323,18 +211,34 @@ const DataModal: React.FC<{
 /* ───────────── Page ───────────── */
 
 const Upload = () => {
-  const { files: uploadedFiles, loading, error, fetchAllFiles } = useUpload();
+  const { files: uploadedFiles, loading, error, fetchAllFiles, removeFile } = useUpload();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [active, setActive] = useState<{ upload: UploadCardData; mode: "preview" | "edit" } | null>(null);
+  const [renaming, setRenaming] = useState<UploadCardData | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => { fetchAllFiles(); }, [fetchAllFiles]);
 
-  const uploads: UploadCardData[] = (uploadedFiles || []).map((u: any) => {
+  const handleDelete = async (u: UploadCardData) => {
+    if (!window.confirm(`Delete "${u.name}"? This can't be undone.`)) return;
+    setDeletingId(u.id);
+    setActionError(null);
+    try {
+      await removeFile(u.id);
+    } catch (e) {
+      setActionError(getErrorMessage(e));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const uploads: UploadCardData[] = (uploadedFiles || []).map((u) => {
     const total = u.total_records ?? 0;
     const processed = u.processed_records ?? 0;
     return {
-      id: String(u.id),
+      id: u.id,
       name: u.original_filename ?? u.stored_filename ?? "Unnamed file",
+      campaignId: u.campaign_id,
       rows: total,
       addedCount: processed,
       skippedCount: Math.max(total - processed, 0),
@@ -376,10 +280,14 @@ const Upload = () => {
                 Your uploads
               </h1>
               <p className="mt-1.5 text-[13px] md:text-sm text-[#9BA0A8] max-w-xl">
-                Preview and edit recipient files before they're used. Files that are running or completed are locked.
+                Files you've uploaded. Files that are running or completed are locked.
               </p>
             </div>
           </header>
+
+          {actionError && (
+            <p className="mb-4 text-xs text-red-400">{actionError}</p>
+          )}
 
           {loading ? (
             <div className="text-center py-24">
@@ -403,12 +311,13 @@ const Upload = () => {
             </div>
           ) : (
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-              {uploads.map(u => (
+              {uploads.map((u) => (
                 <UploadCard
                   key={u.id}
                   u={u}
-                  onPreview={() => setActive({ upload: u, mode: "preview" })}
-                  onEdit={() => setActive({ upload: u, mode: "edit" })}
+                  deleting={deletingId === u.id}
+                  onRename={() => setRenaming(u)}
+                  onDelete={() => handleDelete(u)}
                 />
               ))}
             </div>
@@ -416,8 +325,8 @@ const Upload = () => {
         </div>
       </main>
 
-      {active && canOpen(active.upload.status) && (
-        <DataModal upload={active.upload} initialMode={active.mode} onClose={() => setActive(null)} />
+      {renaming && canEdit(renaming.status) && (
+        <RenameModal upload={renaming} onClose={() => setRenaming(null)} />
       )}
     </div>
   );

@@ -11,6 +11,7 @@ class UploadStatus(str, Enum):
 
 class UploadFileSchema(BaseModel):
     campaign_id: int
+    user_id : int
     original_filename: str
     stored_filename: str
     file_path: str

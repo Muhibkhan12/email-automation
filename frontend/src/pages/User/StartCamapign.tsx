@@ -8,6 +8,15 @@ import {
 import { SenderAccContext } from "../../contexts/SenderAccountsContext";
 import { useHtmlTemplates } from "../../contexts/HtmlTemplatesContext";
 import { useUpload } from "../../contexts/UploadContext";
+import {
+  startExtraction,
+  waitForExtraction,
+  summaryFromUpload,
+  type RecipientsSummary,
+} from "../../services/UploadServices";
+ // path apne project ke hisaab se
+// ⚠️ yahan apne original campaign service imports rakhna:
+// createCampaign, startCampaign, getCampaign, pauseCampaign, resumeCampaign, cancelCampaign, type CampaignDTO
 
 
 /* ───────────── constants ───────────── */
@@ -19,7 +28,6 @@ const FONT = {
 };
 const CARD: React.CSSProperties = { background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" };
 const RING = "inset 0 0 0 1px #1A1F2B";
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Status = "Draft" | "Ready" | "Scheduled" | "Running" | "Paused" | "Completed" | "Failed" | "Cancelled";
 
@@ -59,30 +67,6 @@ const toStatus = (raw?: string): Status | null => {
   if (["cancelled", "canceled"].includes(s)) return "Cancelled";
   return null;
 };
-
-function parseRecipients(text: string) {
-  const rows = text.split(/\r?\n/).map((r) => r.trim()).filter(Boolean)
-    .map((r) => r.split(",").map((c) => c.trim().replace(/^"|"$/g, "")));
-  if (!rows.length) return { total: 0, valid: [] as string[], invalid: [] as string[], dupes: 0 };
-
-  let idx = rows[0].findIndex((h) => h.toLowerCase().includes("email"));
-  const hasHeader = idx >= 0;
-  if (idx < 0) idx = Math.max(0, rows[0].findIndex((c) => EMAIL_RE.test(c)));
-  const data = hasHeader ? rows.slice(1) : rows;
-
-  const seen = new Set<string>();
-  const valid: string[] = [];
-  const invalid: string[] = [];
-  let dupes = 0;
-  for (const r of data) {
-    const e = (r[idx] ?? "").toLowerCase();
-    if (!EMAIL_RE.test(e)) { invalid.push(r[idx] || "(empty)"); continue; }
-    if (seen.has(e)) { dupes++; continue; }
-    seen.add(e);
-    valid.push(e);
-  }
-  return { total: data.length, valid, invalid, dupes };
-}
 
 /* ───────────── small UI pieces ───────────── */
 
@@ -156,10 +140,11 @@ const CampaignCreatePage = () => {
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [fileName, setFileName] = useState("");
-  const [recipients, setRecipients] = useState<ReturnType<typeof parseRecipients> | null>(null);
+  const [recipients, setRecipients] = useState<RecipientsSummary | null>(null);
   const [uploadId, setUploadId] = useState<number | null>(null);
   const [uploaded, setUploaded] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadError, setUploadError] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -176,6 +161,8 @@ const CampaignCreatePage = () => {
   const [actionError, setActionError] = useState("");
   const [run, setRun] = useState({ sent: 0, failed: 0, total: 0 });
   const fileRef = useRef<HTMLInputElement>(null);
+  // Har naye file load / remove / unmount pe purana extraction poll cancel karne ke liye
+  const loadTokenRef = useRef(0);
 
   // Page khulte hi fresh sender data (emails_sent_today change hota rehta hai)
   useEffect(() => {
@@ -183,9 +170,14 @@ const CampaignCreatePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Unmount pe chalta hua poll stale ho jaye
+  useEffect(() => {
+    return () => { loadTokenRef.current++; };
+  }, []);
+
   const sender = available.find((a) => a.id === senderId) ?? null;
   const template = templates.find((t) => tplId(t) === templateId) ?? null;
-  const total = recipients?.valid.length ?? 0;
+  const total = recipients?.valid ?? 0;
   const remaining = sender ? (sender.daily_limit ?? 0) - (sender.emails_sent_today ?? 0) : 0;
 
   /* ── validation for the review step ── */
@@ -203,8 +195,8 @@ const CampaignCreatePage = () => {
         detail: `${total.toLocaleString()} recipients exceed today's remaining ${remaining.toLocaleString()} sends — sending will continue over ${Math.ceil(total / (sender.daily_limit || 1))} days.`,
       });
     }
-    if (recipients && recipients.invalid.length > 0) {
-      list.push({ ok: false, level: "warn", label: "Invalid emails", detail: `${recipients.invalid.length} invalid row(s) will be skipped.` });
+    if (recipients && recipients.invalid > 0) {
+      list.push({ ok: false, level: "warn", label: "Invalid emails", detail: `${recipients.invalid} invalid row(s) will be skipped.` });
     }
     if (mode === "later") {
       if (!scheduleAt) list.push({ ok: false, level: "error", label: "Schedule", detail: "Pick a date and time." });
@@ -248,40 +240,58 @@ const CampaignCreatePage = () => {
   }, [campaignId, status]);
 
   /* ── handlers ── */
+  // Flow: upload -> POST /worker/extract/{id} -> poll upload status -> stats UI
   const loadFile = async (file?: File) => {
     if (!file) return;
+    const token = ++loadTokenRef.current;
+    const stale = () => token !== loadTokenRef.current;
+
     setUploadError("");
     setUploaded(false);
     setUploadId(null);
-
-    const text = await file.text();
-    const parsed = parseRecipients(text);
+    setRecipients(null);
     setFileName(file.name);
-    setRecipients(parsed);
-    if (parsed.valid.length === 0) return;
-
     setUploading(true);
+    setExtracting(false);
     setProgress(0);
+
     try {
       const saved: any = await uploadRecipients(file, setProgress);
-      setUploadId(saved?.id ?? null);
-      setUploaded(true);
+      if (stale()) return;
+      const id: number | null = saved?.id ?? null;
+      if (!id) throw new Error("File upload ho gayi, lekin response mein file id nahi mili.");
+      setUploadId(id);
+      setUploading(false);
+
+      setExtracting(true);
+      await startExtraction(id);
+      const finished = await waitForExtraction(id);
+      if (stale()) return;
+
+      const summary = summaryFromUpload(finished);
+      setRecipients(summary);
+      setUploaded(summary.valid > 0);
     } catch (e) {
+      if (stale()) return;
       setUploadError(errMsg(e, "File upload failed. Please try again."));
     } finally {
-      setUploading(false);
+      if (!stale()) {
+        setUploading(false);
+        setExtracting(false);
+      }
     }
   };
 
   const clearFile = () => {
+    loadTokenRef.current++; // chalta hua poll ignore ho jayega
     setRecipients(null); setFileName(""); setUploaded(false); setUploadId(null);
-    setUploadError(""); setProgress(0);
+    setUploadError(""); setProgress(0); setUploading(false); setExtracting(false);
     if (fileRef.current) fileRef.current.value = "";
   };
 
   const canNext = [
     !!name.trim() && !!subject.trim(),
-    total > 0 && uploaded && !uploading,
+    total > 0 && uploaded && !uploading && !extracting,
     !!sender,
     !!template,
     ready,
@@ -449,8 +459,8 @@ const CampaignCreatePage = () => {
                   {/* Step 2 – Recipients */}
                   {step === 1 && (
                     <div className="space-y-5">
-                      <Head title="Recipients" sub="Upload a CSV with an “email” column." />
-                      {!recipients ? (
+                      <Head title="Recipients" sub="Upload a CSV or Excel file with an “email” column." />
+                      {!fileName ? (
                         <div
                           onClick={() => fileRef.current?.click()}
                           onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
@@ -466,8 +476,8 @@ const CampaignCreatePage = () => {
                             <UploadCloud size={20} className="text-[#FF6A39]" />
                           </div>
                           <p className="text-[14px] font-medium" style={{ color: "#F2F0EB" }}>Drop your file here, or click to browse</p>
-                          <p className="text-[12px] mt-1" style={{ color: "#6A7080" }}>.csv or .txt · one email per row</p>
-                          <input ref={fileRef} type="file" accept=".csv,.txt" className="hidden" onChange={(e) => loadFile(e.target.files?.[0])} />
+                          <p className="text-[12px] mt-1" style={{ color: "#6A7080" }}>.csv or .xlsx · needs an “email” column</p>
+                          <input ref={fileRef} type="file" accept=".csv,.xlsx" className="hidden" onChange={(e) => loadFile(e.target.files?.[0])} />
                         </div>
                       ) : (
                         <>
@@ -480,7 +490,17 @@ const CampaignCreatePage = () => {
                                 <div className="min-w-0">
                                   <p className="text-[13px] font-medium truncate" style={{ color: "#F2F0EB" }}>{fileName}</p>
                                   <p className="text-[11px]" style={{ color: uploadError ? "#F87171" : uploaded ? "#34D399" : "#6A7080" }}>
-                                    {uploading ? `Uploading… ${progress}%` : uploadError ? "Upload failed" : uploaded ? "Uploaded" : "Waiting…"}
+                                    {uploading
+                                      ? `Uploading… ${progress}%`
+                                      : extracting
+                                      ? "Extracting emails…"
+                                      : uploadError
+                                      ? "Upload failed"
+                                      : uploaded
+                                      ? "Uploaded & extracted"
+                                      : recipients
+                                      ? "No usable emails"
+                                      : "Waiting…"}
                                   </p>
                                 </div>
                               </div>
@@ -491,28 +511,40 @@ const CampaignCreatePage = () => {
                                 <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: "#FF6A39" }} />
                               </div>
                             )}
+                            {extracting && (
+                              <div className="flex items-center gap-2 text-[11.5px]" style={{ color: "#6A7080" }}>
+                                <Loader2 size={13} className="animate-spin" /> Server is reading your file…
+                              </div>
+                            )}
                           </div>
 
                           {uploadError && <Notice tone="error">{uploadError} Remove the file and try again.</Notice>}
 
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <Stat label="Rows" value={recipients.total} />
-                            <Stat label="Valid" value={recipients.valid.length} tone="#34D399" />
-                            <Stat label="Invalid" value={recipients.invalid.length} tone={recipients.invalid.length ? "#F87171" : "#F2F0EB"} />
-                            <Stat label="Duplicates" value={recipients.dupes} tone={recipients.dupes ? "#FBBF24" : "#F2F0EB"} />
-                          </div>
-                          {recipients.valid.length === 0 ? (
-                            <Notice tone="error">No valid email addresses found. Check that the file has an “email” column.</Notice>
-                          ) : (
-                            <div className="rounded-2xl overflow-hidden" style={{ background: "#0F131C", boxShadow: RING }}>
-                              <p className="px-4 py-2.5 text-[11px] uppercase tracking-wider border-b border-[#1A1F2B]" style={{ color: "#6A7080" }}>Preview</p>
-                              {recipients.valid.slice(0, 5).map((e) => (
-                                <p key={e} className="px-4 py-2 text-[12.5px] border-b border-[#1A1F2B] last:border-0" style={{ color: "#DADEE7", fontFamily: FONT.mono }}>{e}</p>
-                              ))}
-                              {recipients.valid.length > 5 && (
-                                <p className="px-4 py-2 text-[11.5px]" style={{ color: "#6A7080" }}>+ {(recipients.valid.length - 5).toLocaleString()} more</p>
+                          {recipients && (
+                            <>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <Stat label="Rows" value={recipients.total.toLocaleString()} />
+                                <Stat label="Valid" value={recipients.valid.toLocaleString()} tone="#34D399" />
+                                <Stat label="Invalid" value={recipients.invalid.toLocaleString()} tone={recipients.invalid ? "#F87171" : "#F2F0EB"} />
+                                <Stat label="Duplicates" value={recipients.dupes.toLocaleString()} tone={recipients.dupes ? "#FBBF24" : "#F2F0EB"} />
+                              </div>
+
+                              {recipients.valid === 0 ? (
+                                <Notice tone="error">No valid email addresses found in this file.</Notice>
+                              ) : (
+                                recipients.preview.length > 0 && (
+                                  <div className="rounded-2xl overflow-hidden" style={{ background: "#0F131C", boxShadow: RING }}>
+                                    <p className="px-4 py-2.5 text-[11px] uppercase tracking-wider border-b border-[#1A1F2B]" style={{ color: "#6A7080" }}>Preview</p>
+                                    {recipients.preview.map((e) => (
+                                      <p key={e} className="px-4 py-2 text-[12.5px] border-b border-[#1A1F2B] last:border-0" style={{ color: "#DADEE7", fontFamily: FONT.mono }}>{e}</p>
+                                    ))}
+                                    {recipients.valid > recipients.preview.length && (
+                                      <p className="px-4 py-2 text-[11.5px]" style={{ color: "#6A7080" }}>+ {(recipients.valid - recipients.preview.length).toLocaleString()} more</p>
+                                    )}
+                                  </div>
+                                )
                               )}
-                            </div>
+                            </>
                           )}
                         </>
                       )}

@@ -30,21 +30,6 @@ def upgrade() -> None:
         )
     )
 
-    # ---------------------------------------------------------
-    # 2. Populate user_id for existing uploads
-    # ---------------------------------------------------------
-    # An upload belongs to a campaign.
-    # A campaign belongs to a user.
-    #
-    # uploads.campaign_id
-    #        ↓
-    # campaigns.id
-    #        ↓
-    # campaigns.user_id
-    #
-    # Therefore existing uploads can inherit their user_id
-    # from their campaign.
-
     op.execute("""
         UPDATE uploads AS u
         INNER JOIN campaigns AS c

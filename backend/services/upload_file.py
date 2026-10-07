@@ -1,13 +1,14 @@
-from fastapi import HTTPException, status
+from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from services.user import GetCurrentUser
 from models.upload_file import Upload
 from schema.upload_file import UploadFileSchema
 
 
 def add_upload_file(
     db: Session,
-    credentials: UploadFileSchema
+    credentials: UploadFileSchema,
 ):
 
     upload = Upload(

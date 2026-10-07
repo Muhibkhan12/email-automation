@@ -1,88 +1,107 @@
+
+import re
 import pandas as pd
-from fastapi import HTTPException, status
 
 from workers.celery_app import celery
-from models.upload_file import Upload
-
 from database import SessionLocal
 
+from models.upload_file import Upload, UploadStatus
 from models.campaigns import Campaign
 from models.campaign_recipients import CampaignRecipient
 
 from schema.campaigns import CampaignStatus
-from schema.upload_file import UploadStatus
-
 from workers.sending_emails import send_email_task
 
+EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+
+
+def _mark_failed(db, upload_id: int, message: str):
+    db.rollback()
+    upload = db.get(Upload, upload_id)
+    if upload:
+        upload.status = UploadStatus.FAILED
+        upload.error_message = message[:255]
+        db.commit()
+
+import logging
+logger = logging.getLogger(__name__)
 
 @celery.task(queue="extract_emails_queue")
-def extract_emails(upload_id : int):
-        db =  SessionLocal()
-        recipients = []
-        try:
-            # get upload using uplod-id
-            upload = db.query(Upload).filter(Upload.id == upload_id).first()
+def extract_emails(upload_id: int):
+    db = SessionLocal()
+    try:
+        upload = db.get(Upload, upload_id)
 
-            if upload is None:
-                raise HTTPException(
-                      status_code=status.HTTP_400_BAD_REQUEST,
-                      detail="FIle doesn't exist"
-                )
-            
+        # Missing, or already picked up (guards against double sends on retry)
+        if upload is None or upload.status != UploadStatus.UPLOADED:
+            return
+
+        upload.status = UploadStatus.PROCESSING
+        db.commit()
+
+        try:
             extension = upload.file_path.split(".")[-1].lower()
             if extension == "xlsx":
-                   df = pd.read_excel(upload.file_path)
+                df = pd.read_excel(upload.file_path, dtype=str)
             elif extension == "csv":
-                   df = pd.read_csv(upload.file_path)
+                df = pd.read_csv(upload.file_path, dtype=str)
             else:
-                  raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Only XLSX and CSV files are allowed"
-                    )
-            
+                raise ValueError("Only XLSX and CSV files are allowed")
+
+            df = df.fillna("")
+            df.columns = [str(c).strip().lower() for c in df.columns]
+
             if "email" not in df.columns:
-                  raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Email column is required"
-                  )
+                raise ValueError("Email column is required")
 
-            for _, row in df.iterrows():
-                recipient = CampaignRecipient(
-                    campaign_id = upload.campaign_id,
-                    upload_id = upload.id,
-                    name = row["name"],
-                    email = row["email"],
-                    company = row["company"],
-                    phone = row["phone"],
-                    is_valid_email=True
+            recipients = []
+            seen = set()
+
+            for row in df.to_dict("records"):
+                email = str(row.get("email", "")).strip()
+                key = email.lower()
+
+                if not EMAIL_RE.match(email) or key in seen:
+                    continue
+                seen.add(key)
+
+                recipients.append(
+                    CampaignRecipient(
+                        campaign_id=upload.campaign_id,
+                        upload_id=upload.id,
+                        name=str(row.get("name", "")).strip() or None,
+                        email=email,
+                        company=str(row.get("company", "")).strip() or None,
+                        phone=str(row.get("phone", "")).strip() or None,
+                        is_valid_email=True,
+                    )
                 )
-            recipients.append(recipient)
+
             db.add_all(recipients)
-            upload.total_records = len(df)
-            upload.processed_records = 0
-            upload.status = UploadStatus.COMPLETED
+            db.flush()  # assigns ids without committing
+            recipient_ids = [r.id for r in recipients]
 
-            # campaign
-            campaign = (
-                  db.query(Campaign).filter(Campaign.id == upload.campaign_id).first()
-                )
+            upload.total_records = len(df)
+            upload.processed_records = len(recipients)  # frontend: Added = this, Skipped = total - this
+            upload.status = UploadStatus.COMPLETED
+            upload.error_message = None
+
+            campaign = db.get(Campaign, upload.campaign_id)
             if campaign:
                 campaign.status = CampaignStatus.READY
-            # saves everything
+
             db.commit()
 
-            for recipient in recipients:
-                  db.refresh(recipient)
+        except Exception as e:
+            _mark_failed(db, upload_id, str(e))
+            return
 
-            for recipient in recipients:
-                  send_email_task.apply_async(
-                        args=[recipient.id],
-                        queue="email_sending_queue"
-                  )
-            
-        except Exception:
-              db.rollback()
-              raise
+        # Only after the commit, so the email tasks can see the rows
+        for rid in recipient_ids:
+            send_email_task.apply_async(
+                args=[rid],
+                queue="email_sending_queue",
+            )
 
-        finally:
-                db.close()
+    finally:
+        db.close()

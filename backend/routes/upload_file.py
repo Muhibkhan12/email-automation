@@ -8,12 +8,14 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
+from services.user import GetCurrentUser
 from database import get_db
 
 from schema.upload_file import (
     UploadFileSchema,
     UploadedFileUpdateSchema,
     DeleteFileSchema,
+    UploadStatus,
 )
 
 from models.upload_file import Upload
@@ -40,36 +42,25 @@ def upload_campaign_file(
     campaign_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    current_user = Depends(GetCurrentUser),
 ):
-    # Validate uploaded file
     validate_file(file)
-
-    # Save file physically
     file_data = save_file_to_storage(file)
-    print("FILE SIZE", file_data),
 
-    # Create upload schema
     upload = UploadFileSchema(
         campaign_id=campaign_id,
+        user_id=current_user.id,  # taken from the token, not the client
         original_filename=file_data["original_filename"],
         stored_filename=file_data["stored_filename"],
         file_path=file_data["file_path"],
         file_size=file_data["file_size"],
-
-        mime_type=file_data.get(
-            "mime_type",
-            file.content_type,
-        ),
+        mime_type=file_data.get("mime_type", file.content_type),
         total_records=0,
         processed_records=0,
-        status="UPLOADED",
+        status=UploadStatus.UPLOADED,
     )
 
-    # Save upload metadata to database
-    upload = add_upload_file(
-        db,
-        upload,
-    )
+    upload = add_upload_file(db, upload)
 
     return {
         "message": "File uploaded successfully.",
@@ -79,8 +70,13 @@ def upload_campaign_file(
 @upload_file_crud.get("/all")
 def get_all_uploads_file(
     db: Session = Depends(get_db),
+    current_user = Depends(GetCurrentUser),
 ):
-    data = db.query(Upload).all()
+    data = (
+        db.query(Upload)
+        .filter(Upload.user_id == current_user.id)
+        .all()
+    )
 
     if not data:
         raise HTTPException(
@@ -97,10 +93,11 @@ def get_all_uploads_file(
 def get_uploads_file_by_id(
     id: int,
     db: Session = Depends(get_db),
+    current_user = Depends(GetCurrentUser),
 ):
     data = (
         db.query(Upload)
-        .filter(Upload.id == id)
+        .filter(Upload.id == id, Upload.user_id == current_user.id)
         .first()
     )
 
@@ -120,10 +117,11 @@ def update_uploaded_file(
     id: int,
     credentials: UploadedFileUpdateSchema,
     db: Session = Depends(get_db),
+    current_user = Depends(GetCurrentUser),
 ):
     uploads_file = (
         db.query(Upload)
-        .filter(Upload.id == id)
+        .filter(Upload.id == id, Upload.user_id == current_user.id)
         .first()
     )
 
@@ -157,10 +155,11 @@ def delete_uploaded_file(
     id: int,
     credentials: DeleteFileSchema,
     db: Session = Depends(get_db),
+    current_user = Depends(GetCurrentUser),
 ):
     data = (
         db.query(Upload)
-        .filter(Upload.id == id)
+        .filter(Upload.id == id, Upload.user_id == current_user.id)
         .first()
     )
 

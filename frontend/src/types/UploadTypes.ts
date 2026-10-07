@@ -12,6 +12,7 @@ export type UploadStatus =
 
 export interface UploadedFile {
   id: number;
+  user_id: number;
   campaign_id: number;
   original_filename: string;
   stored_filename: string;

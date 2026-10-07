@@ -1,11 +1,9 @@
-// UploadContext.tsx
-import React, {
+import {
   createContext,
   useContext,
   useState,
   useCallback,
   useMemo,
-  useEffect,
 } from "react";
 import type { ReactNode } from "react";
 import type { UploadedFile } from "../types/UploadTypes";
@@ -14,156 +12,112 @@ import {
   uploadRecipientsFile,
   getAllUploadedFiles,
   getUploadedFilesById,
+  updateUploadedFile,
   deleteUploadedFile,
 } from "../services/UploadServices";
-
-/* ─────────────── Context shape ─────────────── */
 
 interface UploadContextType {
   files: UploadedFile[];
   loading: boolean;
   error: string | null;
-  upload: (campaignId: number) => Promise<void>;
+  upload: (campaignId: number, file: File) => Promise<void>;
   uploadRecipients: (
     file: File,
-    onProgress?: (percent: number) => void
+    onProgress?: (percent: number) => void,
+    campaignId?: number
   ) => Promise<UploadedFile>;
   fetchAllFiles: (silent?: boolean) => Promise<void>;
   fetchFileById: (id: number) => Promise<UploadedFile | null>;
+  renameFile: (id: number, name: string) => Promise<void>;
   removeFile: (id: number) => Promise<void>;
 }
 
 const UploadContext = createContext<UploadContextType | undefined>(undefined);
 
-/* ─────────────── Provider ───────────────
-   NOTE: no userId prop. The backend scopes everything by the JWT
-   that the axios interceptor attaches — the provider doesn't need
-   to know who the current user is. */
+const errMsg = (err: any, fallback: string) =>
+  err?.response?.data?.detail ||
+  err?.response?.data?.message ||
+  (err instanceof Error ? err.message : fallback);
 
-interface UploadProviderProps {
-  children: ReactNode;
-}
-
-export const UploadProvider = ({ children }: UploadProviderProps) => {
+export const UploadProvider = ({ children }: { children: ReactNode }) => {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // silent = true refreshes the list without showing the loading spinner
-  // (used after an upload so the "Recent uploads" table doesn't flash).
   const fetchAllFiles = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const data = await getAllUploadedFiles();
-      setFiles(Array.isArray(data) ? data : [data]);
+      setFiles(await getAllUploadedFiles());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch files");
+      setError(errMsg(err, "Failed to fetch files"));
     } finally {
       if (!silent) setLoading(false);
     }
   }, []);
 
-  // Auto-fetch on mount (and whenever fetchAllFiles identity changes,
-  // which now only happens once because the deps are stable).
-  useEffect(() => {
-    fetchAllFiles();
-  }, [fetchAllFiles]);
+  const fetchFileById = useCallback(async (id: number) => {
+    try {
+      return await getUploadedFilesById(id);
+    } catch (err) {
+      setError(errMsg(err, "Failed to fetch file"));
+      return null;
+    }
+  }, []);
 
-  const fetchFileById = useCallback(
-    async (id: number): Promise<UploadedFile | null> => {
-      setLoading(true);
-      setError(null);
-      try {
-        return await getUploadedFilesById(id);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch file");
-        return null;
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
-
-  // Campaign-scoped upload
   const upload = useCallback(
-    async (campaignId: number) => {
-      setLoading(true);
+    async (campaignId: number, file: File) => {
       setError(null);
       try {
-        await uploadFile(campaignId);
+        await uploadFile(campaignId, file);
         await fetchAllFiles(true);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to upload file");
-      } finally {
-        setLoading(false);
+        setError(errMsg(err, "Failed to upload file"));
       }
     },
     [fetchAllFiles]
   );
 
-  // Recipients upload from the Upload page.
-  // Errors are intentionally re-thrown (not stored in context `error`)
-  // so the page can show them on the specific file row.
+  // Errors are re-thrown so the calling page can show them on the file row.
   const uploadRecipients = useCallback(
     async (
       file: File,
-      onProgress?: (percent: number) => void
-    ): Promise<UploadedFile> => {
-      const saved = await uploadRecipientsFile(file, onProgress);
+      onProgress?: (percent: number) => void,
+      campaignId?: number
+    ) => {
+      const saved = await uploadRecipientsFile(file, onProgress, campaignId);
       await fetchAllFiles(true);
       return saved;
     },
     [fetchAllFiles]
   );
 
+  // rename/remove re-throw so the UI can show the error without
+  // replacing the whole page with the error screen.
+  const renameFile = useCallback(async (id: number, name: string) => {
+    const updated = await updateUploadedFile(id, { original_filename: name });
+    setFiles((prev) => prev.map((f) => (f.id === id ? updated : f)));
+  }, []);
+
   const removeFile = useCallback(async (id: number) => {
-    setLoading(true);
-    setError(null);
-    try {
-      await deleteUploadedFile(id);
-      setFiles((prev) => prev.filter((file) => (file as any).id !== id));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete file");
-    } finally {
-      setLoading(false);
-    }
+    await deleteUploadedFile(id);
+    setFiles((prev) => prev.filter((f) => f.id !== id));
   }, []);
 
   const value = useMemo(
     () => ({
-      files,
-      loading,
-      error,
-      upload,
-      uploadRecipients,
-      fetchAllFiles,
-      fetchFileById,
-      removeFile,
+      files, loading, error,
+      upload, uploadRecipients, fetchAllFiles, fetchFileById, renameFile, removeFile,
     }),
-    [
-      files,
-      loading,
-      error,
-      upload,
-      uploadRecipients,
-      fetchAllFiles,
-      fetchFileById,
-      removeFile,
-    ]
+    [files, loading, error, upload, uploadRecipients, fetchAllFiles, fetchFileById, renameFile, removeFile]
   );
 
-  return (
-    <UploadContext.Provider value={value}>{children}</UploadContext.Provider>
-  );
+  return <UploadContext.Provider value={value}>{children}</UploadContext.Provider>;
 };
 
 export const useUpload = (): UploadContextType => {
   const context = useContext(UploadContext);
-  if (!context) {
-    throw new Error("useUpload must be used within an UploadProvider");
-  }
+  if (!context) throw new Error("useUpload must be used within an UploadProvider");
   return context;
 };
 
