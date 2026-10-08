@@ -175,7 +175,7 @@ const UserCampaigns: React.FC = () => {
       )}
 
       <div
-        className={`fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out ${
+        className={`fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-300 ease-out ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -184,7 +184,7 @@ const UserCampaigns: React.FC = () => {
 
       <main className="uc-main flex-1 overflow-y-auto" style={{ background: '#0B0E13', height: '100vh', width: '100%' }}>
         <div className="glow-top">
-          <div className="max-w-[1180px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
+          <div className="max-w-295 mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
 
             {/* Header */}
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8 md:mb-10">

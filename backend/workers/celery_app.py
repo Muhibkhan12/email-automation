@@ -1,5 +1,7 @@
 from celery import Celery # type: ignore
-from kombu import Queue # type: ignore
+from kombu import Queue # type: ignore\
+from models.user import User 
+
 
 celery = Celery(
     "email-automation",
