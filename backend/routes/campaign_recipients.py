@@ -5,33 +5,51 @@ from database import get_db
 
 from schema.campaign_recipients import (
     AddRecipientsSchema,
-    RecipientsResponse,
     UpdateRecipientsSchema
 )
-from models.campaign_recipients import CampaignRecipient
 import services.campaign_recipients as recipient_service
 
-from services.user import (
-    GetCurrentUser,
-    require_admin
-)
+from services.user import GetCurrentUser
 
 router = APIRouter(
     prefix="/recipient",
     tags=["recipients"]
 )
 
-@router.get("/")
+
+@router.get("")
 def get_recipients(
     page: int = 1,
     limit: int = 20,
-    db: Session = Depends(get_db)
+    upload_id: int | None = None,
+    search: str | None = None,
+    status: str | None = None,
+    db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser)
 ):
     return recipient_service.get_all_recipients(
         db=db,
+        current_user=current_user,
         page=page,
-        limit=limit
+        limit=limit,
+        upload_id=upload_id,
+        search=search,
+        status_filter=status,
     )
+
+
+@router.get("/{campaign_id}/recipients")
+def get_recipient(
+    campaign_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser)
+):
+    return recipient_service.get_recipients_of_campaign(
+        campaign_id,
+        db,
+        current_user
+    )
+
 
 @router.get("/{id}")
 def get_data_by_id(
@@ -46,11 +64,6 @@ def get_data_by_id(
     )
 
 
-# =========================================================
-# CREATE RECIPIENT
-# ADMIN + EMPLOYEE
-# =========================================================
-
 @router.post("/add")
 def add_recipients(
     credentials: AddRecipientsSchema,
@@ -63,12 +76,6 @@ def add_recipients(
         current_user
     )
 
-
-# =========================================================
-# UPDATE RECIPIENT
-# ADMIN + EMPLOYEE
-# Employee → only their own recipient
-# =========================================================
 
 @router.patch("/{id}")
 def update_recipients(
@@ -85,12 +92,6 @@ def update_recipients(
     )
 
 
-# =========================================================
-# DELETE RECIPIENT
-# ADMIN + EMPLOYEE
-# Employee → only their own recipient
-# =========================================================
-
 @router.delete("/{id}")
 def delete_recipient(
     id: int,
@@ -102,10 +103,3 @@ def delete_recipient(
         db,
         current_user
     )
-
-@router.get("/{campaign_id}/recipients")
-def get_recipient(campaign_id : int, db : Session = Depends(get_db)):
-    recipients = (
-        db.query(CampaignRecipient).filter(CampaignRecipient.campaign_id).all()
-    )
-    return  recipients

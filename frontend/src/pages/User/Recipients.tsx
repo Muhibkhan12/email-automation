@@ -7,7 +7,7 @@ import type { RecipientStatus } from "../../types/RecipientTypes";
 import {
   Search, Users, MailCheck, MailX, MailWarning, Menu,
   ChevronLeft, ChevronRight, ArrowLeft, Inbox, Plus,
-  Copy, Check, Mail, X, CheckSquare, Square, Filter,
+  Copy, Check, Mail, X, CheckSquare, Square,
 } from "lucide-react";
 
 const FONT = {
@@ -26,15 +26,12 @@ const STATUS_STYLES: Record<RecipientStatus, { bg: string; fg: string; ring: str
 
 const FILTERS: ("All" | RecipientStatus)[] = ["All", "Pending", "Queued", "Sending", "Sent", "Failed"];
 
-/* Deterministic avatar hue so scanning the list is faster */
 const AVATAR_HUES = ["#FF6A39", "#60A5FA", "#34D399", "#FBBF24", "#A78BFA", "#F472B6", "#22D3EE"];
 const hueFor = (key: string) => {
   let h = 0;
   for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
   return AVATAR_HUES[h % AVATAR_HUES.length];
 };
-
-/* ────────────────────────────── Primitives ────────────────────────────── */
 
 const StatusPill: React.FC<{ status: RecipientStatus }> = ({ status }) => {
   const s = STATUS_STYLES[status];
@@ -107,8 +104,6 @@ const CopyChip: React.FC<{ value: string; label?: string }> = ({ value, label })
   );
 };
 
-/* ────────────────────────────── Page ────────────────────────────── */
-
 const Recipients = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -117,33 +112,43 @@ const Recipients = () => {
   const { recipients, loading, error, getAllRecipients, total, page, limit } = useRecipients();
 
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [filter, setFilter] = useState<"All" | RecipientStatus>("All");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string | number>>(new Set());
 
-  // Refetch when the page mounts or uploadId changes.
+  // Debounce search input
   useEffect(() => {
-    getAllRecipients(1, 20, uploadId ? Number(uploadId) : undefined);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uploadId]);
+    const t = setTimeout(() => setDebouncedQuery(query.trim()), 350);
+    return () => clearTimeout(t);
+  }, [query]);
 
-  // Clear selection when the page or filter changes.
+  // Single fetch function
+  const fetchPage = useCallback(
+    (p: number) => {
+      getAllRecipients(
+        p,
+        limit,
+        uploadId ? Number(uploadId) : undefined,
+        debouncedQuery || undefined,
+        filter === "All" ? undefined : filter
+      );
+    },
+    [getAllRecipients, limit, uploadId, debouncedQuery, filter]
+  );
+
+  // Refetch on mount + whenever search/filter/upload changes
+  useEffect(() => {
+    fetchPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uploadId, debouncedQuery, filter]);
+
+  // Clear selection when page/filter/query changes
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [page, filter, query, uploadId]);
+  }, [page, filter, debouncedQuery, uploadId]);
 
-  const filtered = useMemo(() => {
-    const q = query.toLowerCase();
-    return recipients.filter((r) => {
-      const matchesFilter = filter === "All" || r.status === filter;
-      const matchesQuery =
-        !q ||
-        r.name.toLowerCase().includes(q) ||
-        r.email.toLowerCase().includes(q) ||
-        String(r.id).includes(q);
-      return matchesFilter && matchesQuery;
-    });
-  }, [recipients, query, filter]);
+  const filtered = recipients;
 
   const summary = useMemo(() => {
     const sent = recipients.filter((r) => r.status === "Sent").length;
@@ -164,12 +169,11 @@ const Recipients = () => {
 
   const goToPage = (p: number) => {
     if (p < 1 || p > totalPages) return;
-    getAllRecipients(p, limit, uploadId ? Number(uploadId) : undefined);
+    fetchPage(p);
   };
 
   const clearUploadFilter = () => navigate("/user/recipients");
 
-  /* Selection helpers */
   const toggleOne = useCallback((id: string | number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -182,7 +186,7 @@ const Recipients = () => {
     filtered.length > 0 && filtered.every((r) => selectedIds.has(r.id));
 
   const toggleAllVisible = useCallback(() => {
-    setSelectedIds((prev) => {
+    setSelectedIds(() => {
       if (allVisibleSelected) return new Set();
       return new Set(filtered.map((r) => r.id));
     });
@@ -220,13 +224,8 @@ const Recipients = () => {
             radial-gradient(900px 240px at 50% -80px, rgba(255,106,57,0.10), transparent 70%),
             radial-gradient(700px 200px at 20% -60px, rgba(52,211,153,0.06), transparent 70%);
         }
-        /* Hide the desktop table on mobile, show the mobile list */
-        @media (max-width: 767px) {
-          .rc-table { display: none; }
-        }
-        @media (min-width: 768px) {
-          .rc-list { display: none; }
-        }
+        @media (max-width: 767px) { .rc-table { display: none; } }
+        @media (min-width: 768px) { .rc-list { display: none; } }
       `}</style>
 
       {sidebarOpen && (
@@ -248,7 +247,6 @@ const Recipients = () => {
         <div className="glow-top">
           <div className="max-w-[1180px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
 
-            {/* ── Header ───────────────────────────────── */}
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
               <div className="flex items-start gap-3 md:gap-4">
                 <button
@@ -289,17 +287,9 @@ const Recipients = () => {
                     <ArrowLeft size={14} /> Clear filter
                   </button>
                 )}
-                <button
-                  onClick={() => navigate("/user/upload")}
-                  className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl font-semibold text-[13px] transition-all hover:-translate-y-0.5"
-                  style={{ background: "#FF6A39", color: "#fff", boxShadow: "0 12px 30px -12px rgba(255,106,57,0.65)" }}
-                >
-                  <Plus size={15} /> Add recipients
-                </button>
               </div>
             </header>
 
-            {/* ── Loading ──────────────────────────────── */}
             {loading && recipients.length === 0 && (
               <div className="text-center py-16">
                 <div className="w-7 h-7 border-2 border-[#FF6A39] border-t-transparent rounded-full animate-spin mx-auto" />
@@ -307,7 +297,6 @@ const Recipients = () => {
               </div>
             )}
 
-            {/* ── Error ────────────────────────────────── */}
             {!loading && error && (
               <div className="text-center py-16 rounded-3xl"
                 style={{ background: "rgba(248,113,113,0.05)", boxShadow: "inset 0 0 0 1px rgba(248,113,113,0.22)" }}>
@@ -319,8 +308,7 @@ const Recipients = () => {
               </div>
             )}
 
-            {/* ── Empty ────────────────────────────────── */}
-            {!loading && !error && recipients.length === 0 && (
+            {!loading && !error && recipients.length === 0 && !hasActiveFilters && (
               <div className="text-center py-20 rounded-3xl"
                 style={{ background: "linear-gradient(180deg, #141821 0%, #10141D 100%)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04)" }}>
                 <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center"
@@ -345,10 +333,8 @@ const Recipients = () => {
               </div>
             )}
 
-            {/* ── Content ──────────────────────────────── */}
-            {!loading && !error && recipients.length > 0 && (
+            {!loading && !error && (recipients.length > 0 || hasActiveFilters) && (
               <div className="float-in">
-                {/* Stat cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
                   <StatCard label="On this page"     value={summary.total}   icon={Users}       accent="#FF6A39" />
                   <StatCard label="Sent"             value={summary.sent}    icon={MailCheck}   accent="#34D399" />
@@ -356,7 +342,6 @@ const Recipients = () => {
                   <StatCard label="Failed"           value={summary.failed}  icon={MailX}       accent="#F87171" />
                 </div>
 
-                {/* Toolbar — sticky on md+ */}
                 <div className="md:sticky md:top-3 md:z-20 mb-4 md:mb-5">
                   <div
                     className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl p-2 md:p-2.5 soft-ring"
@@ -394,9 +379,7 @@ const Recipients = () => {
                             key={f}
                             onClick={() => setFilter(f)}
                             className={`shrink-0 inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-medium transition-all ${
-                              active
-                                ? "text-white"
-                                : "text-[#C7C9CE] hover:text-[#E8E6E1]"
+                              active ? "text-white" : "text-[#C7C9CE] hover:text-[#E8E6E1]"
                             }`}
                             style={{
                               background: active ? "#FF6A39" : "#0F131C",
@@ -434,7 +417,6 @@ const Recipients = () => {
                   </div>
                 </div>
 
-                {/* Selection bar */}
                 {selectedIds.size > 0 && (
                   <div
                     className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-2.5 float-in"
@@ -465,7 +447,6 @@ const Recipients = () => {
                   </div>
                 )}
 
-                {/* List container */}
                 <div className="rounded-3xl overflow-hidden soft-ring"
                   style={{ background: "linear-gradient(180deg, #141821 0%, #10141D 100%)" }}>
                   <div className="flex flex-wrap items-center justify-between px-4 md:px-6 py-3.5 border-b border-[#1A1F2B] gap-2">
@@ -489,7 +470,6 @@ const Recipients = () => {
                     </span>
                   </div>
 
-                  {/* Table (desktop) */}
                   <div className="rc-table overflow-x-auto">
                     <table className="w-full text-left">
                       <thead>
@@ -565,7 +545,6 @@ const Recipients = () => {
                     </table>
                   </div>
 
-                  {/* List (mobile) */}
                   <ul className="rc-list">
                     {filtered.length === 0 ? (
                       <li className="px-4 py-16 text-center">
@@ -621,7 +600,6 @@ const Recipients = () => {
                     )}
                   </ul>
 
-                  {/* Pagination */}
                   <div className="flex flex-wrap items-center justify-between gap-3 px-4 md:px-6 py-3.5 border-t border-[#1A1F2B]">
                     <span className="text-[11.5px] text-[#7A8092]" style={{ fontFamily: FONT.mono }}>
                       Page <span style={{ color: "#F2F0EB" }}>{page}</span> of {totalPages}

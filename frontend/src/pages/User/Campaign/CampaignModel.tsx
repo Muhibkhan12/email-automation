@@ -132,7 +132,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
 
       <div
         onClick={(e) => e.stopPropagation()}
-        className="cm-shell w-full max-w-3xl max-h-[88vh] flex flex-col rounded-2xl bg-[#141821] ring-1 ring-[#232833] shadow-2xl overflow-hidden"
+        className="cm-shell w-full max-w-5xl max-h-[90vh] flex flex-col rounded-2xl bg-[#141821] ring-1 ring-[#232833] shadow-2xl overflow-hidden"
       >
         {/* ── Header ─────────────────────────────── */}
         <div className="flex items-start justify-between gap-4 p-5 md:p-6 border-b border-[#1F242E]">
