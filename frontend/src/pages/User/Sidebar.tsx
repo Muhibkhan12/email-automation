@@ -1,18 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import {  useEffect, useRef, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
-  LayoutGrid, BarChart3, Bell, Mail, FileStack,
+  LayoutGrid, BarChart3, Mail, FileStack,
   Settings as SettingsIcon, User as UserIcon, AtSign, ListOrdered,
-  Megaphone, UploadCloud, Users, ChevronRight, Menu, X, Sparkles,
+  Megaphone, UploadCloud, Users, ChevronRight, Menu, X,
   LogOut, Shield, UserCog, Loader2,
-  Rocket,
   Send,
 } from 'lucide-react'
 import { getProfile, logoutUser } from '../../services/AuthServices'
 import type { User } from '../../types/UserTypes'
-
 /* ─────────────── tokens ─────────────── */
-
 const COLOR = {
   primary: '#FF6A39',
   primarySoft: 'rgba(255,106,57,0.12)',
@@ -33,20 +30,15 @@ const COLOR = {
   textMuted: '#7A8092',
   textBody: '#C7C9CE',
 }
-
 const FONT_MONO = "'JetBrains Mono', monospace"
 const FONT_DISPLAY = "'Space Grotesk', sans-serif"
-
 /* ─────────────── helpers ─────────────── */
-
 const initialsOf = (name?: string) => {
   if (!name) return '??'
   const parts = name.trim().split(/\s+/).slice(0, 2)
   return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || '??'
 }
-
 /* ─────────────── nav config (unchanged) ─────────────── */
-
 const navGroups = [
   {
     label: 'Overview',
@@ -81,16 +73,13 @@ const navGroups = [
     ],
   },
 ]
-
 /* ─────────────── nav item ─────────────── */
-
 interface NavItemProps {
   path: string
   name: string
   icon: React.ElementType
   onClose?: () => void
 }
-
 const NavItem = ({ path, name, icon: Icon, onClose }: NavItemProps) => (
   <NavLink
     to={path}

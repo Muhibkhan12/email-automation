@@ -14,9 +14,7 @@ import {
   type RecipientsSummary,
 } from "../../services/UploadServices";// ← new route
 import { ExtractData } from "../../services/ExtractFile";
- // path apne project ke hisaab se
-// ⚠️ yahan apne original campaign service imports rakhna:
-// createCampaign, startCampaign, getCampaign, pauseCampaign, resumeCampaign, cancelCampaign, type CampaignDTO
+import { createCampaign, getCampaign, startCampaign } from "../../services/CampaignService";
 
 
 /* ───────────── constants ───────────── */
@@ -117,7 +115,7 @@ const Stat: React.FC<{ label: string; value: string | number; tone?: string; ico
   label, value, tone = "#F2F0EB", icon,
 }) => (
   <div className="relative overflow-hidden rounded-2xl p-4" style={{ background: "#0F131C", boxShadow: RING }}>
-    <span className="absolute left-0 top-4 bottom-4 w-[3px] rounded-r-full" style={{ background: tone, opacity: tone === "#F2F0EB" ? 0.25 : 0.9 }} />
+    <span className="absolute left-0 top-4 bottom-4 w-0.75 rounded-r-full" style={{ background: tone, opacity: tone === "#F2F0EB" ? 0.25 : 0.9 }} />
     <div className="flex items-center justify-between">
       <p className="text-[11.5px] font-medium" style={{ color: "#7A8092" }}>{label}</p>
       {icon && <span style={{ color: tone, opacity: 0.8 }}>{icon}</span>}
@@ -463,6 +461,14 @@ const CampaignCreatePage = () => {
     { label: "Template", icon: LayoutTemplate, done: !!template, value: template ? tplName(template) : "Not selected" },
   ];
   const completion = Math.round((summaryItems.filter((s) => s.done).length / summaryItems.length) * 100);
+
+  function cancelCampaign(id: number): Promise<CampaignDTO> {
+    throw new Error("Function not implemented.");
+  }
+
+  function pauseCampaign(id: number): Promise<CampaignDTO> {
+    throw new Error("Function not implemented.");
+  }
 
   /* ───────────── render ───────────── */
   return (

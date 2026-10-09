@@ -8,10 +8,9 @@ import { EmailLogsContext } from "../../contexts/EmaillogsContext";
 import { SenderAccContext } from "../../contexts/SenderAccountsContext";
 import { UsersContext } from "../../contexts/UsersContext";
 import {
-  Users, Send, XCircle, Activity, Clock, Download, RefreshCw,
+  Users, Send, XCircle, Activity, Clock, RefreshCw,
   ChevronRight, ArrowUpRight, ArrowDownRight, TrendingUp, Zap,
-  Menu, BarChart3, CheckCircle2, Inbox, ShieldCheck, AlertCircle,
-  Mail, AtSign, FileStack,
+  Menu, BarChart3, CheckCircle2, Inbox, AtSign,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -63,12 +62,6 @@ const C = {
 const formatNumber = (n: number | null | undefined) =>
   n === null || n === undefined ? "0" : Number(n).toLocaleString();
 
-const formatShort = (n: number | null | undefined) => {
-  const v = Number(n ?? 0);
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M`;
-  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k`;
-  return String(v);
-};
 
 const dayKey = (iso?: string | null) => {
   if (!iso) return null;
@@ -472,7 +465,7 @@ const AdminAnalytics = () => {
       )}
 
       <div className={`
-        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out
+        fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-300 ease-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <AdminSidebar onClose={() => setSidebarOpen(false)} />
@@ -480,7 +473,7 @@ const AdminAnalytics = () => {
 
       <main className="aa-main flex-1 overflow-y-auto" style={{ background: C.bg, height: "100vh", width: "100%" }}>
         <div className="glow-top">
-          <div className="max-w-[1320px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
+          <div className="max-w-330 mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
 
             {/* ── Header ── */}
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8 md:mb-10">
@@ -778,7 +771,7 @@ const AdminAnalytics = () => {
                           style={{ fontFamily: FONT.mono, color: C.dark }}>
                           {senderData[0].value}%
                         </span>
-                        <span className="text-[9px] uppercase tracking-widest mt-1 truncate px-1 max-w-[90px]"
+                        <span className="text-[9px] uppercase tracking-widest mt-1 truncate px-1 max-w-22.5"
                           style={{ color: C.textMuted }}>
                           Top sender
                         </span>
@@ -886,7 +879,7 @@ const AdminAnalytics = () => {
                             </td>
                             <td className="px-3 py-3.5">
                               <div className="flex items-center gap-2.5">
-                                <span className="text-[12px] w-[52px] text-right" style={{ color: C.textBody, fontFamily: FONT.mono }}>
+                                <span className="text-[12px] w-13 text-right" style={{ color: C.textBody, fontFamily: FONT.mono }}>
                                   {w.deliveryRate}%
                                 </span>
                                 <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ background: C.inner }}>

@@ -101,18 +101,6 @@ const CAMPAIGN_STATUS_STYLE: Record<
   Cancelled: { bg: COLOR.dangerSoft,  fg: COLOR.danger,  ring: COLOR.dangerRing,  label: 'Cancelled' },
 }
 
-const LOG_STATUS_META: Record<
-  string,
-  { bg: string; fg: string; ring: string }
-> = {
-  Sent:      { bg: COLOR.successSoft, fg: COLOR.success, ring: COLOR.successRing },
-  Delivered: { bg: COLOR.successSoft, fg: COLOR.success, ring: COLOR.successRing },
-  Pending:   { bg: COLOR.warningSoft, fg: COLOR.warning, ring: COLOR.warningRing },
-  Queued:    { bg: COLOR.blueSoft,    fg: COLOR.blue,    ring: COLOR.blueRing },
-  Sending:   { bg: COLOR.warningSoft, fg: COLOR.warning, ring: COLOR.warningRing },
-  Failed:    { bg: COLOR.dangerSoft,  fg: COLOR.danger,  ring: COLOR.dangerRing },
-  Bounced:   { bg: COLOR.dangerSoft,  fg: COLOR.danger,  ring: COLOR.dangerRing },
-}
 
 const accountStatusMeta = {
   Active:   { icon: ShieldCheck, fg: COLOR.success, bg: COLOR.successSoft, ring: COLOR.successRing },
@@ -444,7 +432,7 @@ const UserDashboard: React.FC = () => {
       )}
 
       <div className={`
-        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out
+        fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-300 ease-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
@@ -452,7 +440,7 @@ const UserDashboard: React.FC = () => {
 
       <main className="db-main flex-1 overflow-y-auto" style={{ background: COLOR.bg }}>
         <div className="glow-top">
-          <div className="max-w-[1320px] mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10">
+          <div className="max-w-330 mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10">
 
             {/* ── Header ── */}
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-10">
@@ -723,10 +711,10 @@ const UserDashboard: React.FC = () => {
                               onClick={() => navigate('/user/campaign')}
                             >
                               <td className="px-4 md:px-6 py-3.5">
-                                <p className="text-[13px] font-medium truncate max-w-[220px]" style={{ color: COLOR.dark }}>
+                                <p className="text-[13px] font-medium truncate max-w-55" style={{ color: COLOR.dark }}>
                                   {c.campaign_name}
                                 </p>
-                                <p className="text-[11px] truncate max-w-[220px]" style={{ color: COLOR.textMuted }}>
+                                <p className="text-[11px] truncate max-w-55" style={{ color: COLOR.textMuted }}>
                                   {c.subject || '—'}
                                 </p>
                               </td>
@@ -820,7 +808,7 @@ const UserDashboard: React.FC = () => {
                     </div>
                   ) : (
                     <>
-                      <span className="absolute left-[26px] md:left-[30px] top-2 bottom-6 w-px" style={{ background: COLOR.border }} />
+                      <span className="absolute left-6.5 md:left-7.5 top-2 bottom-6 w-px" style={{ background: COLOR.border }} />
                       <div className="space-y-3.5 relative">
                         {pulseEvents.map((e, i) => (
                           <div key={i} className="flex items-start gap-3">

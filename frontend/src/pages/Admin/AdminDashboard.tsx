@@ -12,8 +12,8 @@ import { useHtmlTemplates } from "../../contexts/HtmlTemplatesContext";
 import {
   Building2, Users, Send, ArrowUpRight, ArrowDownRight,
   ShieldCheck, ShieldAlert, ShieldX, Activity, AlertTriangle,
-  CheckCircle2, MoreHorizontal, Search, ExternalLink, Menu,
-  ChevronRight, TrendingUp, Mail, FileStack, AtSign,
+  CheckCircle2, ExternalLink, Menu,
+  ChevronRight, TrendingUp, Mail,
   RefreshCw, Inbox, Crown,
 } from "lucide-react";
 import {
@@ -104,20 +104,7 @@ const HEALTH_META: Record<HealthStatus, { bg: string; fg: string; ring: string; 
   Down:        { bg: C.dangerSoft,  fg: C.danger,  ring: C.dangerRing,  icon: ShieldX },
 };
 
-const CAMPAIGN_STATUS_STYLE: Record<string, { bg: string; fg: string; ring: string; label: string }> = {
-  Draft:     { bg: C.neutralSoft, fg: C.neutral, ring: C.neutralRing, label: "Draft" },
-  Ready:     { bg: C.blueSoft,    fg: C.blue,    ring: C.blueRing,    label: "Ready" },
-  Running:   { bg: C.successSoft, fg: C.success, ring: C.successRing, label: "Running" },
-  Paused:    { bg: C.warningSoft, fg: C.warning, ring: C.warningRing, label: "Paused" },
-  Completed: { bg: C.violetSoft,  fg: C.violet,  ring: C.violetRing,  label: "Completed" },
-  Cancelled: { bg: C.dangerSoft,  fg: C.danger,  ring: C.dangerRing,  label: "Cancelled" },
-};
 
-const SENDER_STATUS_META = {
-  Active:   { fg: C.success, bg: C.successSoft, ring: C.successRing, icon: ShieldCheck },
-  Warning:  { fg: C.warning, bg: C.warningSoft, ring: C.warningRing, icon: ShieldAlert },
-  Disabled: { fg: C.neutral, bg: C.neutralSoft, ring: C.neutralRing, icon: ShieldX },
-};
 
 const ROLE_META: Record<string, { fg: string; bg: string; ring: string; icon: React.ElementType }> = {
   ADMIN:    { fg: C.primary, bg: C.primarySoft, ring: C.primaryRing, icon: Crown },
@@ -488,7 +475,7 @@ const AdminDashboard = () => {
   }, [users]);
 
   const RANGES = ["Last 24 hours", "Last 7 days", "Last 30 days"] as const;
-  const [range, setRange] = useState<(typeof RANGES)[number]>(RANGES[1]);
+  const [] = useState<(typeof RANGES)[number]>(RANGES[1]);
 
   return (
     <div className="flex min-h-screen overflow-hidden" style={{ background: C.bg, fontFamily: FONT.body }}>
@@ -521,7 +508,7 @@ const AdminDashboard = () => {
       )}
 
       <div className={`
-        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out
+        fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-300 ease-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <AdminSidebar onClose={() => setSidebarOpen(false)} />
@@ -529,7 +516,7 @@ const AdminDashboard = () => {
 
       <main className="ad-main flex-1 overflow-y-auto" style={{ background: C.bg, height: "100vh", width: "100%" }}>
         <div className="glow-top">
-          <div className="max-w-[1320px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
+          <div className="max-w-330 mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
 
             {/* ── Header ── */}
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8 md:mb-10">
@@ -801,7 +788,7 @@ const AdminDashboard = () => {
                   hint="Derived from live platform signals"
                 />
                 <div className="relative">
-                  <span className="absolute left-[15px] top-2 bottom-4 w-px" style={{ background: C.border }} />
+                  <span className="absolute left-3.75 top-2 bottom-4 w-px" style={{ background: C.border }} />
                   <div className="space-y-4 relative">
                     {incidents.map((inc, i) => {
                       const meta = INCIDENT_META[inc.severity];
