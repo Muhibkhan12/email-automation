@@ -235,14 +235,6 @@ const UserCampaigns: React.FC = () => {
                   <RefreshCw size={14} />
                   <span className="hidden sm:inline">Refresh</span>
                 </button>
-                <button
-                  onClick={() => setShowStartModal(true)}
-                  className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl font-semibold text-[13px] transition-all hover:-translate-y-0.5"
-                  style={{ background: "#FF6A39", color: "#fff", boxShadow: "0 12px 30px -12px rgba(255,106,57,0.65)" }}
-                >
-                  <Plus size={15} />
-                  Start campaign
-                </button>
               </div>
             </header>
 
