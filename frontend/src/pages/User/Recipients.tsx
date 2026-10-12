@@ -1,5 +1,5 @@
 // pages/User/Recipients.tsx — recipients for the logged-in user only
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import { useRecipients } from "../../contexts/RecipientsContext";
@@ -109,7 +109,12 @@ const Recipients = () => {
   const [searchParams] = useSearchParams();
   const uploadId = searchParams.get("uploadId");
 
-  const { recipients, loading, error, getAllRecipients, total, page, limit } = useRecipients();
+  // summary / statusCounts / pageCount all come from the backend response
+  const {
+    recipients, loading, error, getAllRecipients,
+    total, pageCount, page, limit,
+    summary, statusCounts,
+  } = useRecipients();
 
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -149,21 +154,6 @@ const Recipients = () => {
   }, [page, filter, debouncedQuery, uploadId]);
 
   const filtered = recipients;
-
-  const summary = useMemo(() => {
-    const sent = recipients.filter((r) => r.status === "Sent").length;
-    const failed = recipients.filter((r) => r.status === "Failed").length;
-    const pending = recipients.filter(
-      (r) => r.status === "Pending" || r.status === "Queued" || r.status === "Sending"
-    ).length;
-    return { total: recipients.length, sent, failed, pending };
-  }, [recipients]);
-
-  const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { All: recipients.length };
-    for (const r of recipients) counts[r.status] = (counts[r.status] ?? 0) + 1;
-    return counts;
-  }, [recipients]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
@@ -335,8 +325,9 @@ const Recipients = () => {
 
             {!loading && !error && (recipients.length > 0 || hasActiveFilters) && (
               <div className="float-in">
+                {/* Analytics — all numbers come from the backend `summary` */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-                  <StatCard label="On this page"     value={summary.total}   icon={Users}       accent="#FF6A39" />
+                  <StatCard label="Total recipients" value={summary.total}   icon={Users}       accent="#FF6A39" />
                   <StatCard label="Sent"             value={summary.sent}    icon={MailCheck}   accent="#34D399" />
                   <StatCard label="Pending / queued" value={summary.pending} icon={MailWarning} accent="#FBBF24" />
                   <StatCard label="Failed"           value={summary.failed}  icon={MailX}       accent="#F87171" />
@@ -459,14 +450,12 @@ const Recipients = () => {
                         {allVisibleSelected ? <CheckSquare size={16} /> : <Square size={16} />}
                       </button>
                       <h2 className="text-[13px] font-semibold" style={{ color: "#F2F0EB" }}>
-                        {filtered.length}{" "}
-                        <span style={{ color: "#7A8092", fontWeight: 400 }}>
-                          {filtered.length === 1 ? "recipient" : "recipients"} shown
-                        </span>
+                        Recipients
                       </h2>
                     </div>
+                    {/* rows on THIS page, from backend pagination.count */}
                     <span className="text-[11.5px] text-[#6B727C]" style={{ fontFamily: FONT.mono }}>
-                      {total.toLocaleString()} total
+                      {pageCount.toLocaleString()} on this page
                     </span>
                   </div>
 

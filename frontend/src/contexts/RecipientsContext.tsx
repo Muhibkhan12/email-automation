@@ -12,13 +12,26 @@ interface RecipientProviderProps {
     children: ReactNode;
 }
 
+// Totals across ALL matching rows (not just the current page)
+export interface RecipientSummary {
+    total: number;
+    sent: number;
+    failed: number;
+    pending: number; // Pending + Queued + Sending
+}
+
+const EMPTY_SUMMARY: RecipientSummary = { total: 0, sent: 0, failed: 0, pending: 0 };
+
 interface RecipientsType {
     recipients: CampaignRecipient[];
     loading: boolean;
     error: string | null;
-    total: number;
+    total: number;        // rows matching current search/filter (all pages)
+    pageCount: number;    // rows on the current page (from backend)
     page: number;
     limit: number;
+    summary: RecipientSummary;                 // NEW
+    statusCounts: Record<string, number>;      // NEW
     getRecipientsUsingCampaignId: (id: number) => Promise<void>;
     getAllRecipients: (
         page?: number,
@@ -39,8 +52,13 @@ const RecipientsContextProvider = ({ children }: RecipientProviderProps) => {
     const [error, setError] = useState<string | null>(null);
 
     const [total, setTotal] = useState<number>(0);
+    const [pageCount, setPageCount] = useState<number>(0);
     const [page, setPage] = useState<number>(1);
     const [limit, setLimit] = useState<number>(20);
+
+    // NEW: analytics computed by the server over every matching row
+    const [summary, setSummary] = useState<RecipientSummary>(EMPTY_SUMMARY);
+    const [statusCounts, setStatusCounts] = useState<Record<string, number>>({ All: 0 });
 
     const requestId = useRef(0);
 
@@ -86,8 +104,13 @@ const RecipientsContextProvider = ({ children }: RecipientProviderProps) => {
 
             setRecipients(list);
             setTotal(pg?.total ?? list.length);
+            setPageCount(pg?.count ?? list.length);
             setPage(pg?.page ?? p);
             setLimit(pg?.limit ?? l);
+
+            // NEW
+            setSummary({ ...EMPTY_SUMMARY, ...(res?.summary ?? {}) });
+            setStatusCounts(res?.status_counts ?? { All: pg?.total ?? list.length });
         } catch (err: any) {
             if (myRequest !== requestId.current) return;
             setError(err?.response?.data?.detail || err.message || "Failed to fetch Recipients");
@@ -135,8 +158,11 @@ const RecipientsContextProvider = ({ children }: RecipientProviderProps) => {
                 loading,
                 error,
                 total,
+                pageCount,
                 page,
                 limit,
+                summary,
+                statusCounts,
                 getRecipientsUsingCampaignId,
                 getAllRecipients,
                 getRecipientById,

@@ -12,6 +12,19 @@ from schema.campaign_recipients import (
 )
 
 
+from sqlalchemy import or_, cast, String, func
+
+def _status_counts(query):
+    rows = (
+        query.with_entities(CampaignRecipient.status, func.count(CampaignRecipient.id))
+        .group_by(CampaignRecipient.status)
+        .all()
+    )
+    counts = {str(getattr(s, "value", s)): c for s, c in rows}
+    counts["All"] = sum(counts.values())
+    return counts
+
+
 def get_all_recipients(
     db: Session,
     current_user: User,
@@ -19,53 +32,59 @@ def get_all_recipients(
     limit: int = 20,
     upload_id: int | None = None,
     search: str | None = None,
-    status_filter: str | None = None
+    status_filter: str | None = None,
 ):
     page = max(page, 1)
     limit = min(max(limit, 1), 100)
     offset = (page - 1) * limit
 
-    query = (
+    # All of this user's recipients (optionally one upload). No search/status filter.
+    scope = (
         db.query(CampaignRecipient)
         .join(Campaign, CampaignRecipient.campaign_id == Campaign.id)
         .filter(Campaign.user_id == current_user.id)
     )
-
     if upload_id is not None:
-        query = query.filter(CampaignRecipient.upload_id == upload_id)
+        scope = scope.filter(CampaignRecipient.upload_id == upload_id)
 
+    # Stat cards: overall analytics, ignores search and status chip
+    overall = _status_counts(scope)
+
+    # Search applied, status chip NOT applied -> numbers shown on the chips
+    searched = scope
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        searched = searched.filter(or_(
+            CampaignRecipient.name.ilike(term),
+            CampaignRecipient.email.ilike(term),
+            cast(CampaignRecipient.id, String).ilike(term),
+        ))
+    status_counts = _status_counts(searched)
+
+    # The rows for the current page
+    query = searched
     if status_filter and status_filter != "All":
         query = query.filter(CampaignRecipient.status == status_filter)
 
-    if search and search.strip():
-        term = f"%{search.strip()}%"
-        query = query.filter(
-            or_(
-                CampaignRecipient.name.ilike(term),
-                CampaignRecipient.email.ilike(term),
-                cast(CampaignRecipient.id, String).ilike(term),
-            )
-        )
-
     total = query.count()
-
     data = (
         query.order_by(CampaignRecipient.id.desc())
-        .offset(offset)
-        .limit(limit)
-        .all()
+        .offset(offset).limit(limit).all()
     )
-
-    total_pages = (total + limit - 1) // limit
 
     return {
         "message": "Recipients fetched successfully",
         "data": data,
+        "summary": {
+            "total": overall["All"],
+            "sent": overall.get("Sent", 0),
+            "failed": overall.get("Failed", 0),
+            "pending": sum(overall.get(k, 0) for k in ("Pending", "Queued", "Sending")),
+        },
+        "status_counts": status_counts,
         "pagination": {
-            "page": page,
-            "limit": limit,
-            "total": total,
-            "total_pages": total_pages,
+            "page": page, "limit": limit, "total": total,
+            "total_pages": (total + limit - 1) // limit,
         },
     }
 

@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import {
   FileSpreadsheet, CheckCircle2, XCircle, Loader2, X, Menu, Users,
-  Pencil, Lock, Trash2, Upload as UploadIcon, PlayCircle,
+  Pencil, Lock, Trash2, Upload as UploadIcon, PlayCircle, AlertTriangle,
 } from "lucide-react";
 import { useUpload } from "../../contexts/UploadContext";
 
@@ -80,14 +80,54 @@ const Stat: React.FC<{ label: string; value: number; tone?: string }> = ({ label
   </div>
 );
 
+/* Close a modal with the Escape key */
+const useEscape = (onEscape: () => void, enabled = true) => {
+  useEffect(() => {
+    if (!enabled) return;
+    const h = (e: KeyboardEvent) => e.key === "Escape" && onEscape();
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onEscape, enabled]);
+};
+
+/* ───────────── Toast (replaces alert()) ───────────── */
+
+interface ToastData { id: number; tone: "success" | "error"; message: string }
+
+const Toast: React.FC<{ toast: ToastData; onClose: () => void }> = ({ toast, onClose }) => {
+  useEffect(() => {
+    const t = setTimeout(onClose, 4500);
+    return () => clearTimeout(t);
+  }, [toast.id, onClose]);
+
+  const ok = toast.tone === "success";
+  return (
+    <div
+      role="status"
+      className="fixed bottom-4 right-4 left-4 sm:left-auto z-[70] sm:w-[360px] flex items-start gap-3 rounded-xl bg-[#141821] px-4 py-3 shadow-2xl"
+      style={{
+        boxShadow: `0 20px 40px -12px rgba(0,0,0,0.6), inset 0 0 0 1px ${ok ? "rgba(52,211,153,0.3)" : "rgba(248,113,113,0.3)"}`,
+        animation: "toastIn 0.2s ease-out",
+      }}
+    >
+      {ok
+        ? <CheckCircle2 size={16} className="text-emerald-400 mt-0.5 shrink-0" />
+        : <XCircle size={16} className="text-red-400 mt-0.5 shrink-0" />}
+      <p className="flex-1 text-[13px] text-[#E8E6E1]">{toast.message}</p>
+      <button onClick={onClose} className="text-[#6B727C] hover:text-[#E8E6E1]" aria-label="Dismiss">
+        <X size={14} />
+      </button>
+    </div>
+  );
+};
+
 /* ───────────── Card ───────────── */
 
 const UploadCard: React.FC<{
   u: UploadCardData;
-  deleting: boolean;
   onRename: () => void;
   onDelete: () => void;
-}> = ({ u, deleting, onRename, onDelete }) => {
+}> = ({ u, onRename, onDelete }) => {
   const editable = canEdit(u.status);
   const lockedReason =
     u.status === "Running" ? "Locked while the campaign is running"
@@ -131,10 +171,9 @@ const UploadCard: React.FC<{
         {canDelete(u.status) && (
           <button
             onClick={onDelete}
-            disabled={deleting}
-            className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-red-400 hover:bg-red-500/10 disabled:opacity-50 transition-colors"
+            className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors"
           >
-            {deleting ? <Loader2 size={13} className="spin" /> : <Trash2 size={13} />} Delete
+            <Trash2 size={13} /> Delete
           </button>
         )}
       </div>
@@ -142,9 +181,36 @@ const UploadCard: React.FC<{
   );
 };
 
+/* ───────────── Modal shell ───────────── */
+
+const ModalShell: React.FC<{
+  onClose: () => void;
+  busy?: boolean;
+  children: React.ReactNode;
+}> = ({ onClose, busy, children }) => {
+  const close = useCallback(() => { if (!busy) onClose(); }, [busy, onClose]);
+  useEscape(close);
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 md:p-6 bg-black/70 backdrop-blur-sm" onClick={close}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="w-full max-w-md flex flex-col rounded-2xl bg-[#141821] ring-1 ring-[#232833] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
+
 /* ───────────── Rename modal ───────────── */
 
-const RenameModal: React.FC<{ upload: UploadCardData; onClose: () => void }> = ({ upload, onClose }) => {
+const RenameModal: React.FC<{
+  upload: UploadCardData;
+  onClose: () => void;
+  onDone: (msg: string) => void;
+}> = ({ upload, onClose, onDone }) => {
   const { renameFile } = useUpload();
   const [name, setName] = useState(upload.name);
   const [saving, setSaving] = useState(false);
@@ -154,83 +220,118 @@ const RenameModal: React.FC<{ upload: UploadCardData; onClose: () => void }> = (
   const unchanged = trimmed === upload.name;
 
   const handleSave = async () => {
-    if (!trimmed || unchanged) return;
+    if (!trimmed || unchanged || saving) return;
     setSaving(true);
     setError(null);
     try {
       await renameFile(upload.id, trimmed);
-      onClose();
+      onDone("File renamed.");
     } catch (e) {
       setError(getErrorMessage(e));
-    } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 md:p-6 bg-black/70 backdrop-blur-sm" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="w-full max-w-md flex flex-col rounded-2xl bg-[#141821] ring-1 ring-[#232833] overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center gap-3 px-4 md:px-5 py-4 border-b border-[#1F242E]">
-          <p style={{ fontFamily: FONT.display }} className="flex-1 text-base font-semibold text-white">Rename file</p>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-[#6B727C] hover:text-[#E8E6E1] hover:bg-[#232833] transition-colors" aria-label="Close">
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="px-4 md:px-5 py-4">
-          <input
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSave()}
-            className="w-full rounded-md bg-[#0D1015] px-3 py-2 text-[13px] text-[#E8E6E1] outline-none ring-1 ring-[#232833] focus:ring-[#FF6A39]"
-          />
-          {error && <p className="mt-2 text-[11px] text-red-400">{error}</p>}
-        </div>
-
-        <div className="flex items-center justify-end gap-3 px-4 md:px-5 py-3 border-t border-[#1F242E]">
-          <button onClick={onClose} className="px-3 py-2 rounded-lg text-xs font-medium text-[#C7C9CE] hover:bg-[#232833]">Cancel</button>
-          <button
-            onClick={handleSave}
-            disabled={saving || !trimmed || unchanged}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-[#FF6A39] hover:bg-[#e85a2c] disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {saving && <Loader2 size={12} className="spin" />} Save
-          </button>
-        </div>
+    <ModalShell onClose={onClose} busy={saving}>
+      <div className="flex items-center gap-3 px-4 md:px-5 py-4 border-b border-[#1F242E]">
+        <p style={{ fontFamily: FONT.display }} className="flex-1 text-base font-semibold text-white">Rename file</p>
+        <button onClick={onClose} disabled={saving} className="p-1.5 rounded-lg text-[#6B727C] hover:text-[#E8E6E1] hover:bg-[#232833] transition-colors" aria-label="Close">
+          <X size={16} />
+        </button>
       </div>
-    </div>
+
+      <div className="px-4 md:px-5 py-4">
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSave()}
+          className="w-full rounded-md bg-[#0D1015] px-3 py-2 text-[13px] text-[#E8E6E1] outline-none ring-1 ring-[#232833] focus:ring-[#FF6A39]"
+        />
+        {error && <p className="mt-2 text-[11px] text-red-400">{error}</p>}
+      </div>
+
+      <div className="flex items-center justify-end gap-3 px-4 md:px-5 py-3 border-t border-[#1F242E]">
+        <button onClick={onClose} disabled={saving} className="px-3 py-2 rounded-lg text-xs font-medium text-[#C7C9CE] hover:bg-[#232833]">Cancel</button>
+        <button
+          onClick={handleSave}
+          disabled={saving || !trimmed || unchanged}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-[#FF6A39] hover:bg-[#e85a2c] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving && <Loader2 size={12} className="spin" />} Save
+        </button>
+      </div>
+    </ModalShell>
+  );
+};
+
+/* ───────────── Delete confirmation modal (replaces window.confirm) ───────────── */
+
+const DeleteModal: React.FC<{
+  upload: UploadCardData;
+  onClose: () => void;
+  onDone: (msg: string) => void;
+}> = ({ upload, onClose, onDone }) => {
+  const { removeFile } = useUpload();
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await removeFile(upload.id);
+      onDone(`"${upload.name}" deleted.`);
+    } catch (e) {
+      setError(getErrorMessage(e));
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <ModalShell onClose={onClose} busy={deleting}>
+      <div className="px-5 pt-6 pb-4 text-center">
+        <div className="w-12 h-12 mx-auto mb-3 rounded-2xl flex items-center justify-center bg-red-500/10 ring-1 ring-red-500/20">
+          <AlertTriangle size={20} className="text-red-400" />
+        </div>
+        <p style={{ fontFamily: FONT.display }} className="text-base font-semibold text-white">Delete this file?</p>
+        <p className="mt-1.5 text-[13px] text-[#9BA0A8]">
+          <span className="text-[#E8E6E1] font-medium break-all">{upload.name}</span> and its {upload.rows.toLocaleString()} rows
+          will be permanently removed. This can't be undone.
+        </p>
+        {error && <p className="mt-3 text-[11px] text-red-400">{error}</p>}
+      </div>
+
+      <div className="flex items-center justify-end gap-3 px-4 md:px-5 py-3 border-t border-[#1F242E]">
+        <button onClick={onClose} disabled={deleting} className="px-3 py-2 rounded-lg text-xs font-medium text-[#C7C9CE] hover:bg-[#232833]">Cancel</button>
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {deleting && <Loader2 size={12} className="spin" />} Delete
+        </button>
+      </div>
+    </ModalShell>
   );
 };
 
 /* ───────────── Page ───────────── */
 
 const Upload = () => {
-  const { files: uploadedFiles, loading, error, fetchAllFiles, removeFile } = useUpload();
+  const { files: uploadedFiles, loading, error, fetchAllFiles } = useUpload();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [renaming, setRenaming] = useState<UploadCardData | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<UploadCardData | null>(null);
+  const [toast, setToast] = useState<ToastData | null>(null);
 
   useEffect(() => { fetchAllFiles(); }, [fetchAllFiles]);
 
-  const handleDelete = async (u: UploadCardData) => {
-    if (!window.confirm(`Delete "${u.name}"? This can't be undone.`)) return;
-    setDeletingId(u.id);
-    setActionError(null);
-    try {
-      await removeFile(u.id);
-    } catch (e) {
-      setActionError(getErrorMessage(e));
-    } finally {
-      setDeletingId(null);
-    }
-  };
+  const notify = (tone: ToastData["tone"], message: string) =>
+    setToast({ id: Date.now(), tone, message });
+  const closeToast = useCallback(() => setToast(null), []);
 
   const uploads: UploadCardData[] = (uploadedFiles || []).map((u) => {
     const total = u.total_records ?? 0;
@@ -253,6 +354,7 @@ const Upload = () => {
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 1s linear infinite; }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
         .mf-main::-webkit-scrollbar { width: 8px; height: 8px; }
         .mf-main::-webkit-scrollbar-track { background: transparent; }
         .mf-main::-webkit-scrollbar-thumb { background: #232833; border-radius: 8px; }
@@ -285,10 +387,6 @@ const Upload = () => {
             </div>
           </header>
 
-          {actionError && (
-            <p className="mb-4 text-xs text-red-400">{actionError}</p>
-          )}
-
           {loading ? (
             <div className="text-center py-24">
               <Loader2 className="w-7 h-7 spin text-[#FF6A39] mx-auto" />
@@ -315,9 +413,8 @@ const Upload = () => {
                 <UploadCard
                   key={u.id}
                   u={u}
-                  deleting={deletingId === u.id}
                   onRename={() => setRenaming(u)}
-                  onDelete={() => handleDelete(u)}
+                  onDelete={() => setDeleting(u)}
                 />
               ))}
             </div>
@@ -326,8 +423,22 @@ const Upload = () => {
       </main>
 
       {renaming && canEdit(renaming.status) && (
-        <RenameModal upload={renaming} onClose={() => setRenaming(null)} />
+        <RenameModal
+          upload={renaming}
+          onClose={() => setRenaming(null)}
+          onDone={(msg) => { setRenaming(null); notify("success", msg); }}
+        />
       )}
+
+      {deleting && canDelete(deleting.status) && (
+        <DeleteModal
+          upload={deleting}
+          onClose={() => setDeleting(null)}
+          onDone={(msg) => { setDeleting(null); notify("success", msg); }}
+        />
+      )}
+
+      {toast && <Toast toast={toast} onClose={closeToast} />}
     </div>
   );
 };
