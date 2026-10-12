@@ -179,10 +179,6 @@ const EmailLogs = () => {
                 <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
                 <span className="hidden sm:inline">Refresh</span>
               </button>
-              <button className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm bg-[#FF6A39] hover:bg-[#e85a2c] text-white transition-all shadow-[0_10px_30px_-10px_rgba(255,106,57,0.6)]">
-                <Download size={15} />
-                Export
-              </button>
             </div>
           </header>
 
