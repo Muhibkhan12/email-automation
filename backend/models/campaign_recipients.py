@@ -3,6 +3,8 @@ import enum
 from sqlalchemy import String, Integer, ForeignKey, DateTime, Boolean, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, UTC
+from models.campaigns import Campaign
+from models.upload_file import Upload
 from database import Base
 
 
@@ -17,52 +19,44 @@ class RecipientStatus(enum.Enum):
 class CampaignRecipient(Base):
     __tablename__ = "campaign_recipients"
     id : Mapped[int] = mapped_column(Integer, primary_key=True ,index=True)
-    campaign_id : Mapped[int] = mapped_column(Integer, ForeignKey("campaigns.id"), nullable=False)
+    campaign_id : Mapped[int] = mapped_column(Integer, ForeignKey("campaigns.id", ondelete="CASCADE"), nullable=False)
     upload_id : Mapped[int] = mapped_column(Integer, ForeignKey("uploads.id"), nullable=False)
     name : Mapped[str] = mapped_column(String(255), nullable=False)
-
     email : Mapped[str] = mapped_column(String(255), nullable=False)
-
     company: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True
     )
-
     phone: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True
     )
-
     is_valid_email: Mapped[bool] = mapped_column(
         Boolean,
         default=True
     )
-
     status: Mapped[RecipientStatus] = mapped_column(
         Enum(RecipientStatus),
         default=RecipientStatus.PENDING
     )
-
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: datetime.now(UTC)
     )
-
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC)
     )
-
     campaign: Mapped["Campaign"] = relationship(
         "Campaign",
         back_populates="recipients"
     )
     upload: Mapped["Upload"] = relationship(
         "Upload",
-        back_populates="recipients"
+        back_populates="recipients",
+        passive_deletes=True
     )
-
     email_logs = relationship(
         "EmailLog",
         back_populates="recipient",

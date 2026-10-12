@@ -10,7 +10,7 @@ from sqlalchemy import (
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from models.campaign_recipients import CampaignRecipient
+# from models.campaign_recipients import CampaignRecipient
 from database import Base
 
 
@@ -22,9 +22,7 @@ class UploadStatus(enum.Enum):
 
 
 class Upload(Base):
-
     __tablename__ = "uploads"
-
     id: Mapped[int] = mapped_column(
         Integer,
         primary_key=True,
@@ -36,22 +34,18 @@ class Upload(Base):
         nullable=False,
         index=True
     )
-
     campaign_id: Mapped[int] = mapped_column(
         ForeignKey("campaigns.id"),
         nullable=False
     )
-
     original_filename: Mapped[str] = mapped_column(
         String(255),
         nullable=False
     )
-
     stored_filename: Mapped[str] = mapped_column(
         String(255),
         nullable=False
     )
-
     file_path: Mapped[str] = mapped_column(
         String(255),
         nullable=False
@@ -68,46 +62,41 @@ class Upload(Base):
         String(255),
         nullable=True
     )
-
     total_records: Mapped[int] = mapped_column(
         Integer,
         default=0,
         nullable=False
     )
-
     processed_records: Mapped[int] = mapped_column(
         Integer,
         default=0,
         nullable=False
     )
-
     status: Mapped[UploadStatus] = mapped_column(
         Enum(UploadStatus),
         default=UploadStatus.UPLOADED,
         nullable=False,
     )
-
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC)
     )
-
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC)
     )
-
     user = relationship(
         "User",
         back_populates="uploads"
     )
-
     campaign = relationship(
         "Campaign",
         back_populates="uploads"
     )
     recipients: Mapped[list["CampaignRecipient"]] = relationship(
         "CampaignRecipient",
-        back_populates="upload"
+        back_populates="upload",
+        cascade="all, delete-orphan",
+        passive_deletes=True
     )
