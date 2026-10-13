@@ -1,12 +1,14 @@
-from celery import Celery
-from kombu import Queue 
-from models.user import User 
+import os
 
+from celery import Celery # type: ignore
+from kombu import Queue # type: ignore
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 celery = Celery(
     "email-automation",
-    broker="redis://localhost:6379/0",
-    backend="redis://localhost:6379/0",
+    broker=REDIS_URL,
+    backend=os.getenv("CELERY_RESULT_BACKEND", REDIS_URL),
 )
 
 celery.conf.update(
@@ -15,12 +17,18 @@ celery.conf.update(
     accept_content=["json"],
     timezone="Asia/Karachi",
     enable_utc=True,
-)
-
-celery.conf.task_queue = (
-    Queue("extract_emails_queue"),
-    Queue("email_sender_queue"),
-    Queue("dead_letter_queue"),
+    task_queues=(
+        Queue("extract_emails_queue"),
+        Queue("email_sender_queue"),
+        Queue("dead_letter_queue"),
+    ),
+    task_routes={
+        "workers.extract_email.*": {"queue": "extract_emails_queue"},
+        "workers.sending_emails.*": {"queue": "email_sender_queue"},
+    },
+    worker_prefetch_multiplier=1,
+    broker_connection_retry_on_startup=True,
+    broker_transport_options={"visibility_timeout": 3600},
 )
 
 celery.conf.imports = (
