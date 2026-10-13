@@ -1,5 +1,5 @@
-from celery import Celery # type: ignore
-from kombu import Queue # type: ignore\
+from celery import Celery
+from kombu import Queue 
 from models.user import User 
 
 

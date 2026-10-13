@@ -58,11 +58,6 @@ def _mark_failed(
 
         db.commit()
 
-
-# =========================================================
-# Celery task
-# =========================================================
-
 @celery.task(
     queue="extract_emails_queue"
 )
@@ -71,11 +66,6 @@ def extract_emails(upload_id: int):
     db = SessionLocal()
 
     try:
-
-        # =====================================================
-        # 1. Get upload
-        # =====================================================
-
         upload = db.get(
             Upload,
             upload_id,
@@ -88,11 +78,7 @@ def extract_emails(upload_id: int):
             )
 
             return
-
-        # =====================================================
-        # 2. Prevent duplicate extraction
-        # =====================================================
-
+        
         if upload.status != UploadStatus.UPLOADED:
 
             logger.warning(
@@ -102,19 +88,11 @@ def extract_emails(upload_id: int):
 
             return
 
-        # =====================================================
-        # 3. Mark upload as PROCESSING
-        # =====================================================
-
         upload.status = UploadStatus.PROCESSING
 
         db.commit()
 
         try:
-
-            # =================================================
-            # 4. Check file path
-            # =================================================
 
             if not upload.file_path:
 
@@ -122,19 +100,11 @@ def extract_emails(upload_id: int):
                     "Upload file path is missing."
                 )
 
-            # =================================================
-            # 5. Determine file extension
-            # =================================================
-
             extension = (
                 upload.file_path
                 .split(".")[-1]
                 .lower()
             )
-
-            # =================================================
-            # 6. Read Excel / CSV
-            # =================================================
 
             if extension == "xlsx":
 
