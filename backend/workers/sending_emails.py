@@ -3,7 +3,7 @@ import re
 from datetime import UTC, datetime, timedelta
 from html import escape
 
-from celery.utils.log import get_task_logger
+from celery.utils.log import get_task_logger 
 from sqlalchemy.orm import Session
 
 from database import SessionLocal
@@ -28,10 +28,6 @@ _PLACEHOLDER = re.compile(r"\{\{\s*(\w+)\s*\}\}")
 class PermanentError(Exception):
     """Raised for failures that retrying cannot fix."""
 
-
-########################################################################
-# Helpers
-########################################################################
 
 
 def _as_aware(dt: datetime | None) -> datetime | None:
