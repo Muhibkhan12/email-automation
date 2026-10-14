@@ -3,7 +3,7 @@ import re
 from datetime import UTC, datetime, timedelta
 from html import escape
 
-from celery.utils.log import get_task_logger 
+from celery.utils.log import get_task_logger  # type: ignore
 from sqlalchemy.orm import Session
 
 from database import SessionLocal
@@ -27,7 +27,6 @@ _PLACEHOLDER = re.compile(r"\{\{\s*(\w+)\s*\}\}")
 
 class PermanentError(Exception):
     """Raised for failures that retrying cannot fix."""
-
 
 
 def _as_aware(dt: datetime | None) -> datetime | None:
@@ -119,6 +118,8 @@ def record_failure(
 
 
 @celery.task(
+    name="workers.sending_emails.send_email_task",
+    queue="email_sender_queue",
     bind=True,
     acks_late=True,
     autoretry_for=(Exception,),
