@@ -26,7 +26,6 @@ const FONT = {
 };
 const CARD: React.CSSProperties = { background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" };
 const RING = "inset 0 0 0 1px #1A1F2B";
-
 type Status = "Draft" | "Ready" | "Scheduled" | "Running" | "Paused" | "Completed" | "Failed" | "Cancelled";
 
 const STATUS_TONE: Record<Status, string> = {
@@ -200,8 +199,6 @@ const Ring = ({ pct, color }: { pct: number; color: string }) => {
     </div>
   );
 };
-
-/* ───────────── page ───────────── */
 
 const CampaignCreatePage = () => {
   /* ── DB data: sender accounts ── */
