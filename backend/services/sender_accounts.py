@@ -110,10 +110,11 @@ def get_account_by_id(id: int, user_id: int, db: Session):
 
 # GET /sender-accounts/all  -> all accounts of the logged-in user
 def get_all_sender_accounts(user_id: int, db: Session):
-    data = (
-        db.query(SenderAccount).all()
+    return (
+        db.query(SenderAccount)
+        .filter(SenderAccount.user_id == user_id)
+        .all()
     )
-    return data
 
 def get_my_senders_accounts_using_id(current_user : id , db : Session):
         data = (

@@ -12,10 +12,9 @@ import {
   waitForExtraction,
   summaryFromUpload,
   type RecipientsSummary,
-} from "../../services/UploadServices";// ← new route
+} from "../../services/UploadServices";
 import { ExtractData } from "../../services/ExtractFile";
 import { createCampaign, getCampaign, startCampaign } from "../../services/CampaignService";
-
 
 /* ───────────── constants ───────────── */
 
@@ -35,15 +34,14 @@ const STATUS_TONE: Record<Status, string> = {
 
 const STEPS = [
   { label: "Details", sub: "Name & subject", icon: FileText },
-  { label: "Recipients", sub: "Upload list", icon: Users },
   { label: "Sender", sub: "Pick account", icon: Mail },
   { label: "Template", sub: "Choose design", icon: LayoutTemplate },
+  { label: "Recipients", sub: "Upload list", icon: Users },
   { label: "Review", sub: "Check & send", icon: ClipboardCheck },
 ];
 
 /* ───────────── helpers ───────────── */
 
-// Template shape tumhare type ke hisaab se alag ho sakta hai, isliye tolerant accessors
 const tplId = (t: any): string => String(t?.id ?? t?._id ?? "");
 const tplName = (t: any): string => t?.name ?? t?.title ?? t?.template_name ?? "Untitled template";
 const tplDesc = (t: any): string => t?.description ?? t?.desc ?? t?.subject ?? "";
@@ -208,7 +206,6 @@ const CampaignCreatePage = () => {
   const sendersError = ctx?.error ?? null;
   const fetchSenders = ctx?.fetchAllSenderAccounts;
 
-  // Only accounts that are connected AND still have sending capacity today
   const available = accounts.filter(
     (a) => (a.status ?? "").toLowerCase() === "active" && (a.daily_limit ?? 0) - (a.emails_sent_today ?? 0) > 0
   );
@@ -245,16 +242,13 @@ const CampaignCreatePage = () => {
   const [actionError, setActionError] = useState("");
   const [run, setRun] = useState({ sent: 0, failed: 0, total: 0 });
   const fileRef = useRef<HTMLInputElement>(null);
-  // Har naye file load / remove / unmount pe purana extraction poll cancel karne ke liye
   const loadTokenRef = useRef(0);
 
-  // Page khulte hi fresh sender data (emails_sent_today change hota rehta hai)
   useEffect(() => {
     fetchSenders?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Unmount pe chalta hua poll stale ho jaye
   useEffect(() => {
     return () => { loadTokenRef.current++; };
   }, []);
@@ -316,7 +310,7 @@ const CampaignCreatePage = () => {
         const c = await getCampaign(campaignId);
         if (!stop) applyServer(c);
       } catch {
-        /* ek poll fail hua to ignore, next tick retry karega */
+        /* ignore */
       }
     }, 3000);
     return () => { stop = true; clearInterval(t); };
@@ -324,7 +318,6 @@ const CampaignCreatePage = () => {
   }, [campaignId, status]);
 
   /* ── handlers ── */
-  // Flow: upload -> POST /worker/extract/{id} -> poll upload status -> stats UI
   const loadFile = async (file?: File) => {
     if (!file) return;
     const token = ++loadTokenRef.current;
@@ -348,7 +341,7 @@ const CampaignCreatePage = () => {
       setUploading(false);
 
       setExtracting(true);
-      await ExtractData(id); // ← new route used here
+      await ExtractData(id);
       const finished = await waitForExtraction(id);
       if (stale()) return;
 
@@ -367,18 +360,18 @@ const CampaignCreatePage = () => {
   };
 
   const clearFile = () => {
-    loadTokenRef.current++; // chalta hua poll ignore ho jayega
+    loadTokenRef.current++;
     setRecipients(null); setFileName(""); setUploaded(false); setUploadId(null);
     setUploadError(""); setProgress(0); setUploading(false); setExtracting(false);
     if (fileRef.current) fileRef.current.value = "";
   };
 
   const canNext = [
-    !!name.trim() && !!subject.trim(),
-    total > 0 && uploaded && !uploading && !extracting,
-    !!sender,
-    !!template,
-    ready,
+    !!name.trim() && !!subject.trim(), // Details
+    !!sender,                          // Sender
+    !!template,                        // Template
+    total > 0 && uploaded && !uploading && !extracting, // Recipients (upload)
+    ready,                             // Review
   ][step];
 
   const launch = async () => {
@@ -404,7 +397,7 @@ const CampaignCreatePage = () => {
         applyServer(created, "Scheduled");
       }
       setConfirmOpen(false);
-      fetchSenders?.(); // capacity refresh
+      fetchSenders?.();
     } catch (e) {
       setSubmitError(errMsg(e, "Could not create the campaign."));
     } finally {
@@ -426,7 +419,7 @@ const CampaignCreatePage = () => {
     if (!campaignId) return;
     setActionError("");
     try {
-      await cancelCampaign(campaignId); // purana schedule hata ke wizard wapas kholte hain
+      await cancelCampaign(campaignId);
       setCampaignId(null);
       setStatus("Draft");
       setStep(4);
@@ -450,12 +443,12 @@ const CampaignCreatePage = () => {
   const finished = status === "Completed" || status === "Cancelled" || status === "Failed";
   const live = status === "Running";
 
-  // Right-side live summary (UI only)
+  // Right-side live summary — order matches wizard order
   const summaryItems = [
     { label: "Details", icon: FileText, done: !!name.trim() && !!subject.trim(), value: name.trim() || "Not set yet" },
-    { label: "Recipients", icon: Users, done: total > 0 && uploaded, value: total ? `${total.toLocaleString()} valid emails` : "No file uploaded" },
     { label: "Sender", icon: Mail, done: !!sender, value: sender?.email ?? "Not selected" },
     { label: "Template", icon: LayoutTemplate, done: !!template, value: template ? tplName(template) : "Not selected" },
+    { label: "Recipients", icon: Users, done: total > 0 && uploaded, value: total ? `${total.toLocaleString()} valid emails` : "No file uploaded" },
   ];
   const completion = Math.round((summaryItems.filter((s) => s.done).length / summaryItems.length) * 100);
 
@@ -464,6 +457,10 @@ const CampaignCreatePage = () => {
   }
 
   function pauseCampaign(id: number): Promise<CampaignDTO> {
+    throw new Error("Function not implemented.");
+  }
+
+  function resumeCampaign(id: number): Promise<CampaignDTO> {
     throw new Error("Function not implemented.");
   }
 
@@ -579,7 +576,7 @@ const CampaignCreatePage = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-6 items-start">
                   <section key={step} className="float-in rounded-3xl p-5 md:p-8 soft-ring" style={CARD}>
 
-                    {/* Step 1 – Details */}
+                    {/* Step 0 – Details */}
                     {step === 0 && (
                       <div className="space-y-6">
                         <Head icon={<FileText size={18} />} title="Campaign details" sub="Start by naming your campaign and writing a subject." />
@@ -616,8 +613,133 @@ const CampaignCreatePage = () => {
                       </div>
                     )}
 
-                    {/* Step 2 – Recipients */}
+                    {/* Step 1 – Sender */}
                     {step === 1 && (
+                      <div className="space-y-5">
+                        <Head icon={<Mail size={18} />} title="Sender account" sub="Only connected accounts with capacity left today are shown." />
+                        {sendersLoading && accounts.length === 0 ? (
+                          <Loading label="Loading sender accounts…" />
+                        ) : sendersError && accounts.length === 0 ? (
+                          <div className="space-y-3">
+                            <Notice tone="error">{sendersError}</Notice>
+                            <Btn onClick={() => fetchSenders?.()}>Retry</Btn>
+                          </div>
+                        ) : available.length === 0 ? (
+                          <Notice tone="warn">No sender accounts are available right now. Connect or reconnect one on the Sender accounts page.</Notice>
+                        ) : (
+                          <div className="space-y-3">
+                            {available.map((a) => {
+                              const sel = a.id === senderId;
+                              const limit = a.daily_limit ?? 0;
+                              const used = a.emails_sent_today ?? 0;
+                              const left = limit - used;
+                              const usedPct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+                              return (
+                                <button key={a.id} onClick={() => setSenderId(a.id)}
+                                  className="cm-opt w-full text-left rounded-2xl p-4"
+                                  style={{
+                                    background: sel ? "rgba(255,106,57,0.06)" : "#0F131C",
+                                    boxShadow: sel ? "inset 0 0 0 1.5px rgba(255,106,57,0.7), 0 0 0 4px rgba(255,106,57,0.08)" : RING,
+                                  }}>
+                                  <div className="flex items-center gap-4">
+                                    <span className="w-11 h-11 rounded-xl flex items-center justify-center text-[13px] font-bold text-white shrink-0"
+                                      style={{ background: "linear-gradient(135deg, #0A66C2, #053C74)" }}>
+                                      {(a.provider ?? "?").slice(0, 1).toUpperCase()}
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-[14px] font-semibold truncate" style={{ color: "#F2F0EB" }}>{a.email}</p>
+                                      <p className="text-[12px] truncate mt-0.5" style={{ color: "#7A8092" }}>{a.display_name} · {a.provider}</p>
+                                    </div>
+                                    <div className="text-right shrink-0 hidden sm:block">
+                                      <p className="text-[15px] font-semibold" style={{ color: "#34D399", fontFamily: FONT.mono }}>{left.toLocaleString()}</p>
+                                      <p className="text-[11px]" style={{ color: "#6A7080" }}>sends left today</p>
+                                    </div>
+                                    <span className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+                                      style={{ background: sel ? "#FF6A39" : "transparent", boxShadow: sel ? "none" : "inset 0 0 0 1.5px #2A2F3B" }}>
+                                      {sel && <Check size={13} strokeWidth={3} className="text-white" />}
+                                    </span>
+                                  </div>
+                                  <div className="mt-3.5 flex items-center gap-3">
+                                    <div className="h-1.5 flex-1 rounded-full overflow-hidden" style={{ background: "#1B2130" }}>
+                                      <div className="h-full rounded-full" style={{ width: `${usedPct}%`, background: usedPct > 80 ? "#FBBF24" : "#34D399" }} />
+                                    </div>
+                                    <span className="text-[11px] shrink-0" style={{ color: "#6A7080", fontFamily: FONT.mono }}>
+                                      {used.toLocaleString()} / {limit.toLocaleString()} <span className="sm:hidden">· {left.toLocaleString()} left</span>
+                                    </span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Step 2 – Template */}
+                    {step === 2 && (
+                      <div className="space-y-5">
+                        <Head icon={<LayoutTemplate size={18} />} title="HTML template" sub="Pick the design for your email." />
+                        {templatesLoading && templates.length === 0 ? (
+                          <Loading label="Loading templates…" />
+                        ) : templatesError && templates.length === 0 ? (
+                          <div className="space-y-3">
+                            <Notice tone="error">{templatesError}</Notice>
+                            <Btn onClick={refetchTemplates}>Retry</Btn>
+                          </div>
+                        ) : templates.length === 0 ? (
+                          <Notice tone="warn">No templates found. Create one on the Templates page first.</Notice>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                            <div className="cm-scroll md:col-span-2 space-y-2.5 overflow-y-auto pr-1" style={{ maxHeight: 380 }}>
+                              {templates.map((t) => {
+                                const id = tplId(t);
+                                const sel = id === templateId;
+                                return (
+                                  <button key={id} onClick={() => setTemplateId(id)} className="cm-opt w-full text-left rounded-2xl p-3.5 flex items-center gap-3"
+                                    style={{
+                                      background: sel ? "rgba(255,106,57,0.06)" : "#0F131C",
+                                      boxShadow: sel ? "inset 0 0 0 1.5px rgba(255,106,57,0.7), 0 0 0 4px rgba(255,106,57,0.08)" : RING,
+                                    }}>
+                                    <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-[13px] font-bold"
+                                      style={{ background: sel ? "rgba(255,106,57,0.14)" : "#141823", color: sel ? "#FF6A39" : "#8A90A0", boxShadow: "inset 0 0 0 1px #232938", fontFamily: FONT.display }}>
+                                      {tplName(t).slice(0, 1).toUpperCase()}
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-[13.5px] font-semibold truncate" style={{ color: "#F2F0EB" }}>{tplName(t)}</p>
+                                      {tplDesc(t) && <p className="text-[11.5px] mt-0.5 line-clamp-2" style={{ color: "#7A8092" }}>{tplDesc(t)}</p>}
+                                    </div>
+                                    {sel && <Check size={15} strokeWidth={3} className="text-[#FF6A39] shrink-0" />}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <div className="md:col-span-3 rounded-2xl overflow-hidden flex flex-col" style={{ background: "#0F131C", boxShadow: RING, minHeight: 300 }}>
+                              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#1A1F2B]">
+                                <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#F87171", opacity: 0.7 }} />
+                                <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#FBBF24", opacity: 0.7 }} />
+                                <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#34D399", opacity: 0.7 }} />
+                                <span className="ml-2 text-[11.5px] truncate" style={{ color: "#6A7080" }}>{template ? tplName(template) : "Preview"}</span>
+                              </div>
+                              {template ? (
+                                tplHtml(template) ? (
+                                  <iframe title="Template preview" sandbox="" srcDoc={tplHtml(template)} className="w-full bg-white" style={{ height: 360, border: 0 }} />
+                                ) : (
+                                  <div className="flex-1 flex items-center justify-center text-[12.5px]" style={{ color: "#6A7080", minHeight: 260 }}>This template has no HTML content</div>
+                                )
+                              ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center gap-2 text-[12.5px]" style={{ color: "#6A7080", minHeight: 260 }}>
+                                  <LayoutTemplate size={22} style={{ color: "#2A3040" }} />
+                                  Select a template to preview it
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Step 3 – Recipients (Upload) */}
+                    {step === 3 && (
                       <div className="space-y-6">
                         <Head icon={<Users size={18} />} title="Recipients" sub="Upload a CSV or Excel file with an “email” column." />
                         {!fileName ? (
@@ -734,132 +856,7 @@ const CampaignCreatePage = () => {
                       </div>
                     )}
 
-                    {/* Step 3 – Sender (from DB) */}
-                    {step === 2 && (
-                      <div className="space-y-5">
-                        <Head icon={<Mail size={18} />} title="Sender account" sub="Only connected accounts with capacity left today are shown." />
-                        {sendersLoading && accounts.length === 0 ? (
-                          <Loading label="Loading sender accounts…" />
-                        ) : sendersError && accounts.length === 0 ? (
-                          <div className="space-y-3">
-                            <Notice tone="error">{sendersError}</Notice>
-                            <Btn onClick={() => fetchSenders?.()}>Retry</Btn>
-                          </div>
-                        ) : available.length === 0 ? (
-                          <Notice tone="warn">No sender accounts are available right now. Connect or reconnect one on the Sender accounts page.</Notice>
-                        ) : (
-                          <div className="space-y-3">
-                            {available.map((a) => {
-                              const sel = a.id === senderId;
-                              const limit = a.daily_limit ?? 0;
-                              const used = a.emails_sent_today ?? 0;
-                              const left = limit - used;
-                              const usedPct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
-                              return (
-                                <button key={a.id} onClick={() => setSenderId(a.id)}
-                                  className="cm-opt w-full text-left rounded-2xl p-4"
-                                  style={{
-                                    background: sel ? "rgba(255,106,57,0.06)" : "#0F131C",
-                                    boxShadow: sel ? "inset 0 0 0 1.5px rgba(255,106,57,0.7), 0 0 0 4px rgba(255,106,57,0.08)" : RING,
-                                  }}>
-                                  <div className="flex items-center gap-4">
-                                    <span className="w-11 h-11 rounded-xl flex items-center justify-center text-[13px] font-bold text-white shrink-0"
-                                      style={{ background: "linear-gradient(135deg, #0A66C2, #053C74)" }}>
-                                      {(a.provider ?? "?").slice(0, 1).toUpperCase()}
-                                    </span>
-                                    <div className="min-w-0 flex-1">
-                                      <p className="text-[14px] font-semibold truncate" style={{ color: "#F2F0EB" }}>{a.email}</p>
-                                      <p className="text-[12px] truncate mt-0.5" style={{ color: "#7A8092" }}>{a.display_name} · {a.provider}</p>
-                                    </div>
-                                    <div className="text-right shrink-0 hidden sm:block">
-                                      <p className="text-[15px] font-semibold" style={{ color: "#34D399", fontFamily: FONT.mono }}>{left.toLocaleString()}</p>
-                                      <p className="text-[11px]" style={{ color: "#6A7080" }}>sends left today</p>
-                                    </div>
-                                    <span className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-                                      style={{ background: sel ? "#FF6A39" : "transparent", boxShadow: sel ? "none" : "inset 0 0 0 1.5px #2A2F3B" }}>
-                                      {sel && <Check size={13} strokeWidth={3} className="text-white" />}
-                                    </span>
-                                  </div>
-                                  <div className="mt-3.5 flex items-center gap-3">
-                                    <div className="h-1.5 flex-1 rounded-full overflow-hidden" style={{ background: "#1B2130" }}>
-                                      <div className="h-full rounded-full" style={{ width: `${usedPct}%`, background: usedPct > 80 ? "#FBBF24" : "#34D399" }} />
-                                    </div>
-                                    <span className="text-[11px] shrink-0" style={{ color: "#6A7080", fontFamily: FONT.mono }}>
-                                      {used.toLocaleString()} / {limit.toLocaleString()} <span className="sm:hidden">· {left.toLocaleString()} left</span>
-                                    </span>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Step 4 – Template (from DB) */}
-                    {step === 3 && (
-                      <div className="space-y-5">
-                        <Head icon={<LayoutTemplate size={18} />} title="HTML template" sub="Pick the design for your email." />
-                        {templatesLoading && templates.length === 0 ? (
-                          <Loading label="Loading templates…" />
-                        ) : templatesError && templates.length === 0 ? (
-                          <div className="space-y-3">
-                            <Notice tone="error">{templatesError}</Notice>
-                            <Btn onClick={refetchTemplates}>Retry</Btn>
-                          </div>
-                        ) : templates.length === 0 ? (
-                          <Notice tone="warn">No templates found. Create one on the Templates page first.</Notice>
-                        ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                            <div className="cm-scroll md:col-span-2 space-y-2.5 overflow-y-auto pr-1" style={{ maxHeight: 380 }}>
-                              {templates.map((t) => {
-                                const id = tplId(t);
-                                const sel = id === templateId;
-                                return (
-                                  <button key={id} onClick={() => setTemplateId(id)} className="cm-opt w-full text-left rounded-2xl p-3.5 flex items-center gap-3"
-                                    style={{
-                                      background: sel ? "rgba(255,106,57,0.06)" : "#0F131C",
-                                      boxShadow: sel ? "inset 0 0 0 1.5px rgba(255,106,57,0.7), 0 0 0 4px rgba(255,106,57,0.08)" : RING,
-                                    }}>
-                                    <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-[13px] font-bold"
-                                      style={{ background: sel ? "rgba(255,106,57,0.14)" : "#141823", color: sel ? "#FF6A39" : "#8A90A0", boxShadow: "inset 0 0 0 1px #232938", fontFamily: FONT.display }}>
-                                      {tplName(t).slice(0, 1).toUpperCase()}
-                                    </span>
-                                    <div className="min-w-0 flex-1">
-                                      <p className="text-[13.5px] font-semibold truncate" style={{ color: "#F2F0EB" }}>{tplName(t)}</p>
-                                      {tplDesc(t) && <p className="text-[11.5px] mt-0.5 line-clamp-2" style={{ color: "#7A8092" }}>{tplDesc(t)}</p>}
-                                    </div>
-                                    {sel && <Check size={15} strokeWidth={3} className="text-[#FF6A39] shrink-0" />}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                            <div className="md:col-span-3 rounded-2xl overflow-hidden flex flex-col" style={{ background: "#0F131C", boxShadow: RING, minHeight: 300 }}>
-                              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#1A1F2B]">
-                                <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#F87171", opacity: 0.7 }} />
-                                <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#FBBF24", opacity: 0.7 }} />
-                                <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#34D399", opacity: 0.7 }} />
-                                <span className="ml-2 text-[11.5px] truncate" style={{ color: "#6A7080" }}>{template ? tplName(template) : "Preview"}</span>
-                              </div>
-                              {template ? (
-                                tplHtml(template) ? (
-                                  <iframe title="Template preview" sandbox="" srcDoc={tplHtml(template)} className="w-full bg-white" style={{ height: 360, border: 0 }} />
-                                ) : (
-                                  <div className="flex-1 flex items-center justify-center text-[12.5px]" style={{ color: "#6A7080", minHeight: 260 }}>This template has no HTML content</div>
-                                )
-                              ) : (
-                                <div className="flex-1 flex flex-col items-center justify-center gap-2 text-[12.5px]" style={{ color: "#6A7080", minHeight: 260 }}>
-                                  <LayoutTemplate size={22} style={{ color: "#2A3040" }} />
-                                  Select a template to preview it
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Step 5 – Review */}
+                    {/* Step 4 – Review */}
                     {step === 4 && (
                       <div className="space-y-7">
                         <Head icon={<ClipboardCheck size={18} />} title="Review & start" sub="Check everything before sending." />
@@ -868,9 +865,9 @@ const CampaignCreatePage = () => {
                           {([
                             ["Campaign", name || "—", FileText, 0],
                             ["Subject", subject || "—", Type, 0],
-                            ["Recipients", total ? `${total.toLocaleString()} valid (${fileName})` : "—", Users, 1],
-                            ["Sender", sender ? `${sender.display_name} <${sender.email}>` : "—", Mail, 2],
-                            ["Template", template ? tplName(template) : "—", LayoutTemplate, 3],
+                            ["Sender", sender ? `${sender.display_name} <${sender.email}>` : "—", Mail, 1],
+                            ["Template", template ? tplName(template) : "—", LayoutTemplate, 2],
+                            ["Recipients", total ? `${total.toLocaleString()} valid (${fileName})` : "—", Users, 3],
                           ] as const).map(([k, v, Icon, goto]) => (
                             <div key={k} className="flex items-center gap-3.5 px-4 py-3.5">
                               <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "#141823", color: "#6A7080", boxShadow: "inset 0 0 0 1px #232938" }}>
@@ -887,7 +884,7 @@ const CampaignCreatePage = () => {
                           ))}
                         </div>
 
-                        {/* Validation */}
+                        {/* Full checklist (all 5 checks) */}
                         <div className="rounded-2xl p-4 space-y-2.5" style={{ background: "#0F131C", boxShadow: RING }}>
                           <p className="text-[12px] font-medium" style={{ color: "#8A90A0" }}>Checklist</p>
                           {checks.map((c) => (

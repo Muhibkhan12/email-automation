@@ -26,10 +26,16 @@ def get_my_senders_accounts(
 ):
     return get_my_senders_accounts_using_id(current_user,db)
 
-@router.get("/all", response_model=list[SenderAccountResponse])
-def getAllSenderAccounts(
-    current_user: User = Depends(GetCurrentUser),
+# @router.get("/all", response_model=list[SenderAccountResponse])
+# def getAllSenderAccounts(
+#     current_user: User = Depends(GetCurrentUser),
+#     db: Session = Depends(get_db),
+# ):
+#     return get_all_sender_accounts(current_user.id, db)
+@router.get("/all")
+def get_all(
     db: Session = Depends(get_db),
+    current_user: User = Depends(GetCurrentUser),
 ):
     return get_all_sender_accounts(current_user.id, db)
 

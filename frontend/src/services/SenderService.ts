@@ -56,7 +56,15 @@ const unwrapMany = (raw: any): SenderAccount[] => {
 
 /* ─────────────── CRUD ─────────────── */
 
-/** GET /sender-accounts/all → SenderAccount[] */
+/**
+ * GET /sender-accounts/all → SenderAccount[]
+ *
+ * NOTE: This endpoint is expected to be scoped to the *logged-in user*
+ * by the backend (via the auth token / session), not via a query param.
+ * If your backend's `/sender-accounts/all` route returns accounts for
+ * ALL users, fix the backend — the client intentionally does not send a
+ * user_id here, since trusting a client-supplied user_id is insecure.
+ */
 export const getAllSenderAccounts = async (): Promise<SenderAccount[]> => {
   const { data } = await api.get("/sender-accounts/all");
   return unwrapMany(data);
@@ -122,25 +130,4 @@ export const deleteSenderAccount = async (
   await api.delete(`/sender-accounts/${id}`, {
     params: userId ? { user_id: userId } : undefined,
   });
-};
-// Add these to services/UploadServices.ts
-// ⚠ The two routes below are ASSUMED — change them to your real backend routes.
-
-export interface UploadRowsPayload {
-  headers: string[];
-  rows: Record<string, any>[];
-}
-
-// Full parsed contents of an upload (for preview / edit)
-export const getUploadRows = async (id: number | string): Promise<UploadRowsPayload> => {
-  const response = await api.get(`uploads/${id}/rows`);
-  const d = response.data?.data ?? response.data;
-  const rows = d?.rows ?? d?.preview ?? [];
-  return { headers: d?.headers ?? (rows[0] ? Object.keys(rows[0]) : []), rows };
-};
-
-// Save edited rows (only allowed by the backend while status is "uploaded")
-export const updateUploadRows = async (id: number | string, rows: Record<string, any>[]) => {
-  const response = await api.put(`uploads/${id}/rows`, { rows });
-  return response.data;
 };
