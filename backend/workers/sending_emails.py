@@ -68,8 +68,10 @@ def get_fresh_access_token(db: Session, sender_account_id: int) -> str:
     expires_at = _as_aware(sender.token_expires_at)
 
     if expires_at is None or expires_at <= datetime.now(UTC) + TOKEN_REFRESH_BUFFER:
-        token = OAuthService.refresh_access_token(sender.refresh_token)
-
+        try:
+            token = asyncio.run(OAuthService.refresh_access_token(sender.refresh_token))
+        except Exception as e:
+            raise PermanentError(f"Token refresh failed:{e}"  ) from e
         sender.access_token = token["access_token"]
         sender.refresh_token = token.get("refresh_token", sender.refresh_token)
         sender.token_expires_at = datetime.now(UTC) + timedelta(
@@ -110,12 +112,6 @@ def record_failure(
     except Exception:
         db.rollback()
         logger.exception("Could not record failure for recipient %s", recipient_id)
-
-
-########################################################################
-# Task
-########################################################################
-
 
 @celery.task(
     name="workers.sending_emails.send_email_task",
