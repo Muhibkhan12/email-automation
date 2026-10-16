@@ -24,7 +24,6 @@ logger = logging.getLogger(__name__)
 
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
-# Checked in this order. Keep as a tuple so behavior is deterministic.
 EMAIL_COLUMN_ALIASES = (
     "email",
     "e-mail",
@@ -66,12 +65,11 @@ def _read_file(path: str) -> pd.DataFrame:
     if lower.endswith((".xlsx", ".xls")):
         return pd.read_excel(path, dtype=str)
     if lower.endswith(".csv"):
-        # utf-8-sig strips the hidden BOM that Excel adds to CSVs
         return pd.read_csv(path, dtype=str, encoding="utf-8-sig")
     raise ValueError("Only XLSX and CSV files are allowed.")
 
 
-def _count_filled(df: pd.DataFrame, col: str | None, mask: pd.Series) -> int:
+def _count_filled(df: pd.DataFrame, col: str | None, mask) -> int:
     """How many of the unique valid rows have a non-empty value in `col`."""
     if col is None:
         return 0
@@ -99,8 +97,6 @@ def extract_upload_task(upload_id: int) -> dict | None:
             logger.error("Upload %s not found", upload_id)
             return None
 
-        # Guard against double-processing. If it's stuck in PROCESSING from a
-        # crashed worker, allow reprocessing.
         if upload.status not in (UploadStatus.UPLOADED, UploadStatus.PROCESSING):
             logger.warning(
                 "Upload %s cannot be processed. Current status: %s",
@@ -119,7 +115,6 @@ def extract_upload_task(upload_id: int) -> dict | None:
         try:
             df = _read_file(upload.file_path)
 
-            # Normalize columns: strip BOM, whitespace, lowercase.
             df.columns = [
                 str(c).replace("\ufeff", "").strip().lower() for c in df.columns
             ]
@@ -158,13 +153,19 @@ def extract_upload_task(upload_id: int) -> dict | None:
             company_col = "company" if "company" in df.columns else None
             phone_col = "phone" if "phone" in df.columns else None
 
-            # Recipients are saved with campaign_id possibly None (form not
-            # filled yet). They get linked to the campaign when user hits Start.
-            # Status stays at the model default (PENDING).
+            # IMPORTANT: campaign_id must stay NULL here. The link to the
+            # actual campaign happens when the user hits Start
+            # (workers/start_campaign.py runs:
+            #   UPDATE campaign_recipients SET campaign_id = <id>
+            #   WHERE upload_id = <uid> AND campaign_id IS NULL
+            # ).
+            # Setting here would silently
+            # attach recipients to a stale/draft campaign and the dispatch
+            # step would find 0 rows to send.
             new_recipients = [
                 CampaignRecipient(
                     upload_id=upload_id,
-                    campaign_id=upload.campaign_id,
+                    campaign_id=None,
                     name=_clean(row[name_col]) if name_col else None,
                     email=row["_email"],
                     company=_clean(row[company_col]) if company_col else None,
@@ -199,10 +200,11 @@ def extract_upload_task(upload_id: int) -> dict | None:
             }
 
             # MySQL: counts on the Upload row.
-            upload.total_rows = total
-            upload.valid_count = len(unique_df)
-            upload.invalid_count = invalid_count
-            upload.duplicate_count = duplicate_count
+            # Only total_records and processed_records exist on the Upload
+            # model per your schema. Do NOT write valid_count / invalid_count /
+            # duplicate_count to the Upload row — those columns don't exist.
+            upload.total_records = total
+            upload.processed_records = len(unique_df)
             upload.status = UploadStatus.COMPLETED
             upload.error_message = None
 
@@ -225,12 +227,10 @@ def extract_upload_task(upload_id: int) -> dict | None:
     finally:
         db.close()
 
-    # Redis: best-effort. MySQL already has the source of truth.
     if analytics is not None:
         try:
             save_analytics(upload_id, analytics)
         except Exception:
             logger.exception("Could not cache analytics in Redis for %s", upload_id)
 
-    # NOTE: no send_email_task here on purpose. Waiting for the Start button.
     return analytics
