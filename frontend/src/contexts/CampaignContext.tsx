@@ -56,10 +56,8 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
     setMyError(null);
     try {
       const data = await getMyCampaigns();
-      console.log("[CampaignContext] fetchMine:", data?.length, "campaigns");
       setMyCampaigns(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      console.error("[CampaignContext] fetchMine failed:", err);
       setMyError(err?.message || "Failed to fetch your campaigns");
       setMyCampaigns([]);
     } finally {
@@ -72,10 +70,8 @@ export const CampaignProvider = ({ children }: CampaignProviderProps) => {
     setAllError(null);
     try {
       const data = await getAllCampaigns();
-      console.log("[CampaignContext] fetchAll:", data?.length, "campaigns");
       setAllCampaigns(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      console.error("[CampaignContext] fetchAll failed:", err);
       setAllError(err?.message || "Failed to fetch campaigns");
       setAllCampaigns([]);
     } finally {

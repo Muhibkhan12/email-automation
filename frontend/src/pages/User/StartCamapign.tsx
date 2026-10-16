@@ -9,12 +9,19 @@ import { SenderAccContext } from "../../contexts/SenderAccountsContext";
 import { useHtmlTemplates } from "../../contexts/HtmlTemplatesContext";
 import { useUpload } from "../../contexts/UploadContext";
 import {
-  waitForExtraction,
-  summaryFromUpload,
+  ExtractData,
+  waitForAnalytics,
+  summaryFromAnalytics,
   type RecipientsSummary,
-} from "../../services/UploadServices";
-import { ExtractData } from "../../services/ExtractFile";
-import { createCampaign, getCampaign, startCampaign } from "../../services/CampaignService";
+} from "../../services/ExtractFile";
+import { createCampaign, getCampaign } from "../../services/CampaignService";
+import {
+  startCampaign,
+  pauseCampaign,
+  resumeCampaign,
+  cancelCampaign,
+  type CampaignDTO,
+} from "../../services/WorkerService";
 
 /* ───────────── constants ───────────── */
 
@@ -244,6 +251,10 @@ const CampaignCreatePage = () => {
   const fileRef = useRef<HTMLInputElement>(null);
   const loadTokenRef = useRef(0);
 
+  // Always-fresh copy of `run` so the polling interval never reads stale numbers.
+  const runRef = useRef(run);
+  runRef.current = run;
+
   useEffect(() => {
     fetchSenders?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -292,12 +303,19 @@ const CampaignCreatePage = () => {
 
   /* ── sync server state into the UI ── */
   const applyServer = (c: CampaignDTO, fallback?: Status) => {
-    setRun((r) => ({
-      sent: c.sent_count ?? r.sent,
-      failed: c.failed_count ?? r.failed,
-      total: c.total_count ?? (r.total || total),
-    }));
-    const next = toStatus(c.status) ?? fallback;
+    const prev = runRef.current;
+    const sent = c.sent_count ?? prev.sent;
+    const failed = c.failed_count ?? prev.failed;
+    const totalCount = c.total_count ?? (prev.total || total);
+
+    setRun({ sent, failed, total: totalCount });
+
+    let next = toStatus(c.status) ?? fallback;
+    // Safety net: if every email is accounted for, the campaign is done
+    // even if the backend hasn't flipped the status itself.
+    if (next === "Running" && totalCount > 0 && sent + failed >= totalCount) {
+      next = "Completed";
+    }
     if (next) setStatus(next);
   };
 
@@ -308,7 +326,7 @@ const CampaignCreatePage = () => {
     const t = setInterval(async () => {
       try {
         const c = await getCampaign(campaignId);
-        if (!stop) applyServer(c);
+        if (!stop) applyServer(c as CampaignDTO);
       } catch {
         /* ignore */
       }
@@ -340,12 +358,14 @@ const CampaignCreatePage = () => {
       setUploadId(id);
       setUploading(false);
 
+      // Queue extraction, then poll analytics until the worker finishes.
+      // NOTE: this does NOT send any email. Sending starts only on "Start campaign".
       setExtracting(true);
       await ExtractData(id);
-      const finished = await waitForExtraction(id);
+      const finished = await waitForAnalytics(id);
       if (stale()) return;
 
-      const summary = summaryFromUpload(finished);
+      const summary = summaryFromAnalytics(finished);
       setRecipients(summary);
       setUploaded(summary.valid > 0);
     } catch (e) {
@@ -375,26 +395,35 @@ const CampaignCreatePage = () => {
   ][step];
 
   const launch = async () => {
-    if (!sender || !template) return;
+    if (!sender || !template || uploadId === null) return;
     setSubmitting(true);
     setSubmitError("");
     try {
-      const created = await createCampaign({
-        name: name.trim(),
-        subject: subject.trim(),
-        upload_id: uploadId,
-        sender_account_id: sender.id,
-        template_id: (template as any).id ?? (template as any)._id,
-        schedule_at: mode === "later" ? new Date(scheduleAt).toISOString() : null,
-      });
-      setCampaignId(created.id);
-      setRun({ sent: 0, failed: 0, total });
+      // Reuse the campaign if an earlier attempt created it but start failed,
+      // so a retry never creates a duplicate campaign.
+      let id = campaignId;
+      let created: CampaignDTO | null = null;
+
+      if (id === null) {
+        const res: any = await createCampaign({
+          name: name.trim(),
+          subject: subject.trim(),
+          upload_id: uploadId,
+          sender_account_id: sender.id,
+          template_id: (template as any).id ?? (template as any)._id,
+          schedule_at: mode === "later" ? new Date(scheduleAt).toISOString() : null,
+        });
+        created = res as CampaignDTO;
+        id = res.id as number;
+        setCampaignId(id);
+        setRun({ sent: 0, failed: 0, total });
+      }
 
       if (mode === "now") {
-        const started = await startCampaign(created.id);
+        const started = await startCampaign(id, uploadId);
         applyServer(started, "Running");
       } else {
-        applyServer(created, "Scheduled");
+        applyServer(created ?? ((await getCampaign(id)) as CampaignDTO), "Scheduled");
       }
       setConfirmOpen(false);
       fetchSenders?.();
@@ -451,18 +480,6 @@ const CampaignCreatePage = () => {
     { label: "Recipients", icon: Users, done: total > 0 && uploaded, value: total ? `${total.toLocaleString()} valid emails` : "No file uploaded" },
   ];
   const completion = Math.round((summaryItems.filter((s) => s.done).length / summaryItems.length) * 100);
-
-  function cancelCampaign(id: number): Promise<CampaignDTO> {
-    throw new Error("Function not implemented.");
-  }
-
-  function pauseCampaign(id: number): Promise<CampaignDTO> {
-    throw new Error("Function not implemented.");
-  }
-
-  function resumeCampaign(id: number): Promise<CampaignDTO> {
-    throw new Error("Function not implemented.");
-  }
 
   /* ───────────── render ───────────── */
   return (
@@ -1014,7 +1031,7 @@ const CampaignCreatePage = () => {
                     {actionError && <Notice tone="error">{actionError}</Notice>}
                     <div className="flex gap-2.5 flex-wrap">
                       <Btn onClick={editSchedule}><Pencil size={13} /> Edit schedule</Btn>
-                      <Btn variant="primary" onClick={() => act(startCampaign, "Running")}><Play size={13} /> Send now</Btn>
+                      <Btn variant="primary" onClick={() => act((id) => startCampaign(id, uploadId as number), "Running")}><Play size={13} /> Send now</Btn>
                       <Btn variant="danger" onClick={() => act(cancelCampaign, "Cancelled")}>Cancel schedule</Btn>
                     </div>
                   </>

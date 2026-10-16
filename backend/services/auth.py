@@ -1,4 +1,4 @@
-from jose import jwt, JWTError
+from jose import jwt, JWTError # type: ignore
 from fastapi import HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta, timezone

@@ -1,6 +1,6 @@
 import asyncio
 import re
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from html import escape
 
 from celery.utils.log import get_task_logger  # type: ignore
@@ -18,28 +18,16 @@ from workers.celery_app import celery
 
 logger = get_task_logger(__name__)
 
+UTC = timezone.utc  # py3.10-safe
+
 MAX_RETRIES = 5
 TOKEN_REFRESH_BUFFER = timedelta(minutes=5)
-MAX_ERROR_LEN = 500  # keep <= your EmailLog.error_message column size
+MAX_ERROR_LEN = 500
 
-# Status values used when a sender's token is dead. Change these to match
-# your own status values / enums.
 SENDER_NEEDS_REAUTH_STATUS = "needs_reauth"
 CAMPAIGN_PAUSED_STATUS = "paused"
 
 _PLACEHOLDER = re.compile(r"\{\{\s*(\w+)\s*\}\}")
-
-# EmailLog ka recipient-email column naam auto-detect hota hai, taaki
-# "'recipient_email' is an invalid keyword argument" dobara na aaye.
-_EMAIL_FIELD_CANDIDATES = ("recipient_email", "recipient", "to_email", "email")
-EMAIL_LOG_EMAIL_FIELD = next(
-    (name for name in _EMAIL_FIELD_CANDIDATES if hasattr(EmailLog, name)), None
-)
-if EMAIL_LOG_EMAIL_FIELD is None:
-    raise RuntimeError(
-        "EmailLog has no recipient email column. Columns found: "
-        f"{list(EmailLog.__table__.columns.keys())}"
-    )
 
 
 class PermanentError(Exception):
@@ -49,6 +37,10 @@ class PermanentError(Exception):
 class AuthError(PermanentError):
     """Sender's Microsoft token is unusable; needs the user to re-connect."""
 
+
+# =========================================================
+# Helpers
+# =========================================================
 
 def _as_aware(dt: datetime | None) -> datetime | None:
     """MySQL returns naive datetimes; treat them as UTC."""
@@ -62,6 +54,15 @@ def _status_str(value) -> str:
     return str(getattr(value, "value", value) or "").lower()
 
 
+def _run_async(coro):
+    """
+    Run an async coroutine from sync Celery code.
+
+    Uses a fresh event loop each call. Works with --pool=solo on Windows too.
+    """
+    return asyncio.run(coro)
+
+
 def render_template(html: str, context: dict[str, str]) -> str:
     """Replace {{key}} / {{ key }} placeholders with HTML-escaped values."""
 
@@ -69,7 +70,7 @@ def render_template(html: str, context: dict[str, str]) -> str:
         key = match.group(1)
         if key in context:
             return escape(context[key])
-        return match.group(0)  # leave unknown placeholders untouched
+        return match.group(0)
 
     return _PLACEHOLDER.sub(repl, html)
 
@@ -78,69 +79,112 @@ def _new_email_log(
     *,
     campaign_id: int,
     sender_account_id: int,
-    email: str,
-    subject: str,
+    recipient_id: int,
     status,
     error_message: str | None = None,
     sent_at: datetime | None = None,
 ) -> EmailLog:
+    """
+    EmailLog columns: campaign_id, recipient_id, sender_account_id,
+    status, error_message, sent_at (+ id/created_at/updated_at).
+    Email address and subject are NOT stored here; they live on
+    CampaignRecipient and Campaign.
+    """
     fields = {
         "campaign_id": campaign_id,
         "sender_account_id": sender_account_id,
-        EMAIL_LOG_EMAIL_FIELD: email,
-        "subject": subject,
+        "recipient_id": recipient_id,
         "status": status,
     }
     if error_message is not None:
         fields["error_message"] = error_message[:MAX_ERROR_LEN]
-    if sent_at is not None and hasattr(EmailLog, "sent_at"):
+    if sent_at is not None:
         fields["sent_at"] = sent_at
     return EmailLog(**fields)
+
+
+# =========================================================
+# Token refresh
+# =========================================================
+
+def _refresh_token(refresh_token: str) -> dict:
+    """
+    Call the OAuth provider. Raises:
+      - AuthError for permanent failures (invalid_grant, invalid_client).
+      - The original exception for transient failures (network, 5xx).
+    """
+    try:
+        return _run_async(OAuthService.refresh_access_token(refresh_token))
+    except Exception as exc:
+        msg = str(exc).lower()
+        permanent_markers = ("invalid_grant", "invalid_client", "unauthorized_client")
+        if any(marker in msg for marker in permanent_markers):
+            raise AuthError(f"Token refresh permanently failed: {exc}") from exc
+        # Transient — let Celery retry with backoff.
+        raise
 
 
 def get_fresh_access_token(db: Session, sender_account_id: int) -> str:
     """
     Return a valid access token, refreshing if needed.
 
-    The sender row is locked so concurrent workers don't refresh the same
-    (rotating) refresh token at the same time.
+    Two-phase locking:
+      1. Read without lock to check expiry.
+      2. Only if refresh is needed, take the row lock, re-read, and refresh.
+    This keeps the lock off the hot path for the common case.
     """
+    sender = db.get(SenderAccount, sender_account_id)
+    if sender is None:
+        raise PermanentError("Sender not found")
+
+    if _status_str(sender.status) == SENDER_NEEDS_REAUTH_STATUS:
+        raise AuthError("Sender account needs re-authentication")
+
+    expires_at = _as_aware(sender.token_expires_at)
+    if expires_at is not None and expires_at > datetime.now(UTC) + TOKEN_REFRESH_BUFFER:
+        # Token is still good — no lock needed.
+        return sender.access_token
+
+    # Refresh path: take the lock, re-read, re-check.
     sender = (
         db.query(SenderAccount)
         .filter(SenderAccount.id == sender_account_id)
         .with_for_update()
         .first()
     )
-
     if sender is None:
         raise PermanentError("Sender not found")
 
-    # Token pehle hi dead mark ho chuka hai: Microsoft ko dobara hit mat karo.
-    if _status_str(sender.status) == SENDER_NEEDS_REAUTH_STATUS:
-        raise AuthError("Sender account needs re-authentication")
-
     expires_at = _as_aware(sender.token_expires_at)
+    if expires_at is not None and expires_at > datetime.now(UTC) + TOKEN_REFRESH_BUFFER:
+        # Another worker refreshed while we were waiting for the lock.
+        access_token = sender.access_token
+        db.commit()
+        return access_token
 
-    if expires_at is None or expires_at <= datetime.now(UTC) + TOKEN_REFRESH_BUFFER:
-        refresh_token = (sender.refresh_token or "").strip()
-        if not refresh_token:
-            raise AuthError("No refresh token stored for sender account")
+    refresh_token = (sender.refresh_token or "").strip()
+    if not refresh_token:
+        raise AuthError("No refresh token stored for sender account")
 
-        try:
-            token = asyncio.run(OAuthService.refresh_access_token(refresh_token))
-        except Exception as e:
-            raise AuthError(f"Token refresh failed: {e}") from e
+    # NOTE: this network call happens while holding the row lock.
+    # It's bounded and serialized on purpose so rotating refresh
+    # tokens don't race.
+    token = _refresh_token(refresh_token)
 
-        sender.access_token = token["access_token"]
-        sender.refresh_token = token.get("refresh_token", sender.refresh_token)
-        sender.token_expires_at = datetime.now(UTC) + timedelta(
-            seconds=int(token["expires_in"])
-        )
+    sender.access_token = token["access_token"]
+    sender.refresh_token = token.get("refresh_token", sender.refresh_token)
+    sender.token_expires_at = datetime.now(UTC) + timedelta(
+        seconds=int(token["expires_in"])
+    )
 
-    access_token = sender.access_token  # read before commit expires attributes
-    db.commit()  # releases the row lock
+    access_token = sender.access_token
+    db.commit()
     return access_token
 
+
+# =========================================================
+# Failure recording
+# =========================================================
 
 def record_failure(
     db: Session,
@@ -152,29 +196,31 @@ def record_failure(
 ) -> None:
     """Write a FAILED log row (and optionally mark recipient FAILED). Never raises."""
     try:
+        db.rollback()
         recipient = db.get(CampaignRecipient, recipient_id)
-        campaign = db.get(Campaign, campaign_id)
 
         if recipient is not None and mark_recipient_failed:
             recipient.status = RecipientStatus.FAILED
 
-        db.add(
-            _new_email_log(
-                campaign_id=campaign_id,
-                sender_account_id=sender_account_id,
-                email=recipient.email if recipient else "",
-                subject=campaign.subject if campaign else "",
-                status=EmailLogStatus.FAILED,
-                error_message=error,
+        # Log row needs a real recipient (recipient_id points to it).
+        if recipient is not None:
+            db.add(
+                _new_email_log(
+                    campaign_id=campaign_id,
+                    sender_account_id=sender_account_id,
+                    recipient_id=recipient_id,
+                    status=EmailLogStatus.FAILED,
+                    error_message=error,
+                )
             )
-        )
+
         db.commit()
     except Exception:
         db.rollback()
         logger.exception("Could not record failure for recipient %s", recipient_id)
 
 
-def _set_status(db: Session, model, row_id: int, value: str) -> None:
+def _set_status(db: Session, model, row_id: int, value) -> None:
     """Best-effort status update. Never raises."""
     try:
         row = db.get(model, row_id)
@@ -183,7 +229,9 @@ def _set_status(db: Session, model, row_id: int, value: str) -> None:
             db.commit()
     except Exception:
         db.rollback()
-        logger.exception("Could not set %s %s status to %r", model.__name__, row_id, value)
+        logger.exception(
+            "Could not set %s %s status to %r", model.__name__, row_id, value
+        )
 
 
 def flag_auth_failure(db: Session, sender_account_id: int, campaign_id: int) -> None:
@@ -191,6 +239,10 @@ def flag_auth_failure(db: Session, sender_account_id: int, campaign_id: int) -> 
     _set_status(db, SenderAccount, sender_account_id, SENDER_NEEDS_REAUTH_STATUS)
     _set_status(db, Campaign, campaign_id, CAMPAIGN_PAUSED_STATUS)
 
+
+# =========================================================
+# Task
+# =========================================================
 
 @celery.task(
     name="workers.sending_emails.send_email_task",
@@ -204,12 +256,7 @@ def flag_auth_failure(db: Session, sender_account_id: int, campaign_id: int) -> 
     retry_jitter=True,
     max_retries=MAX_RETRIES,
 )
-def send_email_task(
-    self,
-    recipient_id: int,
-    sender_account_id: int,
-    campaign_id: int,
-):
+def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id: int):
     db: Session = SessionLocal()
     email_sent = False
 
@@ -227,35 +274,31 @@ def send_email_task(
             raise PermanentError("Template not found")
 
         # Idempotency: a retry or duplicate message must not resend.
-        if recipient.status == RecipientStatus.SENT:
+        if _status_str(recipient.status) == "sent":
             return {"message": "Already sent, skipping"}
 
         if not recipient.is_valid_email:
             raise PermanentError("Invalid email address")
 
-        # Campaign paused/cancelled hai to skip karo (recipient pending rehta hai).
+        # Campaign paused/cancelled → skip; recipient stays PENDING.
         if _status_str(campaign.status) in (CAMPAIGN_PAUSED_STATUS, "cancelled"):
-            return {"message": f"Campaign is {_status_str(campaign.status)}, skipping"}
+            return {
+                "message": f"Campaign is {_status_str(campaign.status)}, skipping"
+            }
 
-        ################################################################
-        # Token
-        ################################################################
-
+        # --- Token ---
         access_token = get_fresh_access_token(db, sender_account_id)
 
+        # --- Render ---
         html = render_template(
             template.html_content,
-            {
-                "name": recipient.name or "",
-                "email": recipient.email,
-            },
+            {"name": recipient.name or "", "email": recipient.email},
         )
-
         recipient_email = recipient.email
         subject = campaign.subject
 
-
-        asyncio.run(
+        # --- Send ---
+        _run_async(
             GraphService.send_email(
                 access_token=access_token,
                 recipient=recipient_email,
@@ -265,17 +308,17 @@ def send_email_task(
         )
         email_sent = True
 
+        # --- Bookkeeping ---
         now = datetime.now(UTC)
-
         recipient.status = RecipientStatus.SENT
-        recipient.sent_at = now
+        if hasattr(recipient, "sent_at"):
+            recipient.sent_at = now
 
         db.add(
             _new_email_log(
                 campaign_id=campaign_id,
                 sender_account_id=sender_account_id,
-                email=recipient_email,
-                subject=subject,
+                recipient_id=recipient_id,
                 status=EmailLogStatus.SENT,
                 sent_at=now,
             )
@@ -288,17 +331,15 @@ def send_email_task(
         )
 
         db.commit()
-
         return {"message": "Email Sent Successfully"}
 
     except Exception as exc:
         db.rollback()
 
         if email_sent:
-            # The email is already out; retrying would duplicate it.
+            # Email is already out; retrying would duplicate it.
             logger.exception(
-                "Email to recipient %s was sent but DB update failed",
-                recipient_id,
+                "Email to recipient %s was sent but DB update failed", recipient_id
             )
             return {"message": "Sent, but bookkeeping failed"}
 
@@ -315,14 +356,14 @@ def send_email_task(
                 campaign_id,
                 sender_account_id,
                 str(exc),
-                # Auth error recipient ki galti nahi hai: usse FAILED mark mat
-                # karo, taaki re-connect ke baad dobara bheja ja sake.
+                # Auth error isn't the recipient's fault → don't FAIL them,
+                # so they can be re-sent after the sender reconnects.
                 mark_recipient_failed=not is_auth_error,
             )
             if is_auth_error:
                 flag_auth_failure(db, sender_account_id, campaign_id)
 
-        raise  # lets Celery's autoretry handle non-final attempts
+        raise  # let Celery autoretry non-final attempts
 
     finally:
         db.close()

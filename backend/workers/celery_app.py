@@ -1,7 +1,7 @@
 import os
 
-from celery import Celery # type: ignore
-from kombu import Queue # type: ignore
+from celery import Celery  # type: ignore
+from kombu import Queue  # type: ignore
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
@@ -24,14 +24,18 @@ celery.conf.update(
     ),
     task_routes={
         "workers.extract_email.*": {"queue": "extract_emails_queue"},
+        "workers.start_campaign.*": {"queue": "extract_emails_queue"},
         "workers.sending_emails.*": {"queue": "email_sender_queue"},
     },
     worker_prefetch_multiplier=1,
     broker_connection_retry_on_startup=True,
     broker_transport_options={"visibility_timeout": 3600},
+    task_acks_late=True,
+    task_reject_on_worker_lost=True,
 )
 
 celery.conf.imports = (
     "workers.extract_email",
+    "workers.start_campaign",
     "workers.sending_emails",
 )
