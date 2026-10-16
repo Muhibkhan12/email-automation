@@ -1,5 +1,5 @@
 import api from "../libs/Axios";
-import type{ User, AuthResponse, UserLogin, RegisterUser, UserResponse} from "../types/UserTypes"
+import type{ User, AuthResponse, UserLogin, RegisterUser} from "../types/UserTypes"
 
 export const loginUser = async (data: UserLogin): Promise<AuthResponse> => {
 

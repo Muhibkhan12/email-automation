@@ -2,28 +2,21 @@ import httpx
 
 
 class GraphService:
-
     GRAPH_URL = "https://graph.microsoft.com/v1.0"
-
     @staticmethod
     async def get_me(access_token: str):
-
         headers = {
             "Authorization": f"Bearer {access_token}"
         }
-
         async with httpx.AsyncClient() as client:
-
             response = await client.get(
                 f"{GraphService.GRAPH_URL}/me",
                 headers=headers
             )
-
         if response.status_code != 200:
             raise Exception(response.text)
-
         return response.json()
-
+    
     @staticmethod
     async def send_email(
         access_token: str,

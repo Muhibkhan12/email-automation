@@ -2,12 +2,12 @@
 import api from "../libs/Axios";
 
 export type CampaignStatus =
-  | "DRAFT"
-  | "READY"
-  | "RUNNING"
-  | "PAUSED"
-  | "COMPLETED"
-  | "CANCELLED";
+  | "Draft"
+  | "Ready"
+  | "Running"
+  | "Paused"
+  | "Completed"
+  | "Cancelled";
 
 export interface Campaign {
   id: number;
@@ -17,21 +17,33 @@ export interface Campaign {
   template_id: number;
   sender_account_id?: number;
   status: CampaignStatus;
-  created_at: string;
-  updated_at: string;
+  recipient_count?: number;
+  sent_count?: number;
+  failed_count?: number;
+  total_count?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
+/**
+ * Matches backend `AddCampaignSchema` EXACTLY:
+ *   user_id: int              (required)
+ *   template_id: int          (required)
+ *   sender_account_id: int    (required)
+ *   campaign_name: str        (required)
+ *   subject: str              (required)
+ *   status: CampaignStatus    (optional, defaults to Draft)
+ */
 export interface CreateCampaignData {
+  user_id: number;
+  template_id: number;
+  sender_account_id: number;
   campaign_name: string;
   subject: string;
-  template_id: number;
-  sender_account_id?: number;
   status?: CampaignStatus;
 }
 
 export type UpdateCampaignData = Partial<CreateCampaignData>;
-
-/* ── helper ─────────────────────────────────────────── */
 
 const unwrapList = (body: any): any[] => {
   if (Array.isArray(body)) return body;
@@ -43,8 +55,6 @@ const unwrapOne = (body: any) => {
   if (body && typeof body === "object" && "data" in body) return body.data;
   return body;
 };
-
-/* ── READ ───────────────────────────────────────────── */
 
 export const getCampaign = async (): Promise<Campaign[]> => {
   try {
@@ -76,17 +86,19 @@ export const getCampaignById = async (id: number): Promise<Campaign | null> => {
   }
 };
 
-/* ── CREATE ─────────────────────────────────────────── */
-
 export const createCampaign = async (
   data: CreateCampaignData
 ): Promise<Campaign> => {
   const response = await api.post("/campaigns/", data);
-  return unwrapOne(response.data);
-};
 
-/* ── UPDATE ─────────────────────────────────────────── */
-// backend: @router.patch("/update/{id}")
+  // Backend add_campaign returns: { message, campaign: {...} }
+  const body = response.data;
+  if (body && typeof body === "object" && "campaign" in body) {
+    return body.campaign as Campaign;
+  }
+  // Fallback for endpoints that wrap in { data: ... }
+  return unwrapOne(body);
+};
 
 export const updateCampaign = async (
   id: number,
@@ -96,15 +108,9 @@ export const updateCampaign = async (
   return unwrapOne(response.data);
 };
 
-/* ── DELETE ─────────────────────────────────────────── */
-// backend: @router.delete("/delete/{id}")
-
 export const deleteCampaign = async (id: number): Promise<void> => {
   await api.delete(`/campaigns/delete/${id}`);
 };
-
-/* ── START ──────────────────────────────────────────── */
-// NOTE: backend does not expose this yet — add it or remove the button
 
 export const startCampaign = async (id: number): Promise<any> => {
   const response = await api.post(`/campaigns/${id}/start`);

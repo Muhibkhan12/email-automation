@@ -123,10 +123,10 @@ def get_analytics(
         "data": {
             "upload_id": upload.id,
             "status": upload.status,
-            "total_rows": upload.total_rows,
-            "valid_count": upload.valid_count,
-            "invalid_count": upload.invalid_count,
-            "duplicate_count": upload.duplicate_count,
+            "total_rows": upload.total_records,
+            # "valid_count": upload.valid_count,
+            # "invalid_count": upload.invalid_count,  
+            # "duplicate_count": upload.duplicate_count,
         }
     }
 

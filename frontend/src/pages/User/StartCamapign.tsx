@@ -8,13 +8,14 @@ import {
 import { SenderAccContext } from "../../contexts/SenderAccountsContext";
 import { useHtmlTemplates } from "../../contexts/HtmlTemplatesContext";
 import { useUpload } from "../../contexts/UploadContext";
+import { AuthContext } from "../../contexts/AuthContext";
 import {
   ExtractData,
   waitForAnalytics,
   summaryFromAnalytics,
   type RecipientsSummary,
 } from "../../services/ExtractFile";
-import { createCampaign, getCampaign } from "../../services/CampaignService";
+import { createCampaign, getCampaignById } from "../../services/CampaignService";
 import {
   startCampaign,
   pauseCampaign,
@@ -213,6 +214,10 @@ const CampaignCreatePage = () => {
   const sendersError = ctx?.error ?? null;
   const fetchSenders = ctx?.fetchAllSenderAccounts;
 
+  /* ── Auth: current user ── */
+  const auth = useContext(AuthContext);
+  const currentUserId = auth?.user?.user_id ?? null;
+
   const available = accounts.filter(
     (a) => (a.status ?? "").toLowerCase() === "active" && (a.daily_limit ?? 0) - (a.emails_sent_today ?? 0) > 0
   );
@@ -251,7 +256,6 @@ const CampaignCreatePage = () => {
   const fileRef = useRef<HTMLInputElement>(null);
   const loadTokenRef = useRef(0);
 
-  // Always-fresh copy of `run` so the polling interval never reads stale numbers.
   const runRef = useRef(run);
   runRef.current = run;
 
@@ -301,7 +305,6 @@ const CampaignCreatePage = () => {
     if (status === "Draft" || status === "Ready") setStatus(ready ? "Ready" : "Draft");
   }, [ready, status]);
 
-  /* ── sync server state into the UI ── */
   const applyServer = (c: CampaignDTO, fallback?: Status) => {
     const prev = runRef.current;
     const sent = c.sent_count ?? prev.sent;
@@ -311,22 +314,19 @@ const CampaignCreatePage = () => {
     setRun({ sent, failed, total: totalCount });
 
     let next = toStatus(c.status) ?? fallback;
-    // Safety net: if every email is accounted for, the campaign is done
-    // even if the backend hasn't flipped the status itself.
     if (next === "Running" && totalCount > 0 && sent + failed >= totalCount) {
       next = "Completed";
     }
     if (next) setStatus(next);
   };
 
-  /* ── real progress: poll backend while scheduled / running / paused ── */
   useEffect(() => {
     if (!campaignId || !["Scheduled", "Running", "Paused"].includes(status)) return;
     let stop = false;
     const t = setInterval(async () => {
       try {
-        const c = await getCampaign(campaignId);
-        if (!stop) applyServer(c as CampaignDTO);
+        const c = await getCampaignById(campaignId);
+        if (!stop && c) applyServer(c as unknown as CampaignDTO);
       } catch {
         /* ignore */
       }
@@ -358,8 +358,6 @@ const CampaignCreatePage = () => {
       setUploadId(id);
       setUploading(false);
 
-      // Queue extraction, then poll analytics until the worker finishes.
-      // NOTE: this does NOT send any email. Sending starts only on "Start campaign".
       setExtracting(true);
       await ExtractData(id);
       const finished = await waitForAnalytics(id);
@@ -387,35 +385,58 @@ const CampaignCreatePage = () => {
   };
 
   const canNext = [
-    !!name.trim() && !!subject.trim(), // Details
-    !!sender,                          // Sender
-    !!template,                        // Template
-    total > 0 && uploaded && !uploading && !extracting, // Recipients (upload)
-    ready,                             // Review
+    !!name.trim() && !!subject.trim(),
+    !!sender,
+    !!template,
+    total > 0 && uploaded && !uploading && !extracting,
+    ready,
   ][step];
 
   const launch = async () => {
     if (!sender || !template || uploadId === null) return;
+
+    // Read the user id at click time from the live context.
+    const liveUserId = auth?.user?.user_id ?? null;
+    if (!liveUserId) {
+      setSubmitError("Not logged in — please refresh and sign in again.");
+      return;
+    }
+
     setSubmitting(true);
     setSubmitError("");
     try {
-      // Reuse the campaign if an earlier attempt created it but start failed,
-      // so a retry never creates a duplicate campaign.
       let id = campaignId;
       let created: CampaignDTO | null = null;
 
       if (id === null) {
+        const templateIdNum = Number((template as any).id ?? (template as any)._id);
+        if (!templateIdNum) {
+          throw new Error("Missing template id.");
+        }
+
+        // Payload matches backend `AddCampaignSchema` EXACTLY.
         const res: any = await createCampaign({
-          name: name.trim(),
-          subject: subject.trim(),
-          upload_id: uploadId,
+          user_id: liveUserId,
+          template_id: templateIdNum,
           sender_account_id: sender.id,
-          template_id: (template as any).id ?? (template as any)._id,
-          schedule_at: mode === "later" ? new Date(scheduleAt).toISOString() : null,
+          campaign_name: name.trim(),
+          subject: subject.trim(),
+          status: "Draft",
         });
-        created = res as CampaignDTO;
-        id = res.id as number;
-        setCampaignId(id);
+
+        // Backend returns { message, campaign } — unwrap before reading .id.
+        const campaign = res?.campaign ?? res;
+        const newId = campaign?.id;
+
+        if (typeof newId !== "number") {
+          throw new Error(
+            `Campaign created but no valid id in response: ${JSON.stringify(res)}`
+          );
+        }
+
+        created = campaign as unknown as CampaignDTO;
+        id = newId;
+        setCampaignId(newId);
         setRun({ sent: 0, failed: 0, total });
       }
 
@@ -423,7 +444,9 @@ const CampaignCreatePage = () => {
         const started = await startCampaign(id, uploadId);
         applyServer(started, "Running");
       } else {
-        applyServer(created ?? ((await getCampaign(id)) as CampaignDTO), "Scheduled");
+        const fetched = created ?? (await getCampaignById(id));
+        if (fetched) applyServer(fetched as unknown as CampaignDTO, "Scheduled");
+        else setStatus("Scheduled");
       }
       setConfirmOpen(false);
       fetchSenders?.();
@@ -472,7 +495,6 @@ const CampaignCreatePage = () => {
   const finished = status === "Completed" || status === "Cancelled" || status === "Failed";
   const live = status === "Running";
 
-  // Right-side live summary — order matches wizard order
   const summaryItems = [
     { label: "Details", icon: FileText, done: !!name.trim() && !!subject.trim(), value: name.trim() || "Not set yet" },
     { label: "Sender", icon: Mail, done: !!sender, value: sender?.email ?? "Not selected" },
@@ -518,7 +540,6 @@ const CampaignCreatePage = () => {
         <div className="glow-top relative">
           <div className="mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-12" style={{ maxWidth: 1120 }}>
 
-            {/* Header */}
             <header className="flex items-start gap-3 md:gap-4 mb-8">
               <button onClick={() => setSidebarOpen(true)} className="lg:hidden mt-1 p-2.5 rounded-xl text-[#C7C9CE] soft-ring" style={{ background: "#141823" }} aria-label="Open menu">
                 <Menu size={18} />
@@ -547,10 +568,8 @@ const CampaignCreatePage = () => {
               )}
             </header>
 
-            {/* ═════════ WIZARD ═════════ */}
             {editing && (
               <>
-                {/* Stepper */}
                 <div className="rounded-2xl p-2.5 mb-6 soft-ring overflow-x-auto" style={{ background: "#0F131C" }}>
                   <div className="flex items-center gap-1.5 min-w-max sm:min-w-0">
                     {STEPS.map((s, i) => {
@@ -608,8 +627,6 @@ const CampaignCreatePage = () => {
                         >
                           <input className="cm-input" placeholder="e.g. Something new is here 🎉" value={subject} onChange={(e) => setSubject(e.target.value)} />
                         </Field>
-
-                        {/* live inbox preview */}
                         <div>
                           <p className="text-[12px] font-medium mb-2" style={{ color: "#C7C9CE" }}>Inbox preview</p>
                           <div className="rounded-2xl p-4 flex items-center gap-3.5" style={{ background: "#0F131C", boxShadow: RING }}>
@@ -755,7 +772,7 @@ const CampaignCreatePage = () => {
                       </div>
                     )}
 
-                    {/* Step 3 – Recipients (Upload) */}
+                    {/* Step 3 – Recipients */}
                     {step === 3 && (
                       <div className="space-y-6">
                         <Head icon={<Users size={18} />} title="Recipients" sub="Upload a CSV or Excel file with an “email” column." />
@@ -901,7 +918,6 @@ const CampaignCreatePage = () => {
                           ))}
                         </div>
 
-                        {/* Full checklist (all 5 checks) */}
                         <div className="rounded-2xl p-4 space-y-2.5" style={{ background: "#0F131C", boxShadow: RING }}>
                           <p className="text-[12px] font-medium" style={{ color: "#8A90A0" }}>Checklist</p>
                           {checks.map((c) => (
@@ -916,7 +932,6 @@ const CampaignCreatePage = () => {
                           ))}
                         </div>
 
-                        {/* When to send */}
                         <div>
                           <p className="text-[12px] font-medium mb-2.5" style={{ color: "#C7C9CE" }}>When to send</p>
                           <div className="grid grid-cols-2 gap-3">
@@ -957,7 +972,6 @@ const CampaignCreatePage = () => {
                       </div>
                     )}
 
-                    {/* Nav */}
                     <div className="flex items-center justify-between mt-9 pt-6 border-t border-[#1A1F2B]">
                       <Btn onClick={() => setStep((s) => s - 1)} disabled={step === 0}><ChevronLeft size={14} /> Back</Btn>
                       {step < 4 ? (
@@ -970,7 +984,6 @@ const CampaignCreatePage = () => {
                     </div>
                   </section>
 
-                  {/* Live summary */}
                   <aside className="hidden lg:block sticky top-6 rounded-3xl p-5 soft-ring" style={CARD}>
                     <div className="flex items-center justify-between mb-3">
                       <p className="text-[14px] font-semibold" style={{ color: "#F2F0EB", fontFamily: FONT.display }}>Campaign summary</p>
@@ -1014,7 +1027,6 @@ const CampaignCreatePage = () => {
               </>
             )}
 
-            {/* ═════════ AFTER LAUNCH: scheduled / running / done ═════════ */}
             {!editing && (
               <section className="float-in rounded-3xl p-5 md:p-8 soft-ring space-y-7" style={CARD}>
                 {status === "Scheduled" ? (
@@ -1084,7 +1096,6 @@ const CampaignCreatePage = () => {
         </div>
       </main>
 
-      {/* Start confirmation */}
       {confirmOpen && (
         <Modal onClose={() => !submitting && setConfirmOpen(false)}>
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5" style={{ background: "rgba(255,106,57,0.10)", boxShadow: "inset 0 0 0 1px rgba(255,106,57,0.22), 0 12px 28px -12px rgba(255,106,57,0.5)" }}>
@@ -1109,7 +1120,6 @@ const CampaignCreatePage = () => {
         </Modal>
       )}
 
-      {/* Cancel confirmation */}
       {cancelOpen && (
         <Modal onClose={() => setCancelOpen(false)}>
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5" style={{ background: "rgba(248,113,113,0.10)", boxShadow: "inset 0 0 0 1px rgba(248,113,113,0.22)" }}>
