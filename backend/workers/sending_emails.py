@@ -3,7 +3,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from html import escape
 
-from celery.utils.log import get_task_logger  # type: ignore
+from celery.utils.log import get_task_logger
 from sqlalchemy.orm import Session
 
 from database import SessionLocal

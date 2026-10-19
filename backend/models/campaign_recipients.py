@@ -19,7 +19,7 @@ class RecipientStatus(enum.Enum):
 class CampaignRecipient(Base):
     __tablename__ = "campaign_recipients"
     id : Mapped[int] = mapped_column(Integer, primary_key=True ,index=True)
-    campaign_id : Mapped[int] = mapped_column(Integer, ForeignKey("campaigns.id", ondelete="CASCADE"), nullable=False)
+    campaign_id : Mapped[int] = mapped_column(Integer, ForeignKey("campaigns.id", ondelete="CASCADE"), nullable=True)
     upload_id : Mapped[int] = mapped_column(Integer, ForeignKey("uploads.id"), nullable=False)
     name : Mapped[str] = mapped_column(String(255), nullable=False)
     email : Mapped[str] = mapped_column(String(255), nullable=False)

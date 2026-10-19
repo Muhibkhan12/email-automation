@@ -22,6 +22,7 @@ class Campaign(Base):
         ForeignKey("users.id"),
         nullable=False
     )
+    
 
     campaign_name: Mapped[str] = mapped_column(
         String(255),
@@ -90,3 +91,4 @@ class Campaign(Base):
         "SenderAccount",
         back_populates="campaigns"
     )
+    
