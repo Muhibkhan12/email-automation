@@ -11,12 +11,6 @@ router = APIRouter(
     tags=["Authentication"]
 )
 
-@router.get("/")
-def welcome():
-    return{
-        "message" : "Hola Amigo"
-    }
-
 @router.post("/register", status_code=201)
 def registerUser(credentials : RegisterSchema , db: Session = Depends(get_db)):
     return RegisterUser(db=db,credential=credentials)
