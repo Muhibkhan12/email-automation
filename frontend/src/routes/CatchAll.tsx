@@ -7,7 +7,7 @@ const CatchAll = () => {
   if (!ctx) return null;
   const { user, loading } = ctx;
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div className="text-red-500">Loading...</div>;
   if (!user) return <Navigate to="/" replace />;
 
   return (

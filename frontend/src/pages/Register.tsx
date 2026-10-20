@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Navigate, replace, useNavigate } from "react-router-dom";
 import * as z from "zod";
 import {
   Mail, Lock, User as UserIcon, Eye, EyeOff, ArrowRight, Loader2,
@@ -105,6 +106,7 @@ const Register = () => {
   const onCapsCheck = (e: React.KeyboardEvent<HTMLInputElement>) => {
     setCapsOn(e.getModifierState && e.getModifierState("CapsLock"));
   };
+  const navigate = useNavigate();
 
   const onSubmit = async (values: RegisterFormValues) => {
     setError(null);
@@ -119,6 +121,9 @@ const Register = () => {
       const res = (await UserRegister(payload)) as RegisterResponse;
       console.log("Register response:", res);
       setSuccessMessage(res?.message ?? "Account created successfully.");
+      setTimeout(() => 
+        navigate("/", {replace : true}), 1500
+      );
     } catch (err: any) {
       const backendMessage =
         err?.response?.data?.message || err?.message || "Something went wrong. Try again.";
