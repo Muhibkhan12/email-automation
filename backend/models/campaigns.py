@@ -1,4 +1,4 @@
-from sqlalchemy import String,DateTime,Enum as SqlEnum, ForeignKey
+from sqlalchemy import String,DateTime,Integer, ForeignKey, Enum as sqlEnum
 from enum import Enum
 from sqlalchemy.orm import Mapped,mapped_column, relationship
 from datetime import datetime, UTC
@@ -42,6 +42,12 @@ class Campaign(Base):
     sender_account_id: Mapped[int] = mapped_column(
         ForeignKey("sender_accounts.id", ondelete="RESTRICT"),
         nullable=False
+    )
+
+    sent_count : Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0
     )
 
     status: Mapped[CampaignStatus] = mapped_column(

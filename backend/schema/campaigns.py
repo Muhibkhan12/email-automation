@@ -17,6 +17,7 @@ class AddCampaignSchema(BaseModel):
     sender_account_id : int
     campaign_name : str
     subject : str
+    sent_count : int
     status : CampaignStatus = CampaignStatus.DRAFT
 
 
@@ -27,6 +28,7 @@ class UpdateCampaignSchema(BaseModel):
     subject : str | None = None
     status : CampaignStatus | None = None
     recipient_count : int | None = None
+    sent_count : int | None = None
 
 
 class CampaignResponse(BaseModel):

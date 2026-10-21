@@ -54,7 +54,7 @@ def get_all_campaigns(
 
 @router.get(
     "/{id}",
-    dependencies=[Depends(require_admin)]
+    dependencies=[Depends(GetCurrentUser)]
 )
 def get_campaign(
     id: int,

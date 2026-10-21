@@ -60,6 +60,7 @@ def get_my_campaigns(
                 CampaignRecipient.name,
                 CampaignRecipient.email,
                 CampaignRecipient.status,
+                CampaignRecipient.sent_at,
             ),
             selectinload(Campaign.uploads).load_only(
                 Upload.id,

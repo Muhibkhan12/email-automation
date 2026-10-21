@@ -43,7 +43,9 @@ export interface CampaignRecipient {
   name: string;
   email: string;
   status: RecipientStatus;
+  sent_at: string | null;
 }
+
 export interface Campaign {
   id: number;
   user_id: number;
@@ -56,14 +58,19 @@ export interface Campaign {
   updated_at: string;
   user: CampaignUser;
   template: CampaignTemplate;
+  sent_count: number;
   sender_account: CampaignSenderAccount;
   email_logs: CampaignEmailLog[];
   uploads: CampaignUpload[];
   recipients: CampaignRecipient[];
 }
-export interface CampaignStatus{
-    status : | "Draft" | "Ready" | "Running" | "Paused" | "Completed" | "Cancelled" 
-}
+export type CampaignStatus =
+  | "Draft"
+  | "Ready"
+  | "Running"
+  | "Paused"
+  | "Completed"
+  | "Cancelled";
 
 export interface CreateCampaignData {
     campaign_name: string;

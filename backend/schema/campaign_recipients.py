@@ -1,6 +1,6 @@
-from pydantic import BaseModel
 from enum import Enum
-
+from datetime import datetime
+from pydantic import BaseModel, ConfigDict
 
 class RecipientStatus(str, Enum):
     PENDING = "Pending"
@@ -31,11 +31,15 @@ class UpdateRecipientsSchema(BaseModel):
     is_valid_email : bool | None = None
     status : RecipientStatus | None = None
 
+
+
 class RecipientsResponse(BaseModel):
-    name : str
-    email : str
-    company : str
-    phone : str | None
-    status : RecipientStatus
-    class config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    email: str
+    company: str | None = None
+    phone: str | None = None
+    status: RecipientStatus
+    sent_at: datetime | None = None

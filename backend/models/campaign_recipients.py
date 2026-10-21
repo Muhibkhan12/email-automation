@@ -39,6 +39,11 @@ class CampaignRecipient(Base):
         Enum(RecipientStatus),
         default=RecipientStatus.PENDING
     )
+    sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+        default=None,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: datetime.now(UTC)
