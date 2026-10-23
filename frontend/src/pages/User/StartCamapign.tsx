@@ -55,8 +55,13 @@ const tplName = (t: any): string => t?.name ?? t?.title ?? t?.template_name ?? "
 const tplDesc = (t: any): string => t?.description ?? t?.desc ?? t?.subject ?? "";
 const tplHtml = (t: any): string => t?.html ?? t?.html_content ?? t?.content ?? t?.body ?? "";
 
-const errMsg = (e: any, fallback: string) =>
-  e?.response?.data?.detail?.toString?.() ?? e?.response?.data?.message ?? e?.message ?? fallback;
+const errMsg = (e: any, fallback: string) => {
+  const d = e?.response?.data?.detail;
+  if (Array.isArray(d)) {
+    return d.map((x: any) => `${(x.loc ?? []).slice(1).join(".")}: ${x.msg}`).join(" | ");
+  }
+  return d?.toString?.() ?? e?.response?.data?.message ?? e?.message ?? fallback;
+};
 
 const toStatus = (raw?: string): Status | null => {
   const s = String(raw ?? "").toLowerCase();
@@ -392,70 +397,65 @@ const CampaignCreatePage = () => {
     ready,
   ][step];
 
-  const launch = async () => {
-    if (!sender || !template || uploadId === null) return;
+const launch = async () => {
+  if (!sender || !template || uploadId === null) return;
 
-    // Read the user id at click time from the live context.
-    const liveUserId = auth?.user?.user_id ?? null;
-    if (!liveUserId) {
-      setSubmitError("Not logged in — please refresh and sign in again.");
-      return;
-    }
+  const userId = auth?.user?.user_id ?? currentUserId;
+  if (!userId) {
+    setSubmitError("User not loaded. Please log in again.");
+    return;
+  }
 
-    setSubmitting(true);
-    setSubmitError("");
-    try {
-      let id = campaignId;
-      let created: CampaignDTO | null = null;
+  setSubmitting(true);
+  setSubmitError("");
+  try {
+    let id = campaignId;
+    let created: CampaignDTO | null = null;
 
-      if (id === null) {
-        const templateIdNum = Number((template as any).id ?? (template as any)._id);
-        if (!templateIdNum) {
-          throw new Error("Missing template id.");
-        }
+    if (id === null) {
+      const templateIdNum = Number((template as any).id ?? (template as any)._id);
+      if (!templateIdNum) throw new Error("Missing template id.");
 
-        // Payload matches backend `AddCampaignSchema` EXACTLY.
-        const res: any = await createCampaign({
-          user_id: liveUserId,
-          template_id: templateIdNum,
-          sender_account_id: sender.id,
-          campaign_name: name.trim(),
-          subject: subject.trim(),
-          status: "Draft",
-        });
+      // Payload matches backend `AddCampaignSchema` EXACTLY.
+      const res: any = await createCampaign({
+        user_id: userId,
+        template_id: templateIdNum,
+        sender_account_id: sender.id,
+        campaign_name: name.trim(),
+        subject: subject.trim(),
+        sent_count: 0,
+        status: "Draft",
+      });
 
-        // Backend returns { message, campaign } — unwrap before reading .id.
-        const campaign = res?.campaign ?? res;
-        const newId = campaign?.id;
+      const campaign = res?.campaign ?? res;
+      const newId = campaign?.id;
 
-        if (typeof newId !== "number") {
-          throw new Error(
-            `Campaign created but no valid id in response: ${JSON.stringify(res)}`
-          );
-        }
-
-        created = campaign as unknown as CampaignDTO;
-        id = newId;
-        setCampaignId(newId);
-        setRun({ sent: 0, failed: 0, total });
+      if (typeof newId !== "number") {
+        throw new Error(`Campaign created but no valid id in response: ${JSON.stringify(res)}`);
       }
 
-      if (mode === "now") {
-        const started = await startCampaign(id, uploadId);
-        applyServer(started, "Running");
-      } else {
-        const fetched = created ?? (await getCampaignById(id));
-        if (fetched) applyServer(fetched as unknown as CampaignDTO, "Scheduled");
-        else setStatus("Scheduled");
-      }
-      setConfirmOpen(false);
-      fetchSenders?.();
-    } catch (e) {
-      setSubmitError(errMsg(e, "Could not create the campaign."));
-    } finally {
-      setSubmitting(false);
+      created = campaign as unknown as CampaignDTO;
+      id = newId;
+      setCampaignId(newId);
+      setRun({ sent: 0, failed: 0, total });
     }
-  };
+
+    if (mode === "now") {
+      const started = await startCampaign(id, uploadId);
+      applyServer(started, "Running");
+    } else {
+      const fetched = created ?? (await getCampaignById(id));
+      if (fetched) applyServer(fetched as unknown as CampaignDTO, "Scheduled");
+      else setStatus("Scheduled");
+    }
+    setConfirmOpen(false);
+    fetchSenders?.();
+  } catch (e) {
+    setSubmitError(errMsg(e, "Could not create the campaign."));
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const act = async (fn: (id: number) => Promise<CampaignDTO>, fallback: Status) => {
     if (!campaignId) return;
