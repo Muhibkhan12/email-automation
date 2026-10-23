@@ -3,7 +3,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from html import escape
 
-from celery.utils.log import get_task_logger
+from celery.utils.log import get_task_logger # type: ignore
 from sqlalchemy.orm import Session
 
 from database import SessionLocal
@@ -11,7 +11,7 @@ from models.campaign_recipients import CampaignRecipient, RecipientStatus
 from models.campaigns import Campaign, CampaignStatus
 from models.email_logs import EmailLog, EmailLogStatus
 from models.html_templates import HTMLTemplate
-from models.sender_account import SenderAccount
+from models.sender_account import SenderAccount, AccountStatus
 from services.graph_service import GraphService
 from services.oauth_service import OAuthService
 from workers.celery_app import celery
@@ -23,9 +23,7 @@ UTC = timezone.utc  # py3.10-safe
 MAX_RETRIES = 5
 TOKEN_REFRESH_BUFFER = timedelta(minutes=5)
 MAX_ERROR_LEN = 500
-
-SENDER_NEEDS_REAUTH_STATUS = "needs_reauth"
-CAMPAIGN_PAUSED_STATUS = CampaignStatus.PAUSED  # enum member (string nahi)
+LIMIT_RESCHEDULE_PAD = 5  # seconds, window reset ke baad thoda buffer
 
 _PLACEHOLDER = re.compile(r"\{\{\s*(\w+)\s*\}\}")
 
@@ -98,6 +96,10 @@ def _new_email_log(
 # =========================================================
 
 def _refresh_token(refresh_token: str) -> dict:
+    """
+    Raises AuthError for permanent failures (invalid_grant, invalid_client),
+    original exception for transient ones (network, 5xx).
+    """
     try:
         return _run_async(OAuthService.refresh_access_token(refresh_token))
     except Exception as exc:
@@ -109,11 +111,12 @@ def _refresh_token(refresh_token: str) -> dict:
 
 
 def get_fresh_access_token(db: Session, sender_account_id: int) -> str:
+    """Return a valid access token, refreshing (with row lock) only if needed."""
     sender = db.get(SenderAccount, sender_account_id)
     if sender is None:
         raise PermanentError("Sender not found")
 
-    if _status_str(sender.status) == SENDER_NEEDS_REAUTH_STATUS:
+    if sender.status == AccountStatus.NEEDS_REAUTH:
         raise AuthError("Sender account needs re-authentication")
 
     expires_at = _as_aware(sender.token_expires_at)
@@ -153,7 +156,7 @@ def get_fresh_access_token(db: Session, sender_account_id: int) -> str:
 
 
 # =========================================================
-# Sender counters (hourly + daily)
+# Sender counters (hourly + daily) and limits
 # =========================================================
 
 def _hour_start(now: datetime) -> datetime:
@@ -164,8 +167,42 @@ def _day_start(now: datetime) -> datetime:
     return now.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
+def _limit_wait_seconds(sender: SenderAccount) -> int | None:
+    """
+    Agar sender ki hourly ya daily limit pahunch gayi ho to batao kitne seconds
+    baad window reset hogi. Limit nahi pahunchi to None.
+    """
+    now = datetime.now(UTC)
+    hour_start, day_start = _hour_start(now), _day_start(now)
+
+    sent_hour = (
+        (sender.emails_sent_hour or 0)
+        if _as_aware(sender.hour_window_start) == hour_start
+        else 0
+    )
+    sent_today = (
+        (sender.emails_sent_today or 0)
+        if _as_aware(sender.day_window_start) == day_start
+        else 0
+    )
+
+    if sender.daily_limit and sent_today >= sender.daily_limit:
+        next_day = day_start + timedelta(days=1)
+        return int((next_day - now).total_seconds()) + LIMIT_RESCHEDULE_PAD
+
+    if sender.hourly_limit and sent_hour >= sender.hourly_limit:
+        next_hour = hour_start + timedelta(hours=1)
+        return int((next_hour - now).total_seconds()) + LIMIT_RESCHEDULE_PAD
+
+    return None
+
+
 def _bump_sender_counters(db: Session, sender_account_id: int) -> None:
-    """Har sent email pe hour + today counter +1. Commit caller karega."""
+    """
+    Har sent email pe emails_sent_hour aur emails_sent_today +1.
+    Hour/din badal gaya ho to pehle reset. Commit caller karega.
+    Row lock se parallel workers ke counts sahi rehte hain.
+    """
     sender = (
         db.query(SenderAccount)
         .filter(SenderAccount.id == sender_account_id)
@@ -191,7 +228,10 @@ def _bump_sender_counters(db: Session, sender_account_id: int) -> None:
 
 
 def roll_sender_windows(db: Session) -> None:
-    """Purani window wale senders ke counters zero karo."""
+    """
+    Jin senders ne naye hour/din mein kuch nahi bheja, unke purane counters zero karo.
+    Sender accounts GET route ke start mein call karo, ya Celery beat se har ghante.
+    """
     now = datetime.now(UTC)
     hour_start = _hour_start(now).replace(tzinfo=None)
     day_start = _day_start(now).replace(tzinfo=None)
@@ -200,14 +240,20 @@ def roll_sender_windows(db: Session) -> None:
             (SenderAccount.hour_window_start == None)  # noqa: E711
             | (SenderAccount.hour_window_start < hour_start)
         ).update(
-            {SenderAccount.emails_sent_hour: 0, SenderAccount.hour_window_start: hour_start},
+            {
+                SenderAccount.emails_sent_hour: 0,
+                SenderAccount.hour_window_start: hour_start,
+            },
             synchronize_session=False,
         )
         db.query(SenderAccount).filter(
             (SenderAccount.day_window_start == None)  # noqa: E711
             | (SenderAccount.day_window_start < day_start)
         ).update(
-            {SenderAccount.emails_sent_today: 0, SenderAccount.day_window_start: day_start},
+            {
+                SenderAccount.emails_sent_today: 0,
+                SenderAccount.day_window_start: day_start,
+            },
             synchronize_session=False,
         )
         db.commit()
@@ -257,7 +303,7 @@ def record_failure(
     error: str,
     mark_recipient_failed: bool = True,
 ) -> None:
-    """Write a FAILED log row (and optionally mark recipient FAILED). Never raises."""
+    """Write a FAILED log row, mark recipient FAILED, failed_count +1. Never raises."""
     try:
         db.rollback()
         recipient = db.get(CampaignRecipient, recipient_id)
@@ -308,9 +354,9 @@ def _set_status(db: Session, model, row_id: int, value) -> None:
 
 
 def flag_auth_failure(db: Session, sender_account_id: int, campaign_id: int) -> None:
-    """Sender token dead: mark sender needs-reauth and pause the campaign."""
-    _set_status(db, SenderAccount, sender_account_id, SENDER_NEEDS_REAUTH_STATUS)
-    _set_status(db, Campaign, campaign_id, CAMPAIGN_PAUSED_STATUS)
+    """Sender token dead: sender ko needs-reauth karo aur campaign pause karo."""
+    _set_status(db, SenderAccount, sender_account_id, AccountStatus.NEEDS_REAUTH)
+    _set_status(db, Campaign, campaign_id, CampaignStatus.PAUSED)
 
 
 # =========================================================
@@ -353,14 +399,25 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
         if not recipient.is_valid_email:
             raise PermanentError("Invalid email address")
 
-        # Campaign paused/cancelled → skip; recipient PENDING rehta hai.
-        if _status_str(campaign.status) in (
-            _status_str(CampaignStatus.PAUSED),
-            _status_str(CampaignStatus.CANCELLED),
-        ):
+        # Campaign paused/cancelled -> skip; recipient PENDING rehta hai.
+        if campaign.status in (CampaignStatus.PAUSED, CampaignStatus.CANCELLED):
             return {
                 "message": f"Campaign is {_status_str(campaign.status)}, skipping"
             }
+
+        # --- Sender limits (hourly + daily) ---
+        sender = db.get(SenderAccount, sender_account_id)
+        if sender is None:
+            raise PermanentError("Sender not found")
+
+        wait = _limit_wait_seconds(sender)
+        if wait is not None:
+            # Fresh task schedule karo (retry counter touch nahi hota).
+            self.apply_async(
+                args=(recipient_id, sender_account_id, campaign_id),
+                countdown=wait,
+            )
+            return {"message": f"Sender limit reached, rescheduled in {wait}s"}
 
         # --- Token ---
         access_token = get_fresh_access_token(db, sender_account_id)
@@ -400,22 +457,23 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
             )
         )
 
-        # Atomic increments: concurrent workers ke saath safe.
+        # Atomic increment: concurrent workers ke saath safe.
         db.query(Campaign).filter(Campaign.id == campaign_id).update(
             {Campaign.sent_count: Campaign.sent_count + 1},
             synchronize_session=False,
         )
 
-        _bump_sender_counters(db, sender_account_id)  # hourly + today
+        _bump_sender_counters(db, sender_account_id)  # hour + today +1
 
         db.commit()
-        _finalize_if_done(db, campaign_id)  # file complete → Completed
+        _finalize_if_done(db, campaign_id)  # file complete -> Completed
         return {"message": "Email Sent Successfully"}
 
     except Exception as exc:
         db.rollback()
 
         if email_sent:
+            # Email nikal chuki hai; retry se duplicate jayegi.
             logger.exception(
                 "Email to recipient %s was sent but DB update failed", recipient_id
             )
@@ -426,7 +484,6 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
             isinstance(exc, PermanentError)
             or self.request.retries >= self.max_retries
         )
-
         if is_final_attempt:
             record_failure(
                 db,
@@ -434,12 +491,14 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
                 campaign_id,
                 sender_account_id,
                 str(exc),
+                # Auth error recipient ki galti nahi: FAIL mark nahi hoga,
+                # sender reconnect ke baad dobara bheja ja sakta hai.
                 mark_recipient_failed=not is_auth_error,
             )
             if is_auth_error:
                 flag_auth_failure(db, sender_account_id, campaign_id)
 
-        raise
+        raise  # Celery non-final attempts ko autoretry karega
 
     finally:
         db.close()
