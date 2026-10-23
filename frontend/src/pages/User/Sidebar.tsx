@@ -1,44 +1,46 @@
-import {  useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutGrid, BarChart3, Mail, FileStack,
   Settings as SettingsIcon, User as UserIcon, AtSign, ListOrdered,
   Megaphone, UploadCloud, Users, ChevronRight, Menu, X,
   LogOut, Shield, UserCog, Loader2,
-  Send,
+  Send, HelpCircle,
 } from 'lucide-react'
 import { getProfile, logoutUser } from '../../services/AuthServices'
 import type { User } from '../../types/UserTypes'
-/* ─────────────── tokens ─────────────── */
-const COLOR = {
-  primary: '#FF6A39',
-  primarySoft: 'rgba(255,106,57,0.12)',
-  primaryRing: 'rgba(255,106,57,0.22)',
-  danger: '#F87171',
-  dangerSoft: 'rgba(248,113,113,0.10)',
-  dangerRing: 'rgba(248,113,113,0.22)',
-  success: '#34D399',
-  dark: '#F2F0EB',
-  bg: '#0B0E13',
-  panel: '#0E131C',
-  panelTop: '#10141D',
-  surface: '#141821',
-  surfaceHover: '#151A24',
-  inner: '#0F131C',
-  border: '#1A1F2B',
-  borderHover: '#232938',
-  textMuted: '#7A8092',
-  textBody: '#C7C9CE',
+
+/* ─────────────── design tokens (aligned with app) ─────────────── */
+const T = {
+  bg:          '#0A0B10',
+  panel:       '#0D0F15',
+  panelTop:    '#101219',
+  surface:     '#161922',
+  surfaceHi:   '#1B1F2A',
+  border:      '#232838',
+  borderSoft:  '#1B1F2A',
+  text:        '#E9EBF0',
+  textMuted:   '#9CA3B4',
+  textFaint:   '#6B7280',
+  brand:       '#6366F1',
+  brandSoft:   'rgba(99,102,241,0.12)',
+  brandBorder: 'rgba(99,102,241,0.35)',
+  success:     '#22C55E',
+  danger:      '#EF4444',
+  dangerSoft:  'rgba(239,68,68,0.12)',
+  dangerBorder:'rgba(239,68,68,0.32)',
 }
-const FONT_MONO = "'JetBrains Mono', monospace"
-const FONT_DISPLAY = "'Space Grotesk', sans-serif"
+
+const FONT_MONO = "'JetBrains Mono', ui-monospace, monospace"
+
 /* ─────────────── helpers ─────────────── */
 const initialsOf = (name?: string) => {
   if (!name) return '??'
   const parts = name.trim().split(/\s+/).slice(0, 2)
   return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || '??'
 }
-/* ─────────────── nav config (unchanged) ─────────────── */
+
+/* ─────────────── nav config ─────────────── */
 const navGroups = [
   {
     label: 'Overview',
@@ -51,10 +53,10 @@ const navGroups = [
     label: 'Campaigns',
     items: [
       { name: 'Start Campaign', path: '/user/start-campaign', icon: Send },
-      { name: 'Campaign',   path: '/user/campaign',   icon: Megaphone },
-      { name: 'Templates',  path: '/user/templates',  icon: FileStack },
-      { name: 'Recipients', path: '/user/recipients', icon: Users },
-      { name: 'Upload',     path: '/user/upload',     icon: UploadCloud },
+      { name: 'Campaign',       path: '/user/campaign',       icon: Megaphone },
+      { name: 'Templates',      path: '/user/templates',      icon: FileStack },
+      { name: 'Recipients',     path: '/user/recipients',     icon: Users },
+      { name: 'Upload',         path: '/user/upload',         icon: UploadCloud },
     ],
   },
   {
@@ -73,6 +75,7 @@ const navGroups = [
     ],
   },
 ]
+
 /* ─────────────── nav item ─────────────── */
 interface NavItemProps {
   path: string
@@ -80,59 +83,43 @@ interface NavItemProps {
   icon: React.ElementType
   onClose?: () => void
 }
+
 const NavItem = ({ path, name, icon: Icon, onClose }: NavItemProps) => (
   <NavLink
     to={path}
     end
     onClick={onClose}
-    className="group relative flex items-center gap-2.5 md:gap-3 pl-3 md:pl-3.5 pr-2.5 py-2 md:py-2.5 rounded-xl text-[12.5px] md:text-[13.5px] font-medium transition-all duration-150 hover:translate-x-0.5"
+    className="group relative flex items-center gap-2.5 pl-2.5 pr-2 py-1.75 rounded-md text-[13px] font-medium transition-colors"
+    style={({ isActive }) => ({
+      background: isActive ? T.brandSoft : 'transparent',
+      color: isActive ? T.text : T.textMuted,
+    })}
   >
     {({ isActive }: { isActive: boolean }) => (
       <>
         <span
           aria-hidden
-          className="absolute left-0 top-1/2 -translate-y-1/2 h-4 md:h-5 w-0.75 rounded-full transition-all duration-200"
+          className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 rounded-full transition-opacity"
+          style={{ background: T.brand, opacity: isActive ? 1 : 0 }}
+        />
+        <span
+          className="relative shrink-0 w-6.5 h-6.5 rounded-md flex items-center justify-center transition-colors"
           style={{
-            background: COLOR.primary,
-            opacity: isActive ? 1 : 0,
-            boxShadow: isActive ? `0 0 10px ${COLOR.primary}88` : 'none',
+            background: isActive ? 'rgba(99,102,241,0.18)' : T.surface,
+            boxShadow: `inset 0 0 0 1px ${isActive ? T.brandBorder : T.borderSoft}`,
+            color: isActive ? T.brand : T.textMuted,
           }}
-        />
-        <span
-          aria-hidden
-          className={`absolute inset-0 rounded-xl transition-colors ${
-            isActive
-              ? 'bg-[#FF6A39]/10 ring-1 ring-[#FF6A39]/25'
-              : 'ring-1 ring-transparent group-hover:bg-[#141821] group-hover:ring-[#232938]'
-          }`}
-        />
-        <span
-          className={`relative shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-            isActive
-              ? 'bg-[#FF6A39]/15 ring-1 ring-[#FF6A39]/25'
-              : 'bg-[#141821] ring-1 ring-[#1A1F2B] group-hover:ring-[#232938]'
-          }`}
         >
-          <Icon
-            size={14}
-            className="md:w-3.75 md:h-3.75"
-            strokeWidth={2}
-            style={{ color: isActive ? COLOR.primary : COLOR.textMuted }}
-          />
+          <Icon size={13} strokeWidth={2} />
         </span>
         <span
-          className={`relative flex-1 truncate transition-colors ${
-            isActive ? 'text-[#F2F0EB]' : 'text-[#C7C9CE] group-hover:text-[#F2F0EB]'
-          }`}
+          className="relative flex-1 truncate transition-colors"
+          style={{ color: isActive ? T.text : undefined }}
         >
           {name}
         </span>
         {isActive && (
-          <ChevronRight
-            size={13}
-            className="relative shrink-0 md:w-3.5 md:h-3.5"
-            style={{ color: COLOR.primary }}
-          />
+          <ChevronRight size={12} style={{ color: T.brand }} className="shrink-0" />
         )}
       </>
     )}
@@ -140,7 +127,6 @@ const NavItem = ({ path, name, icon: Icon, onClose }: NavItemProps) => (
 )
 
 /* ─────────────── hooks ─────────────── */
-
 const useEscape = (active: boolean, handler: () => void) => {
   useEffect(() => {
     if (!active) return
@@ -166,15 +152,13 @@ const useClickOutside = <T extends HTMLElement>(active: boolean, handler: () => 
 }
 
 /* ─────────────── profile menu ─────────────── */
-
 interface ProfileMenuProps {
   onClose: () => void
   user: User | null
   loadingUser: boolean
-  compact?: boolean
 }
 
-const ProfileMenu = ({ onClose, user, loadingUser, compact }: ProfileMenuProps) => {
+const ProfileMenu = ({ onClose, user, loadingUser }: ProfileMenuProps) => {
   const navigate = useNavigate()
   const [confirmingLogout, setConfirmingLogout] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
@@ -187,7 +171,6 @@ const ProfileMenu = ({ onClose, user, loadingUser, compact }: ProfileMenuProps) 
       setTimeout(() => setConfirmingLogout(false), 4000)
       return
     }
-
     try {
       setLoggingOut(true)
       await logoutUser()
@@ -209,45 +192,42 @@ const ProfileMenu = ({ onClose, user, loadingUser, compact }: ProfileMenuProps) 
     { label: 'Account settings', icon: UserCog,  onClick: () => { onClose(); navigate('/user/settings') } },
   ]
 
-  const wrapperCls = compact
-    ? 'absolute left-2 right-2 bottom-full mb-2'
-    : 'absolute left-2 right-2 bottom-full mb-2 md:left-2 md:right-2'
-
   return (
     <div
       role="menu"
       aria-label="Profile menu"
-      className={`${wrapperCls} rounded-2xl overflow-hidden float-in`}
+      className="absolute left-2 right-2 bottom-full mb-2 rounded-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
       style={{
-        background: '#141821',
-        boxShadow: 'inset 0 0 0 1px #232938, 0 30px 60px -20px rgba(0,0,0,0.8)',
+        background: T.surface,
+        boxShadow: `inset 0 0 0 1px ${T.border}, 0 24px 48px -16px rgba(0,0,0,0.7)`,
         zIndex: 50,
+        transformOrigin: 'bottom center',
       }}
     >
       {/* Header */}
-      <div className="p-3 border-b" style={{ borderColor: COLOR.border }}>
-        <div className="flex items-center gap-3">
+      <div className="p-3 border-b" style={{ borderColor: T.borderSoft }}>
+        <div className="flex items-center gap-2.5">
           <div
-            className="relative shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background: COLOR.primarySoft, boxShadow: `inset 0 0 0 1px ${COLOR.primaryRing}` }}
+            className="relative shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+            style={{ background: T.brandSoft, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
           >
             {loadingUser ? (
-              <Loader2 size={16} className="animate-spin" style={{ color: COLOR.primary }} />
+              <Loader2 size={14} className="animate-spin" style={{ color: T.brand }} />
             ) : (
-              <span className="text-[12px] font-bold" style={{ color: COLOR.primary, fontFamily: FONT_MONO }}>
+              <span className="text-[11.5px] font-semibold" style={{ color: T.brand, fontFamily: FONT_MONO }}>
                 {initials}
               </span>
             )}
             <span
               className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
-              style={{ background: COLOR.success, borderColor: '#141821', boxShadow: `0 0 8px ${COLOR.success}88` }}
+              style={{ background: T.success, borderColor: T.surface }}
             />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-semibold truncate" style={{ color: COLOR.dark, fontFamily: FONT_DISPLAY }}>
+            <p className="text-[13px] font-semibold truncate" style={{ color: T.text }}>
               {loadingUser ? 'Loading…' : displayName}
             </p>
-            <p className="text-[11px] truncate" style={{ color: COLOR.textMuted, fontFamily: FONT_MONO }}>
+            <p className="text-[11px] truncate mt-0.5" style={{ color: T.textFaint, fontFamily: FONT_MONO }}>
               {loadingUser ? '—' : displayEmail}
             </p>
           </div>
@@ -255,10 +235,10 @@ const ProfileMenu = ({ onClose, user, loadingUser, compact }: ProfileMenuProps) 
 
         {user?.role && (
           <span
-            className="mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-medium"
-            style={{ background: COLOR.primarySoft, color: COLOR.primary, boxShadow: `inset 0 0 0 1px ${COLOR.primaryRing}` }}
+            className="mt-2.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium"
+            style={{ background: T.brandSoft, color: T.brand, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
           >
-            <Shield size={10} />
+            <Shield size={9} />
             {user.role}
           </span>
         )}
@@ -271,28 +251,22 @@ const ProfileMenu = ({ onClose, user, loadingUser, compact }: ProfileMenuProps) 
             key={label}
             role="menuitem"
             onClick={onClick}
-            className="group w-full flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[12.5px] transition-colors"
-            style={{ color: COLOR.textBody }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = COLOR.surface
-              e.currentTarget.style.color = COLOR.dark
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = COLOR.textBody
-            }}
+            className="group w-full flex items-center gap-2.5 rounded-md px-2 py-1.75 text-left text-[12.5px] transition-colors hover:bg-white/5"
+            style={{ color: T.textMuted }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = T.text }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted }}
           >
             <span
-              className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
-              style={{ background: COLOR.inner, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+              className="shrink-0 w-6.5 h-6.5 rounded-md flex items-center justify-center"
+              style={{ background: T.surfaceHi, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
             >
-              <Icon size={13} style={{ color: COLOR.textMuted }} />
+              <Icon size={12} style={{ color: T.textFaint }} />
             </span>
             <span className="flex-1 truncate">{label}</span>
             <ChevronRight
-              size={13}
+              size={12}
               className="shrink-0 transition-transform group-hover:translate-x-0.5"
-              style={{ color: COLOR.border }}
+              style={{ color: T.textFaint }}
             />
           </button>
         ))}
@@ -304,27 +278,27 @@ const ProfileMenu = ({ onClose, user, loadingUser, compact }: ProfileMenuProps) 
           role="menuitem"
           onClick={handleLogout}
           disabled={loggingOut}
-          className="w-full flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[12.5px] font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full flex items-center gap-2.5 rounded-md px-2 py-1.75 text-left text-[12.5px] font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           style={{
-            background: confirmingLogout ? COLOR.dangerSoft : 'transparent',
-            color: COLOR.danger,
-            boxShadow: confirmingLogout ? `inset 0 0 0 1px ${COLOR.dangerRing}` : 'none',
+            background: confirmingLogout ? T.dangerSoft : 'transparent',
+            color: T.danger,
+            boxShadow: confirmingLogout ? `inset 0 0 0 1px ${T.dangerBorder}` : 'none',
           }}
           onMouseEnter={(e) => {
-            if (!confirmingLogout) e.currentTarget.style.background = COLOR.dangerSoft
+            if (!confirmingLogout) e.currentTarget.style.background = T.dangerSoft
           }}
           onMouseLeave={(e) => {
             if (!confirmingLogout) e.currentTarget.style.background = 'transparent'
           }}
         >
           <span
-            className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: COLOR.dangerSoft, boxShadow: `inset 0 0 0 1px ${COLOR.dangerRing}` }}
+            className="shrink-0 w-6.5 h-6.5 rounded-md flex items-center justify-center"
+            style={{ background: T.dangerSoft, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
           >
             {loggingOut ? (
-              <Loader2 size={13} className="animate-spin" style={{ color: COLOR.danger }} />
+              <Loader2 size={12} className="animate-spin" style={{ color: T.danger }} />
             ) : (
-              <LogOut size={13} style={{ color: COLOR.danger }} />
+              <LogOut size={12} style={{ color: T.danger }} />
             )}
           </span>
           <span className="flex-1 truncate">
@@ -337,13 +311,10 @@ const ProfileMenu = ({ onClose, user, loadingUser, compact }: ProfileMenuProps) 
 }
 
 /* ─────────────── sidebar content ─────────────── */
-
 const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
-  const isMobile = !!onClose
   const [profileOpen, setProfileOpen] = useState(false)
   const containerRef = useClickOutside<HTMLDivElement>(profileOpen, () => setProfileOpen(false))
 
-  /* ── Load the real user once, at the sidebar level ── */
   const [user, setUser] = useState<User | null>(null)
   const [loadingUser, setLoadingUser] = useState(true)
 
@@ -359,9 +330,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
         if (!cancelled) setLoadingUser(false)
       }
     })()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
 
   const displayName = user?.username ?? ''
@@ -370,23 +339,23 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
 
   return (
     <>
-      {/* ── Brand row ─────────────────────────────── */}
-      <div className="flex items-center gap-2.5 px-3 md:px-4 h-14 md:h-16 shrink-0 border-b border-[#1A1F2B]">
+      {/* Brand row */}
+      <div className="flex items-center gap-2.5 px-3.5 h-14 shrink-0 border-b" style={{ borderColor: T.borderSoft }}>
         <div
-          className="w-8 h-8 md:w-9 md:h-9 rounded-xl flex items-center justify-center shrink-0"
+          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
           style={{
-            background: 'linear-gradient(135deg, #FF6A39, #FFC24B)',
-            boxShadow: '0 8px 20px -8px rgba(255,106,57,0.6)',
+            background: `linear-gradient(135deg, ${T.brand}, #8B5CF6)`,
+            boxShadow: '0 4px 12px -4px rgba(99,102,241,0.6)',
           }}
         >
-          <span className="text-[13px] md:text-sm font-bold" style={{ color: COLOR.bg }}>M</span>
+          <span className="text-[13px] font-bold text-white">M</span>
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] md:text-[14.5px] font-semibold tracking-tight truncate" style={{ color: COLOR.dark }}>
+          <p className="text-[13px] font-semibold tracking-tight truncate" style={{ color: T.text }}>
             Outwerk Solutions
           </p>
-          <p className="text-[10px] md:text-[10.5px] truncate" style={{ color: COLOR.textMuted, fontFamily: FONT_MONO }}>
+          <p className="text-[10.5px] truncate" style={{ color: T.textFaint, fontFamily: FONT_MONO }}>
             mailforge · v1.4
           </p>
         </div>
@@ -395,30 +364,27 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
           <button
             onClick={onClose}
             aria-label="Close menu"
-            className="lg:hidden shrink-0 p-1.5 rounded-lg transition-colors"
-            style={{ color: COLOR.textMuted }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = COLOR.surface)}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            className="lg:hidden shrink-0 p-1.5 rounded-md transition-colors hover:bg-white/5"
+            style={{ color: T.textMuted }}
           >
             <X size={16} />
           </button>
         )}
       </div>
 
-      {/* ── Nav ───────────────────────────────────── */}
-      <nav className="sb-nav flex-1 overflow-y-auto px-2 md:px-3 py-4 md:py-5 space-y-5 md:space-y-6">
+      {/* Nav */}
+      <nav className="sb-nav flex-1 overflow-y-auto px-2 py-4 space-y-5">
         {navGroups.map((group) => (
           <div key={group.label}>
-            <div className="flex items-center gap-2 px-3 mb-2">
+            <div className="flex items-center gap-2 px-2.5 mb-1.5">
               <p
-                className="text-[9.5px] md:text-[10px] font-semibold uppercase"
-                style={{ color: COLOR.textMuted, letterSpacing: '0.12em' }}
+                className="text-[10px] font-semibold uppercase"
+                style={{ color: T.textFaint, letterSpacing: '0.1em' }}
               >
                 {group.label}
               </p>
-              <span className="flex-1 h-px" style={{ background: COLOR.border }} />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {group.items.map((item) => (
                 <NavItem key={item.path} {...item} onClose={onClose} />
               ))}
@@ -427,13 +393,31 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
         ))}
       </nav>
 
-      {/* ── Footer / profile ──────────────────────── */}
-      <div ref={containerRef} className="relative px-2 md:px-3 py-3 md:py-4 shrink-0 border-t border-[#1A1F2B]">
+      {/* Help link */}
+      <div className="px-2 pb-1">
+        <a
+          href="https://docs.example.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-2.5 pl-2.5 pr-2 py-1.75 rounded-md text-[12.5px] font-medium transition-colors hover:bg-white/5"
+          style={{ color: T.textMuted }}
+        >
+          <span
+            className="shrink-0 w-6.5 h-6.5 rounded-md flex items-center justify-center"
+            style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+          >
+            <HelpCircle size={13} style={{ color: T.textMuted }} />
+          </span>
+          <span className="flex-1 truncate">Help &amp; docs</span>
+        </a>
+      </div>
+
+      {/* Footer / profile */}
+      <div ref={containerRef} className="relative px-2 py-2.5 shrink-0 border-t" style={{ borderColor: T.borderSoft }}>
         {profileOpen && (
           <ProfileMenu
             user={user}
             loadingUser={loadingUser}
-            compact={isMobile}
             onClose={() => setProfileOpen(false)}
           />
         )}
@@ -443,45 +427,43 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
           onClick={() => setProfileOpen((o) => !o)}
           aria-haspopup="menu"
           aria-expanded={profileOpen}
-          className="group w-full flex items-center gap-2.5 md:gap-3 px-2 md:px-2.5 py-2 md:py-2.5 rounded-xl transition-colors text-left"
+          className="group w-full flex items-center gap-2.5 px-2 py-1.75 rounded-md transition-colors text-left"
           style={{
-            background: profileOpen ? COLOR.surface : 'transparent',
-            boxShadow: profileOpen
-              ? `inset 0 0 0 1px ${COLOR.borderHover}`
-              : 'inset 0 0 0 1px transparent',
+            background: profileOpen ? T.surface : 'transparent',
+            boxShadow: profileOpen ? `inset 0 0 0 1px ${T.border}` : 'inset 0 0 0 1px transparent',
           }}
         >
           <div
-            className="relative shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-xl flex items-center justify-center"
-            style={{ background: COLOR.primarySoft, boxShadow: `inset 0 0 0 1px ${COLOR.primaryRing}` }}
+            className="relative shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{ background: T.brandSoft, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
           >
             {loadingUser ? (
-              <Loader2 size={14} className="animate-spin" style={{ color: COLOR.primary }} />
+              <Loader2 size={13} className="animate-spin" style={{ color: T.brand }} />
             ) : (
-              <span className="text-[10.5px] md:text-[11.5px] font-bold" style={{ color: COLOR.primary, fontFamily: FONT_MONO }}>
+              <span className="text-[10.5px] font-semibold" style={{ color: T.brand, fontFamily: FONT_MONO }}>
                 {initials}
               </span>
             )}
             <span
               className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
-              style={{ background: COLOR.success, borderColor: COLOR.panelTop, boxShadow: `0 0 8px ${COLOR.success}88` }}
+              style={{ background: T.success, borderColor: T.panelTop }}
             />
           </div>
 
           <div className="flex-1 min-w-0">
             {loadingUser ? (
               <>
-                <div className="h-2.5 w-24 rounded bg-[#1A1F2B] animate-pulse" />
-                <div className="h-2.25 w-32 rounded bg-[#1A1F2B] animate-pulse mt-1.5" />
+                <div className="h-2.5 w-24 rounded animate-pulse" style={{ background: T.surfaceHi }} />
+                <div className="h-2 w-32 rounded animate-pulse mt-1.5" style={{ background: T.surfaceHi }} />
               </>
             ) : (
               <>
-                <p className="text-[12px] md:text-[13px] font-semibold truncate" style={{ color: COLOR.dark }}>
+                <p className="text-[12.5px] font-semibold truncate" style={{ color: T.text }}>
                   {displayName || 'Signed in'}
                 </p>
                 <p
-                  className="text-[10px] md:text-[11px] truncate"
-                  style={{ color: COLOR.textMuted, fontFamily: FONT_MONO }}
+                  className="text-[10.5px] truncate mt-0.5"
+                  style={{ color: T.textFaint, fontFamily: FONT_MONO }}
                 >
                   {displayEmail || '—'}
                 </p>
@@ -490,9 +472,9 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
           </div>
 
           <ChevronRight
-            size={14}
-            className={`shrink-0 transition-all ${profileOpen ? 'rotate-90' : 'group-hover:translate-x-0.5'}`}
-            style={{ color: profileOpen ? COLOR.primary : COLOR.border }}
+            size={13}
+            className={`shrink-0 transition-transform ${profileOpen ? 'rotate-90' : 'group-hover:translate-x-0.5'}`}
+            style={{ color: profileOpen ? T.brand : T.textFaint }}
           />
         </button>
       </div>
@@ -501,7 +483,6 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
 }
 
 /* ─────────────── desktop sidebar ─────────────── */
-
 interface SidebarProps {
   onClose?: () => void
 }
@@ -511,21 +492,24 @@ const Sidebar = ({ onClose }: SidebarProps) => {
 
   return (
     <div
-      className={`h-screen flex flex-col ${isMobile ? 'w-72' : 'w-64 md:w-64'}`}
+      className={`h-screen flex flex-col ${isMobile ? 'w-72' : 'w-64'}`}
       style={{
-        background: `linear-gradient(180deg, ${COLOR.panelTop} 0%, ${COLOR.panel} 100%)`,
-        borderRight: `1px solid ${COLOR.border}`,
-        boxShadow: 'inset -1px 0 0 rgba(255,255,255,0.02)',
+        background: `linear-gradient(180deg, ${T.panelTop} 0%, ${T.panel} 100%)`,
+        borderRight: `1px solid ${T.borderSoft}`,
       }}
     >
       <style>{`
-        .sb-nav::-webkit-scrollbar { width: 6px; }
+        .sb-nav::-webkit-scrollbar { width: 5px; }
         .sb-nav::-webkit-scrollbar-track { background: transparent; }
-        .sb-nav::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 10px; }
-        .sb-nav::-webkit-scrollbar-thumb:hover { background: #2A2F3B; }
+        .sb-nav::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
+        .sb-nav::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
 
-        @keyframes floatIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-        .float-in { animation: floatIn 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes zoomIn { from { transform: scale(0.96); } to { transform: scale(1); } }
+        .animate-in { animation-fill-mode: both; }
+        .fade-in { animation: fadeIn 0.15s ease; }
+        .zoom-in-95 { animation: zoomIn 0.15s ease; }
+        @media (prefers-reduced-motion: reduce) { .fade-in, .zoom-in-95 { animation: none !important; } }
       `}</style>
 
       <SidebarContent onClose={onClose} />
@@ -533,13 +517,12 @@ const Sidebar = ({ onClose }: SidebarProps) => {
   )
 }
 
-/* ─────────────── mobile helpers (unchanged API) ─────────────── */
-
+/* ─────────────── mobile helpers ─────────────── */
 export const MobileMenuButton = ({ onClick }: { onClick: () => void }) => (
   <button
     onClick={onClick}
-    className="lg:hidden p-2 rounded-xl bg-[#141821] text-[#C7C9CE] hover:text-[#E8E6E1] transition-colors"
-    style={{ boxShadow: 'inset 0 0 0 1px #1A1F2B' }}
+    className="lg:hidden p-2 rounded-md transition-colors hover:bg-white/5"
+    style={{ background: T.surface, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
     aria-label="Toggle menu"
   >
     <Menu size={18} />
@@ -548,9 +531,9 @@ export const MobileMenuButton = ({ onClick }: { onClick: () => void }) => (
 
 export const MobileOverlay = ({ onClick }: { onClick: () => void }) => (
   <div
-    className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+    className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
     onClick={onClick}
-    style={{ animation: 'fadeIn 0.2s ease-in-out' }}
+    style={{ animation: 'fadeIn 0.15s ease' }}
   />
 )
 
@@ -562,7 +545,7 @@ export const MobileSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
       <MobileOverlay onClick={onClose} />
       <div
         className="fixed top-0 left-0 z-50 h-screen lg:hidden"
-        style={{ animation: 'slideIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)' }}
+        style={{ animation: 'slideIn 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)' }}
       >
         <Sidebar onClose={onClose} />
       </div>
@@ -570,7 +553,7 @@ export const MobileSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
         @media (prefers-reduced-motion: reduce) {
-          .animate-fadeIn, .animate-slideIn { animation: none !important; }
+          .fade-in, .zoom-in-95 { animation: none !important; }
         }
       `}</style>
     </>
@@ -578,7 +561,6 @@ export const MobileSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
 }
 
 /* ─────────────── wrapper ─────────────── */
-
 const SidebarWithMobile = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
 
@@ -591,20 +573,20 @@ const SidebarWithMobile = () => {
       <div
         className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-3 py-2.5"
         style={{
-          background: 'rgba(14,19,28,0.85)',
+          background: 'rgba(13,15,21,0.85)',
           backdropFilter: 'blur(10px)',
-          borderBottom: `1px solid ${COLOR.border}`,
+          borderBottom: `1px solid ${T.borderSoft}`,
         }}
       >
         <MobileMenuButton onClick={() => setIsMobileOpen(true)} />
         <div className="flex items-center gap-2 min-w-0">
           <div
-            className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: 'linear-gradient(135deg, #FF6A39, #FFC24B)' }}
+            className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+            style={{ background: `linear-gradient(135deg, ${T.brand}, #8B5CF6)` }}
           >
-            <span className="text-[10px] font-bold" style={{ color: COLOR.bg }}>M</span>
+            <span className="text-[10px] font-bold text-white">M</span>
           </div>
-          <span className="text-[14px] font-semibold truncate" style={{ color: COLOR.dark }}>
+          <span className="text-[14px] font-semibold truncate" style={{ color: T.text }}>
             Outwerk Solutions
           </span>
         </div>

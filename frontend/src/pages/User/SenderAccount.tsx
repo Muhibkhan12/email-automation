@@ -7,11 +7,45 @@ import {
 import { SenderAccContext } from "../../contexts/SenderAccountsContext";
 import type { SenderAccount } from "../../types/SenderAccount";
 
+/* ─────────────── design tokens ─────────────── */
+
+const T = {
+  bg:          "#0A0B10",
+  surface:     "#111319",
+  surface2:    "#161922",
+  surfaceHi:   "#1B1F2A",
+  border:      "#232838",
+  borderSoft:  "#1B1F2A",
+  text:        "#E9EBF0",
+  textMuted:   "#9CA3B4",
+  textFaint:   "#6B7280",
+  brand:       "#6366F1",
+  brandSoft:   "rgba(99,102,241,0.12)",
+  brandBorder: "rgba(99,102,241,0.35)",
+  success:     "#22C55E",
+  successSoft: "rgba(34,197,94,0.12)",
+  successBorder:"rgba(34,197,94,0.35)",
+  warn:        "#F59E0B",
+  warnSoft:    "rgba(245,158,11,0.12)",
+  warnBorder:  "rgba(245,158,11,0.35)",
+  danger:      "#EF4444",
+  dangerSoft:  "rgba(239,68,68,0.12)",
+  dangerBorder:"rgba(239,68,68,0.35)",
+  info:        "#38BDF8",
+  infoSoft:    "rgba(56,189,248,0.12)",
+  infoBorder:  "rgba(56,189,248,0.35)",
+  purple:      "#A78BFA",
+  purpleSoft:  "rgba(167,139,250,0.12)",
+  purpleBorder:"rgba(167,139,250,0.35)",
+}
+
 const FONT = {
-  display: "'Space Grotesk', sans-serif",
-  body: "'Inter', sans-serif",
-  mono: "'JetBrains Mono', monospace",
-};
+  display: "'Inter', system-ui, -apple-system, sans-serif",
+  body:    "'Inter', system-ui, -apple-system, sans-serif",
+  mono:    "'JetBrains Mono', ui-monospace, monospace",
+}
+
+const RING = `inset 0 0 0 1px ${T.border}`
 
 /* ─────────────── helpers ─────────────── */
 
@@ -25,9 +59,9 @@ const providerMeta: Record<Provider, { short: string; grad: string; ring: string
 };
 
 const statusMeta: Record<AccountStatus, { fg: string; bg: string; ring: string; icon: React.ComponentType<{ size?: number }> }> = {
-  Active:       { fg: "#34D399", bg: "rgba(52,211,153,0.10)",  ring: "rgba(52,211,153,0.22)",  icon: CheckCircle2 },
-  Warning:      { fg: "#FBBF24", bg: "rgba(251,191,36,0.10)",  ring: "rgba(251,191,36,0.22)",  icon: AlertTriangle },
-  Disconnected: { fg: "#F87171", bg: "rgba(248,113,113,0.10)", ring: "rgba(248,113,113,0.22)", icon: XCircle },
+  Active:       { fg: T.success, bg: T.successSoft, ring: T.successBorder, icon: CheckCircle2 },
+  Warning:      { fg: T.warn,    bg: T.warnSoft,    ring: T.warnBorder,    icon: AlertTriangle },
+  Disconnected: { fg: T.danger,  bg: T.dangerSoft,  ring: T.dangerBorder,  icon: XCircle },
 };
 
 const pct = (used: number, limit: number) => (limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0);
@@ -90,224 +124,209 @@ const SenderAccountsPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: "#0B0E13" }}>
+    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: T.bg }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 1s linear infinite; }
-        @keyframes ping { 75%, 100% { transform: scale(2.4); opacity: 0; } }
-        .ping { animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite; }
-        @keyframes floatIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-        .float-in { animation: floatIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
-
-        .sa-main::-webkit-scrollbar { width: 10px; }
+        .sa-main::-webkit-scrollbar { width: 8px; }
         .sa-main::-webkit-scrollbar-track { background: transparent; }
-        .sa-main::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 10px; border: 2px solid #0B0E13; }
-        .sa-main::-webkit-scrollbar-thumb:hover { background: #2A2F3B; }
-
-        .soft-ring { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 1px 0 rgba(255,255,255,0.02); }
-        .glow-top {
-          background:
-            radial-gradient(900px 240px at 50% -80px, rgba(255,106,57,0.10), transparent 70%),
-            radial-gradient(700px 200px at 20% -60px, rgba(52,211,153,0.06), transparent 70%);
-        }
-        select option { background: #141823; color: #E8E6E1; }
+        .sa-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
+        .sa-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
+        select option { background: ${T.surface}; color: ${T.text}; }
+        @media (prefers-reduced-motion: reduce) { .spin { animation: none !important; } }
       `}</style>
 
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+          className="lg:hidden fixed inset-0 z-40 bg-black/70"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <div className={`
-        fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-300 ease-out
+        fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-200 ease-out
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      <main className="sa-main flex-1 overflow-y-auto" style={{ height: "100vh", width: "100%", background: "#0B0E13" }}>
-        <div className="glow-top">
-          <div className="max-w-[1160px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
+      <main className="sa-main flex-1 overflow-y-auto" style={{ height: "100vh", width: "100%", background: T.bg }}>
+        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1160 }}>
 
-            {/* ── Header ─────────────────────────── */}
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8 md:mb-10">
-              <div className="flex items-start gap-3 md:gap-4">
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="lg:hidden mt-1 p-2 rounded-2xl text-[#C7C9CE] transition-colors soft-ring"
-                  style={{ background: "#141823" }}
-                >
-                  <Menu size={18} />
-                </button>
-                <div>
-                  <div className="flex items-center gap-2 mb-2.5">
-                    <span
-                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                      style={{ background: "rgba(52,211,153,0.10)", color: "#34D399", boxShadow: "inset 0 0 0 1px rgba(52,211,153,0.20)" }}
-                    >
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 ping" />
-                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      </span>
-                      {activeCount} active sender{activeCount === 1 ? "" : "s"}
-                    </span>
-                    <span className="text-[11px]" style={{ color: "#5A6172", fontFamily: FONT.mono }}>
-                      · {senderAcc.length} total
-                    </span>
-                  </div>
-
-                  <h1
-                    style={{ fontFamily: FONT.display, letterSpacing: "-0.025em", color: "#F2F0EB" }}
-                    className="text-[28px] md:text-[34px] lg:text-[40px] font-bold leading-[1.05]"
-                  >
-                    Sender accounts
-                  </h1>
-                  <p className="mt-2 text-[14px] md:text-[15px] max-w-lg" style={{ color: "#8A90A0" }}>
-                    Manage the accounts used to send your campaigns.
-                  </p>
-                </div>
-              </div>
-
+          {/* Header */}
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
+            <div className="flex items-start gap-3">
               <button
-                onClick={handleAddAccount}
-                className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[13px] font-semibold self-start md:self-auto transition-all hover:-translate-y-0.5"
-                style={{ background: "#FF6A39", color: "#fff", boxShadow: "0 12px 30px -12px rgba(255,106,57,0.65)" }}
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden mt-1 p-2 rounded-lg transition-colors hover:bg-white/5"
+                style={{ background: T.surface, color: T.textMuted, boxShadow: RING }}
+                aria-label="Open menu"
               >
-                <Plus size={15} />
-                Add sender account
+                <Menu size={18} />
               </button>
-            </header>
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
+                    style={{ background: T.successSoft, color: T.success, boxShadow: `inset 0 0 0 1px ${T.successBorder}` }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.success }} />
+                    {activeCount} active sender{activeCount === 1 ? "" : "s"}
+                  </span>
+                  <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                    · {senderAcc.length} total
+                  </span>
+                </div>
 
-            {/* ── Summary bar ────────────────────── */}
-            <div
-              className="float-in mb-6 md:mb-8 rounded-3xl overflow-hidden soft-ring"
-              style={{ background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" }}
-            >
-              <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-[#1A1F2B]">
-                <SummaryTile icon={Layers}       label="Total accounts"   value={String(senderAcc.length)}        tone="#9BA0A8" />
-                <SummaryTile icon={CheckCircle2} label="Active"           value={String(activeCount)}             tone="#34D399" />
-                <SummaryTile icon={Mail}         label="Emails today"     value={emailsToday.toLocaleString()}    tone="#60A5FA" />
-                <SummaryTile icon={Gauge}        label="Daily capacity"   value={dailyCapacity.toLocaleString()}  tone="#A78BFA" />
+                <h1 className="text-[26px] md:text-[30px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
+                  Sender accounts
+                </h1>
+                <p className="mt-1 text-[13.5px] max-w-lg" style={{ color: T.textMuted }}>
+                  Manage the accounts used to send your campaigns.
+                </p>
               </div>
             </div>
 
-            {/* ── Accounts list ─────────────────── */}
-            <section className="rounded-3xl overflow-hidden soft-ring mb-6 md:mb-8"
-              style={{ background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" }}>
-              <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 md:px-6 py-4 border-b border-[#1A1F2B]">
-                <div>
-                  <h2 className="text-[15px] font-semibold flex items-center gap-2" style={{ color: "#F2F0EB" }}>
-                    <Inbox size={15} className="text-[#FF6A39]" />
-                    Your accounts
-                  </h2>
-                  <p className="text-[12px] mt-0.5" style={{ color: "#7A8092" }}>
-                    Monitor health and sending capacity.
-                  </p>
-                </div>
+            <button
+              onClick={handleAddAccount}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium self-start md:self-auto transition-all hover:brightness-110"
+              style={{ background: T.brand, color: "#fff", boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+            >
+              <Plus size={14} />
+              Add sender account
+            </button>
+          </header>
 
-                <div className="relative w-full sm:w-64">
-                  <Search
-                    size={14}
-                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
-                    style={{ color: "#6A7080" }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search accounts…"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full rounded-2xl py-2 pl-9 pr-9 text-[13px] outline-none transition-all"
-                    style={{ background: "#0F131C", color: "#E8E6E1", boxShadow: "inset 0 0 0 1px #1A1F2B" }}
-                    onFocus={(e) => (e.currentTarget.style.boxShadow = "inset 0 0 0 1px rgba(255,106,57,0.5)")}
-                    onBlur={(e)  => (e.currentTarget.style.boxShadow = "inset 0 0 0 1px #1A1F2B")}
-                  />
-                  {search && (
-                    <button
-                      onClick={() => setSearch("")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#6A7080] hover:text-[#E8E6E1] px-1.5 py-0.5 rounded hover:bg-[#1B2130] transition-colors"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-              </header>
+          {/* Summary strip */}
+          <div
+            className="mb-5 md:mb-6 rounded-xl overflow-hidden"
+            style={{ background: T.surface, boxShadow: RING }}
+          >
+            <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x" style={{ borderColor: T.borderSoft }}>
+              <SummaryTile icon={Layers}       label="Total accounts"  value={String(senderAcc.length)}       tone={T.textMuted} />
+              <SummaryTile icon={CheckCircle2} label="Active"          value={String(activeCount)}            tone={T.success} />
+              <SummaryTile icon={Mail}         label="Emails today"    value={emailsToday.toLocaleString()}   tone={T.info} />
+              <SummaryTile icon={Gauge}        label="Daily capacity"  value={dailyCapacity.toLocaleString()} tone={T.purple} />
+            </div>
+          </div>
 
-              {/* Loading */}
-              {loading && senderAcc.length === 0 && (
-                <div className="flex items-center justify-center gap-2 py-16">
-                  <Loader2 size={16} className="spin text-[#FF6A39]" />
-                  <span className="text-[13px]" style={{ color: "#7A8092" }}>Loading sender accounts…</span>
-                </div>
-              )}
+          {/* Accounts panel */}
+          <section className="rounded-xl overflow-hidden mb-6" style={{ background: T.surface, boxShadow: RING }}>
+            <header
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 md:px-5 py-3"
+              style={{ borderBottom: `1px solid ${T.borderSoft}` }}
+            >
+              <div>
+                <h2 className="text-[13px] font-semibold flex items-center gap-2" style={{ color: T.text }}>
+                  <Inbox size={14} style={{ color: T.brand }} />
+                  Your accounts
+                </h2>
+                <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
+                  Monitor health and sending capacity.
+                </p>
+              </div>
 
-              {/* List */}
-              {filteredAccounts.length > 0 && (
-                <ul>
-                  {filteredAccounts.map((account, i) => (
-                    <SenderAccountRow
-                      key={account.id}
-                      account={account as any}
-                      first={i === 0}
-                      onDelete={() => handleDelete(account.id)}
-                      onReconnect={handleAddAccount}
-                    />
-                  ))}
-                </ul>
-              )}
-
-              {/* Empty */}
-              {!loading && senderAcc.length === 0 && (
-                <div className="text-center py-16 px-6">
-                  <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center"
-                    style={{ background: "#1B2130", boxShadow: "inset 0 0 0 1px #232938" }}>
-                    <Mail className="w-6 h-6 text-[#6A7080]" />
-                  </div>
-                  <p className="text-[14px] font-medium" style={{ color: "#F2F0EB" }}>No sender accounts yet</p>
-                  <p className="text-[12px] mt-1.5 mb-5" style={{ color: "#7A8092" }}>
-                    Connect a Microsoft account to start sending campaigns.
-                  </p>
-                  <button
-                    onClick={handleAddAccount}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5"
-                    style={{ background: "#FF6A39", boxShadow: "0 12px 30px -12px rgba(255,106,57,0.65)" }}
-                  >
-                    <Plus size={15} />
-                    Add sender account
-                  </button>
-                </div>
-              )}
-
-              {/* No matches */}
-              {senderAcc.length > 0 && filteredAccounts.length === 0 && (
-                <div className="text-center py-14 px-6">
-                  <div className="w-12 h-12 mx-auto mb-3 rounded-2xl flex items-center justify-center"
-                    style={{ background: "#1B2130", boxShadow: "inset 0 0 0 1px #232938" }}>
-                    <Search className="w-5 h-5 text-[#6A7080]" />
-                  </div>
-                  <p className="text-[13.5px]" style={{ color: "#DADEE7" }}>
-                    No accounts match "{search}"
-                  </p>
+              <div className="relative w-full sm:w-64">
+                <Search
+                  size={13}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
+                  style={{ color: T.textFaint }}
+                />
+                <input
+                  type="text"
+                  placeholder="Search accounts…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full rounded-md py-2 pl-8 pr-16 text-[12.5px] outline-none transition-shadow"
+                  style={{ background: T.surface2, color: T.text, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                  onFocus={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brand}, 0 0 0 3px ${T.brandSoft}`)}
+                  onBlur={(e)  => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.borderSoft}`)}
+                />
+                {search && (
                   <button
                     onClick={() => setSearch("")}
-                    className="mt-3 text-[12px] font-medium transition-colors"
-                    style={{ color: "#FF6A39" }}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10.5px] px-1.5 py-0.5 rounded transition-colors hover:bg-white/5"
+                    style={{ color: T.textFaint }}
                   >
-                    Clear search
+                    Clear
                   </button>
+                )}
+              </div>
+            </header>
+
+            {loading && senderAcc.length === 0 && (
+              <div className="flex items-center justify-center gap-2 py-16">
+                <Loader2 size={15} className="spin" style={{ color: T.brand }} />
+                <span className="text-[12.5px]" style={{ color: T.textMuted }}>Loading sender accounts…</span>
+              </div>
+            )}
+
+            {filteredAccounts.length > 0 && (
+              <ul>
+                {filteredAccounts.map((account, i) => (
+                  <SenderAccountRow
+                    key={account.id}
+                    account={account as any}
+                    first={i === 0}
+                    onDelete={() => handleDelete(account.id)}
+                    onReconnect={handleAddAccount}
+                  />
+                ))}
+              </ul>
+            )}
+
+            {!loading && senderAcc.length === 0 && (
+              <div className="text-center py-16 px-6">
+                <div
+                  className="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center"
+                  style={{ background: T.surface2 }}
+                >
+                  <Mail className="w-5 h-5" style={{ color: T.textFaint }} />
                 </div>
-              )}
-            </section>
-          </div>
+                <p className="text-[14px] font-medium" style={{ color: T.text }}>No sender accounts yet</p>
+                <p className="text-[12px] mt-1.5 mb-5" style={{ color: T.textMuted }}>
+                  Connect a Microsoft account to start sending campaigns.
+                </p>
+                <button
+                  onClick={handleAddAccount}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium transition-all hover:brightness-110"
+                  style={{ background: T.brand, color: "#fff" }}
+                >
+                  <Plus size={13} />
+                  Add sender account
+                </button>
+              </div>
+            )}
+
+            {senderAcc.length > 0 && filteredAccounts.length === 0 && (
+              <div className="text-center py-14 px-6">
+                <div
+                  className="w-10 h-10 mx-auto mb-3 rounded-lg flex items-center justify-center"
+                  style={{ background: T.surface2 }}
+                >
+                  <Search className="w-4 h-4" style={{ color: T.textFaint }} />
+                </div>
+                <p className="text-[12.5px]" style={{ color: T.textMuted }}>
+                  No accounts match "{search}"
+                </p>
+                <button
+                  onClick={() => setSearch("")}
+                  className="mt-2.5 text-[11.5px] font-medium"
+                  style={{ color: T.brand }}
+                >
+                  Clear search
+                </button>
+              </div>
+            )}
+          </section>
         </div>
       </main>
     </div>
   );
 };
 
-/* ─────────────── Summary tile ─────────────── */
+/* ─────────────── summary tile ─────────────── */
 
 const SummaryTile: React.FC<{
   icon: React.ComponentType<{ size?: number; className?: string }>;
@@ -315,76 +334,58 @@ const SummaryTile: React.FC<{
   value: string;
   tone: string;
 }> = ({ icon: Icon, label, value, tone }) => (
-  <div className="p-5 md:p-6">
-    <div className="flex items-center gap-2 mb-3">
+  <div className="p-4">
+    <div className="flex items-center gap-2 mb-2">
       <div
-        className="w-8 h-8 rounded-xl flex items-center justify-center"
-        style={{ background: `${tone}14`, boxShadow: `inset 0 0 0 1px ${tone}2E` }}
+        className="w-7 h-7 rounded-md flex items-center justify-center"
+        style={{ background: `${tone}14`, color: tone }}
       >
-        <Icon size={14} style={{ color: tone }} />
+        <Icon size={13} />
       </div>
-      <span className="text-[11.5px] uppercase tracking-wider font-medium" style={{ color: "#6A7080" }}>
+      <span className="text-[10.5px] uppercase tracking-wider font-medium" style={{ color: T.textFaint }}>
         {label}
       </span>
     </div>
-    <p className="text-[28px] md:text-[32px] font-bold leading-none tracking-tight"
-      style={{ color: "#F2F0EB", fontFamily: FONT.mono }}>
+    <p className="text-[24px] font-semibold leading-none tracking-tight"
+      style={{ color: T.text, fontFamily: FONT.mono }}>
       {value}
     </p>
   </div>
 );
 
-/* ─────────────── Usage ring (SVG) ─────────────── */
+/* ─────────────── usage bar (replaces ring) ─────────────── */
 
-const UsageRing: React.FC<{
+const UsageBar: React.FC<{
   label: string;
   current: number;
   limit: number;
   pct: number;
-  size?: number;
-}> = ({ label, current, limit, pct, size = 76 }) => {
-  const stroke = 6;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const offset = c - (pct / 100) * c;
-
-  const tone = pct >= 90 ? "#F87171" : pct >= 70 ? "#FBBF24" : "#FF6A39";
-
+}> = ({ label, current, limit, pct }) => {
+  const tone = pct >= 90 ? T.danger : pct >= 70 ? T.warn : T.brand;
   return (
-    <div className="flex items-center gap-3">
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} className="-rotate-90">
-          <circle
-            cx={size / 2} cy={size / 2} r={r}
-            stroke="#1B2130" strokeWidth={stroke} fill="none"
-          />
-          <circle
-            cx={size / 2} cy={size / 2} r={r}
-            stroke={tone} strokeWidth={stroke} fill="none"
-            strokeDasharray={c} strokeDashoffset={offset}
-            strokeLinecap="round"
-            style={{ transition: "stroke-dashoffset 0.5s ease, stroke 0.3s ease" }}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[14px] font-bold font-mono leading-none" style={{ color: "#F2F0EB" }}>
-            {pct}%
-          </span>
-        </div>
+    <div>
+      <div className="flex items-baseline justify-between gap-2 mb-1.5">
+        <span className="text-[10.5px] uppercase tracking-wider" style={{ color: T.textFaint }}>
+          {label}
+        </span>
+        <span className="text-[11px] tabular-nums" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+          {current.toLocaleString()} <span style={{ color: T.textFaint }}>/ {limit.toLocaleString()}</span>
+        </span>
       </div>
-      <div className="min-w-0">
-        <p className="text-[11px] uppercase tracking-wider" style={{ color: "#6A7080" }}>{label}</p>
-        <p className="text-[13px] font-semibold mt-0.5" style={{ color: "#DADEE7", fontFamily: FONT.mono }}>
-          {current.toLocaleString()}
-          <span style={{ color: "#4A5162" }}> / </span>
-          {limit.toLocaleString()}
-        </p>
+      <div className="h-1 rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${pct}%`, background: tone }}
+        />
       </div>
+      <p className="text-[10px] mt-1 tabular-nums" style={{ color: tone, fontFamily: FONT.mono }}>
+        {pct}% used
+      </p>
     </div>
   );
 };
 
-/* ─────────────── Account row ─────────────── */
+/* ─────────────── account row ─────────────── */
 
 type AccountWithCampaigns = SenderAccount & { campaigns?: number };
 
@@ -407,84 +408,86 @@ const SenderAccountRow: React.FC<{
   const hourlyPct = pct(sentThisHour, hourlyLimit);
   const disconnected = status === "Disconnected";
   const campaigns = account.campaigns ?? 0;
+  const StatusIcon = s.icon;
 
   return (
     <li
-      className={`px-4 md:px-6 py-5 transition-colors hover:bg-[#11151E] ${disconnected ? "opacity-70" : ""}`}
-      style={{ borderTop: first ? "none" : "1px solid #1A1F2B" }}
+      className={`px-4 md:px-5 py-4 transition-colors hover:bg-white/[0.02] ${disconnected ? "opacity-75" : ""}`}
+      style={{ borderTop: first ? "none" : `1px solid ${T.borderSoft}` }}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
 
-        {/* Provider + identity */}
-        <div className="lg:col-span-5 flex items-center gap-4 min-w-0">
+        {/* Identity */}
+        <div className="lg:col-span-5 flex items-center gap-3 min-w-0">
           <div
-            className="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center text-[15px] font-bold text-white"
-            style={{ background: p.grad, boxShadow: `0 0 0 3px ${p.ring}, 0 6px 18px -8px ${p.fg}66` }}
+            className="shrink-0 w-9 h-9 rounded-md flex items-center justify-center text-[12px] font-bold text-white"
+            style={{ background: p.grad, boxShadow: `0 0 0 2px ${T.surface}, 0 0 0 3px ${p.ring}` }}
           >
             {p.short}
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-[14.5px] font-semibold truncate" style={{ color: "#F2F0EB" }}>
+              <h3 className="text-[13px] font-semibold truncate" style={{ color: T.text }}>
                 {account.email}
               </h3>
               <span
-                className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
+                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap"
                 style={{ background: s.bg, color: s.fg, boxShadow: `inset 0 0 0 1px ${s.ring}` }}
               >
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: s.fg, boxShadow: `0 0 6px ${s.fg}` }} />
+                <StatusIcon size={9} />
                 {status}
               </span>
             </div>
-            <p className="text-[12px] mt-1 truncate" style={{ color: "#7A8092" }}>
-              {account.display_name} <span style={{ color: "#4A5162" }}>·</span>{" "}
+            <p className="text-[11px] mt-0.5 truncate" style={{ color: T.textFaint }}>
+              {account.display_name} <span style={{ color: T.border }}>·</span>{" "}
               <span style={{ fontFamily: FONT.mono }}>{account.provider}</span>
             </p>
-            <p className="text-[11px] mt-1" style={{ color: "#5A6172" }}>
-              {campaigns} campaign{campaigns !== 1 && "s"} using this account
+            <p className="text-[10.5px] mt-0.5" style={{ color: T.textFaint }}>
+              {campaigns} campaign{campaigns !== 1 && "s"}
             </p>
           </div>
         </div>
 
-        {/* Usage rings */}
-        <div className="lg:col-span-4 grid grid-cols-2 gap-3">
-          <UsageRing label="Daily" current={sentToday} limit={dailyLimit} pct={dailyPct} />
-          <UsageRing label="Hourly" current={sentThisHour} limit={hourlyLimit} pct={hourlyPct} />
+        {/* Usage bars */}
+        <div className="lg:col-span-4 grid grid-cols-2 gap-4">
+          <UsageBar label="Daily"  current={sentToday}    limit={dailyLimit}  pct={dailyPct} />
+          <UsageBar label="Hourly" current={sentThisHour} limit={hourlyLimit} pct={hourlyPct} />
         </div>
 
         {/* Actions */}
-        <div className="lg:col-span-3 flex items-center lg:justify-end gap-2 flex-wrap">
+        <div className="lg:col-span-3 flex items-center lg:justify-end gap-1.5 flex-wrap">
           {disconnected ? (
             <button
               onClick={onReconnect}
-              className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[12px] font-semibold text-white transition-all hover:-translate-y-0.5"
-              style={{ background: "#FF6A39", boxShadow: "0 10px 24px -10px rgba(255,106,57,0.6)" }}
+              className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium text-white transition-all hover:brightness-110"
+              style={{ background: T.brand }}
             >
-              <Wifi size={13} /> Reconnect
+              <Wifi size={12} /> Reconnect
             </button>
           ) : (
             <button
-              className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[12px] font-medium transition-all"
-              style={{ background: "#0F131C", color: "#DADEE7", boxShadow: "inset 0 0 0 1px #1A1F2B" }}
+              className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:bg-white/5"
+              style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
             >
-              <Zap size={13} /> Test
+              <Zap size={12} /> Test
             </button>
           )}
 
           <button
-            className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[12px] font-medium transition-all"
-            style={{ background: "#0F131C", color: "#DADEE7", boxShadow: "inset 0 0 0 1px #1A1F2B" }}
+            className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:bg-white/5"
+            style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
           >
-            <Settings2 size={13} /> Manage
+            <Settings2 size={12} /> Manage
           </button>
 
           <button
             onClick={onDelete}
             aria-label="Delete account"
-            className="inline-flex items-center justify-center rounded-2xl px-3 py-2 text-[12px] font-medium transition-all"
-            style={{ background: "rgba(248,113,113,0.08)", color: "#F87171", boxShadow: "inset 0 0 0 1px rgba(248,113,113,0.22)" }}
+            className="inline-flex items-center justify-center rounded-md px-2 py-1.5 text-[11.5px] font-medium transition-colors hover:bg-white/5"
+            style={{ color: T.danger, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+            title="Delete account"
           >
-            <Trash2 size={13} />
+            <Trash2 size={12} />
           </button>
         </div>
       </div>

@@ -17,30 +17,64 @@ import {
   Filter, Sparkles,
 } from 'lucide-react';
 
+/* ─────────────── design tokens ─────────────── */
+
+const T = {
+  bg:          "#0A0B10",
+  surface:     "#111319",
+  surface2:    "#161922",
+  surfaceHi:   "#1B1F2A",
+  border:      "#232838",
+  borderSoft:  "#1B1F2A",
+  text:        "#E9EBF0",
+  textMuted:   "#9CA3B4",
+  textFaint:   "#6B7280",
+  brand:       "#6366F1",
+  brandSoft:   "rgba(99,102,241,0.12)",
+  brandBorder: "rgba(99,102,241,0.35)",
+  success:     "#22C55E",
+  successSoft: "rgba(34,197,94,0.12)",
+  successBorder:"rgba(34,197,94,0.35)",
+  warn:        "#F59E0B",
+  warnSoft:    "rgba(245,158,11,0.12)",
+  warnBorder:  "rgba(245,158,11,0.35)",
+  danger:      "#EF4444",
+  dangerSoft:  "rgba(239,68,68,0.12)",
+  dangerBorder:"rgba(239,68,68,0.35)",
+  info:        "#38BDF8",
+  infoSoft:    "rgba(56,189,248,0.12)",
+  infoBorder:  "rgba(56,189,248,0.35)",
+  purple:      "#A78BFA",
+  purpleSoft:  "rgba(167,139,250,0.12)",
+  purpleBorder:"rgba(167,139,250,0.35)",
+}
+
 const FONT = {
-  display: "'Space Grotesk', sans-serif",
-  body: "'Inter', sans-serif",
-  mono: "'JetBrains Mono', monospace",
-};
+  display: "'Inter', system-ui, -apple-system, sans-serif",
+  body:    "'Inter', system-ui, -apple-system, sans-serif",
+  mono:    "'JetBrains Mono', ui-monospace, monospace",
+}
+
+const RING = `inset 0 0 0 1px ${T.border}`
+
+/* ─────────────── status styles ─────────────── */
 
 type StatusStyle = {
   bg: string; fg: string; ring: string; label: string;
   Icon: React.ComponentType<{ size?: number }>;
 };
 
-// Keys are uppercase to match CampaignStatus from CampaignService.
 const STATUS_STYLES: Record<CampaignStatus, StatusStyle> = {
-  DRAFT:     { bg: "rgba(155,160,168,0.10)", fg: "#9BA0A8", ring: "rgba(155,160,168,0.22)", label: "Draft",     Icon: FileEdit },
-  READY:     { bg: "rgba(59,130,246,0.10)",  fg: "#60A5FA", ring: "rgba(59,130,246,0.22)",  label: "Ready",     Icon: Rocket },
-  RUNNING:   { bg: "rgba(34,197,94,0.10)",   fg: "#34D399", ring: "rgba(34,197,94,0.22)",   label: "Running",   Icon: Megaphone },
-  PAUSED:    { bg: "rgba(234,179,8,0.10)",   fg: "#FBBF24", ring: "rgba(234,179,8,0.22)",   label: "Paused",    Icon: PauseCircle },
-  COMPLETED: { bg: "rgba(139,92,246,0.10)",  fg: "#A78BFA", ring: "rgba(139,92,246,0.22)",  label: "Completed", Icon: CheckCircle2 },
-  CANCELLED: { bg: "rgba(239,68,68,0.10)",   fg: "#F87171", ring: "rgba(239,68,68,0.22)",   label: "Cancelled", Icon: XCircle },
+  DRAFT:     { bg: "rgba(156,163,180,0.12)", fg: T.textMuted, ring: "rgba(156,163,180,0.28)", label: "Draft",     Icon: FileEdit },
+  READY:     { bg: T.infoSoft,               fg: T.info,      ring: T.infoBorder,             label: "Ready",     Icon: Rocket },
+  RUNNING:   { bg: T.successSoft,            fg: T.success,   ring: T.successBorder,          label: "Running",   Icon: Megaphone },
+  PAUSED:    { bg: T.warnSoft,               fg: T.warn,      ring: T.warnBorder,             label: "Paused",    Icon: PauseCircle },
+  COMPLETED: { bg: T.purpleSoft,             fg: T.purple,    ring: T.purpleBorder,           label: "Completed", Icon: CheckCircle2 },
+  CANCELLED: { bg: T.dangerSoft,             fg: T.danger,    ring: T.dangerBorder,           label: "Cancelled", Icon: XCircle },
 };
 
-/* ───────────────────────── helpers ───────────────────────── */
+/* ─────────────── helpers ─────────────── */
 
-// Works whether the backend sends "Running" or "RUNNING".
 const normalizeStatus = (s?: string): CampaignStatus => {
   const up = (s || '').toUpperCase() as CampaignStatus;
   return up in STATUS_STYLES ? up : 'DRAFT';
@@ -60,7 +94,6 @@ const relativeTime = (iso: string) => {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 };
 
-// Pull a readable message out of an axios / FastAPI error.
 const apiErrorMessage = (err: any, fallback: string) => {
   const detail = err?.response?.data?.detail;
   if (typeof detail === 'string') return detail;
@@ -70,16 +103,15 @@ const apiErrorMessage = (err: any, fallback: string) => {
   return err?.response?.data?.message || err?.message || fallback;
 };
 
-/* ───────────────────────── page ───────────────────────── */
+/* ─────────────── page ─────────────── */
 
 const UserCampaigns: React.FC = () => {
-  // ✅ USER SLICE — read only this user's campaigns
   const {
     myCampaigns: campaigns,
     myLoading: loading,
     myError: error,
     fetchMine,
-    refetch,          // still points to fetchMine in the context — used by Refresh / Try again
+    refetch,
   } = useCampaigns();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -88,14 +120,10 @@ const UserCampaigns: React.FC = () => {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [showStartModal, setShowStartModal] = useState(false);
 
-  /* Fetch this user's campaigns on mount */
   useEffect(() => {
     fetchMine();
   }, [fetchMine]);
 
-  /* Submit from the Start Campaign modal.
-     Only campaign_name + subject are collected from the form.
-     Every other column is intentionally left for the backend to default to NULL. */
   const handleStartCampaign = async (data: CreateCampaignData, startNow: boolean) => {
     const payload = {
       campaign_name: data.campaign_name,
@@ -114,7 +142,6 @@ const UserCampaigns: React.FC = () => {
       try {
         await startCampaign(created.id);
       } catch (err: any) {
-        // campaign exists now — refresh list so it shows up, then tell the user
         await fetchMine();
         throw new Error(
           `Campaign was created but couldn't be started: ${apiErrorMessage(err, 'start request failed')}`
@@ -145,286 +172,285 @@ const UserCampaigns: React.FC = () => {
   const activeCampaigns = campaigns.filter(c => normalizeStatus(c.status) === "RUNNING").length;
 
   return (
-    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: "#0B0E13" }}>
+    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: T.bg }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
-        @keyframes ping { 75%, 100% { transform: scale(2.4); opacity: 0; } }
-        .ping { animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite; }
-        @keyframes floatIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-        .float-in { animation: floatIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-        .uc-main::-webkit-scrollbar { width: 10px; }
+        .uc-main::-webkit-scrollbar { width: 8px; }
         .uc-main::-webkit-scrollbar-track { background: transparent; }
-        .uc-main::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 10px; border: 2px solid #0B0E13; }
-        .uc-main::-webkit-scrollbar-thumb:hover { background: #2A2F3B; }
+        .uc-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
+        .uc-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
 
-        .soft-ring { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 1px 0 rgba(255,255,255,0.02); }
-        .glow-top {
-          background:
-            radial-gradient(900px 240px at 50% -80px, rgba(255,106,57,0.10), transparent 70%),
-            radial-gradient(700px 200px at 20% -60px, rgba(52,211,153,0.06), transparent 70%);
-        }
-        select option { background: #141821; color: #E8E6E1; }
+        select option { background: ${T.surface}; color: ${T.text}; }
       `}</style>
 
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+          className="lg:hidden fixed inset-0 z-40 bg-black/70"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <div
-        className={`fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-300 ease-out ${
+        className={`fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-200 ease-out ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      <main className="uc-main flex-1 overflow-y-auto" style={{ background: '#0B0E13', height: '100vh', width: '100%' }}>
-        <div className="glow-top">
-          <div className="max-w-295 mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
+      <main className="uc-main flex-1 overflow-y-auto" style={{ background: T.bg, height: '100vh', width: '100%' }}>
+        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1180 }}>
 
-            {/* Header */}
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8 md:mb-10">
-              <div className="flex items-start gap-3 md:gap-4">
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="lg:hidden mt-1 p-2 rounded-2xl text-[#C7C9CE] transition-colors soft-ring"
-                  style={{ background: "#141821" }}
-                >
-                  <Menu size={18} />
-                </button>
-                <div>
-                  <div className="flex items-center gap-2 mb-2.5">
-                    <span
-                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                      style={{ background: "rgba(52,211,153,0.10)", color: "#34D399", boxShadow: "inset 0 0 0 1px rgba(52,211,153,0.20)" }}
-                    >
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 ping" />
-                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      </span>
-                      {activeCampaigns} running
-                    </span>
-                    <span className="text-[11px]" style={{ color: "#5A6172", fontFamily: FONT.mono }}>
-                      · {campaigns.length} total
-                    </span>
-                  </div>
-
-                  <h1
-                    style={{ fontFamily: FONT.display, letterSpacing: "-0.025em", color: "#F2F0EB" }}
-                    className="text-[28px] md:text-[34px] lg:text-[40px] font-bold leading-[1.05]"
-                  >
-                    Your campaigns
-                  </h1>
-                  <p className="mt-2 text-[14px] md:text-[15px] max-w-lg" style={{ color: "#8A90A0" }}>
-                    Every campaign you've built, with live status.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => refetch()}
-                  title="Refresh"
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-[13px] font-medium transition-all soft-ring hover:-translate-y-0.5"
-                  style={{ background: "#141821", color: "#E8E6E1" }}
-                >
-                  <RefreshCw size={14} />
-                  <span className="hidden sm:inline">Refresh</span>
-                </button>
-              </div>
-            </header>
-
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5 md:mb-6">
-              <div
-                className="flex items-center gap-2 rounded-2xl px-3 py-2.5 flex-1 min-w-0 transition-all"
-                style={{ background: "#141821", boxShadow: "inset 0 0 0 1px #232833" }}
+          {/* Header */}
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
+            <div className="flex items-start gap-3">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden mt-1 p-2 rounded-lg transition-colors hover:bg-white/5"
+                style={{ background: T.surface, color: T.textMuted, boxShadow: RING }}
+                aria-label="Open menu"
               >
-                <Search size={14} className="text-[#6B727C] shrink-0" />
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by name or subject…"
-                  className="w-full bg-transparent text-sm outline-none text-[#E8E6E1] placeholder:text-[#6B727C]"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="shrink-0 text-[10px] text-[#6B727C] hover:text-[#E8E6E1] px-1.5 py-0.5 rounded hover:bg-[#232833] transition-colors"
+                <Menu size={18} />
+              </button>
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
+                    style={{ background: T.successSoft, color: T.success, boxShadow: `inset 0 0 0 1px ${T.successBorder}` }}
                   >
-                    Clear
-                  </button>
-                )}
-              </div>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.success }} />
+                    {activeCampaigns} running
+                  </span>
+                  <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                    · {campaigns.length} total
+                  </span>
+                </div>
 
-              <div className="relative">
-                <Filter size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#6B727C]" />
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-                  className="pl-8 pr-3 py-2.5 rounded-2xl text-[13px] cursor-pointer transition-all focus:outline-none"
-                  style={{ background: "#141821", color: "#E8E6E1", boxShadow: "inset 0 0 0 1px #232833" }}
-                >
-                  {statusOptions.map((s) => (
-                    <option key={s} value={s}>
-                      {s === 'all' ? 'All statuses' : STATUS_STYLES[s].label}
-                    </option>
-                  ))}
-                </select>
+                <h1 className="text-[26px] md:text-[30px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
+                  Your campaigns
+                </h1>
+                <p className="mt-1 text-[13.5px] max-w-lg" style={{ color: T.textMuted }}>
+                  Every campaign you've built, with live status.
+                </p>
               </div>
             </div>
 
-            {/* Loading */}
-            {loading && (
-              <div className="text-center py-16">
-                <div className="w-7 h-7 border-2 border-[#FF6A39] border-t-transparent rounded-full animate-spin mx-auto" />
-                <p className="text-xs text-[#6B727C] mt-3">Loading campaigns…</p>
-              </div>
-            )}
-
-            {/* Error */}
-            {!loading && error && (
-              <div className="text-center py-16 rounded-3xl" style={{ background: "rgba(248,113,113,0.05)", boxShadow: "inset 0 0 0 1px rgba(248,113,113,0.22)" }}>
-                <div
-                  className="w-12 h-12 mx-auto mb-3 rounded-2xl flex items-center justify-center"
-                  style={{ background: "rgba(248,113,113,0.10)", boxShadow: "inset 0 0 0 1px rgba(248,113,113,0.22)" }}
-                >
-                  <AlertTriangle className="w-5 h-5 text-[#F87171]" />
-                </div>
-                <p className="text-sm text-[#F87171] mb-3">{error}</p>
-                <button
-                  onClick={() => refetch()}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl text-[12px] font-medium transition-all soft-ring"
-                  style={{ background: "#141821", color: "#E8E6E1" }}
-                >
-                  <RefreshCw size={13} /> Try again
-                </button>
-              </div>
-            )}
-
-            {/* Empty */}
-            {!loading && !error && filteredCampaigns.length === 0 && (
-              <div
-                className="text-center py-20 rounded-3xl"
-                style={{ background: "linear-gradient(180deg, #141821 0%, #10141D 100%)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04)" }}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => refetch()}
+                title="Refresh"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-medium transition-colors hover:bg-white/5"
+                style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
               >
-                <div
-                  className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center"
-                  style={{ background: "#1B2130", boxShadow: "inset 0 0 0 1px #232938" }}
-                >
-                  {campaigns.length === 0
-                    ? <Sparkles className="w-6 h-6 text-[#FF6A39]" />
-                    : <Inbox className="w-6 h-6 text-[#6A7080]" />}
-                </div>
-                <p className="text-[14px] font-medium" style={{ color: "#F2F0EB" }}>
-                  {campaigns.length === 0 ? "No campaigns yet" : "No campaigns match"}
-                </p>
-                <p className="text-[12px] mt-1.5 mb-5 max-w-sm mx-auto" style={{ color: "#7A8092" }}>
-                  {campaigns.length === 0
-                    ? "Start your first campaign to see it here."
-                    : "Try a different search or status filter."}
-                </p>
+                <RefreshCw size={13} />
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+              <button
+                onClick={() => setShowStartModal(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium transition-all hover:brightness-110"
+                style={{ background: T.brand, color: "#fff", boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+              >
+                <Plus size={14} />
+                New campaign
+              </button>
+            </div>
+          </header>
+
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 mb-5 md:mb-6">
+            <div
+              className="flex items-center gap-2 rounded-lg px-2.5 py-2 flex-1 min-w-0 transition-shadow"
+              style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+              onFocusCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brand}, 0 0 0 3px ${T.brandSoft}`)}
+              onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.border}`)}
+            >
+              <Search size={13} style={{ color: T.textFaint }} className="shrink-0" />
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name or subject…"
+                className="w-full bg-transparent text-[12.5px] outline-none"
+                style={{ color: T.text }}
+              />
+              {searchQuery && (
                 <button
-                  onClick={() =>
-                    campaigns.length === 0
-                      ? setShowStartModal(true)
-                      : (setSearchQuery(''), setStatusFilter('all'))
-                  }
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
-                  style={{ background: "#FF6A39", boxShadow: "0 10px 24px -10px rgba(255,106,57,0.6)" }}
+                  onClick={() => setSearchQuery("")}
+                  className="shrink-0 text-[10.5px] px-1.5 py-0.5 rounded transition-colors hover:bg-white/5"
+                  style={{ color: T.textFaint }}
                 >
-                  {campaigns.length === 0 ? (<><Plus size={14} /> Start campaign</>) : "Clear filters"}
+                  Clear
                 </button>
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Campaign list */}
-            {!loading && !error && filteredCampaigns.length > 0 && (
-              <>
-                <div className="flex items-center justify-between mb-3 md:mb-4">
-                  <p className="text-[12px]" style={{ color: "#7A8092" }}>
-                    <span style={{ color: "#F2F0EB", fontFamily: FONT.mono }}>
-                      {filteredCampaigns.length}
-                    </span>{" "}
-                    {filteredCampaigns.length === 1 ? "campaign" : "campaigns"}
-                    {statusFilter !== 'all' && (
-                      <> · filtered by <span style={{ color: "#FF6A39" }}>{STATUS_STYLES[statusFilter].label}</span></>
-                    )}
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  {filteredCampaigns.map((campaign) => {
-                    const s = STATUS_STYLES[normalizeStatus(campaign.status)];
-                    const StatusIcon = s.Icon;
-                    return (
-                      <div
-                        key={campaign.id}
-                        onClick={() => setSelectedCampaign(campaign)}
-                        className="group float-in relative flex items-center gap-3 md:gap-4 p-4 md:p-5 rounded-3xl cursor-pointer transition-all hover:-translate-y-0.5"
-                        style={{
-                          background: "linear-gradient(180deg, #141821 0%, #10141D 100%)",
-                          boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.04), 0 1px 0 rgba(255,255,255,0.02)",
-                        }}
-                      >
-                        <span
-                          className="absolute left-0 top-4 bottom-4 w-1 rounded-r-full"
-                          style={{ background: s.fg, opacity: 0.75, boxShadow: `0 0 12px ${s.fg}66` }}
-                        />
-
-                        <div
-                          className="shrink-0 w-11 h-11 md:w-12 md:h-12 rounded-2xl flex items-center justify-center ml-2 transition-transform group-hover:scale-105"
-                          style={{
-                            background: `linear-gradient(135deg, ${s.fg}22, ${s.fg}08)`,
-                            boxShadow: `inset 0 0 0 1px ${s.ring}`,
-                            color: s.fg,
-                          }}
-                        >
-                          <StatusIcon size={18} />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <h3 className="font-semibold text-[#F2F0EB] text-[14px] md:text-[15px] truncate">
-                              {campaign.campaign_name}
-                            </h3>
-                            <span
-                              className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] md:text-[11px] font-medium"
-                              style={{ background: s.bg, color: s.fg, boxShadow: `inset 0 0 0 1px ${s.ring}` }}
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full" style={{ background: s.fg, boxShadow: `0 0 6px ${s.fg}` }} />
-                              {s.label}
-                            </span>
-                          </div>
-                          <p className="text-[11.5px] md:text-[12px] text-[#7A8092] truncate mt-1 font-mono">
-                            {campaign.subject || "—"}
-                          </p>
-                        </div>
-
-                        <div className="shrink-0 hidden md:flex flex-col items-end gap-1">
-                          <span className="text-[11px] text-[#7A8092] font-mono whitespace-nowrap">
-                            {relativeTime(campaign.updated_at)}
-                          </span>
-                          <span className="text-[10px] text-[#3A404F] font-mono">
-                            #{campaign.id}
-                          </span>
-                        </div>
-
-                        <ChevronRight
-                          size={16}
-                          className="shrink-0 text-[#3A404F] group-hover:text-[#FF6A39] group-hover:translate-x-0.5 transition-all"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
+            <div className="relative">
+              <Filter size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: T.textFaint }} />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                className="pl-7 pr-3 py-2 rounded-lg text-[12.5px] cursor-pointer outline-none transition-shadow"
+                style={{ background: T.surface, color: T.text, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+                onFocus={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brand}`)}
+                onBlur={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.border}`)}
+              >
+                {statusOptions.map((s) => (
+                  <option key={s} value={s}>
+                    {s === 'all' ? 'All statuses' : STATUS_STYLES[s].label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
+
+          {/* Loading */}
+          {loading && (
+            <div className="text-center py-16">
+              <div
+                className="w-5 h-5 border-2 rounded-full animate-spin mx-auto"
+                style={{ borderColor: T.brand, borderTopColor: "transparent" }}
+              />
+              <p className="text-[11.5px] mt-3" style={{ color: T.textFaint }}>Loading campaigns…</p>
+            </div>
+          )}
+
+          {/* Error */}
+          {!loading && error && (
+            <div
+              className="text-center py-16 rounded-xl"
+              style={{ background: T.dangerSoft, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
+            >
+              <div
+                className="w-10 h-10 mx-auto mb-3 rounded-lg flex items-center justify-center"
+                style={{ background: "rgba(239,68,68,0.18)" }}
+              >
+                <AlertTriangle className="w-4 h-4" style={{ color: T.danger }} />
+              </div>
+              <p className="text-[12.5px] mb-3" style={{ color: T.danger }}>{error}</p>
+              <button
+                onClick={() => refetch()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11.5px] font-medium transition-colors hover:bg-white/5"
+                style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+              >
+                <RefreshCw size={11} /> Try again
+              </button>
+            </div>
+          )}
+
+          {/* Empty */}
+          {!loading && !error && filteredCampaigns.length === 0 && (
+            <div
+              className="text-center py-20 rounded-xl"
+              style={{ background: T.surface, boxShadow: RING }}
+            >
+              <div
+                className="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center"
+                style={{ background: T.surface2 }}
+              >
+                {campaigns.length === 0
+                  ? <Sparkles className="w-5 h-5" style={{ color: T.brand }} />
+                  : <Inbox className="w-5 h-5" style={{ color: T.textFaint }} />}
+              </div>
+              <p className="text-[14px] font-medium" style={{ color: T.text }}>
+                {campaigns.length === 0 ? "No campaigns yet" : "No campaigns match"}
+              </p>
+              <p className="text-[12px] mt-1.5 mb-5 max-w-sm mx-auto" style={{ color: T.textMuted }}>
+                {campaigns.length === 0
+                  ? "Start your first campaign to see it here."
+                  : "Try a different search or status filter."}
+              </p>
+              <button
+                onClick={() =>
+                  campaigns.length === 0
+                    ? setShowStartModal(true)
+                    : (setSearchQuery(''), setStatusFilter('all'))
+                }
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium transition-all hover:brightness-110"
+                style={{ background: T.brand, color: "#fff" }}
+              >
+                {campaigns.length === 0 ? (<><Plus size={13} /> Start campaign</>) : "Clear filters"}
+              </button>
+            </div>
+          )}
+
+          {/* List */}
+          {!loading && !error && filteredCampaigns.length > 0 && (
+            <>
+              <div className="flex items-center justify-between mb-2.5">
+                <p className="text-[11.5px]" style={{ color: T.textFaint }}>
+                  <span style={{ color: T.text, fontFamily: FONT.mono }}>{filteredCampaigns.length}</span>{" "}
+                  {filteredCampaigns.length === 1 ? "campaign" : "campaigns"}
+                  {statusFilter !== 'all' && (
+                    <> · filtered by <span style={{ color: T.brand }}>{STATUS_STYLES[statusFilter].label}</span></>
+                  )}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                {filteredCampaigns.map((campaign) => {
+                  const s = STATUS_STYLES[normalizeStatus(campaign.status)];
+                  const StatusIcon = s.Icon;
+                  return (
+                    <div
+                      key={campaign.id}
+                      onClick={() => setSelectedCampaign(campaign)}
+                      className="group relative flex items-center gap-3 p-3.5 rounded-lg cursor-pointer transition-all hover:bg-white/[0.02]"
+                      style={{ background: T.surface, boxShadow: RING }}
+                    >
+                      {/* Accent strip */}
+                      <span
+                        className="absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full"
+                        style={{ background: s.fg, opacity: 0.7 }}
+                      />
+
+                      {/* Icon */}
+                      <div
+                        className="shrink-0 w-9 h-9 rounded-md flex items-center justify-center ml-2"
+                        style={{ background: s.bg, color: s.fg, boxShadow: `inset 0 0 0 1px ${s.ring}` }}
+                      >
+                        <StatusIcon size={14} />
+                      </div>
+
+                      {/* Title + subject */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <h3 className="font-medium text-[13px] truncate" style={{ color: T.text }}>
+                            {campaign.campaign_name}
+                          </h3>
+                          <span
+                            className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium"
+                            style={{ background: s.bg, color: s.fg, boxShadow: `inset 0 0 0 1px ${s.ring}` }}
+                          >
+                            <span className="w-1 h-1 rounded-full" style={{ background: s.fg }} />
+                            {s.label}
+                          </span>
+                        </div>
+                        <p className="text-[11px] truncate mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                          {campaign.subject || "—"}
+                        </p>
+                      </div>
+
+                      {/* Meta */}
+                      <div className="shrink-0 hidden md:flex flex-col items-end gap-0.5">
+                        <span className="text-[10.5px] whitespace-nowrap" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                          {relativeTime(campaign.updated_at)}
+                        </span>
+                        <span className="text-[10px]" style={{ color: T.textFaint, fontFamily: FONT.mono, opacity: 0.6 }}>
+                          #{campaign.id}
+                        </span>
+                      </div>
+
+                      <ChevronRight
+                        size={14}
+                        className="shrink-0 transition-all group-hover:translate-x-0.5"
+                        style={{ color: T.textFaint }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       </main>
 

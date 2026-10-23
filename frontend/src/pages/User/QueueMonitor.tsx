@@ -2,15 +2,50 @@ import { useState } from "react";
 import Sidebar from "./Sidebar";
 import {
   RefreshCw, Inbox, Loader2, CheckCircle2, XCircle, Clock,
-  Pause, Play, Cpu, Copy, Menu, Users, Sparkles, ArrowUpRight,
-  Layers, Activity, ListChecks, Zap,
+  Pause, Play, Cpu, Copy, Menu, Sparkles, ArrowUpRight,
+  Layers, ListChecks,
 } from "lucide-react";
 
+/* ─────────────── design tokens ─────────────── */
+
+const T = {
+  bg:          "#090B10",
+  surface:     "#101319",
+  surface2:    "#151922",
+  surfaceHi:   "#1B202B",
+  border:      "#232A38",
+  borderSoft:  "#1A1F2A",
+  text:        "#E8EBF0",
+  textMuted:   "#94A0B4",
+  textFaint:   "#667085",
+  // monitoring-page accent: cyan (primary) + violet (secondary)
+  cyan:        "#22D3EE",
+  cyanSoft:    "rgba(34,211,238,0.12)",
+  cyanBorder:  "rgba(34,211,238,0.35)",
+  violet:      "#A78BFA",
+  violetSoft:  "rgba(167,139,250,0.12)",
+  violetBorder:"rgba(167,139,250,0.35)",
+  success:     "#22C55E",
+  successSoft: "rgba(34,197,94,0.12)",
+  successBorder:"rgba(34,197,94,0.35)",
+  warn:        "#F59E0B",
+  warnSoft:    "rgba(245,158,11,0.12)",
+  warnBorder:  "rgba(245,158,11,0.35)",
+  danger:      "#EF4444",
+  dangerSoft:  "rgba(239,68,68,0.12)",
+  dangerBorder:"rgba(239,68,68,0.35)",
+  info:        "#38BDF8",
+  infoSoft:    "rgba(56,189,248,0.12)",
+  infoBorder:  "rgba(56,189,248,0.35)",
+}
+
 const FONT = {
-  display: "'Space Grotesk', sans-serif",
-  body: "'Inter', sans-serif",
-  mono: "'JetBrains Mono', monospace",
-};
+  display: "'Inter', system-ui, -apple-system, sans-serif",
+  body:    "'Inter', system-ui, -apple-system, sans-serif",
+  mono:    "'JetBrains Mono', ui-monospace, monospace",
+}
+
+const RING = `inset 0 0 0 1px ${T.border}`
 
 /* ─────────────── types ─────────────── */
 
@@ -90,395 +125,399 @@ const QueueMonitor = () => {
 
   const tabs: { id: Tab; label: string; icon: React.ComponentType<{ size?: number }>; count?: number }[] = [
     { id: "overview", label: "Overview", icon: Sparkles },
-    { id: "workers",  label: "Workers",  icon: Cpu,       count: workers.length },
-    { id: "queues",   label: "Queues",   icon: Layers,    count: queues.length },
+    { id: "workers",  label: "Workers",  icon: Cpu,        count: workers.length },
+    { id: "queues",   label: "Queues",   icon: Layers,     count: queues.length },
     { id: "jobs",     label: "Jobs",     icon: ListChecks, count: jobs.length },
   ];
 
   return (
-    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: "#0B0E13" }}>
+    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: T.bg }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 1s linear infinite; }
-        @keyframes ping { 75%, 100% { transform: scale(2.4); opacity: 0; } }
-        .ping { animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite; }
-        @keyframes floatIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-        .float-in { animation: floatIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
 
-        .qm-main::-webkit-scrollbar { width: 10px; }
-        .qm-main::-webkit-scrollbar-track { background: transparent; }
-        .qm-main::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 10px; border: 2px solid #0B0E13; }
-        .qm-main::-webkit-scrollbar-thumb:hover { background: #2A2F3B; }
-
-        .soft-ring {
-          box-shadow:
-            inset 0 0 0 1px rgba(255,255,255,0.04),
-            0 1px 0 rgba(255,255,255,0.02);
+        @keyframes pulseDot {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(34,211,238,0.5); }
+          70%      { box-shadow: 0 0 0 5px rgba(34,211,238,0); }
         }
-        .glow-top {
-          background:
-            radial-gradient(900px 240px at 50% -80px, rgba(255,106,57,0.10), transparent 70%),
-            radial-gradient(700px 200px at 20% -60px, rgba(52,211,153,0.06), transparent 70%);
+        .pulse-cyan { animation: pulseDot 1.8s ease-out infinite; }
+
+        .qm-main::-webkit-scrollbar { width: 8px; }
+        .qm-main::-webkit-scrollbar-track { background: transparent; }
+        .qm-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 8px; }
+        .qm-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
+
+        @media (prefers-reduced-motion: reduce) {
+          .spin, .pulse-cyan { animation: none !important; }
         }
       `}</style>
 
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+          className="lg:hidden fixed inset-0 z-40 bg-black/70"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <div className={`
-        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out
+        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-200 ease-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      <main className="qm-main flex-1 overflow-y-auto" style={{ height: "100vh", width: "100%", background: "#0B0E13" }}>
-        <div className="glow-top">
-          <div className="max-w-[1160px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
+      <main className="qm-main flex-1 overflow-y-auto" style={{ height: "100vh", width: "100%", background: T.bg }}>
+        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1160 }}>
 
-            {/* ── Header ─────────────────────────────── */}
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-8 md:mb-10">
-              <div className="flex items-start gap-3 md:gap-4">
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="lg:hidden mt-1 p-2 rounded-2xl text-[#C7C9CE] transition-colors soft-ring"
-                  style={{ background: "#141823" }}
-                >
-                  <Menu size={18} />
-                </button>
-                <div>
-                  <div className="flex items-center gap-2 mb-2.5">
-                    <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                      style={{ background: "rgba(52,211,153,0.10)", color: "#34D399", boxShadow: "inset 0 0 0 1px rgba(52,211,153,0.20)" }}>
-                      <span className="relative flex h-1.5 w-1.5">
-                        <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 ping" />
-                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      </span>
-                      All systems healthy
-                    </span>
-                    <span className="text-[11px]" style={{ color: "#5A6172", fontFamily: FONT.mono }}>
-                      · updated {refreshing ? "now" : "12s ago"}
-                    </span>
-                  </div>
-
-                  <h1
-                    style={{ fontFamily: FONT.display, letterSpacing: "-0.025em", color: "#F2F0EB" }}
-                    className="text-[28px] md:text-[34px] lg:text-[40px] font-bold leading-[1.05]"
-                  >
-                    Queue monitor
-                  </h1>
-                  <p className="mt-2 text-[14px] md:text-[15px] max-w-lg" style={{ color: "#8A90A0" }}>
-                    Live view of your sending pipeline — queues, workers, and jobs in one place.
-                  </p>
-                </div>
-              </div>
-
+          {/* Header */}
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
+            <div className="flex items-start gap-3">
               <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="group inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[13px] font-medium self-start md:self-auto transition-all soft-ring hover:bg-[#171C28] disabled:opacity-60"
-                style={{ background: "#141823", color: "#E8E6E1" }}
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden mt-1 p-2 rounded-lg transition-colors hover:bg-white/5"
+                style={{ background: T.surface, color: T.textMuted, boxShadow: RING }}
+                aria-label="Open menu"
               >
-                <RefreshCw size={14} className={`transition-transform group-hover:rotate-45 ${refreshing ? "spin" : ""}`} />
-                Refresh
+                <Menu size={18} />
               </button>
-            </header>
-
-            {/* ── Floating summary bar ───────────────── */}
-            <div
-              className="float-in relative mb-6 md:mb-8 rounded-3xl overflow-hidden soft-ring"
-              style={{ background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" }}
-            >
-              <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-[#1A1F2B]">
-                <SummaryTile icon={Inbox}        label="Pending"    value={totalPending.toLocaleString()}    tone="#9BA0A8" />
-                <SummaryTile icon={Loader2}      label="Processing" value={totalProcessing.toLocaleString()} tone="#60A5FA" spin />
-                <SummaryTile icon={CheckCircle2} label="Completed"  value="12,842"                            tone="#34D399" />
-                <SummaryTile icon={XCircle}      label="Failed"     value={totalFailed.toLocaleString()}      tone="#F87171" />
-              </div>
-            </div>
-
-            {/* ── Tab switcher ───────────────────────── */}
-            <div className="mb-6 md:mb-7 flex items-center gap-1 p-1 rounded-2xl overflow-x-auto soft-ring"
-              style={{ background: "#10141D", width: "fit-content", maxWidth: "100%" }}>
-              {tabs.map((t) => {
-                const Icon = t.icon;
-                const active = tab === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => setTab(t.id)}
-                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-[13px] font-medium whitespace-nowrap transition-all"
-                    style={{
-                      background: active ? "#1B2130" : "transparent",
-                      color: active ? "#F2F0EB" : "#7A8092",
-                      boxShadow: active ? "inset 0 0 0 1px rgba(255,255,255,0.05), 0 4px 14px -6px rgba(0,0,0,0.6)" : "none",
-                    }}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
+                    style={{ background: T.cyanSoft, color: T.cyan, boxShadow: `inset 0 0 0 1px ${T.cyanBorder}` }}
                   >
-                    <Icon size={14} />
-                    {t.label}
-                    {t.count !== undefined && (
-                      <span
-                        className="text-[10px] px-1.5 py-0.5 rounded-full font-mono"
-                        style={{
-                          background: active ? "rgba(255,106,57,0.14)" : "#171C28",
-                          color: active ? "#FF6A39" : "#6A7080",
-                        }}
-                      >
-                        {t.count}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+                    <span className="w-1.5 h-1.5 rounded-full pulse-cyan" style={{ background: T.cyan }} />
+                    All systems healthy
+                  </span>
+                  <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                    · updated {refreshing ? "now" : "12s ago"}
+                  </span>
+                </div>
+
+                <h1 className="text-[26px] md:text-[30px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
+                  Queue monitor
+                </h1>
+                <p className="mt-1 text-[13.5px] max-w-lg" style={{ color: T.textMuted }}>
+                  Live view of your sending pipeline — queues, workers, and jobs in one place.
+                </p>
+              </div>
             </div>
 
-            {/* ── Tab content ────────────────────────── */}
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-medium transition-colors hover:bg-white/5 disabled:opacity-60"
+              style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+            >
+              <RefreshCw size={13} className={refreshing ? "spin" : ""} />
+              Refresh
+            </button>
+          </header>
 
-            {tab === "overview" && (
-              <div className="float-in grid grid-cols-1 lg:grid-cols-3 gap-5">
-                {/* Workers glance */}
-                <GlanceCard
-                  title="Worker rack"
-                  subtitle={`${onlineWorkers} of ${workers.length} online`}
-                  icon={Cpu}
-                  onOpen={() => setTab("workers")}
+          {/* Summary strip */}
+          <div className="mb-5 md:mb-6 rounded-xl overflow-hidden" style={{ background: T.surface, boxShadow: RING }}>
+            <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x" style={{ borderColor: T.borderSoft }}>
+              <SummaryTile icon={Inbox}        label="Pending"    value={totalPending.toLocaleString()}    tone={T.textMuted} />
+              <SummaryTile icon={Loader2}      label="Processing" value={totalProcessing.toLocaleString()} tone={T.cyan}   spin />
+              <SummaryTile icon={CheckCircle2} label="Completed"  value="12,842"                            tone={T.success} />
+              <SummaryTile icon={XCircle}      label="Failed"     value={totalFailed.toLocaleString()}      tone={T.danger} />
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div
+            className="mb-5 md:mb-6 inline-flex items-center gap-0.5 p-0.5 rounded-lg"
+            style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}`, maxWidth: "100%", overflowX: "auto" }}
+          >
+            {tabs.map((t) => {
+              const Icon = t.icon;
+              const active = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium whitespace-nowrap transition-colors"
+                  style={{
+                    background: active ? T.cyanSoft : "transparent",
+                    color: active ? T.cyan : T.textMuted,
+                    boxShadow: active ? `inset 0 0 0 1px ${T.cyanBorder}` : "none",
+                  }}
                 >
-                  <ul className="space-y-3">
-                    {workers.map((w) => {
-                      const tone = w.load > 80 ? "#F87171" : w.load > 50 ? "#FBBF24" : "#34D399";
-                      return (
-                        <li key={w.name}>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="flex items-center gap-2 text-[12.5px]" style={{ color: "#DADEE7" }}>
-                              <span className="relative flex h-1.5 w-1.5">
-                                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 ping" />
-                                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                              </span>
-                              {w.name}
-                            </span>
-                            <span className="text-[11px] font-mono" style={{ color: tone }}>{w.load}%</span>
-                          </div>
-                          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#0B0E13" }}>
-                            <div className="h-full rounded-full" style={{ width: `${w.load}%`, background: tone, boxShadow: `0 0 10px ${tone}55` }} />
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </GlanceCard>
-
-                {/* Queues glance */}
-                <GlanceCard
-                  title="Active queues"
-                  subtitle={`${queues.filter(q => q.status === "Running").length} running`}
-                  icon={Layers}
-                  onOpen={() => setTab("queues")}
-                >
-                  <ul className="space-y-2.5">
-                    {queues.map((q) => {
-                      const running = q.status === "Running";
-                      return (
-                        <li key={q.name} className="rounded-2xl px-3 py-2.5 flex items-center justify-between gap-3"
-                          style={{ background: "#0F131C", boxShadow: "inset 0 0 0 1px #1A1F2B" }}>
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <span className="w-2 h-2 rounded-full shrink-0"
-                              style={{ background: running ? "#34D399" : "#9BA0A8", boxShadow: running ? "0 0 8px #34D39988" : "none" }} />
-                            <span className="text-[12.5px] truncate" style={{ color: "#DADEE7", fontFamily: FONT.mono }}>{q.name}</span>
-                          </div>
-                          <span className="text-[11px] font-mono shrink-0" style={{ color: "#7A8092" }}>
-                            {q.pending}<span style={{ color: "#3A404F" }}>·</span>{q.processing}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </GlanceCard>
-
-                {/* Jobs glance */}
-                <GlanceCard
-                  title="Recent jobs"
-                  subtitle={`${jobs.length} in the last minute`}
-                  icon={ListChecks}
-                  onOpen={() => setTab("jobs")}
-                >
-                  <ul className="space-y-2.5">
-                    {jobs.slice(0, 4).map((j) => (
-                      <li key={j.id} className="flex items-center gap-2.5">
-                        <JobDot status={j.status} />
-                        <span className="text-[12.5px] truncate flex-1" style={{ color: "#DADEE7" }}>{j.campaign}</span>
-                        <span className="text-[11px] shrink-0" style={{ color: "#6A7080" }}>{j.time}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </GlanceCard>
-              </div>
-            )}
-
-            {tab === "workers" && (
-              <div className="float-in grid grid-cols-1 md:grid-cols-2 gap-4">
-                {workers.map((w) => {
-                  const tone = w.load > 80 ? "#F87171" : w.load > 50 ? "#FBBF24" : "#34D399";
-                  return (
-                    <div
-                      key={w.name}
-                      className="group rounded-3xl p-5 transition-all soft-ring hover:-translate-y-0.5"
-                      style={{ background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" }}
+                  <Icon size={13} />
+                  {t.label}
+                  {t.count !== undefined && (
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 rounded-full"
+                      style={{
+                        background: active ? "rgba(34,211,238,0.2)" : T.surface2,
+                        color: active ? T.cyan : T.textFaint,
+                        fontFamily: FONT.mono,
+                      }}
                     >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-2xl flex items-center justify-center"
-                            style={{ background: `${tone}14`, boxShadow: `inset 0 0 0 1px ${tone}33` }}>
-                            <Cpu size={18} style={{ color: tone }} />
-                          </div>
-                          <div>
-                            <p className="text-[14.5px] font-semibold" style={{ color: "#F2F0EB" }}>{w.name}</p>
-                            <p className="text-[11.5px]" style={{ color: "#7A8092" }}>Background worker</p>
-                          </div>
-                        </div>
-                        <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                          style={{ background: "rgba(52,211,153,0.10)", color: "#34D399", boxShadow: "inset 0 0 0 1px rgba(52,211,153,0.20)" }}>
-                          <span className="relative flex h-1.5 w-1.5">
-                            <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 ping" />
-                            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                          </span>
-                          Online
-                        </span>
-                      </div>
+                      {t.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
-                      <div className="space-y-3">
-                        <div>
-                          <div className="flex items-center justify-between mb-1.5 text-[11.5px]">
-                            <span style={{ color: "#7A8092" }}>CPU load</span>
-                            <span className="font-mono font-semibold" style={{ color: tone }}>{w.load}%</span>
-                          </div>
-                          <div className="h-2 rounded-full overflow-hidden" style={{ background: "#0B0E13" }}>
-                            <div className="h-full rounded-full transition-all" style={{ width: `${w.load}%`, background: tone, boxShadow: `0 0 12px ${tone}66` }} />
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-1">
-                          <div>
-                            <p className="text-[11px] uppercase tracking-wider" style={{ color: "#5A6172" }}>Jobs processed</p>
-                            <p className="text-[20px] font-bold font-mono leading-none mt-1" style={{ color: "#F2F0EB" }}>
-                              {w.jobsProcessed.toLocaleString()}
-                            </p>
-                          </div>
-                          <ArrowUpRight size={18} style={{ color: "#3A404F" }} className="group-hover:text-[#FF6A39] transition-colors" />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {tab === "queues" && (
-              <div className="float-in space-y-3">
-                {queues.map((q) => {
-                  const running = q.status === "Running";
-                  const tone = running ? "#34D399" : "#9BA0A8";
-                  return (
-                    <div
-                      key={q.name}
-                      className="rounded-3xl p-4 md:p-5 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 soft-ring transition-all hover:-translate-y-0.5"
-                      style={{ background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" }}
-                    >
-                      {/* left: status + name */}
-                      <div className="flex items-center gap-3 min-w-[200px]">
-                        <div className="relative w-12 h-12 shrink-0">
-                          <div className="absolute inset-0 rounded-2xl" style={{ background: `${tone}14`, boxShadow: `inset 0 0 0 1px ${tone}33` }} />
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="relative flex h-2.5 w-2.5">
-                              {running && <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 ping" />}
-                              <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: tone }} />
-                            </span>
-                          </div>
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[14px] font-semibold truncate" style={{ color: "#F2F0EB", fontFamily: FONT.mono }}>{q.name}</p>
-                          <p className="text-[11.5px] mt-0.5" style={{ color: tone }}>{q.status}</p>
-                        </div>
-                      </div>
-
-                      {/* middle: mini stats */}
-                      <div className="flex-1 grid grid-cols-3 gap-3">
-                        <MiniStat label="Pending"    value={q.pending}    tone="#9BA0A8" />
-                        <MiniStat label="Processing" value={q.processing} tone="#60A5FA" />
-                        <MiniStat label="Failed"     value={q.failed}     tone="#F87171" />
-                      </div>
-
-                      {/* right: action */}
-                      <button
-                        onClick={() => toggleQueue(q.name)}
-                        className="shrink-0 inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-all"
-                        style={{
-                          background: running ? "rgba(251,191,36,0.10)" : "rgba(52,211,153,0.10)",
-                          color:      running ? "#FBBF24"                : "#34D399",
-                          boxShadow: `inset 0 0 0 1px ${running ? "rgba(251,191,36,0.22)" : "rgba(52,211,153,0.22)"}`,
-                        }}
-                      >
-                        {running ? <Pause size={13} /> : <Play size={13} />}
-                        {running ? "Pause" : "Resume"}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {tab === "jobs" && (
-              <div className="float-in rounded-3xl overflow-hidden soft-ring" style={{ background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" }}>
-                <ul>
-                  {jobs.map((j, i) => {
-                    const tone =
-                      j.status === "Processing" ? "#60A5FA" :
-                      j.status === "Pending"    ? "#FBBF24" :
-                      j.status === "Completed"  ? "#34D399" : "#F87171";
+          {/* Overview */}
+          {tab === "overview" && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <GlanceCard
+                title="Worker rack"
+                subtitle={`${onlineWorkers} of ${workers.length} online`}
+                icon={Cpu}
+                onOpen={() => setTab("workers")}
+              >
+                <ul className="space-y-3">
+                  {workers.map((w) => {
+                    const tone = w.load > 80 ? T.danger : w.load > 50 ? T.warn : T.success;
                     return (
-                      <li
-                        key={j.id}
-                        className="flex items-center gap-3 md:gap-4 px-4 md:px-5 py-4 hover:bg-[#141823]/60 transition-colors"
-                        style={{ borderTop: i === 0 ? "none" : "1px solid #1A1F2B" }}
-                      >
-                        <span className="w-1 self-stretch rounded-full shrink-0" style={{ background: tone, opacity: 0.75 }} />
-
-                        <div className="w-9 h-9 shrink-0 rounded-2xl flex items-center justify-center"
-                          style={{ background: `${tone}14`, boxShadow: `inset 0 0 0 1px ${tone}33` }}>
-                          <JobDot status={j.status} />
+                      <li key={w.name}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="flex items-center gap-2 text-[12px]" style={{ color: T.text }}>
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.success }} />
+                            {w.name}
+                          </span>
+                          <span className="text-[11px]" style={{ color: tone, fontFamily: FONT.mono }}>{w.load}%</span>
                         </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <p className="text-[13.5px] font-semibold truncate" style={{ color: "#F2F0EB" }}>{j.campaign}</p>
-                            <button
-                              onClick={() => navigator.clipboard?.writeText(j.id)}
-                              className="inline-flex items-center gap-1 text-[10.5px] shrink-0 transition-colors hover:text-[#E8E6E1]"
-                              style={{ color: "#6A7080", fontFamily: FONT.mono }}
-                            >
-                              {j.id}
-                              <Copy size={10} />
-                            </button>
-                          </div>
-                          <p className="text-[11.5px] truncate" style={{ color: "#7A8092", fontFamily: FONT.mono }}>
-                            {j.recipient} <span style={{ color: "#3A404F" }}>←</span> {j.sender}
-                          </p>
+                        <div className="h-1 rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{ width: `${w.load}%`, background: tone }}
+                          />
                         </div>
-
-                        <span className="hidden md:inline shrink-0 text-[11px]" style={{ color: "#5A6172", fontFamily: FONT.mono }}>{j.time}</span>
-
-                        <span className="shrink-0"><JobStatus status={j.status} /></span>
                       </li>
                     );
                   })}
                 </ul>
-              </div>
-            )}
-          </div>
+              </GlanceCard>
+
+              <GlanceCard
+                title="Active queues"
+                subtitle={`${queues.filter(q => q.status === "Running").length} running`}
+                icon={Layers}
+                onOpen={() => setTab("queues")}
+              >
+                <ul className="space-y-2">
+                  {queues.map((q) => {
+                    const running = q.status === "Running";
+                    return (
+                      <li
+                        key={q.name}
+                        className="rounded-md px-2.5 py-2 flex items-center justify-between gap-2"
+                        style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span
+                            className="w-1.5 h-1.5 rounded-full shrink-0"
+                            style={{ background: running ? T.cyan : T.textMuted }}
+                          />
+                          <span className="text-[12px] truncate" style={{ color: T.text, fontFamily: FONT.mono }}>
+                            {q.name}
+                          </span>
+                        </div>
+                        <span className="text-[10.5px] shrink-0" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+                          {q.pending}<span style={{ color: T.textFaint }}>·</span>{q.processing}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </GlanceCard>
+
+              <GlanceCard
+                title="Recent jobs"
+                subtitle={`${jobs.length} in the last minute`}
+                icon={ListChecks}
+                onOpen={() => setTab("jobs")}
+              >
+                <ul className="space-y-2.5">
+                  {jobs.slice(0, 4).map((j) => (
+                    <li key={j.id} className="flex items-center gap-2.5">
+                      <JobDot status={j.status} />
+                      <span className="text-[12px] truncate flex-1" style={{ color: T.text }}>{j.campaign}</span>
+                      <span className="text-[10.5px] shrink-0" style={{ color: T.textFaint }}>{j.time}</span>
+                    </li>
+                  ))}
+                </ul>
+              </GlanceCard>
+            </div>
+          )}
+
+          {/* Workers */}
+          {tab === "workers" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {workers.map((w) => {
+                const tone = w.load > 80 ? T.danger : w.load > 50 ? T.warn : T.success;
+                return (
+                  <div
+                    key={w.name}
+                    className="rounded-xl p-4 transition-colors hover:border-[color:var(--hover)]"
+                    style={{ background: T.surface, boxShadow: RING }}
+                  >
+                    <div className="flex items-start justify-between mb-3.5">
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className="w-9 h-9 rounded-md flex items-center justify-center"
+                          style={{ background: `${tone}14`, color: tone }}
+                        >
+                          <Cpu size={15} />
+                        </div>
+                        <div>
+                          <p className="text-[13px] font-semibold" style={{ color: T.text }}>{w.name}</p>
+                          <p className="text-[11px]" style={{ color: T.textMuted }}>Background worker</p>
+                        </div>
+                      </div>
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium"
+                        style={{ background: T.successSoft, color: T.success, boxShadow: `inset 0 0 0 1px ${T.successBorder}` }}
+                      >
+                        <span className="w-1 h-1 rounded-full" style={{ background: T.success }} />
+                        Online
+                      </span>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5 text-[11px]">
+                          <span style={{ color: T.textMuted }}>CPU load</span>
+                          <span style={{ color: tone, fontFamily: FONT.mono, fontWeight: 600 }}>{w.load}%</span>
+                        </div>
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{ width: `${w.load}%`, background: tone }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1">
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wider" style={{ color: T.textFaint }}>Jobs processed</p>
+                          <p className="text-[18px] font-semibold leading-none mt-1" style={{ color: T.text, fontFamily: FONT.mono }}>
+                            {w.jobsProcessed.toLocaleString()}
+                          </p>
+                        </div>
+                        <ArrowUpRight size={16} style={{ color: T.textFaint }} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Queues */}
+          {tab === "queues" && (
+            <div className="space-y-2.5">
+              {queues.map((q) => {
+                const running = q.status === "Running";
+                const tone = running ? T.cyan : T.textMuted;
+                return (
+                  <div
+                    key={q.name}
+                    className="rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5"
+                    style={{ background: T.surface, boxShadow: RING }}
+                  >
+                    <div className="flex items-center gap-3 min-w-[200px]">
+                      <div
+                        className="relative w-9 h-9 shrink-0 rounded-md flex items-center justify-center"
+                        style={{ background: `${tone}14`, boxShadow: `inset 0 0 0 1px ${tone}35` }}
+                      >
+                        <span
+                          className={`w-2 h-2 rounded-full ${running ? "pulse-cyan" : ""}`}
+                          style={{ background: tone }}
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-semibold truncate" style={{ color: T.text, fontFamily: FONT.mono }}>
+                          {q.name}
+                        </p>
+                        <p className="text-[11px] mt-0.5" style={{ color: tone }}>{q.status}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 grid grid-cols-3 gap-2">
+                      <MiniStat label="Pending"    value={q.pending}    tone={T.textMuted} />
+                      <MiniStat label="Processing" value={q.processing} tone={T.cyan} />
+                      <MiniStat label="Failed"     value={q.failed}     tone={T.danger} />
+                    </div>
+
+                    <button
+                      onClick={() => toggleQueue(q.name)}
+                      className="shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11.5px] font-medium transition-colors hover:brightness-110"
+                      style={{
+                        background: running ? T.warnSoft : T.successSoft,
+                        color: running ? T.warn : T.success,
+                        boxShadow: `inset 0 0 0 1px ${running ? T.warnBorder : T.successBorder}`,
+                      }}
+                    >
+                      {running ? <Pause size={12} /> : <Play size={12} />}
+                      {running ? "Pause" : "Resume"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Jobs */}
+          {tab === "jobs" && (
+            <div className="rounded-xl overflow-hidden" style={{ background: T.surface, boxShadow: RING }}>
+              <ul>
+                {jobs.map((j, i) => {
+                  const tone =
+                    j.status === "Processing" ? T.cyan :
+                    j.status === "Pending"    ? T.warn :
+                    j.status === "Completed"  ? T.success : T.danger;
+                  return (
+                    <li
+                      key={j.id}
+                      className="flex items-center gap-3 md:gap-3.5 px-3.5 md:px-4 py-3 transition-colors hover:bg-white/[0.02]"
+                      style={{ borderTop: i === 0 ? "none" : `1px solid ${T.borderSoft}` }}
+                    >
+                      <span className="w-0.5 self-stretch rounded-full shrink-0" style={{ background: tone, opacity: 0.7 }} />
+
+                      <div
+                        className="w-8 h-8 shrink-0 rounded-md flex items-center justify-center"
+                        style={{ background: `${tone}14`, boxShadow: `inset 0 0 0 1px ${tone}35` }}
+                      >
+                        <JobDot status={j.status} />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>{j.campaign}</p>
+                          <button
+                            onClick={() => navigator.clipboard?.writeText(j.id)}
+                            className="inline-flex items-center gap-1 text-[10px] shrink-0 transition-colors hover:text-white"
+                            style={{ color: T.textFaint, fontFamily: FONT.mono }}
+                          >
+                            {j.id}
+                            <Copy size={9} />
+                          </button>
+                        </div>
+                        <p className="text-[11px] truncate" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                          {j.recipient} <span style={{ color: T.border }}>←</span> {j.sender}
+                        </p>
+                      </div>
+
+                      <span className="hidden md:inline shrink-0 text-[10.5px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                        {j.time}
+                      </span>
+
+                      <span className="shrink-0"><JobStatus status={j.status} /></span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
       </main>
     </div>
@@ -494,15 +533,19 @@ const SummaryTile: React.FC<{
   tone: string;
   spin?: boolean;
 }> = ({ icon: Icon, label, value, tone, spin }) => (
-  <div className="p-5 md:p-6">
-    <div className="flex items-center gap-2 mb-3">
-      <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-        style={{ background: `${tone}14`, boxShadow: `inset 0 0 0 1px ${tone}2E` }}>
-        <Icon size={14} className={spin ? "spin" : ""} style={{ color: tone }} />
+  <div className="p-4">
+    <div className="flex items-center gap-2 mb-2">
+      <div
+        className="w-7 h-7 rounded-md flex items-center justify-center"
+        style={{ background: `${tone}1A`, color: tone }}
+      >
+        <Icon size={13} className={spin ? "spin" : ""} />
       </div>
-      <span className="text-[11.5px] uppercase tracking-wider font-medium" style={{ color: "#6A7080" }}>{label}</span>
+      <span className="text-[10.5px] uppercase tracking-wider font-medium" style={{ color: T.textFaint }}>
+        {label}
+      </span>
     </div>
-    <p className="text-[28px] md:text-[32px] font-bold font-mono leading-none tracking-tight" style={{ color: "#F2F0EB" }}>
+    <p className="text-[24px] font-semibold leading-none tracking-tight" style={{ color: T.text, fontFamily: FONT.mono }}>
       {value}
     </p>
   </div>
@@ -515,22 +558,21 @@ const GlanceCard: React.FC<{
   onOpen: () => void;
   children: React.ReactNode;
 }> = ({ title, subtitle, icon: Icon, onOpen, children }) => (
-  <div className="rounded-3xl p-5 soft-ring transition-all hover:-translate-y-0.5"
-    style={{ background: "linear-gradient(180deg, #141823 0%, #10141D 100%)" }}>
-    <div className="flex items-start justify-between mb-4">
+  <div className="rounded-xl p-4" style={{ background: T.surface, boxShadow: RING }}>
+    <div className="flex items-start justify-between mb-3.5">
       <div>
-        <h3 className="text-[14px] font-semibold flex items-center gap-2" style={{ color: "#F2F0EB" }}>
-          <Icon size={14} />
+        <h3 className="text-[13px] font-semibold flex items-center gap-1.5" style={{ color: T.text }}>
+          <Icon size={13} style={{ color: T.cyan }} />
           {title}
         </h3>
-        <p className="text-[11.5px] mt-0.5" style={{ color: "#7A8092" }}>{subtitle}</p>
+        <p className="text-[11px] mt-0.5" style={{ color: T.textMuted }}>{subtitle}</p>
       </div>
       <button
         onClick={onOpen}
-        className="inline-flex items-center gap-1 text-[11.5px] font-medium transition-colors hover:opacity-80"
-        style={{ color: "#FF6A39" }}
+        className="inline-flex items-center gap-0.5 text-[11px] font-medium transition-colors"
+        style={{ color: T.cyan }}
       >
-        Open <ArrowUpRight size={12} />
+        Open <ArrowUpRight size={11} />
       </button>
     </div>
     {children}
@@ -538,38 +580,40 @@ const GlanceCard: React.FC<{
 );
 
 const MiniStat: React.FC<{ label: string; value: number; tone: string }> = ({ label, value, tone }) => (
-  <div className="rounded-2xl px-3 py-2.5" style={{ background: "#0F131C", boxShadow: "inset 0 0 0 1px #1A1F2B" }}>
-    <p className="text-[10px] uppercase tracking-wider" style={{ color: "#5A6172" }}>{label}</p>
-    <p className="text-[16px] font-bold font-mono leading-none mt-1.5" style={{ color: tone }}>{value}</p>
+  <div className="rounded-md px-2.5 py-2" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+    <p className="text-[9.5px] uppercase tracking-wider" style={{ color: T.textFaint }}>{label}</p>
+    <p className="text-[14px] font-semibold leading-none mt-1.5" style={{ color: tone, fontFamily: FONT.mono }}>
+      {value}
+    </p>
   </div>
 );
 
 const JobDot: React.FC<{ status: Job["status"] }> = ({ status }) => {
   const map: Record<Job["status"], { color: string; icon: React.ComponentType<{ size?: number; className?: string }>; spin?: boolean }> = {
-    Processing: { color: "#60A5FA", icon: Loader2,       spin: true },
-    Pending:    { color: "#FBBF24", icon: Clock },
-    Completed:  { color: "#34D399", icon: CheckCircle2 },
-    Failed:     { color: "#F87171", icon: XCircle },
+    Processing: { color: T.cyan,    icon: Loader2,      spin: true },
+    Pending:    { color: T.warn,    icon: Clock },
+    Completed:  { color: T.success, icon: CheckCircle2 },
+    Failed:     { color: T.danger,  icon: XCircle },
   };
   const { color, icon: Icon, spin } = map[status];
-  return <Icon size={14} className={spin ? "spin" : ""} style={{ color }} />;
+  return <Icon size={13} className={spin ? "spin" : ""} style={{ color }} />;
 };
 
 const jobStatusConfig: Record<Job["status"], { fg: string; bg: string; ring: string }> = {
-  Processing: { fg: "#60A5FA", bg: "rgba(59,130,246,0.10)",  ring: "rgba(59,130,246,0.22)" },
-  Pending:    { fg: "#FBBF24", bg: "rgba(234,179,8,0.10)",   ring: "rgba(234,179,8,0.22)" },
-  Failed:     { fg: "#F87171", bg: "rgba(239,68,68,0.10)",   ring: "rgba(239,68,68,0.22)" },
-  Completed:  { fg: "#34D399", bg: "rgba(52,211,153,0.10)",  ring: "rgba(52,211,153,0.22)" },
+  Processing: { fg: T.cyan,    bg: T.cyanSoft,    ring: T.cyanBorder },
+  Pending:    { fg: T.warn,    bg: T.warnSoft,    ring: T.warnBorder },
+  Failed:     { fg: T.danger,  bg: T.dangerSoft,  ring: T.dangerBorder },
+  Completed:  { fg: T.success, bg: T.successSoft, ring: T.successBorder },
 };
 
 const JobStatus = ({ status }: { status: Job["status"] }) => {
   const { fg, bg, ring } = jobStatusConfig[status];
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium whitespace-nowrap"
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
       style={{ background: bg, color: fg, boxShadow: `inset 0 0 0 1px ${ring}` }}
     >
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: fg, boxShadow: `0 0 6px ${fg}` }} />
+      <span className="w-1 h-1 rounded-full" style={{ background: fg }} />
       {status}
     </span>
   );

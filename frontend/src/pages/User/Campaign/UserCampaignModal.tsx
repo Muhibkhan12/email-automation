@@ -3,11 +3,33 @@ import React, { useEffect, useRef, useState } from 'react';
 import { X, Rocket, FileEdit, AlertTriangle } from 'lucide-react';
 import type { CreateCampaignData } from '../../../services/CampaignService';
 
+/* ─────────────── design tokens ─────────────── */
+
+const T = {
+  bg:          "#0A0B10",
+  surface:     "#111319",
+  surface2:    "#161922",
+  surfaceHi:   "#1B1F2A",
+  border:      "#232838",
+  borderSoft:  "#1B1F2A",
+  text:        "#E9EBF0",
+  textMuted:   "#9CA3B4",
+  textFaint:   "#6B7280",
+  brand:       "#6366F1",
+  brandSoft:   "rgba(99,102,241,0.12)",
+  brandBorder: "rgba(99,102,241,0.35)",
+  danger:      "#EF4444",
+  dangerSoft:  "rgba(239,68,68,0.12)",
+  dangerBorder:"rgba(239,68,68,0.35)",
+}
+
 const FONT = {
-  display: "'Space Grotesk', sans-serif",
-  body: "'Inter', sans-serif",
-  mono: "'JetBrains Mono', monospace",
-};
+  display: "'Inter', system-ui, -apple-system, sans-serif",
+  body:    "'Inter', system-ui, -apple-system, sans-serif",
+  mono:    "'JetBrains Mono', ui-monospace, monospace",
+}
+
+const RING = `inset 0 0 0 1px ${T.border}`
 
 interface Props {
   onClose: () => void;
@@ -20,10 +42,12 @@ interface Props {
 }
 
 const inputBase =
-  'w-full rounded-2xl px-3.5 py-2.5 text-[13.5px] outline-none transition-all text-[#E8E6E1] placeholder:text-[#6B727C] focus:ring-2 focus:ring-[#FF6A39]/40';
+  'w-full rounded-md px-3 py-2 text-[13px] outline-none transition-shadow';
+
 const inputStyle: React.CSSProperties = {
-  background: '#0F131B',
-  boxShadow: 'inset 0 0 0 1px #232833',
+  background: T.surface2,
+  color: T.text,
+  boxShadow: `inset 0 0 0 1px ${T.borderSoft}`,
   fontFamily: FONT.body,
 };
 
@@ -31,8 +55,8 @@ const Label: React.FC<{ htmlFor: string; children: React.ReactNode; hint?: strin
   htmlFor, children, hint,
 }) => (
   <label htmlFor={htmlFor} className="block mb-1.5">
-    <span className="text-[12.5px] font-medium" style={{ color: '#C7C9CE' }}>{children}</span>
-    {hint && <span className="ml-2 text-[11px]" style={{ color: '#5A6172' }}>{hint}</span>}
+    <span className="text-[12px] font-medium" style={{ color: T.textMuted }}>{children}</span>
+    {hint && <span className="ml-2 text-[11px]" style={{ color: T.textFaint }}>{hint}</span>}
   </label>
 );
 
@@ -65,8 +89,6 @@ const StartCampaignModal: React.FC<Props> = ({ onClose, onSubmit }) => {
     if (!campaignName.trim()) return setError('Give your campaign a name.');
     if (!subject.trim()) return setError('Add an email subject line.');
 
-    // Backend enum is title-cased: 'Draft' | 'Ready' | 'Running' | ...
-    // Always create as Draft; the /start endpoint handles the transition.
     const data = {
       campaign_name: campaignName.trim(),
       subject: subject.trim(),
@@ -85,53 +107,50 @@ const StartCampaignModal: React.FC<Props> = ({ onClose, onSubmit }) => {
 
   return (
     <div
-      className="fixed inset-0 z-60 flex items-end sm:items-center justify-center sm:p-6"
+      className="fixed inset-0 z-60 flex items-end sm:items-center justify-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="start-campaign-title"
     >
       <style>{`
-        @keyframes scIn { from { opacity: 0; transform: translateY(14px) scale(0.985); } to { opacity: 1; transform: none; } }
-        .sc-in { animation: scIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
-        @media (prefers-reduced-motion: reduce) { .sc-in { animation: none; } }
-        .sc-scroll::-webkit-scrollbar { width: 8px; }
-        .sc-scroll::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 10px; }
+        @keyframes scIn { from { opacity: 0; transform: scale(0.97) } to { opacity: 1; transform: none } }
+        .sc-in { animation: scIn 0.15s ease-out }
+        @media (prefers-reduced-motion: reduce) { .sc-in { animation: none !important } }
+        .sc-scroll::-webkit-scrollbar { width: 6px }
+        .sc-scroll::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px }
       `}</style>
 
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/70"
         onClick={() => !busy && onClose()}
       />
 
       <div
-        className="sc-in relative w-full sm:max-w-130 max-h-[92vh] flex flex-col rounded-t-3xl sm:rounded-3xl overflow-hidden"
+        className="sc-in relative w-full sm:max-w-md max-h-[92vh] flex flex-col rounded-t-xl sm:rounded-xl overflow-hidden"
         style={{
-          background: 'linear-gradient(180deg, #141821 0%, #10141D 100%)',
-          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.06), 0 30px 80px -20px rgba(0,0,0,0.8)',
+          background: T.surface,
+          boxShadow: `inset 0 0 0 1px ${T.border}, 0 24px 64px -16px rgba(0,0,0,0.7)`,
           fontFamily: FONT.body,
         }}
       >
-        <div className="flex items-start justify-between gap-4 px-5 md:px-6 pt-5 md:pt-6 pb-4">
-          <div className="flex items-center gap-3">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 px-4 md:px-5 pt-4 md:pt-5 pb-3.5">
+          <div className="flex items-center gap-2.5">
             <div
-              className="w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{
-                background: 'linear-gradient(135deg, rgba(255,106,57,0.22), rgba(255,106,57,0.06))',
-                boxShadow: 'inset 0 0 0 1px rgba(255,106,57,0.28)',
-                color: '#FF6A39',
-              }}
+              className="w-8 h-8 rounded-md flex items-center justify-center"
+              style={{ background: T.brandSoft, color: T.brand }}
             >
-              <Rocket size={18} />
+              <Rocket size={15} />
             </div>
             <div>
               <h2
                 id="start-campaign-title"
-                className="text-[18px] font-bold leading-tight"
-                style={{ fontFamily: FONT.display, color: '#F2F0EB', letterSpacing: '-0.02em' }}
+                className="text-[15px] font-semibold leading-tight"
+                style={{ color: T.text }}
               >
                 Start a campaign
               </h2>
-              <p className="text-[12px] mt-0.5" style={{ color: '#7A8092' }}>
+              <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
                 Give it a name and a subject to launch.
               </p>
             </div>
@@ -140,13 +159,15 @@ const StartCampaignModal: React.FC<Props> = ({ onClose, onSubmit }) => {
             onClick={onClose}
             disabled={busy}
             aria-label="Close"
-            className="p-2 rounded-xl text-[#8A90A0] hover:text-[#F2F0EB] hover:bg-[#1B2130] transition-colors disabled:opacity-40"
+            className="p-1.5 rounded-md transition-colors hover:bg-white/5 disabled:opacity-40"
+            style={{ color: T.textMuted, background: T.surface2 }}
           >
-            <X size={17} />
+            <X size={15} />
           </button>
         </div>
 
-        <div className="sc-scroll flex-1 overflow-y-auto px-5 md:px-6 pb-2 space-y-4">
+        {/* Body */}
+        <div className="sc-scroll flex-1 overflow-y-auto px-4 md:px-5 pb-1 space-y-3.5">
           <div>
             <Label htmlFor="sc-name">Campaign name</Label>
             <input
@@ -157,6 +178,8 @@ const StartCampaignModal: React.FC<Props> = ({ onClose, onSubmit }) => {
               placeholder="e.g. October product update"
               className={inputBase}
               style={inputStyle}
+              onFocus={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brand}, 0 0 0 3px ${T.brandSoft}`)}
+              onBlur={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.borderSoft}`)}
             />
           </div>
 
@@ -169,51 +192,53 @@ const StartCampaignModal: React.FC<Props> = ({ onClose, onSubmit }) => {
               placeholder="What recipients see in their inbox"
               className={inputBase}
               style={inputStyle}
+              onFocus={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brand}, 0 0 0 3px ${T.brandSoft}`)}
+              onBlur={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.borderSoft}`)}
             />
           </div>
 
           {error && (
             <div
-              className="flex items-start gap-2 rounded-2xl px-3.5 py-2.5 text-[12.5px]"
-              style={{
-                background: 'rgba(248,113,113,0.06)',
-                color: '#F87171',
-                boxShadow: 'inset 0 0 0 1px rgba(248,113,113,0.22)',
-              }}
+              className="flex items-start gap-2 rounded-md px-3 py-2.5 text-[12px]"
+              style={{ background: T.dangerSoft, color: T.danger, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
               role="alert"
             >
-              <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+              <AlertTriangle size={13} className="mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
         </div>
 
+        {/* Footer */}
         <div
-          className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 px-5 md:px-6 py-4 mt-2"
-          style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}
+          className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 px-4 md:px-5 py-3.5 mt-2"
+          style={{ borderTop: `1px solid ${T.borderSoft}` }}
         >
           <button
             onClick={onClose}
             disabled={busy}
-            className="px-4 py-2.5 rounded-2xl text-[13px] font-medium transition-all disabled:opacity-40"
-            style={{ background: '#141821', color: '#E8E6E1', boxShadow: 'inset 0 0 0 1px #232833' }}
+            className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors hover:bg-white/5 disabled:opacity-40"
+            style={{ color: T.textMuted }}
           >
             Cancel
           </button>
           <button
             onClick={() => submit(false)}
             disabled={busy}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-[13px] font-medium transition-all disabled:opacity-50"
-            style={{ background: '#1B2130', color: '#E8E6E1', boxShadow: 'inset 0 0 0 1px #2A3042' }}
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors hover:bg-white/5 disabled:opacity-50"
+            style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
           >
             {submitting === 'draft' ? (
               <>
-                <span className="w-3.5 h-3.5 border-2 border-white/70 border-t-transparent rounded-full animate-spin" />
+                <span
+                  className="w-3 h-3 border-2 rounded-full animate-spin"
+                  style={{ borderColor: T.textMuted, borderTopColor: 'transparent' }}
+                />
                 Saving…
               </>
             ) : (
               <>
-                <FileEdit size={14} />
+                <FileEdit size={12} />
                 Save as draft
               </>
             )}
@@ -221,17 +246,20 @@ const StartCampaignModal: React.FC<Props> = ({ onClose, onSubmit }) => {
           <button
             onClick={() => submit(true)}
             disabled={busy}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
-            style={{ background: '#FF6A39', boxShadow: '0 12px 30px -12px rgba(255,106,57,0.65)' }}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-md text-[12px] font-medium text-white transition-all hover:brightness-110 disabled:opacity-60 disabled:hover:brightness-100"
+            style={{ background: T.brand, boxShadow: '0 6px 18px -8px rgba(99,102,241,0.65)' }}
           >
             {submitting === 'start' ? (
               <>
-                <span className="w-3.5 h-3.5 border-2 border-white/80 border-t-transparent rounded-full animate-spin" />
+                <span
+                  className="w-3 h-3 border-2 rounded-full animate-spin"
+                  style={{ borderColor: '#fff', borderTopColor: 'transparent' }}
+                />
                 Starting…
               </>
             ) : (
               <>
-                <Rocket size={14} />
+                <Rocket size={12} />
                 Start campaign
               </>
             )}
