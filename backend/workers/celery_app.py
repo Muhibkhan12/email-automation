@@ -39,3 +39,13 @@ celery.conf.imports = (
     "workers.start_campaign",
     "workers.sending_emails",
 )
+celery.conf.beat_schedule = {
+    "dispatch-due-emails": {
+        "task": "workers.sending_emails.dispatch_due_task",
+        "schedule": 30.0,   # har 30 sec
+    },
+    "requeue-stale-queued": {
+        "task": "workers.sending_emails.requeue_stale_task",
+        "schedule": 600.0,  # har 10 min, lost tasks ka safety net
+    },
+}

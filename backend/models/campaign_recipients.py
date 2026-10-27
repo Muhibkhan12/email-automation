@@ -44,6 +44,12 @@ class CampaignRecipient(Base):
         nullable=True,
         default=None,
     )
+
+    scheduled_at : Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=True,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=lambda: datetime.now(UTC)

@@ -25,9 +25,20 @@ UTC = timezone.utc  # py3.10-safe
 MAX_RETRIES = 5
 TOKEN_REFRESH_BUFFER = timedelta(minutes=5)
 MAX_ERROR_LEN = 500
-LIMIT_RESCHEDULE_PAD = 5   # seconds, small buffer after a limit window resets
-DISPATCH_BATCH = 20        # max emails queued per minute (avoids bursts)
-MIN_GAP_SECONDS = 20       # minimum gap between two scheduled emails
+LIMIT_RESCHEDULE_PAD = 5    # seconds, small buffer after a limit window resets
+DISPATCH_BATCH = 50         # max emails queued per dispatcher run
+DISPATCH_LOOKAHEAD = 45     # seconds: dispatcher queues emails due within this window (with exact eta)
+STALE_QUEUED_MINUTES = 30   # QUEUED older than this = lost task, put back to PENDING
+
+# Random gap buckets (all values in SECONDS): (probability, min_gap, max_gap)
+# Mix of quick follow-ups and longer pauses, so the pattern looks human.
+GAP_BUCKETS = [
+    (0.50, 15, 60),     # 15s - 1 min
+    (0.30, 60, 180),    # 1 - 3 min
+    (0.15, 180, 420),   # 3 - 7 min
+    (0.05, 420, 900),   # 7 - 15 min (occasional long pause)
+]
+FIRST_SEND_DELAY = (2, 20)  # first email goes out within 2-20 seconds of start
 
 # Domains that get PLAIN TEXT instead of the HTML template.
 PLAIN_TEXT_DOMAINS = {"gmail.com", "googlemail.com"}
@@ -357,7 +368,7 @@ def _bump_sender_counters(db: Session, sender_account_id: int) -> None:
 
 
 def roll_sender_windows(db: Session) -> None:
-    """Zero stale counters for senders who sent nothing in the new hour/day."""
+    """Optional: zero stale counters so UI shows correct numbers for idle senders."""
     now = datetime.now(UTC)
     hour_start = _hour_start(now).replace(tzinfo=None)
     day_start = _day_start(now).replace(tzinfo=None)
@@ -393,12 +404,13 @@ def roll_sender_windows(db: Session) -> None:
 # =========================================================
 
 def _finalize_if_done(db: Session, campaign_id: int) -> None:
-    """If no PENDING/QUEUED recipient is left, mark a RUNNING campaign COMPLETED."""
+    """If no valid PENDING/QUEUED recipient is left, mark a RUNNING campaign COMPLETED."""
     try:
         pending = (
             db.query(CampaignRecipient)
             .filter(
                 CampaignRecipient.campaign_id == campaign_id,
+                CampaignRecipient.is_valid_email == True,  # noqa: E712
                 CampaignRecipient.status.in_(
                     [RecipientStatus.PENDING, RecipientStatus.QUEUED]
                 ),
@@ -420,18 +432,34 @@ def _finalize_if_done(db: Session, campaign_id: int) -> None:
 
 
 # =========================================================
-# Random scheduling (anti-spam)
+# Human-like random scheduling
 # =========================================================
 
-def schedule_campaign_sends(
-    db: Session,
-    campaign_id: int,
-    window_hours: float = 7.0,
-) -> int:
+def _random_gap() -> float:
+    """One random gap in SECONDS, picked from the weighted buckets."""
+    r = random.random()
+    acc = 0.0
+    for prob, lo, hi in GAP_BUCKETS:
+        acc += prob
+        if r < acc:
+            return random.uniform(lo, hi)
+    _, lo, hi = GAP_BUCKETS[-1]
+    return random.uniform(lo, hi)
+
+
+def schedule_campaign_sends(db: Session, campaign_id: int) -> int:
     """
-    Give every PENDING valid recipient a random send time inside window_hours.
-    Call this once when the campaign starts. Returns how many were scheduled.
+    Start now. Every PENDING valid recipient gets a send time = previous send
+    time + a random gap (mixed 15s .. 15min). The last scheduled_at is the
+    campaign's completion time.
+
+    If the sender's hourly/daily limit needs a slower average speed, ALL gaps
+    are scaled up together (keeps the randomness, just stretches it).
     """
+    campaign = db.get(Campaign, campaign_id)
+    if campaign is None:
+        return 0
+
     recipients = (
         db.query(CampaignRecipient)
         .filter(
@@ -445,18 +473,31 @@ def schedule_campaign_sends(
     if n == 0:
         return 0
 
-    window = max(60.0, window_hours * 3600)
-    gap = min(MIN_GAP_SECONDS, window / n)
+    gaps = [_random_gap() for _ in range(n - 1)]
 
-    offsets = sorted(random.uniform(0, window) for _ in range(n))
-    for i in range(1, n):
-        if offsets[i] - offsets[i - 1] < gap:
-            offsets[i] = offsets[i - 1] + gap
+    # Average gap must respect sender limits.
+    sender = db.get(SenderAccount, campaign.sender_account_id)
+    needed = 0.0
+    if sender is not None:
+        if sender.hourly_limit:
+            needed = max(needed, 3600.0 / sender.hourly_limit)
+        if sender.daily_limit:
+            needed = max(needed, 86400.0 / sender.daily_limit)
+    if gaps and needed:
+        mean = sum(gaps) / len(gaps)
+        if mean < needed:
+            factor = needed / mean
+            gaps = [g * factor for g in gaps]
 
     random.shuffle(recipients)  # random order too, so no pattern
-    start = datetime.now(UTC).replace(tzinfo=None)
-    for recipient, offset in zip(recipients, offsets):
-        recipient.scheduled_at = start + timedelta(seconds=offset)
+
+    t = datetime.now(UTC).replace(tzinfo=None) + timedelta(
+        seconds=random.uniform(*FIRST_SEND_DELAY)
+    )
+    for i, recipient in enumerate(recipients):
+        if i > 0:
+            t += timedelta(seconds=gaps[i - 1])
+        recipient.scheduled_at = t
 
     db.commit()
     return n
@@ -474,7 +515,7 @@ def record_failure(
     error: str,
     mark_recipient_failed: bool = True,
 ) -> None:
-    """Write a FAILED log row, mark recipient FAILED, failed_count +1. Never raises."""
+    """Mark recipient FAILED + log row + failed_count +1. Never raises."""
     try:
         db.rollback()
         recipient = db.get(CampaignRecipient, recipient_id)
@@ -483,11 +524,6 @@ def record_failure(
         if recipient is not None and mark_recipient_failed:
             newly_failed = _status_str(recipient.status) != "failed"
             recipient.status = RecipientStatus.FAILED
-        elif recipient is not None:
-            # Auth error: not the recipient's fault, will run again after reconnect.
-            recipient.status = RecipientStatus.PENDING
-
-        if recipient is not None:
             db.add(
                 _new_email_log(
                     campaign_id=campaign_id,
@@ -497,6 +533,10 @@ def record_failure(
                     error_message=error,
                 )
             )
+        elif recipient is not None:
+            # Auth error: not the recipient's fault, will run again after reconnect.
+            # No FAILED log row, so reports stay accurate.
+            recipient.status = RecipientStatus.PENDING
 
         if newly_failed:
             db.query(Campaign).filter(Campaign.id == campaign_id).update(
@@ -570,10 +610,15 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
         if _status_str(recipient.status) == "sent":
             return {"message": "Already sent, skipping"}
 
+        # Only QUEUED recipients are sent. A stale task (e.g. from before a
+        # pause/resume reschedule) finds PENDING here and quietly skips.
+        if _status_str(recipient.status) != "queued":
+            return {"message": f"Recipient is {_status_str(recipient.status)}, skipping"}
+
         if not recipient.is_valid_email:
             raise PermanentError("Invalid email address")
 
-        # Paused/cancelled: put recipient back to PENDING; dispatcher picks it up on resume.
+        # Paused/cancelled: put recipient back to PENDING; resume reschedules it.
         if campaign.status in (CampaignStatus.PAUSED, CampaignStatus.CANCELLED):
             recipient.status = RecipientStatus.PENDING
             db.commit()
@@ -654,6 +699,8 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
             logger.exception(
                 "Email to recipient %s was sent but DB update failed", recipient_id
             )
+            # Never leave it QUEUED/PENDING, or it could be sent twice.
+            _set_status(db, CampaignRecipient, recipient_id, RecipientStatus.SENT)
             return {"message": "Sent, but bookkeeping failed"}
 
         is_auth_error = isinstance(exc, AuthError)
@@ -680,7 +727,7 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
 
 
 # =========================================================
-# Task: dispatcher (runs every minute via Celery beat)
+# Task: dispatcher (Celery beat, every 30 seconds)
 # =========================================================
 
 @celery.task(
@@ -688,21 +735,27 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
     queue="email_sender_queue",
 )
 def dispatch_due_task():
-    """Queue every recipient whose random send time has arrived."""
+    """
+    Queue every recipient due within the next DISPATCH_LOOKAHEAD seconds.
+    Each email is queued with eta=its exact scheduled_at, so it goes out at
+    that exact second (not at the next beat tick).
+    """
     db: Session = SessionLocal()
     try:
         now = datetime.now(UTC).replace(tzinfo=None)
+        horizon = now + timedelta(seconds=DISPATCH_LOOKAHEAD)
         rows = (
             db.query(
                 CampaignRecipient.id,
                 CampaignRecipient.campaign_id,
+                CampaignRecipient.scheduled_at,
                 Campaign.sender_account_id,
             )
             .join(Campaign, Campaign.id == CampaignRecipient.campaign_id)
             .filter(
                 CampaignRecipient.status == RecipientStatus.PENDING,
                 CampaignRecipient.scheduled_at.isnot(None),
-                CampaignRecipient.scheduled_at <= now,
+                CampaignRecipient.scheduled_at <= horizon,
                 Campaign.status == CampaignStatus.RUNNING,  # paused/cancelled skipped
             )
             .order_by(CampaignRecipient.scheduled_at)
@@ -712,22 +765,75 @@ def dispatch_due_task():
         if not rows:
             return 0
 
-        ids = [r.id for r in rows]
-        db.query(CampaignRecipient).filter(
-            CampaignRecipient.id.in_(ids),
-            CampaignRecipient.status == RecipientStatus.PENDING,
-        ).update(
-            {CampaignRecipient.status: RecipientStatus.QUEUED},
-            synchronize_session=False,
-        )
+        # Claim each row individually; only queue the ones WE claimed.
+        # (Protects against overlapping runs queueing the same recipient twice.)
+        claimed = []
+        for r in rows:
+            updated = (
+                db.query(CampaignRecipient)
+                .filter(
+                    CampaignRecipient.id == r.id,
+                    CampaignRecipient.status == RecipientStatus.PENDING,
+                )
+                .update(
+                    {CampaignRecipient.status: RecipientStatus.QUEUED},
+                    synchronize_session=False,
+                )
+            )
+            if updated == 1:
+                claimed.append(r)
         db.commit()
 
-        for r in rows:
-            send_email_task.delay(r.id, r.sender_account_id, r.campaign_id)
-        return len(rows)
+        for r in claimed:
+            send_email_task.apply_async(
+                args=[r.id, r.sender_account_id, r.campaign_id],
+                queue="email_sender_queue",
+                eta=_as_aware(r.scheduled_at),  # exact second; past time = run now
+            )
+        return len(claimed)
     except Exception:
         db.rollback()
         logger.exception("Dispatcher failed")
+        raise
+    finally:
+        db.close()
+
+
+# =========================================================
+# Task: safety net for lost tasks (Celery beat, every 10 minutes)
+# =========================================================
+
+@celery.task(
+    name="workers.sending_emails.requeue_stale_task",
+    queue="email_sender_queue",
+)
+def requeue_stale_task():
+    """QUEUED for too long = task got lost (broker restart etc.). Back to PENDING."""
+    db: Session = SessionLocal()
+    try:
+        now = datetime.now(UTC).replace(tzinfo=None)
+        cutoff = now - timedelta(minutes=STALE_QUEUED_MINUTES)
+        count = (
+            db.query(CampaignRecipient)
+            .filter(
+                CampaignRecipient.status == RecipientStatus.QUEUED,
+                CampaignRecipient.scheduled_at < cutoff,
+            )
+            .update(
+                {
+                    CampaignRecipient.status: RecipientStatus.PENDING,
+                    CampaignRecipient.scheduled_at: now,
+                },
+                synchronize_session=False,
+            )
+        )
+        db.commit()
+        if count:
+            logger.warning("Requeued %d stale QUEUED recipients", count)
+        return count
+    except Exception:
+        db.rollback()
+        logger.exception("requeue_stale_task failed")
         raise
     finally:
         db.close()

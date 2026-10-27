@@ -1,6 +1,5 @@
 import httpx
 
-
 class GraphService:
     GRAPH_URL = "https://graph.microsoft.com/v1.0"
     @staticmethod

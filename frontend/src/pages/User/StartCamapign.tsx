@@ -3,8 +3,8 @@ import Sidebar from "./Sidebar";
 import {
   Menu, Check, ChevronLeft, ChevronRight, UploadCloud, FileText, Mail,
   LayoutTemplate, ClipboardCheck, Rocket, AlertTriangle, CheckCircle2,
-  XCircle, Pause, Play, Ban, Calendar, X, Send, Users, Trash2, Loader2,
-  Pencil, Type, Clock, Inbox,
+  XCircle, Pause, Play, Ban, X, Send, Users, Trash2, Loader2,
+  Pencil, Type, Clock, Inbox, Timer, Hourglass, Info,
 } from "lucide-react";
 import { SenderAccContext } from "../../contexts/SenderAccountsContext";
 import { useHtmlTemplates } from "../../contexts/HtmlTemplatesContext";
@@ -16,88 +16,66 @@ import {
   summaryFromAnalytics,
   type RecipientsSummary,
 } from "../../services/ExtractFile";
-import { createCampaign, getCampaignById } from "../../services/CampaignService";
+import { createCampaign } from "../../services/CampaignService";
 import {
   startCampaign,
   pauseCampaign,
   resumeCampaign,
-  cancelCampaign,
+  getCampaignProgress,
+  parseUtc,
   type CampaignDTO,
+  type CampaignProgressDTO,
 } from "../../services/WorkerService";
 
-/* ─────────────────────────────────────────────────────────
-   DESIGN TOKENS
-   A restrained, modern SaaS palette:
-   - Deep neutral canvas
-   - Single brand accent (indigo) + semantic status colors
-   - Soft elevation via subtle borders rather than heavy shadows
-   ───────────────────────────────────────────────────────── */
-
+/* ───────── tokens (unchanged) ───────── */
 const T = {
-  bg:          "#0A0B10",
-  surface:     "#111319",
-  surface2:    "#161922",
-  surfaceHi:   "#1B1F2A",
-  border:      "#232838",
-  borderSoft:  "#1B1F2A",
-  text:        "#E9EBF0",
-  textMuted:   "#9CA3B4",
-  textFaint:   "#6B7280",
-  brand:       "#6366F1",
-  brandSoft:   "rgba(99,102,241,0.12)",
-  brandBorder: "rgba(99,102,241,0.35)",
-  success:     "#22C55E",
-  successSoft: "rgba(34,197,94,0.12)",
-  warn:        "#F59E0B",
-  warnSoft:    "rgba(245,158,11,0.12)",
-  danger:      "#EF4444",
-  dangerSoft:  "rgba(239,68,68,0.12)",
-  info:        "#38BDF8",
-  purple:      "#A78BFA",
+  bg: "#0A0B10", surface: "#111319", surface2: "#161922", surfaceHi: "#1B1F2A",
+  border: "#232838", borderSoft: "#1B1F2A", text: "#E9EBF0",
+  textMuted: "#9CA3B4", textFaint: "#6B7280",
+  brand: "#6366F1", brandSoft: "rgba(99,102,241,0.12)", brandBorder: "rgba(99,102,241,0.35)",
+  success: "#22C55E", successSoft: "rgba(34,197,94,0.12)",
+  warn: "#F59E0B", warnSoft: "rgba(245,158,11,0.12)",
+  danger: "#EF4444", dangerSoft: "rgba(239,68,68,0.12)",
+  info: "#38BDF8", purple: "#A78BFA",
 };
-
 const FONT = {
   display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
+  body: "'Inter', system-ui, -apple-system, sans-serif",
+  mono: "'JetBrains Mono', ui-monospace, monospace",
 };
-
 const RING = `inset 0 0 0 1px ${T.border}`;
 const CARD: React.CSSProperties = { background: T.surface, boxShadow: RING };
 
-type Status = "Draft" | "Ready" | "Scheduled" | "Running" | "Paused" | "Completed" | "Failed" | "Cancelled";
+/* Backend only emits these; "Scheduled" never comes from the server. */
+type Status = "Draft" | "Ready" | "Running" | "Paused" | "Completed" | "Failed" | "Cancelled";
 
 const STATUS_TONE: Record<Status, { color: string; soft: string }> = {
-  Draft:     { color: T.textMuted, soft: "rgba(156,163,180,0.10)" },
-  Ready:     { color: T.brand,     soft: T.brandSoft },
-  Scheduled: { color: T.purple,    soft: "rgba(167,139,250,0.12)" },
-  Running:   { color: T.info,      soft: "rgba(56,189,248,0.12)" },
-  Paused:    { color: T.warn,      soft: T.warnSoft },
-  Completed: { color: T.success,   soft: T.successSoft },
-  Failed:    { color: T.danger,    soft: T.dangerSoft },
-  Cancelled: { color: T.danger,    soft: T.dangerSoft },
+  Draft: { color: T.textMuted, soft: "rgba(156,163,180,0.10)" },
+  Ready: { color: T.brand, soft: T.brandSoft },
+  Running: { color: T.info, soft: "rgba(56,189,248,0.12)" },
+  Paused: { color: T.warn, soft: T.warnSoft },
+  Completed: { color: T.success, soft: T.successSoft },
+  Failed: { color: T.danger, soft: T.dangerSoft },
+  Cancelled: { color: T.danger, soft: T.dangerSoft },
 };
 
 const STEPS = [
-  { label: "Details",    sub: "Name & subject", icon: FileText },
-  { label: "Sender",     sub: "Pick account",   icon: Mail },
-  { label: "Template",   sub: "Choose design",  icon: LayoutTemplate },
-  { label: "Recipients", sub: "Upload list",    icon: Users },
-  { label: "Review",     sub: "Check & send",   icon: ClipboardCheck },
+  { label: "Details", sub: "Name & subject", icon: FileText },
+  { label: "Sender", sub: "Pick account", icon: Mail },
+  { label: "Template", sub: "Choose design", icon: LayoutTemplate },
+  { label: "Recipients", sub: "Upload list", icon: Users },
+  { label: "Review", sub: "Check & send", icon: ClipboardCheck },
 ];
 
-/* ───────────── helpers ───────────── */
-
-const tplId   = (t: any): string => String(t?.id ?? t?._id ?? "");
+/* ───────── helpers ───────── */
+const tplId = (t: any): string => String(t?.id ?? t?._id ?? "");
 const tplName = (t: any): string => t?.name ?? t?.title ?? t?.template_name ?? "Untitled template";
 const tplDesc = (t: any): string => t?.description ?? t?.desc ?? t?.subject ?? "";
 const tplHtml = (t: any): string => t?.html ?? t?.html_content ?? t?.content ?? t?.body ?? "";
 
 const errMsg = (e: any, fallback: string) => {
   const d = e?.response?.data?.detail;
-  if (Array.isArray(d)) {
-    return d.map((x: any) => `${(x.loc ?? []).slice(1).join(".")}: ${x.msg}`).join(" | ");
-  }
+  if (Array.isArray(d)) return d.map((x: any) => `${(x.loc ?? []).slice(1).join(".")}: ${x.msg}`).join(" | ");
   return d?.toString?.() ?? e?.response?.data?.message ?? e?.message ?? fallback;
 };
 
@@ -105,7 +83,6 @@ const toStatus = (raw?: string): Status | null => {
   const s = String(raw ?? "").toLowerCase();
   if (s === "draft") return "Draft";
   if (s === "ready") return "Ready";
-  if (s === "scheduled") return "Scheduled";
   if (["running", "sending", "in_progress", "processing"].includes(s)) return "Running";
   if (s === "paused") return "Paused";
   if (["completed", "done", "finished"].includes(s)) return "Completed";
@@ -114,8 +91,12 @@ const toStatus = (raw?: string): Status | null => {
   return null;
 };
 
-/* ───────────── primitives ───────────── */
+const fmt = (iso: string | null | undefined) => {
+  const d = parseUtc(iso);
+  return d ? d.toLocaleString() : "—";
+};
 
+/* ───────── primitives (unchanged) ───────── */
 const Btn: React.FC<{
   variant?: "primary" | "ghost" | "danger" | "subtle";
   size?: "sm" | "md";
@@ -124,83 +105,59 @@ const Btn: React.FC<{
   children: React.ReactNode;
 }> = ({ variant = "ghost", size = "md", onClick, disabled, children }) => {
   const styles: Record<string, React.CSSProperties> = {
-    primary: {
-      background: T.brand, color: "#fff",
-      boxShadow: "0 1px 0 rgba(255,255,255,0.06) inset, 0 6px 18px -8px rgba(99,102,241,0.6)",
-    },
-    ghost:  { background: T.surface2, color: T.text, boxShadow: `inset 0 0 0 1px ${T.border}` },
+    primary: { background: T.brand, color: "#fff", boxShadow: "0 1px 0 rgba(255,255,255,0.06) inset, 0 6px 18px -8px rgba(99,102,241,0.6)" },
+    ghost: { background: T.surface2, color: T.text, boxShadow: `inset 0 0 0 1px ${T.border}` },
     subtle: { background: "transparent", color: T.textMuted },
     danger: { background: T.dangerSoft, color: "#FCA5A5", boxShadow: `inset 0 0 0 1px rgba(239,68,68,0.35)` },
   };
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
+    <button onClick={onClick} disabled={disabled}
       className={`inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all
         ${size === "sm" ? "px-3 py-1.5 text-[12px]" : "px-4 py-2 text-[13px]"}
         hover:brightness-110 active:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100`}
-      style={styles[variant]}
-    >
-      {children}
-    </button>
+      style={styles[variant]}>{children}</button>
   );
 };
-
-const Card: React.FC<{ children: React.ReactNode; className?: string; style?: React.CSSProperties }> = ({
-  children, className = "", style,
-}) => (
-  <div className={`rounded-xl ${className}`} style={{ ...CARD, ...style }}>{children}</div>
-);
-
-const Field: React.FC<{
-  label: string; hint?: string; right?: React.ReactNode; children: React.ReactNode;
-}> = ({ label, hint, right, children }) => (
-  <div>
-    <div className="flex items-center justify-between mb-1.5">
-      <label className="text-[12px] font-medium" style={{ color: T.textMuted }}>{label}</label>
-      {right}
+const Card: React.FC<{ children: React.ReactNode; className?: string; style?: React.CSSProperties }> =
+  ({ children, className = "", style }) => (
+    <div className={`rounded-xl ${className}`} style={{ ...CARD, ...style }}>{children}</div>
+  );
+const Field: React.FC<{ label: string; hint?: string; right?: React.ReactNode; children: React.ReactNode }> =
+  ({ label, hint, right, children }) => (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-[12px] font-medium" style={{ color: T.textMuted }}>{label}</label>
+        {right}
+      </div>
+      {children}
+      {hint && <p className="text-[11.5px] mt-1.5" style={{ color: T.textFaint }}>{hint}</p>}
     </div>
-    {children}
-    {hint && <p className="text-[11.5px] mt-1.5" style={{ color: T.textFaint }}>{hint}</p>}
-  </div>
-);
-
-const Stat: React.FC<{ label: string; value: string | number; tone?: string }> = ({
-  label, value, tone = T.text,
-}) => (
+  );
+const Stat: React.FC<{ label: string; value: string | number; tone?: string }> = ({ label, value, tone = T.text }) => (
   <div className="rounded-lg p-3.5" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
     <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: T.textFaint }}>{label}</p>
     <p className="text-[20px] font-semibold mt-1.5 leading-none" style={{ color: tone, fontFamily: FONT.mono }}>{value}</p>
   </div>
 );
-
 const Loading = ({ label }: { label: string }) => (
   <Card className="p-4">
     <div className="flex items-center gap-2.5 text-[12.5px] py-1" style={{ color: T.textMuted }}>
       <Loader2 size={14} className="animate-spin" /> {label}
     </div>
-    <div className="mt-3 space-y-2">
-      {[0, 1].map((i) => (
-        <div key={i} className="h-12 rounded-lg overflow-hidden" style={{ background: T.surface2 }}>
-          <div className="h-full w-full animate-pulse" style={{ background: `linear-gradient(90deg, transparent, ${T.surfaceHi}, transparent)` }} />
-        </div>
-      ))}
-    </div>
   </Card>
 );
-
 const Head = ({ title, sub }: { title: string; sub: string }) => (
   <div>
     <h2 className="text-[17px] font-semibold" style={{ color: T.text }}>{title}</h2>
     <p className="text-[13px] mt-1" style={{ color: T.textMuted }}>{sub}</p>
   </div>
 );
-
-const Notice = ({ tone, children }: { tone: "error" | "warn" | "info"; children: React.ReactNode }) => {
+const Notice = ({ tone, children }: { tone: "error" | "warn" | "info" | "success"; children: React.ReactNode }) => {
   const map = {
     error: { c: T.danger, soft: T.dangerSoft, border: "rgba(239,68,68,0.28)" },
-    warn:  { c: T.warn,   soft: T.warnSoft,   border: "rgba(245,158,11,0.28)" },
-    info:  { c: T.info,   soft: "rgba(56,189,248,0.10)", border: "rgba(56,189,248,0.28)" },
+    warn: { c: T.warn, soft: T.warnSoft, border: "rgba(245,158,11,0.28)" },
+    info: { c: T.info, soft: "rgba(56,189,248,0.10)", border: "rgba(56,189,248,0.28)" },
+    success: { c: T.success, soft: T.successSoft, border: "rgba(34,197,94,0.28)" },
   }[tone];
   return (
     <div className="flex items-start gap-2.5 rounded-lg px-3.5 py-3"
@@ -210,7 +167,6 @@ const Notice = ({ tone, children }: { tone: "error" | "warn" | "info"; children:
     </div>
   );
 };
-
 const Modal = ({ onClose, children }: { onClose: () => void; children: React.ReactNode }) => (
   <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
     <div onClick={(e) => e.stopPropagation()}
@@ -218,14 +174,11 @@ const Modal = ({ onClose, children }: { onClose: () => void; children: React.Rea
       style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}, 0 24px 64px -16px rgba(0,0,0,0.7)` }}>
       <button onClick={onClose} aria-label="Close"
         className="absolute top-4 right-4 p-1.5 rounded-md transition-colors hover:bg-white/5"
-        style={{ color: T.textFaint }}>
-        <X size={15} />
-      </button>
+        style={{ color: T.textFaint }}><X size={15} /></button>
       {children}
     </div>
   </div>
 );
-
 const Ring = ({ pct, color }: { pct: number; color: string }) => {
   const r = 54, c = 2 * Math.PI * r;
   return (
@@ -233,8 +186,7 @@ const Ring = ({ pct, color }: { pct: number; color: string }) => {
       <svg width="132" height="132" viewBox="0 0 132 132" className="-rotate-90">
         <circle cx="66" cy="66" r={r} fill="none" stroke={T.surfaceHi} strokeWidth="8" />
         <circle cx="66" cy="66" r={r} fill="none" strokeWidth="8" strokeLinecap="round"
-          stroke={color} strokeDasharray={c}
-          strokeDashoffset={c - (c * pct) / 100}
+          stroke={color} strokeDasharray={c} strokeDashoffset={c - (c * pct) / 100}
           style={{ transition: "stroke-dashoffset 0.6s ease" }} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -245,8 +197,7 @@ const Ring = ({ pct, color }: { pct: number; color: string }) => {
   );
 };
 
-/* ───────────── page ───────────── */
-
+/* ───────── page ───────── */
 const CampaignCreatePage = () => {
   const ctx = useContext(SenderAccContext);
   const accounts: any[] = Array.isArray(ctx?.senderAcc) ? (ctx!.senderAcc as any[]) : [];
@@ -258,7 +209,8 @@ const CampaignCreatePage = () => {
   const currentUserId = auth?.user?.user_id ?? null;
 
   const available = accounts.filter(
-    (a) => (a.status ?? "").toLowerCase() === "active" && (a.daily_limit ?? 0) - (a.emails_sent_today ?? 0) > 0
+    (a) => (a.status ?? "").toLowerCase() === "active" &&
+      (a.daily_limit ?? 0) - (a.emails_sent_today ?? 0) > 0
   );
 
   const { templates, loading: templatesLoading, error: templatesError, refetch: refetchTemplates } = useHtmlTemplates();
@@ -279,8 +231,6 @@ const CampaignCreatePage = () => {
   const [dragging, setDragging] = useState(false);
   const [senderId, setSenderId] = useState<number | null>(null);
   const [templateId, setTemplateId] = useState<string | null>(null);
-  const [mode, setMode] = useState<"now" | "later">("now");
-  const [scheduleAt, setScheduleAt] = useState("");
   const [status, setStatus] = useState<Status>("Draft");
   const [campaignId, setCampaignId] = useState<number | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -289,9 +239,11 @@ const CampaignCreatePage = () => {
   const [submitError, setSubmitError] = useState("");
   const [actionError, setActionError] = useState("");
   const [run, setRun] = useState({ sent: 0, failed: 0, total: 0 });
+  /** Live server-side scheduling info from /worker/progress */
+  const [live, setLive] = useState<CampaignProgressDTO | null>(null);
+
   const fileRef = useRef<HTMLInputElement>(null);
   const loadTokenRef = useRef(0);
-
   const runRef = useRef(run);
   runRef.current = run;
 
@@ -320,13 +272,8 @@ const CampaignCreatePage = () => {
     if (recipients && recipients.invalid > 0) {
       list.push({ ok: false, level: "warn", label: "Invalid emails", detail: `${recipients.invalid} invalid row(s) will be skipped.` });
     }
-    if (mode === "later") {
-      if (!scheduleAt) list.push({ ok: false, level: "error", label: "Schedule", detail: "Pick a date and time." });
-      else if (new Date(scheduleAt).getTime() <= Date.now())
-        list.push({ ok: false, level: "error", label: "Schedule", detail: "Pick a time in the future." });
-    }
     return list;
-  }, [name, subject, total, uploaded, sender, template, remaining, recipients, mode, scheduleAt]);
+  }, [name, subject, total, uploaded, sender, template, remaining, recipients]);
 
   const ready = checks.every((c) => c.ok || c.level === "warn");
 
@@ -334,38 +281,41 @@ const CampaignCreatePage = () => {
     if (status === "Draft" || status === "Ready") setStatus(ready ? "Ready" : "Draft");
   }, [ready, status]);
 
-  const applyServer = (c: CampaignDTO, fallback?: Status) => {
-    const prev = runRef.current;
-    const sent = c.sent_count ?? prev.sent;
-    const failed = c.failed_count ?? prev.failed;
-    const totalCount = c.total_count ?? (prev.total || total);
-    setRun({ sent, failed, total: totalCount });
-    let next = toStatus(c.status) ?? fallback;
-    if (next === "Running" && totalCount > 0 && sent + failed >= totalCount) next = "Completed";
+  /** Merge a progress payload into local state. */
+  const applyProgress = (p: CampaignProgressDTO) => {
+    setLive(p);
+    setRun({
+      sent: p.sent ?? 0,
+      failed: p.failed ?? 0,
+      total: p.total ?? runRef.current.total,
+    });
+    const next = toStatus(p.status);
     if (next) setStatus(next);
   };
 
+  /** Poll /worker/progress while running/paused. */
   useEffect(() => {
-    if (!campaignId || !["Scheduled", "Running", "Paused"].includes(status)) return;
+    if (!campaignId || !["Running", "Paused"].includes(status)) return;
     let stop = false;
-    const t = setInterval(async () => {
+    const tick = async () => {
       try {
-        const c = await getCampaignById(campaignId);
-        if (!stop && c) applyServer(c as unknown as CampaignDTO);
+        const p = await getCampaignProgress(campaignId);
+        if (!stop && p) applyProgress(p);
       } catch { /* ignore */ }
-    }, 3000);
+    };
+    tick();
+    const t = setInterval(tick, 3000);
     return () => { stop = true; clearInterval(t); };
     // eslint-disable-next-line
   }, [campaignId, status]);
 
+  /* ─── file load (unchanged) ─── */
   const loadFile = async (file?: File) => {
     if (!file) return;
     const token = ++loadTokenRef.current;
     const stale = () => token !== loadTokenRef.current;
-
     setUploadError(""); setUploaded(false); setUploadId(null); setRecipients(null);
     setFileName(file.name); setUploading(true); setExtracting(false); setProgress(0);
-
     try {
       const saved: any = await uploadRecipients(file, setProgress);
       if (stale()) return;
@@ -385,7 +335,6 @@ const CampaignCreatePage = () => {
       if (!stale()) { setUploading(false); setExtracting(false); }
     }
   };
-
   const clearFile = () => {
     loadTokenRef.current++;
     setRecipients(null); setFileName(""); setUploaded(false); setUploadId(null);
@@ -401,6 +350,7 @@ const CampaignCreatePage = () => {
     ready,
   ][step];
 
+  /* ─── launch ─── */
   const launch = async () => {
     if (!sender || !template || uploadId === null) return;
     const userId = auth?.user?.user_id ?? currentUserId;
@@ -409,8 +359,6 @@ const CampaignCreatePage = () => {
     setSubmitting(true); setSubmitError("");
     try {
       let id = campaignId;
-      let created: CampaignDTO | null = null;
-
       if (id === null) {
         const templateIdNum = Number((template as any).id ?? (template as any)._id);
         if (!templateIdNum) throw new Error("Missing template id.");
@@ -428,88 +376,83 @@ const CampaignCreatePage = () => {
         if (typeof newId !== "number") {
           throw new Error(`Campaign created but no valid id in response: ${JSON.stringify(res)}`);
         }
-        created = campaign as unknown as CampaignDTO;
         id = newId;
         setCampaignId(newId);
         setRun({ sent: 0, failed: 0, total });
       }
 
-      if (mode === "now") {
-        const started = await startCampaign(id, uploadId);
-        applyServer(started, "Running");
-      } else {
-        const fetched = created ?? (await getCampaignById(id));
-        if (fetched) applyServer(fetched as unknown as CampaignDTO, "Scheduled");
-        else setStatus("Scheduled");
-      }
+      // Backend always starts immediately and schedules random gaps server-side.
+      await startCampaign(id, uploadId);
+      setStatus("Running");
       setConfirmOpen(false);
       fetchSenders?.();
+      // Fetch initial progress right away so the UI shows the next send time.
+      try {
+        const p = await getCampaignProgress(id);
+        applyProgress(p);
+      } catch { /* ignore */ }
     } catch (e) {
-      setSubmitError(errMsg(e, "Could not create the campaign."));
+      setSubmitError(errMsg(e, "Could not start the campaign."));
     } finally {
       setSubmitting(false);
     }
   };
 
+  /* ─── actions ─── */
   const act = async (fn: (id: number) => Promise<CampaignDTO>, fallback: Status) => {
     if (!campaignId) return;
     setActionError("");
-    try { applyServer(await fn(campaignId), fallback); }
-    catch (e) { setActionError(errMsg(e, "Action failed. Please try again.")); }
-  };
-
-  const editSchedule = async () => {
-    if (!campaignId) return;
-    setActionError("");
     try {
-      await cancelCampaign(campaignId);
-      setCampaignId(null); setStatus("Draft"); setStep(4);
-    } catch (e) { setActionError(errMsg(e, "Could not edit the schedule.")); }
+      await fn(campaignId);
+      setStatus(fallback);
+      try {
+        const p = await getCampaignProgress(campaignId);
+        applyProgress(p);
+      } catch { /* ignore */ }
+    } catch (e) {
+      setActionError(errMsg(e, "Action failed. Please try again."));
+    }
   };
 
   const reset = () => {
     setStep(0); setName(""); setSubject(""); clearFile();
-    setSenderId(null); setTemplateId(null); setMode("now"); setScheduleAt("");
+    setSenderId(null); setTemplateId(null);
     setCampaignId(null); setSubmitError(""); setActionError("");
-    setRun({ sent: 0, failed: 0, total: 0 }); setStatus("Draft");
+    setRun({ sent: 0, failed: 0, total: 0 }); setStatus("Draft"); setLive(null);
   };
 
   const editing = status === "Draft" || status === "Ready";
-  const shownTotal = run.total || total;
+  const shownTotal = live?.total || run.total || total;
   const done = run.sent + run.failed;
   const pct = shownTotal ? Math.min(100, Math.round((done / shownTotal) * 100)) : 0;
   const tone = STATUS_TONE[status];
 
   const summaryItems = [
-    { label: "Details",    icon: FileText,       done: !!name.trim() && !!subject.trim(), value: name.trim() || "Not set yet" },
-    { label: "Sender",     icon: Mail,           done: !!sender, value: sender?.email ?? "Not selected" },
-    { label: "Template",   icon: LayoutTemplate, done: !!template, value: template ? tplName(template) : "Not selected" },
-    { label: "Recipients", icon: Users,          done: total > 0 && uploaded, value: total ? `${total.toLocaleString()} valid emails` : "No file uploaded" },
+    { label: "Details", icon: FileText, done: !!name.trim() && !!subject.trim(), value: name.trim() || "Not set yet" },
+    { label: "Sender", icon: Mail, done: !!sender, value: sender?.email ?? "Not selected" },
+    { label: "Template", icon: LayoutTemplate, done: !!template, value: template ? tplName(template) : "Not selected" },
+    { label: "Recipients", icon: Users, done: total > 0 && uploaded, value: total ? `${total.toLocaleString()} valid emails` : "No file uploaded" },
   ];
   const completion = Math.round((summaryItems.filter((s) => s.done).length / summaryItems.length) * 100);
 
-  /* ───────────── render ───────────── */
+  /* ───────── render ───────── */
   return (
     <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: T.bg }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-        .cm-input {
-          width: 100%; border-radius: 8px; padding: 10px 14px; font-size: 13.5px; outline: none;
-          background: ${T.surface2}; color: ${T.text}; box-shadow: inset 0 0 0 1px ${T.border};
-          transition: box-shadow .15s, background .15s;
-        }
-        .cm-input:focus { box-shadow: inset 0 0 0 1px ${T.brand}, 0 0 0 3px ${T.brandSoft}; background: ${T.surfaceHi}; }
-        .cm-input::placeholder { color: ${T.textFaint}; }
-        .cm-input[type="datetime-local"] { color-scheme: dark; }
-        .cm-scroll::-webkit-scrollbar { width: 6px; }
-        .cm-scroll::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 99px; }
-        .cm-scroll::-webkit-scrollbar-track { background: transparent; }
-        .animate-in { animation-fill-mode: both; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes zoomIn { from { transform: scale(0.96); } to { transform: scale(1); } }
-        .fade-in { animation: fadeIn 0.15s ease; }
-        .zoom-in-95 { animation: zoomIn 0.15s ease; }
-        @media (prefers-reduced-motion: reduce) { .fade-in, .zoom-in-95 { animation: none !important; } }
+        .cm-input { width:100%; border-radius:8px; padding:10px 14px; font-size:13.5px; outline:none;
+          background:${T.surface2}; color:${T.text}; box-shadow: inset 0 0 0 1px ${T.border};
+          transition: box-shadow .15s, background .15s; }
+        .cm-input:focus { box-shadow: inset 0 0 0 1px ${T.brand}, 0 0 0 3px ${T.brandSoft}; background:${T.surfaceHi}; }
+        .cm-input::placeholder { color:${T.textFaint}; }
+        .cm-scroll::-webkit-scrollbar { width:6px; }
+        .cm-scroll::-webkit-scrollbar-thumb { background:${T.border}; border-radius:99px; }
+        .cm-scroll::-webkit-scrollbar-track { background:transparent; }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        @keyframes zoomIn { from{transform:scale(0.96)} to{transform:scale(1)} }
+        .fade-in{animation:fadeIn .15s ease}
+        .zoom-in-95{animation:zoomIn .15s ease}
+        @media (prefers-reduced-motion: reduce){ .fade-in,.zoom-in-95{animation:none!important} }
       `}</style>
 
       {sidebarOpen && <div className="lg:hidden fixed inset-0 z-40 bg-black/70" onClick={() => setSidebarOpen(false)} />}
@@ -520,7 +463,6 @@ const CampaignCreatePage = () => {
       <main className="flex-1 overflow-y-auto" style={{ height: "100vh", background: T.bg }}>
         <div className="mx-auto px-4 md:px-8 lg:px-10 py-6 md:py-10" style={{ maxWidth: 1160 }}>
 
-          {/* Header */}
           <header className="flex items-center gap-3 mb-7">
             <button onClick={() => setSidebarOpen(true)}
               className="lg:hidden p-2 rounded-lg transition-colors hover:bg-white/5"
@@ -549,21 +491,16 @@ const CampaignCreatePage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-6 items-start">
               <div className="min-w-0 space-y-5">
 
-                {/* Step rail */}
+                {/* Step rail (unchanged) */}
                 <div className="rounded-xl px-1.5 py-1.5 overflow-x-auto cm-scroll" style={{ background: T.surface, boxShadow: RING }}>
                   <div className="flex items-center gap-1 min-w-max sm:min-w-0">
                     {STEPS.map((s, i) => {
                       const isDone = i < step, isCur = i === step, Icon = s.icon;
                       return (
                         <div key={s.label} className="flex items-center gap-1 flex-1 last:flex-none">
-                          <button
-                            onClick={() => i < step && setStep(i)}
+                          <button onClick={() => i < step && setStep(i)}
                             className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-all flex-1"
-                            style={{
-                              cursor: i < step ? "pointer" : "default",
-                              background: isCur ? T.brandSoft : "transparent",
-                            }}
-                          >
+                            style={{ cursor: i < step ? "pointer" : "default", background: isCur ? T.brandSoft : "transparent" }}>
                             <span className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition-colors"
                               style={{
                                 background: isDone ? T.successSoft : isCur ? T.brand : T.surface2,
@@ -586,9 +523,8 @@ const CampaignCreatePage = () => {
                   </div>
                 </div>
 
-                {/* Main panel */}
                 <Card className="p-5 md:p-7 animate-in fade-in duration-200" key={step}>
-                  {/* Step 0 */}
+                  {/* Step 0: details (unchanged) */}
                   {step === 0 && (
                     <div className="space-y-6">
                       <Head title="Campaign details" sub="Start by naming your campaign and writing a subject." />
@@ -606,9 +542,7 @@ const CampaignCreatePage = () => {
                         <div className="rounded-lg p-3.5 flex items-center gap-3"
                           style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
                           <span className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                            style={{ background: T.brandSoft, color: T.brand }}>
-                            <Inbox size={15} />
-                          </span>
+                            style={{ background: T.brandSoft, color: T.brand }}><Inbox size={15} /></span>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-3">
                               <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>
@@ -616,8 +550,7 @@ const CampaignCreatePage = () => {
                               </p>
                               <p className="text-[11px] shrink-0" style={{ color: T.textFaint }}>Just now</p>
                             </div>
-                            <p className="text-[12.5px] truncate mt-0.5"
-                              style={{ color: subject.trim() ? T.textMuted : T.textFaint }}>
+                            <p className="text-[12.5px] truncate mt-0.5" style={{ color: subject.trim() ? T.textMuted : T.textFaint }}>
                               {subject.trim() || "Your subject line will appear here"}
                             </p>
                           </div>
@@ -626,7 +559,7 @@ const CampaignCreatePage = () => {
                     </div>
                   )}
 
-                  {/* Step 1 */}
+                  {/* Step 1: sender (unchanged) */}
                   {step === 1 && (
                     <div className="space-y-5">
                       <Head title="Sender account" sub="Only connected accounts with capacity left today are shown." />
@@ -689,7 +622,7 @@ const CampaignCreatePage = () => {
                     </div>
                   )}
 
-                  {/* Step 2 */}
+                  {/* Step 2: template (unchanged) */}
                   {step === 2 && (
                     <div className="space-y-5">
                       <Head title="HTML template" sub="Pick the design for your email." />
@@ -756,7 +689,7 @@ const CampaignCreatePage = () => {
                     </div>
                   )}
 
-                  {/* Step 3 */}
+                  {/* Step 3: recipients (unchanged) */}
                   {step === 3 && (
                     <div className="space-y-6">
                       <Head title="Recipients" sub="Upload a CSV or Excel file with an “email” column." />
@@ -769,14 +702,9 @@ const CampaignCreatePage = () => {
                           onDragLeave={() => setDragging(false)}
                           onDrop={(e) => { e.preventDefault(); setDragging(false); loadFile(e.dataTransfer.files?.[0]); }}
                           className="cursor-pointer rounded-xl py-14 px-6 text-center transition-colors"
-                          style={{
-                            background: dragging ? T.brandSoft : T.surface2,
-                            border: `1.5px dashed ${dragging ? T.brand : T.border}`,
-                          }}>
+                          style={{ background: dragging ? T.brandSoft : T.surface2, border: `1.5px dashed ${dragging ? T.brand : T.border}` }}>
                           <div className="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center"
-                            style={{ background: T.brandSoft, color: T.brand }}>
-                            <UploadCloud size={20} />
-                          </div>
+                            style={{ background: T.brandSoft, color: T.brand }}><UploadCloud size={20} /></div>
                           <p className="text-[14px] font-medium" style={{ color: T.text }}>Drop your file here, or click to browse</p>
                           <p className="text-[12px] mt-1" style={{ color: T.textMuted }}>Make sure it has an “email” column.</p>
                           <div className="flex items-center justify-center gap-2 mt-4">
@@ -794,9 +722,7 @@ const CampaignCreatePage = () => {
                             <div className="flex items-center justify-between gap-3">
                               <div className="flex items-center gap-3 min-w-0">
                                 <span className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                                  style={{ background: T.successSoft, color: T.success }}>
-                                  <FileText size={15} />
-                                </span>
+                                  style={{ background: T.successSoft, color: T.success }}><FileText size={15} /></span>
                                 <div className="min-w-0">
                                   <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>{fileName}</p>
                                   <p className="text-[11px] mt-0.5 flex items-center gap-1.5"
@@ -837,20 +763,6 @@ const CampaignCreatePage = () => {
                                 <Stat label="Invalid" value={recipients.invalid.toLocaleString()} tone={recipients.invalid ? T.danger : T.text} />
                                 <Stat label="Duplicates" value={recipients.dupes.toLocaleString()} tone={recipients.dupes ? T.warn : T.text} />
                               </div>
-
-                              {recipients.total > 0 && (
-                                <div>
-                                  <div className="flex h-1.5 rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
-                                    <div style={{ width: `${(recipients.valid / recipients.total) * 100}%`, background: T.success }} />
-                                    <div style={{ width: `${(recipients.invalid / recipients.total) * 100}%`, background: T.danger }} />
-                                    <div style={{ width: `${(recipients.dupes / recipients.total) * 100}%`, background: T.warn }} />
-                                  </div>
-                                  <p className="text-[11px] mt-1.5" style={{ color: T.textFaint }}>
-                                    {Math.round((recipients.valid / recipients.total) * 100)}% of rows are ready to send.
-                                  </p>
-                                </div>
-                              )}
-
                               {recipients.valid === 0 ? (
                                 <Notice tone="error">No valid email addresses found in this file.</Notice>
                               ) : (
@@ -862,11 +774,6 @@ const CampaignCreatePage = () => {
                                       <p key={e} className="px-3.5 py-2 text-[12px] border-b last:border-0"
                                         style={{ color: T.textMuted, fontFamily: FONT.mono, borderColor: T.borderSoft }}>{e}</p>
                                     ))}
-                                    {recipients.valid > recipients.preview.length && (
-                                      <p className="px-3.5 py-2 text-[11px]" style={{ color: T.textFaint }}>
-                                        + {(recipients.valid - recipients.preview.length).toLocaleString()} more
-                                      </p>
-                                    )}
                                   </div>
                                 )
                               )}
@@ -877,7 +784,7 @@ const CampaignCreatePage = () => {
                     </div>
                   )}
 
-                  {/* Step 4 */}
+                  {/* Step 4: review */}
                   {step === 4 && (
                     <div className="space-y-6">
                       <Head title="Review & start" sub="Check everything before sending." />
@@ -892,18 +799,14 @@ const CampaignCreatePage = () => {
                         ] as const).map(([k, v, Icon, goto]) => (
                           <div key={k} className="flex items-center gap-3 px-3.5 py-3" style={{ borderColor: T.borderSoft }}>
                             <span className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
-                              style={{ background: T.surfaceHi, color: T.textFaint }}>
-                              <Icon size={13} />
-                            </span>
+                              style={{ background: T.surfaceHi, color: T.textFaint }}><Icon size={13} /></span>
                             <div className="min-w-0 flex-1">
                               <p className="text-[11px]" style={{ color: T.textFaint }}>{k}</p>
                               <p className="text-[12.5px] font-medium truncate mt-0.5" style={{ color: T.text }}>{v}</p>
                             </div>
                             <button onClick={() => setStep(goto)}
                               className="rounded-md p-1.5 transition-colors hover:bg-white/5"
-                              style={{ color: T.textFaint }} aria-label={`Edit ${k}`}>
-                              <Pencil size={12} />
-                            </button>
+                              style={{ color: T.textFaint }} aria-label={`Edit ${k}`}><Pencil size={12} /></button>
                           </div>
                         ))}
                       </div>
@@ -922,34 +825,20 @@ const CampaignCreatePage = () => {
                         ))}
                       </div>
 
-                      <div>
-                        <p className="text-[12px] font-medium mb-2" style={{ color: T.textMuted }}>When to send</p>
-                        <div className="grid grid-cols-2 gap-2.5">
-                          {([["now", "Send now", "Starts right away", Send], ["later", "Schedule", "Pick a date & time", Calendar]] as const).map(([id, label, sub, Icon]) => (
-                            <button key={id} onClick={() => setMode(id)}
-                              className="flex items-center gap-3 rounded-lg p-3.5 text-left transition-all hover:brightness-110"
-                              style={{
-                                background: mode === id ? T.brandSoft : T.surface2,
-                                boxShadow: mode === id ? `inset 0 0 0 1.5px ${T.brandBorder}` : `inset 0 0 0 1px ${T.borderSoft}`,
-                              }}>
-                              <span className="w-8 h-8 rounded-md flex items-center justify-center shrink-0"
-                                style={{ background: mode === id ? "rgba(99,102,241,0.2)" : T.surfaceHi, color: mode === id ? T.brand : T.textFaint }}>
-                                <Icon size={14} />
-                              </span>
-                              <span className="min-w-0">
-                                <span className="block text-[12.5px] font-medium" style={{ color: mode === id ? T.text : T.textMuted }}>{label}</span>
-                                <span className="block text-[11px] mt-0.5 truncate" style={{ color: T.textFaint }}>{sub}</span>
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                        {mode === "later" && (
-                          <div className="mt-2.5 relative animate-in fade-in">
-                            <Clock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: T.textFaint }} />
-                            <input type="datetime-local" className="cm-input" style={{ paddingLeft: 36 }}
-                              value={scheduleAt} onChange={(e) => setScheduleAt(e.target.value)} />
+                      {/* NEW: honest scheduling info — replaces the fake "Schedule later" toggle. */}
+                      <div className="rounded-lg p-3.5" style={{ background: T.brandSoft, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}>
+                        <div className="flex items-start gap-2.5">
+                          <Timer size={15} style={{ color: T.brand }} className="mt-0.5 shrink-0" />
+                          <div>
+                            <p className="text-[12.5px] font-medium" style={{ color: T.text }}>Sending starts immediately</p>
+                            <p className="text-[11.5px] mt-1 leading-5" style={{ color: T.textMuted }}>
+                              Emails are scheduled one-by-one with random human-like gaps
+                              (15 seconds to 15 minutes), respecting {sender?.daily_limit?.toLocaleString() ?? "your"} daily
+                              and {sender?.hourly_limit?.toLocaleString() ?? "hourly"} limits. You can pause or resume anytime —
+                              remaining recipients get a fresh schedule on resume.
+                            </p>
                           </div>
-                        )}
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2.5 rounded-lg px-3.5 py-3"
@@ -977,14 +866,14 @@ const CampaignCreatePage = () => {
                       </Btn>
                     ) : (
                       <Btn variant="primary" onClick={() => { setSubmitError(""); setConfirmOpen(true); }} disabled={!ready}>
-                        <Rocket size={14} /> {mode === "later" ? "Schedule campaign" : "Start campaign"}
+                        <Rocket size={14} /> Start campaign
                       </Btn>
                     )}
                   </div>
                 </Card>
               </div>
 
-              {/* Sidebar summary */}
+              {/* Sidebar summary (unchanged) */}
               <aside className="hidden lg:block sticky top-6 rounded-xl p-5" style={CARD}>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[13px] font-semibold" style={{ color: T.text }}>Summary</p>
@@ -1003,10 +892,7 @@ const CampaignCreatePage = () => {
                         className="w-full flex items-center gap-2.5 rounded-md p-2 text-left transition-colors"
                         style={{ cursor: i < step ? "pointer" : "default", background: i === step ? T.surface2 : "transparent" }}>
                         <span className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
-                          style={{
-                            background: s.done ? T.successSoft : T.surface2,
-                            color: s.done ? T.success : T.textFaint,
-                          }}>
+                          style={{ background: s.done ? T.successSoft : T.surface2, color: s.done ? T.success : T.textFaint }}>
                           {s.done ? <Check size={12} strokeWidth={3} /> : <Icon size={12} />}
                         </span>
                         <span className="min-w-0 flex-1">
@@ -1019,95 +905,92 @@ const CampaignCreatePage = () => {
                   })}
                 </div>
                 <div className="mt-4 pt-3.5 border-t flex items-center gap-2 text-[11px]" style={{ borderColor: T.borderSoft, color: T.textFaint }}>
-                  <Clock size={11} />
-                  {mode === "later" && scheduleAt
-                    ? `Scheduled · ${new Date(scheduleAt).toLocaleString()}`
-                    : mode === "later" ? "Scheduled · pick a time" : "Sends right after you start"}
+                  <Clock size={11} /> Sends right after you start
                 </div>
               </aside>
             </div>
           )}
 
-          {/* Non-editing: status view */}
+          {/* Non-editing status view */}
           {!editing && (
             <Card className="p-5 md:p-7 space-y-6 animate-in fade-in">
-              {status === "Scheduled" ? (
-                <>
-                  <div className="flex items-center gap-4">
-                    <span className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ background: STATUS_TONE.Scheduled.soft, color: T.purple }}>
-                      <Calendar size={20} />
-                    </span>
+              <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8">
+                <div className="mx-auto md:mx-0">
+                  <Ring pct={pct} color={status === "Cancelled" || status === "Failed" ? T.danger : T.brand} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[16px] font-semibold" style={{ color: T.text }}>
+                    {status === "Completed" ? "Campaign completed"
+                      : status === "Cancelled" ? "Campaign cancelled"
+                      : status === "Failed" ? "Campaign failed"
+                      : status === "Paused" ? "Campaign paused"
+                      : "Sending in progress"}
+                  </p>
+                  <p className="text-[12.5px] mt-1 mb-4" style={{ color: T.textMuted }}>
+                    {done.toLocaleString()} of {shownTotal.toLocaleString()} emails processed.
+                  </p>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
+                    <div className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${pct}%`, background: status === "Cancelled" || status === "Failed" ? T.danger : T.brand }} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
+                <Stat label="Total" value={shownTotal.toLocaleString()} />
+                <Stat label="Sent" value={run.sent.toLocaleString()} tone={T.success} />
+                <Stat label="Failed" value={run.failed.toLocaleString()} tone={run.failed ? T.danger : T.text} />
+                <Stat label="Pending" value={(live?.pending ?? Math.max(0, shownTotal - done - (live?.queued ?? 0))).toLocaleString()} tone={T.info} />
+                <Stat label="Queued" value={(live?.queued ?? 0).toLocaleString()} tone={T.purple} />
+              </div>
+
+              {/* NEW: scheduling info from /worker/progress */}
+              {(status === "Running" || status === "Paused") && live && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  <div className="rounded-lg p-3.5 flex items-center gap-3"
+                    style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+                    <span className="w-9 h-9 rounded-md flex items-center justify-center shrink-0"
+                      style={{ background: "rgba(56,189,248,0.12)", color: T.info }}><Timer size={15} /></span>
                     <div className="min-w-0">
-                      <p className="text-[15px] font-semibold" style={{ color: T.text }}>
-                        Scheduled for {new Date(scheduleAt).toLocaleString()}
-                      </p>
-                      <p className="text-[12.5px] mt-1" style={{ color: T.textMuted }}>
-                        {shownTotal.toLocaleString()} emails will be sent from {sender?.email}.
+                      <p className="text-[10.5px] uppercase tracking-wide" style={{ color: T.textFaint }}>Next send</p>
+                      <p className="text-[13px] font-medium truncate mt-0.5" style={{ color: T.text }}>
+                        {status === "Paused" ? "Paused" : live.next_send_at ? fmt(live.next_send_at) : "—"}
                       </p>
                     </div>
                   </div>
-                  {actionError && <Notice tone="error">{actionError}</Notice>}
-                  <div className="flex gap-2.5 flex-wrap">
-                    <Btn onClick={editSchedule}><Pencil size={13} /> Edit schedule</Btn>
-                    <Btn variant="primary" onClick={() => act((id) => startCampaign(id, uploadId as number), "Running")}>
-                      <Play size={13} /> Send now
-                    </Btn>
-                    <Btn variant="danger" onClick={() => act(cancelCampaign, "Cancelled")}>Cancel schedule</Btn>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8">
-                    <div className="mx-auto md:mx-0">
-                      <Ring pct={pct} color={status === "Cancelled" || status === "Failed" ? T.danger : T.brand} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[16px] font-semibold" style={{ color: T.text }}>
-                        {status === "Completed" ? "Campaign completed"
-                          : status === "Cancelled" ? "Campaign cancelled"
-                          : status === "Failed" ? "Campaign failed"
-                          : status === "Paused" ? "Campaign paused"
-                          : "Sending in progress"}
+                  <div className="rounded-lg p-3.5 flex items-center gap-3"
+                    style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+                    <span className="w-9 h-9 rounded-md flex items-center justify-center shrink-0"
+                      style={{ background: "rgba(167,139,250,0.12)", color: T.purple }}><Hourglass size={15} /></span>
+                    <div className="min-w-0">
+                      <p className="text-[10.5px] uppercase tracking-wide" style={{ color: T.textFaint }}>Estimated finish</p>
+                      <p className="text-[13px] font-medium truncate mt-0.5" style={{ color: T.text }}>
+                        {status === "Paused" ? "—" : live.estimated_finish_at ? fmt(live.estimated_finish_at) : "—"}
                       </p>
-                      <p className="text-[12.5px] mt-1 mb-4" style={{ color: T.textMuted }}>
-                        {done.toLocaleString()} of {shownTotal.toLocaleString()} emails processed.
-                      </p>
-                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
-                        <div className="h-full rounded-full transition-all duration-700"
-                          style={{ width: `${pct}%`, background: status === "Cancelled" || status === "Failed" ? T.danger : T.brand }} />
-                      </div>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-                    <Stat label="Total" value={shownTotal.toLocaleString()} />
-                    <Stat label="Sent" value={run.sent.toLocaleString()} tone={T.success} />
-                    <Stat label="Failed" value={run.failed.toLocaleString()} tone={run.failed ? T.danger : T.text} />
-                    <Stat label="Pending" value={Math.max(0, shownTotal - done).toLocaleString()} tone={T.info} />
-                  </div>
-
-                  {status === "Completed" && (
-                    <div className="grid grid-cols-2 gap-2.5">
-                      <Stat label="Success rate" value={`${shownTotal ? ((run.sent / shownTotal) * 100).toFixed(1) : 0}%`} tone={T.success} />
-                      <Stat label="Completed at" value={new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} />
-                    </div>
-                  )}
-
-                  {actionError && <Notice tone="error">{actionError}</Notice>}
-
-                  <div className="flex gap-2.5 flex-wrap">
-                    {status === "Running" && <Btn onClick={() => act(pauseCampaign, "Paused")}><Pause size={13} /> Pause</Btn>}
-                    {status === "Paused" && <Btn variant="primary" onClick={() => act(resumeCampaign, "Running")}><Play size={13} /> Resume</Btn>}
-                    {(status === "Running" || status === "Paused") && (
-                      <Btn variant="danger" onClick={() => setCancelOpen(true)}><Ban size={13} /> Cancel campaign</Btn>
-                    )}
-                    {(status === "Completed" || status === "Cancelled" || status === "Failed") && (
-                      <Btn variant="primary" onClick={reset}><Rocket size={13} /> New campaign</Btn>
-                    )}
-                  </div>
-                </>
+                </div>
               )}
+
+              {status === "Completed" && (
+                <div className="grid grid-cols-2 gap-2.5">
+                  <Stat label="Success rate" value={`${shownTotal ? ((run.sent / shownTotal) * 100).toFixed(1) : 0}%`} tone={T.success} />
+                  <Stat label="Completed at" value={new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} />
+                </div>
+              )}
+
+              {actionError && <Notice tone="error">{actionError}</Notice>}
+
+              <div className="flex gap-2.5 flex-wrap">
+                {status === "Running" && <Btn onClick={() => act(pauseCampaign, "Paused")}><Pause size={13} /> Pause</Btn>}
+                {status === "Paused" && <Btn variant="primary" onClick={() => act(resumeCampaign, "Running")}><Play size={13} /> Resume</Btn>}
+                {(status === "Running" || status === "Paused") && (
+                  <Btn variant="danger" onClick={() => setCancelOpen(true)}><Ban size={13} /> Cancel campaign</Btn>
+                )}
+                {(status === "Completed" || status === "Cancelled" || status === "Failed") && (
+                  <Btn variant="primary" onClick={reset}><Rocket size={13} /> New campaign</Btn>
+                )}
+              </div>
             </Card>
           )}
         </div>
@@ -1116,25 +999,20 @@ const CampaignCreatePage = () => {
       {confirmOpen && (
         <Modal onClose={() => !submitting && setConfirmOpen(false)}>
           <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4"
-            style={{ background: T.brandSoft, color: T.brand }}>
-            <Rocket size={18} />
-          </div>
-          <h2 className="text-[17px] font-semibold" style={{ color: T.text }}>
-            {mode === "later" ? "Schedule this campaign?" : "Start this campaign?"}
-          </h2>
+            style={{ background: T.brandSoft, color: T.brand }}><Rocket size={18} /></div>
+          <h2 className="text-[17px] font-semibold" style={{ color: T.text }}>Start this campaign?</h2>
           <p className="text-[13px] mt-2 leading-6" style={{ color: T.textMuted }}>
             <b style={{ color: T.text }}>{total.toLocaleString()}</b> emails will be sent from{" "}
             <b style={{ color: T.text }}>{sender?.email}</b> using the{" "}
-            <b style={{ color: T.text }}>{template ? tplName(template) : ""}</b> template
-            {mode === "later" ? <> on <b style={{ color: T.text }}>{new Date(scheduleAt).toLocaleString()}</b></> : ""}.
-            This can't be undone once emails are sent.
+            <b style={{ color: T.text }}>{template ? tplName(template) : ""}</b> template.
+            Sending begins immediately with random human-like gaps. This can't be undone once emails are sent.
           </p>
           {submitError && <div className="mt-4"><Notice tone="error">{submitError}</Notice></div>}
           <div className="flex justify-end gap-2.5 mt-6">
             <Btn onClick={() => setConfirmOpen(false)} disabled={submitting}>Go back</Btn>
             <Btn variant="primary" onClick={launch} disabled={submitting}>
               {submitting && <Loader2 size={13} className="animate-spin" />}
-              {submitting ? "Please wait…" : mode === "later" ? "Confirm schedule" : "Yes, start"}
+              {submitting ? "Please wait…" : "Yes, start"}
             </Btn>
           </div>
         </Modal>
@@ -1143,17 +1021,21 @@ const CampaignCreatePage = () => {
       {cancelOpen && (
         <Modal onClose={() => setCancelOpen(false)}>
           <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4"
-            style={{ background: T.dangerSoft, color: T.danger }}>
-            <Ban size={18} />
-          </div>
+            style={{ background: T.dangerSoft, color: T.danger }}><Ban size={18} /></div>
           <h2 className="text-[17px] font-semibold" style={{ color: T.text }}>Cancel this campaign?</h2>
           <p className="text-[13px] mt-2 leading-6" style={{ color: T.textMuted }}>
             Sending will stop. Emails already sent can't be recalled.
           </p>
+          <div className="mt-3">
+            <Notice tone="warn">
+              The backend cancel endpoint isn't implemented yet — this will return a 404.
+              Use <b>Pause</b> until <code style={{ fontFamily: FONT.mono }}>POST /worker/cancel/:id</code> is added.
+            </Notice>
+          </div>
           <div className="flex justify-end gap-2.5 mt-6">
             <Btn onClick={() => setCancelOpen(false)}>Keep running</Btn>
-            <Btn variant="danger" onClick={() => { setCancelOpen(false); act(cancelCampaign, "Cancelled"); }}>
-              Cancel campaign
+            <Btn variant="danger" onClick={() => { setCancelOpen(false); act(cancelCampaign, "Cancelled").catch(() => {}); }}>
+              Try cancel
             </Btn>
           </div>
         </Modal>
