@@ -4,68 +4,43 @@ import httpx
 class GraphService:
     GRAPH_URL = "https://graph.microsoft.com/v1.0"
     @staticmethod
-    async def get_me(access_token: str):
-        headers = {
-            "Authorization": f"Bearer {access_token}"
-        }
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{GraphService.GRAPH_URL}/me",
-                headers=headers
-            )
-        if response.status_code != 200:
-            raise Exception(response.text)
-        return response.json()
-    
-    @staticmethod
     async def send_email(
         access_token: str,
         recipient: str,
         subject: str,
-        html_body: str
+        html_body: str,
+        content_type: str = "HTML",   # "HTML" or "Text"
     ):
-
         headers = {
             "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         payload = {
             "message": {
-
                 "subject": subject,
-
                 "body": {
-                    "contentType": "HTML",
-                    "content": html_body
+                    "contentType": content_type,
+                    "content": html_body,  # holds plain text when content_type == "Text"
                 },
-
                 "toRecipients": [
-                    {
-                        "emailAddress": {
-                            "address": recipient
-                        }
-                    }
-                ]
+                    {"emailAddress": {"address": recipient}}
+                ],
             },
-
-            "saveToSentItems": True
+            "saveToSentItems": True,
         }
 
         async with httpx.AsyncClient() as client:
-
             response = await client.post(
                 f"{GraphService.GRAPH_URL}/me/sendMail",
                 headers=headers,
-                json=payload
+                json=payload,
             )
 
         if response.status_code != 202:
             raise Exception(response.text)
 
-        return {
-            "message": "Email Sent Successfully"
-        }
+        return {"message": "Email Sent Successfully"}
 
     @staticmethod
     async def send_email_with_attachment(

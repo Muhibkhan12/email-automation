@@ -1,9 +1,11 @@
 import asyncio
+import random
 import re
 from datetime import datetime, timedelta, timezone
 from html import escape
+from html.parser import HTMLParser
 
-from celery.utils.log import get_task_logger # type: ignore
+from celery.utils.log import get_task_logger  # type: ignore
 from sqlalchemy.orm import Session
 
 from database import SessionLocal
@@ -23,9 +25,24 @@ UTC = timezone.utc  # py3.10-safe
 MAX_RETRIES = 5
 TOKEN_REFRESH_BUFFER = timedelta(minutes=5)
 MAX_ERROR_LEN = 500
-LIMIT_RESCHEDULE_PAD = 5  # seconds, window reset ke baad thoda buffer
+LIMIT_RESCHEDULE_PAD = 5   # seconds, small buffer after a limit window resets
+DISPATCH_BATCH = 20        # max emails queued per minute (avoids bursts)
+MIN_GAP_SECONDS = 20       # minimum gap between two scheduled emails
 
-_PLACEHOLDER = re.compile(r"\{\{\s*(\w+)\s*\}\}")
+# Domains that get PLAIN TEXT instead of the HTML template.
+PLAIN_TEXT_DOMAINS = {"gmail.com", "googlemail.com"}
+
+# Used when SenderAccount has no such column. EDIT THESE.
+SENDER_DEFAULTS = {
+    "company": "Your Company",
+    "title": "Funding Advisor",
+    "phone": "",
+}
+
+# Matches {{ key }} and [Key Name]
+_PLACEHOLDER = re.compile(
+    r"\{\{\s*([\w ]+?)\s*\}\}|\[\s*([A-Za-z][A-Za-z ]*?)\s*\]"
+)
 
 
 class PermanentError(Exception):
@@ -57,18 +74,6 @@ def _run_async(coro):
     return asyncio.run(coro)
 
 
-def render_template(html: str, context: dict[str, str]) -> str:
-    """Replace {{key}} / {{ key }} placeholders with HTML-escaped values."""
-
-    def repl(match: re.Match) -> str:
-        key = match.group(1)
-        if key in context:
-            return escape(context[key])
-        return match.group(0)
-
-    return _PLACEHOLDER.sub(repl, html)
-
-
 def _new_email_log(
     *,
     campaign_id: int,
@@ -89,6 +94,136 @@ def _new_email_log(
     if sent_at is not None:
         fields["sent_at"] = sent_at
     return EmailLog(**fields)
+
+
+# =========================================================
+# Template rendering (fills sender / recipient data)
+# =========================================================
+
+def _norm_key(raw: str) -> str:
+    """'Sender Name' -> 'sender_name'"""
+    return re.sub(r"\s+", "_", raw.strip().lower())
+
+
+def build_context(recipient: CampaignRecipient, sender: SenderAccount) -> dict[str, str]:
+    """All values that can be used as placeholders in a template."""
+    name = (recipient.name or "").strip()
+    first_name = name.split()[0] if name else ""
+    recipient_company = (recipient.company or "").strip()
+
+    sender_name = (sender.display_name or sender.email or "").strip()
+    sender_company = (getattr(sender, "company_name", None) or SENDER_DEFAULTS["company"] or "").strip()
+    sender_title = (getattr(sender, "job_title", None) or SENDER_DEFAULTS["title"] or "").strip()
+    sender_phone = (getattr(sender, "phone", None) or SENDER_DEFAULTS["phone"] or "").strip()
+
+    return {
+        # recipient
+        "name": name,
+        "recipient_name": name,
+        "business_owner": name,
+        "owner_name": name,
+        "first_name": first_name,
+        "email": recipient.email or "",
+        "recipient_email": recipient.email or "",
+        "company": recipient_company,
+        "company_name": recipient_company,
+        "business_name": recipient_company,
+        "recipient_phone": (recipient.phone or "").strip(),
+        # sender
+        "sender_name": sender_name,
+        "sender_email": sender.email or "",
+        "sender_company": sender_company,
+        "sender_title": sender_title,
+        "sender_phone": sender_phone,
+        "title": sender_title,
+        "phone": sender_phone,
+    }
+
+
+def render_template(html: str, context: dict[str, str]) -> str:
+    """
+    Replace {{key}} and [Key Name] placeholders with HTML-escaped values.
+    - Unknown {{key}}  -> removed (empty), so recipients never see raw tags.
+    - Unknown [Text]   -> left untouched (could be normal text or [if mso]).
+    """
+
+    def repl(match: re.Match) -> str:
+        curly = match.group(1)
+        raw = curly if curly is not None else match.group(2)
+        key = _norm_key(raw)
+
+        if key in context:
+            return escape(context[key])
+
+        if curly is not None:
+            logger.warning("Template placeholder {{%s}} has no value", key)
+            return ""
+        return match.group(0)
+
+    return _PLACEHOLDER.sub(repl, html)
+
+
+# =========================================================
+# Plain text for Gmail
+# =========================================================
+
+def is_plain_text_recipient(email: str) -> bool:
+    domain = (email or "").rsplit("@", 1)[-1].strip().lower()
+    return domain in PLAIN_TEXT_DOMAINS
+
+
+_BLOCK_TAGS = {"p", "div", "tr", "table", "ul", "ol", "section", "h1", "h2", "h3", "h4", "h5", "h6"}
+_SKIP_TAGS = {"script", "style", "head", "title"}
+
+
+class _TextExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+        self._skip = 0
+        self._href: str | None = None
+        self._link_text = ""
+
+    def handle_starttag(self, tag, attrs):
+        if tag in _SKIP_TAGS:
+            self._skip += 1
+        elif tag == "br" or tag in _BLOCK_TAGS:
+            self.parts.append("\n")
+        elif tag == "li":
+            self.parts.append("\n- ")
+        elif tag == "a":
+            self._href = dict(attrs).get("href")
+            self._link_text = ""
+
+    def handle_endtag(self, tag):
+        if tag in _SKIP_TAGS:
+            self._skip = max(0, self._skip - 1)
+        elif tag in _BLOCK_TAGS:
+            self.parts.append("\n")
+        elif tag == "a":
+            href = self._href
+            if href and href.startswith(("http://", "https://")) and href.strip() != self._link_text.strip():
+                self.parts.append(f" ({href})")
+            self._href = None
+
+    def handle_data(self, data):
+        if self._skip:
+            return
+        data = re.sub(r"[ \t\r\n]+", " ", data)
+        if self._href is not None:
+            self._link_text += data
+        self.parts.append(data)
+
+
+def html_to_text(html: str) -> str:
+    """Convert rendered HTML into clean plain text."""
+    parser = _TextExtractor()
+    parser.feed(html)
+    parser.close()
+    text = "".join(parser.parts)
+    text = re.sub(r"[ \t]*\n[ \t]*", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
 
 
 # =========================================================
@@ -126,6 +261,7 @@ def get_fresh_access_token(db: Session, sender_account_id: int) -> str:
     sender = (
         db.query(SenderAccount)
         .filter(SenderAccount.id == sender_account_id)
+        .populate_existing()
         .with_for_update()
         .first()
     )
@@ -168,10 +304,7 @@ def _day_start(now: datetime) -> datetime:
 
 
 def _limit_wait_seconds(sender: SenderAccount) -> int | None:
-    """
-    Agar sender ki hourly ya daily limit pahunch gayi ho to batao kitne seconds
-    baad window reset hogi. Limit nahi pahunchi to None.
-    """
+    """If an hourly/daily limit is hit, return seconds until it resets, else None."""
     now = datetime.now(UTC)
     hour_start, day_start = _hour_start(now), _day_start(now)
 
@@ -198,11 +331,7 @@ def _limit_wait_seconds(sender: SenderAccount) -> int | None:
 
 
 def _bump_sender_counters(db: Session, sender_account_id: int) -> None:
-    """
-    Har sent email pe emails_sent_hour aur emails_sent_today +1.
-    Hour/din badal gaya ho to pehle reset. Commit caller karega.
-    Row lock se parallel workers ke counts sahi rehte hain.
-    """
+    """+1 on hour and day counters (reset first if the window changed). Caller commits."""
     sender = (
         db.query(SenderAccount)
         .filter(SenderAccount.id == sender_account_id)
@@ -228,10 +357,7 @@ def _bump_sender_counters(db: Session, sender_account_id: int) -> None:
 
 
 def roll_sender_windows(db: Session) -> None:
-    """
-    Jin senders ne naye hour/din mein kuch nahi bheja, unke purane counters zero karo.
-    Sender accounts GET route ke start mein call karo, ya Celery beat se har ghante.
-    """
+    """Zero stale counters for senders who sent nothing in the new hour/day."""
     now = datetime.now(UTC)
     hour_start = _hour_start(now).replace(tzinfo=None)
     day_start = _day_start(now).replace(tzinfo=None)
@@ -267,20 +393,22 @@ def roll_sender_windows(db: Session) -> None:
 # =========================================================
 
 def _finalize_if_done(db: Session, campaign_id: int) -> None:
-    """Koi PENDING recipient na bache to RUNNING campaign ko COMPLETED mark karo."""
+    """If no PENDING/QUEUED recipient is left, mark a RUNNING campaign COMPLETED."""
     try:
         pending = (
             db.query(CampaignRecipient)
             .filter(
                 CampaignRecipient.campaign_id == campaign_id,
-                CampaignRecipient.status == RecipientStatus.PENDING,
+                CampaignRecipient.status.in_(
+                    [RecipientStatus.PENDING, RecipientStatus.QUEUED]
+                ),
             )
             .count()
         )
         if pending == 0:
             db.query(Campaign).filter(
                 Campaign.id == campaign_id,
-                Campaign.status == CampaignStatus.RUNNING,  # paused/cancelled overwrite nahi honge
+                Campaign.status == CampaignStatus.RUNNING,  # paused/cancelled stay as is
             ).update(
                 {Campaign.status: CampaignStatus.COMPLETED},
                 synchronize_session=False,
@@ -289,6 +417,49 @@ def _finalize_if_done(db: Session, campaign_id: int) -> None:
     except Exception:
         db.rollback()
         logger.exception("Could not finalize campaign %s", campaign_id)
+
+
+# =========================================================
+# Random scheduling (anti-spam)
+# =========================================================
+
+def schedule_campaign_sends(
+    db: Session,
+    campaign_id: int,
+    window_hours: float = 7.0,
+) -> int:
+    """
+    Give every PENDING valid recipient a random send time inside window_hours.
+    Call this once when the campaign starts. Returns how many were scheduled.
+    """
+    recipients = (
+        db.query(CampaignRecipient)
+        .filter(
+            CampaignRecipient.campaign_id == campaign_id,
+            CampaignRecipient.status == RecipientStatus.PENDING,
+            CampaignRecipient.is_valid_email == True,  # noqa: E712
+        )
+        .all()
+    )
+    n = len(recipients)
+    if n == 0:
+        return 0
+
+    window = max(60.0, window_hours * 3600)
+    gap = min(MIN_GAP_SECONDS, window / n)
+
+    offsets = sorted(random.uniform(0, window) for _ in range(n))
+    for i in range(1, n):
+        if offsets[i] - offsets[i - 1] < gap:
+            offsets[i] = offsets[i - 1] + gap
+
+    random.shuffle(recipients)  # random order too, so no pattern
+    start = datetime.now(UTC).replace(tzinfo=None)
+    for recipient, offset in zip(recipients, offsets):
+        recipient.scheduled_at = start + timedelta(seconds=offset)
+
+    db.commit()
+    return n
 
 
 # =========================================================
@@ -312,6 +483,9 @@ def record_failure(
         if recipient is not None and mark_recipient_failed:
             newly_failed = _status_str(recipient.status) != "failed"
             recipient.status = RecipientStatus.FAILED
+        elif recipient is not None:
+            # Auth error: not the recipient's fault, will run again after reconnect.
+            recipient.status = RecipientStatus.PENDING
 
         if recipient is not None:
             db.add(
@@ -354,13 +528,13 @@ def _set_status(db: Session, model, row_id: int, value) -> None:
 
 
 def flag_auth_failure(db: Session, sender_account_id: int, campaign_id: int) -> None:
-    """Sender token dead: sender ko needs-reauth karo aur campaign pause karo."""
+    """Sender token dead: mark sender NEEDS_REAUTH and pause the campaign."""
     _set_status(db, SenderAccount, sender_account_id, AccountStatus.NEEDS_REAUTH)
     _set_status(db, Campaign, campaign_id, CampaignStatus.PAUSED)
 
 
 # =========================================================
-# Task
+# Task: send one email
 # =========================================================
 
 @celery.task(
@@ -392,18 +566,18 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
         if template is None:
             raise PermanentError("Template not found")
 
-        # Idempotency: retry/duplicate message resend nahi karega.
+        # Idempotency: duplicate/retried message must not resend.
         if _status_str(recipient.status) == "sent":
             return {"message": "Already sent, skipping"}
 
         if not recipient.is_valid_email:
             raise PermanentError("Invalid email address")
 
-        # Campaign paused/cancelled -> skip; recipient PENDING rehta hai.
+        # Paused/cancelled: put recipient back to PENDING; dispatcher picks it up on resume.
         if campaign.status in (CampaignStatus.PAUSED, CampaignStatus.CANCELLED):
-            return {
-                "message": f"Campaign is {_status_str(campaign.status)}, skipping"
-            }
+            recipient.status = RecipientStatus.PENDING
+            db.commit()
+            return {"message": f"Campaign is {_status_str(campaign.status)}, skipping"}
 
         # --- Sender limits (hourly + daily) ---
         sender = db.get(SenderAccount, sender_account_id)
@@ -412,23 +586,28 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
 
         wait = _limit_wait_seconds(sender)
         if wait is not None:
-            # Fresh task schedule karo (retry counter touch nahi hota).
-            self.apply_async(
-                args=(recipient_id, sender_account_id, campaign_id),
-                countdown=wait,
-            )
-            return {"message": f"Sender limit reached, rescheduled in {wait}s"}
+            recipient.status = RecipientStatus.PENDING
+            recipient.scheduled_at = (
+                datetime.now(UTC) + timedelta(seconds=wait + random.randint(0, 300))
+            ).replace(tzinfo=None)
+            db.commit()
+            return {"message": f"Sender limit reached, moved by {wait}s"}
 
         # --- Token ---
         access_token = get_fresh_access_token(db, sender_account_id)
 
-        # --- Render ---
-        html = render_template(
-            template.html_content,
-            {"name": recipient.name or "", "email": recipient.email},
-        )
+        # --- Render template with sender + recipient data ---
+        context = build_context(recipient, sender)
+        html = render_template(template.html_content, context)
+
         recipient_email = recipient.email
         subject = campaign.subject
+
+        # --- Gmail -> plain text, everyone else -> HTML ---
+        if is_plain_text_recipient(recipient_email):
+            body, content_type = html_to_text(html), "Text"
+        else:
+            body, content_type = html, "HTML"
 
         # --- Send ---
         _run_async(
@@ -436,7 +615,8 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
                 access_token=access_token,
                 recipient=recipient_email,
                 subject=subject,
-                html_body=html,
+                html_body=body,
+                content_type=content_type,
             )
         )
         email_sent = True
@@ -444,8 +624,7 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
         # --- Bookkeeping ---
         now = datetime.now(UTC)
         recipient.status = RecipientStatus.SENT
-        if hasattr(recipient, "sent_at"):
-            recipient.sent_at = now
+        recipient.sent_at = now
 
         db.add(
             _new_email_log(
@@ -457,23 +636,21 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
             )
         )
 
-        # Atomic increment: concurrent workers ke saath safe.
         db.query(Campaign).filter(Campaign.id == campaign_id).update(
             {Campaign.sent_count: Campaign.sent_count + 1},
             synchronize_session=False,
         )
 
-        _bump_sender_counters(db, sender_account_id)  # hour + today +1
+        _bump_sender_counters(db, sender_account_id)
 
         db.commit()
-        _finalize_if_done(db, campaign_id)  # file complete -> Completed
-        return {"message": "Email Sent Successfully"}
+        _finalize_if_done(db, campaign_id)
+        return {"message": f"Email Sent Successfully ({content_type})"}
 
     except Exception as exc:
         db.rollback()
 
         if email_sent:
-            # Email nikal chuki hai; retry se duplicate jayegi.
             logger.exception(
                 "Email to recipient %s was sent but DB update failed", recipient_id
             )
@@ -491,14 +668,66 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
                 campaign_id,
                 sender_account_id,
                 str(exc),
-                # Auth error recipient ki galti nahi: FAIL mark nahi hoga,
-                # sender reconnect ke baad dobara bheja ja sakta hai.
                 mark_recipient_failed=not is_auth_error,
             )
             if is_auth_error:
                 flag_auth_failure(db, sender_account_id, campaign_id)
 
-        raise  # Celery non-final attempts ko autoretry karega
+        raise
 
+    finally:
+        db.close()
+
+
+# =========================================================
+# Task: dispatcher (runs every minute via Celery beat)
+# =========================================================
+
+@celery.task(
+    name="workers.sending_emails.dispatch_due_task",
+    queue="email_sender_queue",
+)
+def dispatch_due_task():
+    """Queue every recipient whose random send time has arrived."""
+    db: Session = SessionLocal()
+    try:
+        now = datetime.now(UTC).replace(tzinfo=None)
+        rows = (
+            db.query(
+                CampaignRecipient.id,
+                CampaignRecipient.campaign_id,
+                Campaign.sender_account_id,
+            )
+            .join(Campaign, Campaign.id == CampaignRecipient.campaign_id)
+            .filter(
+                CampaignRecipient.status == RecipientStatus.PENDING,
+                CampaignRecipient.scheduled_at.isnot(None),
+                CampaignRecipient.scheduled_at <= now,
+                Campaign.status == CampaignStatus.RUNNING,  # paused/cancelled skipped
+            )
+            .order_by(CampaignRecipient.scheduled_at)
+            .limit(DISPATCH_BATCH)
+            .all()
+        )
+        if not rows:
+            return 0
+
+        ids = [r.id for r in rows]
+        db.query(CampaignRecipient).filter(
+            CampaignRecipient.id.in_(ids),
+            CampaignRecipient.status == RecipientStatus.PENDING,
+        ).update(
+            {CampaignRecipient.status: RecipientStatus.QUEUED},
+            synchronize_session=False,
+        )
+        db.commit()
+
+        for r in rows:
+            send_email_task.delay(r.id, r.sender_account_id, r.campaign_id)
+        return len(rows)
+    except Exception:
+        db.rollback()
+        logger.exception("Dispatcher failed")
+        raise
     finally:
         db.close()
