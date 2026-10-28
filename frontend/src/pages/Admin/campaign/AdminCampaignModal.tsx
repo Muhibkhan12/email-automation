@@ -10,22 +10,58 @@ import {
   Calendar, Search, Filter, Inbox, RefreshCw,
 } from 'lucide-react';
 
-const FONT = {
-  display: "'Space Grotesk', sans-serif",
-  body: "'Inter', sans-serif",
-  mono: "'JetBrains Mono', monospace",
+/* ─────────────── design tokens ─────────────── */
+
+const T = {
+  bg:           "#0A0B10",
+  surface:      "#111319",
+  surface2:     "#161922",
+  surfaceHi:    "#1B1F2A",
+  border:       "#232838",
+  borderSoft:   "#1B1F2A",
+  text:         "#E9EBF0",
+  textMuted:    "#9CA3B4",
+  textFaint:    "#6B7280",
+  brand:        "#6366F1",
+  brandSoft:    "rgba(99,102,241,0.12)",
+  brandBorder:  "rgba(99,102,241,0.35)",
+  success:      "#22C55E",
+  successSoft:  "rgba(34,197,94,0.12)",
+  successBorder:"rgba(34,197,94,0.35)",
+  warn:         "#F59E0B",
+  warnSoft:     "rgba(245,158,11,0.12)",
+  warnBorder:   "rgba(245,158,11,0.35)",
+  danger:       "#EF4444",
+  dangerSoft:   "rgba(239,68,68,0.12)",
+  dangerBorder: "rgba(239,68,68,0.35)",
+  info:         "#38BDF8",
+  infoSoft:     "rgba(56,189,248,0.12)",
+  infoBorder:   "rgba(56,189,248,0.35)",
+  purple:       "#A78BFA",
+  purpleSoft:   "rgba(167,139,250,0.12)",
+  purpleBorder: "rgba(167,139,250,0.35)",
 };
+
+const FONT = {
+  display: "'Inter', system-ui, -apple-system, sans-serif",
+  body:    "'Inter', system-ui, -apple-system, sans-serif",
+  mono:    "'JetBrains Mono', ui-monospace, monospace",
+};
+
+const RING = `inset 0 0 0 1px ${T.border}`;
+
+/* ─────────────── status maps ─────────────── */
 
 const CAMPAIGN_STATUS_STYLES: Record<
   Campaign['status'],
   { bg: string; fg: string; ring: string; label: string }
 > = {
-  Draft:     { bg: "rgba(155,160,168,0.10)", fg: "#9BA0A8", ring: "rgba(155,160,168,0.22)", label: "Draft" },
-  Ready:     { bg: "rgba(59,130,246,0.10)",  fg: "#60A5FA", ring: "rgba(59,130,246,0.22)",  label: "Ready" },
-  Running:   { bg: "rgba(34,197,94,0.10)",   fg: "#34D399", ring: "rgba(34,197,94,0.22)",   label: "Running" },
-  Paused:    { bg: "rgba(234,179,8,0.10)",   fg: "#FBBF24", ring: "rgba(234,179,8,0.22)",   label: "Paused" },
-  Completed: { bg: "rgba(139,92,246,0.10)",  fg: "#A78BFA", ring: "rgba(139,92,246,0.22)",  label: "Completed" },
-  Cancelled: { bg: "rgba(239,68,68,0.10)",   fg: "#F87171", ring: "rgba(239,68,68,0.22)",   label: "Cancelled" },
+  Draft:     { bg: T.surface2,     fg: T.textMuted, ring: T.borderSoft,    label: "Draft" },
+  Ready:     { bg: T.brandSoft,    fg: T.brand,     ring: T.brandBorder,   label: "Ready" },
+  Running:   { bg: T.successSoft,  fg: T.success,   ring: T.successBorder, label: "Running" },
+  Paused:    { bg: T.warnSoft,     fg: T.warn,      ring: T.warnBorder,    label: "Paused" },
+  Completed: { bg: T.purpleSoft,   fg: T.purple,    ring: T.purpleBorder,  label: "Completed" },
+  Cancelled: { bg: T.dangerSoft,   fg: T.danger,    ring: T.dangerBorder,  label: "Cancelled" },
 };
 
 const FALLBACK_STATUS = CAMPAIGN_STATUS_STYLES.Draft;
@@ -34,17 +70,16 @@ const LOG_STATUS_META: Record<
   string,
   { fg: string; bg: string; ring: string; Icon: React.ComponentType<{ size?: number; className?: string }> }
 > = {
-  Sent:      { fg: "#60A5FA", bg: "rgba(96,165,250,0.10)",  ring: "rgba(96,165,250,0.22)",  Icon: Clock },
-  Delivered: { fg: "#34D399", bg: "rgba(52,211,153,0.10)",  ring: "rgba(52,211,153,0.22)",  Icon: CheckCircle2 },
-  Bounced:   { fg: "#FBBF24", bg: "rgba(251,191,36,0.10)",  ring: "rgba(251,191,36,0.22)",  Icon: MailWarning },
-  Failed:    { fg: "#F87171", bg: "rgba(248,113,113,0.10)", ring: "rgba(248,113,113,0.22)", Icon: MailX },
-  Pending:   { fg: "#9BA0A8", bg: "rgba(155,160,168,0.10)", ring: "rgba(155,160,168,0.22)", Icon: MailWarning },
-  Queued:    { fg: "#60A5FA", bg: "rgba(96,165,250,0.10)",  ring: "rgba(96,165,250,0.22)",  Icon: Clock },
-  Sending:   { fg: "#FBBF24", bg: "rgba(251,191,36,0.10)",  ring: "rgba(251,191,36,0.22)",  Icon: MailWarning },
+  Sent:      { fg: T.info,    bg: T.infoSoft,    ring: T.infoBorder,    Icon: Clock },
+  Delivered: { fg: T.success, bg: T.successSoft, ring: T.successBorder, Icon: CheckCircle2 },
+  Bounced:   { fg: T.warn,    bg: T.warnSoft,    ring: T.warnBorder,    Icon: MailWarning },
+  Failed:    { fg: T.danger,  bg: T.dangerSoft,  ring: T.dangerBorder,  Icon: MailX },
+  Pending:   { fg: T.textMuted, bg: T.surface2,  ring: T.borderSoft,    Icon: MailWarning },
+  Queued:    { fg: T.info,    bg: T.infoSoft,    ring: T.infoBorder,    Icon: Clock },
+  Sending:   { fg: T.warn,    bg: T.warnSoft,    ring: T.warnBorder,    Icon: MailWarning },
 };
 const FALLBACK_LOG = LOG_STATUS_META.Pending;
 
-// Excel cell colors (ARGB)
 const XLSX_STATUS_COLORS: Record<string, { fg: string; bg: string }> = {
   Pending:   { fg: 'FF6B7280', bg: 'FFF3F4F6' },
   Queued:    { fg: 'FF1D4ED8', bg: 'FFDBEAFE' },
@@ -58,12 +93,14 @@ const XLSX_STATUS_COLORS: Record<string, { fg: string; bg: string }> = {
 type Tab = 'overview' | 'recipients' | 'delivery' | 'template';
 
 interface AdminCampaignModalProps {
-  campaign: Campaign; // summary row from the list
+  campaign: Campaign;
   onClose: () => void;
   initialTab?: Tab;
 }
 
 const PAGE_SIZE = 10;
+
+/* ─────────────── helpers ─────────────── */
 
 const formatDate = (iso: string | null | undefined) =>
   iso
@@ -93,15 +130,14 @@ const formatRelative = (iso: string | null | undefined) => {
 const formatNumber = (n: number | null | undefined) =>
   n === null || n === undefined ? '0' : Number(n).toLocaleString();
 
-/* ─────────────── Primitives ─────────────── */
+/* ─────────────── primitives ─────────────── */
 
 const MetaPill: React.FC<{ icon?: React.ReactNode; children: React.ReactNode; mono?: boolean }> = ({
   icon, children, mono,
 }) => (
   <span
-    className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] text-[#C7C9CE] bg-[#0F131A] ring-1 ring-[#232833] ${
-      mono ? 'font-mono' : ''
-    }`}
+    className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] ${mono ? 'font-mono' : ''}`}
+    style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
   >
     {icon}
     {children}
@@ -113,29 +149,33 @@ const StatCard: React.FC<{
   value: React.ReactNode;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   accent: string;
-}> = ({ label, value, icon: Icon, accent }) => (
-  <div className="rounded-xl bg-[#0F131A] ring-1 ring-[#232833] p-3.5">
+  accentSoft: string;
+}> = ({ label, value, icon: Icon, accent, accentSoft }) => (
+  <div className="rounded-lg p-3.5" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
     <div
-      className="w-8 h-8 rounded-lg flex items-center justify-center mb-2.5"
-      style={{ background: `${accent}1A`, boxShadow: `inset 0 0 0 1px ${accent}33` }}
+      className="w-7 h-7 rounded-md flex items-center justify-center mb-2.5"
+      style={{ background: accentSoft, color: accent }}
     >
-      <Icon size={14} className="text-white" />
+      <Icon size={13} />
     </div>
-    <p className="text-lg font-semibold font-mono leading-none text-[#E8E6E1]">{value}</p>
-    <p className="text-[10px] uppercase tracking-widest text-[#6B727C] mt-1.5">{label}</p>
+    <p className="text-[18px] font-semibold leading-none" style={{ color: T.text, fontFamily: FONT.mono }}>{value}</p>
+    <p className="text-[10px] uppercase tracking-widest mt-1.5" style={{ color: T.textFaint }}>{label}</p>
   </div>
 );
 
 const InfoRow: React.FC<{ icon: React.ReactNode; label: string; children: React.ReactNode }> = ({
   icon, label, children,
 }) => (
-  <div className="flex items-start gap-3">
-    <div className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center bg-[#0F131A] ring-1 ring-[#232833]">
+  <div className="flex items-start gap-2.5">
+    <div
+      className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center"
+      style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+    >
       {icon}
     </div>
     <div className="min-w-0 flex-1">
-      <p className="text-[10px] uppercase tracking-widest text-[#6B727C] mb-0.5">{label}</p>
-      <div className="text-[12.5px] text-[#C7C9CE] min-w-0">{children}</div>
+      <p className="text-[10px] uppercase tracking-widest mb-0.5" style={{ color: T.textFaint }}>{label}</p>
+      <div className="text-[12.5px] min-w-0" style={{ color: T.textMuted }}>{children}</div>
     </div>
   </div>
 );
@@ -148,11 +188,11 @@ const SectionTitle: React.FC<{
 }> = ({ icon: Icon, title, subtitle, right }) => (
   <div className="flex items-end justify-between gap-3 mb-3">
     <div>
-      <h3 className="text-[13px] font-semibold text-[#F2F0EB] flex items-center gap-2" style={{ fontFamily: FONT.display }}>
-        <Icon size={14} className="text-[#FF6A39]" />
+      <h3 className="text-[13px] font-semibold flex items-center gap-2" style={{ color: T.text }}>
+        <Icon size={13} style={{ color: T.brand }} />
         {title}
       </h3>
-      {subtitle && <p className="text-[11px] text-[#6B727C] mt-0.5">{subtitle}</p>}
+      {subtitle && <p className="text-[11px] mt-0.5" style={{ color: T.textFaint }}>{subtitle}</p>}
     </div>
     {right}
   </div>
@@ -162,16 +202,16 @@ const StatusPill: React.FC<{ status: string }> = ({ status }) => {
   const m = LOG_STATUS_META[status] ?? FALLBACK_LOG;
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
       style={{ background: m.bg, color: m.fg, boxShadow: `inset 0 0 0 1px ${m.ring}` }}
     >
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: m.fg }} />
+      <span className="w-1 h-1 rounded-full" style={{ background: m.fg }} />
       {status}
     </span>
   );
 };
 
-/* ─────────────── Component ─────────────── */
+/* ─────────────── component ─────────────── */
 
 const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
   campaign: summary,
@@ -181,13 +221,11 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>(initialTab);
 
-  // Full record fetched via GET /campaigns/{id}
   const [detail, setDetail] = useState<Campaign | null>(null);
   const [detailLoading, setDetailLoading] = useState(true);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
-  // Recipients tab state
   const [rSearch, setRSearch] = useState('');
   const [rStatus, setRStatus] = useState('all');
   const [rPage, setRPage] = useState(1);
@@ -208,7 +246,6 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
     return () => { cancelled = true; };
   }, [summary.id, reloadKey]);
 
-  // Show the list row instantly, swap in the full record when it arrives
   const campaign = detail && detail.id === summary.id ? detail : summary;
 
   const statusStyle = CAMPAIGN_STATUS_STYLES[campaign.status] ?? FALLBACK_STATUS;
@@ -251,8 +288,6 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
     [recipients]
   );
 
-  /* ── Recipients tab derived data ── */
-
   const lastLogByRecipient = useMemo(() => {
     const map: Record<number, (typeof logs)[number]> = {};
     for (const l of logs) {
@@ -291,7 +326,6 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
   const pageRows = filteredRecipients.slice((rPage - 1) * PAGE_SIZE, rPage * PAGE_SIZE);
 
   /* ── XLSX export ── */
-
   const exportXlsx = async () => {
     if (exporting || filteredRecipients.length === 0) return;
     setExporting(true);
@@ -303,18 +337,17 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
 
       const ws = wb.addWorksheet('Recipients');
       ws.columns = [
-        { width: 6 },   // #
-        { width: 28 },  // Name
-        { width: 38 },  // Email
-        { width: 14 },  // Status
-        { width: 18 },  // Last email status
-        { width: 22 },  // Last sent at
+        { width: 6 },
+        { width: 28 },
+        { width: 38 },
+        { width: 14 },
+        { width: 18 },
+        { width: 22 },
       ];
 
       const thin = { style: 'thin' as const, color: { argb: 'FFE5E7EB' } };
       const border = { top: thin, left: thin, bottom: thin, right: thin };
 
-      // Title
       ws.mergeCells('A1:F1');
       const title = ws.getCell('A1');
       title.value = `${campaign.campaign_name} — Recipients`;
@@ -322,7 +355,6 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
       title.alignment = { vertical: 'middle', horizontal: 'left' };
       ws.getRow(1).height = 30;
 
-      // Subtitle
       ws.mergeCells('A2:F2');
       const sub = ws.getCell('A2');
       sub.value = `Campaign #${campaign.id}  •  ${filteredRecipients.length.toLocaleString()} recipients  •  Exported ${new Date().toLocaleString()}`;
@@ -330,20 +362,18 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
       sub.alignment = { vertical: 'middle', horizontal: 'left' };
       ws.getRow(2).height = 18;
 
-      // Header (row 4)
       const HEADER_ROW = 4;
       const headerRow = ws.getRow(HEADER_ROW);
       ['#', 'Name', 'Email', 'Status', 'Last Email', 'Last Sent At'].forEach((h, i) => {
         const c = headerRow.getCell(i + 1);
         c.value = h;
         c.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFF6A39' } };
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6366F1' } };
         c.alignment = { vertical: 'middle', horizontal: i === 0 ? 'center' : 'left', indent: i === 0 ? 0 : 1 };
         c.border = border;
       });
       headerRow.height = 24;
 
-      // Data rows
       filteredRecipients.forEach((r, idx) => {
         const last = lastLogByRecipient[r.id];
         const row = ws.getRow(HEADER_ROW + 1 + idx);
@@ -369,7 +399,6 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
           };
         }
 
-        // Colored status cells
         [4, 5].forEach((col) => {
           const val = String(row.getCell(col).value);
           const m = XLSX_STATUS_COLORS[val];
@@ -384,11 +413,8 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
         row.height = 20;
       });
 
-      // Freeze header + filter
       ws.views = [{ state: 'frozen', ySplit: HEADER_ROW, showGridLines: false }];
       ws.autoFilter = { from: { row: HEADER_ROW, column: 1 }, to: { row: HEADER_ROW, column: 6 } };
-
-      // Print setup
       ws.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
 
       const buffer = await wb.xlsx.writeBuffer();
@@ -409,13 +435,13 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
   };
 
   const recipientSummary: {
-    label: string; key: string; Icon: React.ComponentType<{ size?: number }>; fg: string;
+    label: string; key: string; Icon: React.ComponentType<{ size?: number }>; fg: string; soft: string;
   }[] = [
-    { label: 'Delivered', key: 'Delivered', Icon: CheckCircle2, fg: '#34D399' },
-    { label: 'Sent',      key: 'Sent',      Icon: Mail,         fg: '#60A5FA' },
-    { label: 'Pending',   key: 'Pending',   Icon: Clock,        fg: '#9BA0A8' },
-    { label: 'Bounced',   key: 'Bounced',   Icon: MailWarning,  fg: '#FBBF24' },
-    { label: 'Failed',    key: 'Failed',    Icon: MailX,        fg: '#F87171' },
+    { label: 'Delivered', key: 'Delivered', Icon: CheckCircle2, fg: T.success, soft: T.successSoft },
+    { label: 'Sent',      key: 'Sent',      Icon: Mail,         fg: T.info,    soft: T.infoSoft },
+    { label: 'Pending',   key: 'Pending',   Icon: Clock,        fg: T.textMuted, soft: T.surface2 },
+    { label: 'Bounced',   key: 'Bounced',   Icon: MailWarning,  fg: T.warn,    soft: T.warnSoft },
+    { label: 'Failed',    key: 'Failed',    Icon: MailX,        fg: T.danger,  soft: T.dangerSoft },
   ];
 
   const tabs: { id: Tab; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
@@ -430,9 +456,9 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       onClick={onClose}
-      style={{ fontFamily: FONT.body, animation: 'cm-fade 0.15s ease-out' }}
+      style={{ fontFamily: FONT.body, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', animation: 'cm-fade 0.15s ease-out' }}
     >
       <style>{`
         @keyframes cm-fade { from { opacity: 0 } to { opacity: 1 } }
@@ -440,45 +466,49 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
         .cm-shell { animation: cm-rise 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) }
         .cm-scroll::-webkit-scrollbar { width: 8px; height: 8px }
         .cm-scroll::-webkit-scrollbar-track { background: transparent }
-        .cm-scroll::-webkit-scrollbar-thumb { background: #232833; border-radius: 8px }
-        .cm-scroll::-webkit-scrollbar-thumb:hover { background: #333A48 }
-        .cm-shell select option { background: #141821; color: #E8E6E1; }
+        .cm-scroll::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 8px }
+        .cm-scroll::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi} }
+        .cm-shell select option { background: ${T.surface2}; color: ${T.text}; }
       `}</style>
 
       <div
         onClick={(e) => e.stopPropagation()}
-        className="cm-shell w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl bg-[#141821] ring-1 ring-[#232833] shadow-2xl overflow-hidden"
+        className="cm-shell w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl overflow-hidden"
+        style={{
+          background: T.surface,
+          boxShadow: `inset 0 0 0 1px ${T.border}, 0 30px 60px -20px rgba(0,0,0,0.8)`,
+        }}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 p-5 md:p-6 border-b border-[#1F242E]">
-          <div className="flex items-start gap-3.5 min-w-0">
-            <div className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center bg-[#FF6A39]/10 ring-1 ring-[#FF6A39]/20">
-              <Mail size={18} className="text-[#FF6A39]" />
+        <div className="flex items-start justify-between gap-4 p-5 border-b" style={{ borderColor: T.borderSoft }}>
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
+              style={{ background: T.brandSoft, color: T.brand }}
+            >
+              <Mail size={17} />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] uppercase tracking-widest text-[#6B727C]" style={{ fontFamily: FONT.mono }}>
+                <span className="text-[10px] uppercase tracking-widest" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                   campaign #{campaign.id}
                 </span>
                 <span
-                  className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
                   style={{
                     backgroundColor: statusStyle.bg,
                     color: statusStyle.fg,
                     boxShadow: `inset 0 0 0 1px ${statusStyle.ring}`,
                   }}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusStyle.fg, boxShadow: `0 0 6px ${statusStyle.fg}` }} />
+                  <span className="w-1 h-1 rounded-full" style={{ background: statusStyle.fg }} />
                   {statusStyle.label}
                 </span>
               </div>
-              <h2
-                style={{ fontFamily: FONT.display, letterSpacing: '-0.01em' }}
-                className="text-lg md:text-xl font-bold text-white truncate"
-              >
+              <h2 className="text-[17px] font-semibold truncate" style={{ color: T.text }}>
                 {campaign.campaign_name}
               </h2>
-              <p className="text-xs md:text-sm text-[#9BA0A8] mt-1 truncate font-mono">
+              <p className="text-[12px] mt-0.5 truncate" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
                 {campaign.subject || '—'}
               </p>
             </div>
@@ -486,29 +516,33 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 p-2 rounded-xl bg-[#0F131A] ring-1 ring-[#232833] text-[#C7C9CE] hover:bg-[#1B1F29] hover:ring-[#333A48] transition-all"
+            className="shrink-0 p-2 rounded-md transition-colors hover:bg-white/5"
+            style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         </div>
 
         {/* Meta row */}
-        <div className="flex flex-wrap items-center gap-2 px-5 md:px-6 pt-4">
-          <MetaPill icon={<UserIcon size={11} className="text-[#6B727C]" />}>
-            <span className="text-[#E8E6E1]">{ownerLabel}</span>
-            {ownerEmail && <span className="text-[#6B727C] font-mono">&lt;{ownerEmail}&gt;</span>}
+        <div className="flex flex-wrap items-center gap-1.5 px-5 pt-3">
+          <MetaPill icon={<UserIcon size={10} style={{ color: T.textFaint }} />}>
+            <span style={{ color: T.text }}>{ownerLabel}</span>
+            {ownerEmail && <span style={{ color: T.textFaint, fontFamily: FONT.mono }}>&lt;{ownerEmail}&gt;</span>}
           </MetaPill>
-          <MetaPill icon={<Calendar size={11} className="text-[#6B727C]" />} mono>
+          <MetaPill icon={<Calendar size={10} style={{ color: T.textFaint }} />} mono>
             {formatDate(campaign.created_at)}
           </MetaPill>
-          <MetaPill icon={<Clock size={11} className="text-[#6B727C]" />} mono>
+          <MetaPill icon={<Clock size={10} style={{ color: T.textFaint }} />} mono>
             {formatDate(campaign.updated_at)}
           </MetaPill>
         </div>
 
         {/* Tabs */}
-        <div className="px-5 md:px-6 mt-4">
-          <div className="inline-flex max-w-full items-center gap-1 p-1 rounded-xl bg-[#0F131A] ring-1 ring-[#232833] overflow-x-auto cm-scroll">
+        <div className="px-5 mt-3">
+          <div
+            className="inline-flex max-w-full items-center gap-0.5 p-0.5 rounded-lg overflow-x-auto cm-scroll"
+            style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+          >
             {tabs.map((t) => {
               const Icon = t.icon;
               const active = tab === t.id;
@@ -516,13 +550,13 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all whitespace-nowrap ${
-                    active
-                      ? 'bg-[#1B1F29] text-[#E8E6E1] ring-1 ring-[#2A2E37] shadow-sm'
-                      : 'text-[#6B727C] hover:text-[#C7C9CE]'
-                  }`}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11.5px] font-medium transition-colors whitespace-nowrap"
+                  style={{
+                    background: active ? T.surfaceHi : 'transparent',
+                    color: active ? T.text : T.textMuted,
+                  }}
                 >
-                  <Icon size={13} />
+                  <Icon size={12} />
                   <span>{t.label}</span>
                 </button>
               );
@@ -531,19 +565,26 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="cm-scroll flex-1 overflow-y-auto p-5 md:p-6">
+        <div className="cm-scroll flex-1 overflow-y-auto p-5">
           {detailLoading && (
-            <div className="flex items-center gap-2 mb-4 text-[11px] text-[#6B727C]">
-              <div className="w-3.5 h-3.5 border-2 border-[#FF6A39] border-t-transparent rounded-full animate-spin" />
+            <div className="flex items-center gap-2 mb-4 text-[11px]" style={{ color: T.textFaint }}>
+              <div
+                className="w-3 h-3 border-2 rounded-full animate-spin"
+                style={{ borderColor: T.brand, borderTopColor: 'transparent' }}
+              />
               Loading full details…
             </div>
           )}
           {detailError && (
-            <div className="mb-4 flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-[12px] text-[#F87171] bg-[#F87171]/5 ring-1 ring-[#F87171]/20">
+            <div
+              className="mb-4 flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-[12px]"
+              style={{ background: T.dangerSoft, color: T.danger, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
+            >
               <span>{detailError}</span>
               <button
                 onClick={() => setReloadKey((k) => k + 1)}
-                className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-[#E8E6E1] hover:text-white"
+                className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium hover:opacity-80"
+                style={{ color: T.danger }}
               >
                 <RefreshCw size={11} /> Retry
               </button>
@@ -552,29 +593,28 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
 
           {/* ═══ OVERVIEW ═══ */}
           {tab === 'overview' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <StatCard label="Recipients"    value={formatNumber(stats.recipientCount)} icon={Users}        accent="#FF6A39" />
-                <StatCard label="Sent"          value={formatNumber(stats.sent)}           icon={Send}         accent="#34D399" />
-                <StatCard label="Failed"        value={formatNumber(stats.failed)}         icon={XCircle}      accent="#F87171" />
-                <StatCard label="Delivery rate" value={`${stats.deliveryRate}%`}           icon={CheckCircle2} accent="#A78BFA" />
+            <div className="space-y-5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <StatCard label="Recipients"    value={formatNumber(stats.recipientCount)} icon={Users}        accent={T.brand}   accentSoft={T.brandSoft} />
+                <StatCard label="Sent"          value={formatNumber(stats.sent)}           icon={Send}         accent={T.success} accentSoft={T.successSoft} />
+                <StatCard label="Failed"        value={formatNumber(stats.failed)}         icon={XCircle}      accent={T.danger}  accentSoft={T.dangerSoft} />
+                <StatCard label="Delivery rate" value={`${stats.deliveryRate}%`}           icon={CheckCircle2} accent={T.purple}  accentSoft={T.purpleSoft} />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {/* Owner */}
-                <div className="rounded-xl bg-[#0F131A] ring-1 ring-[#232833] p-4">
+                <div className="rounded-lg p-4" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
                   <SectionTitle icon={UserIcon} title="Owner" subtitle="Who created this campaign" />
-                  <InfoRow icon={<UserIcon size={13} className="text-[#6B727C]" />} label="User">
-                    <p className="text-[13px] text-[#E8E6E1] font-medium truncate">{ownerLabel}</p>
+                  <InfoRow icon={<UserIcon size={12} style={{ color: T.textFaint }} />} label="User">
+                    <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>{ownerLabel}</p>
                     {ownerEmail && (
-                      <p className="text-[11.5px] text-[#6B727C] font-mono truncate">{ownerEmail}</p>
+                      <p className="text-[11px] truncate mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>{ownerEmail}</p>
                     )}
-                    <p className="text-[10.5px] text-[#3A404F] font-mono mt-0.5">user #{campaign.user_id}</p>
                   </InfoRow>
                 </div>
 
                 {/* Sender */}
-                <div className="rounded-xl bg-[#0F131A] ring-1 ring-[#232833] p-4">
+                <div className="rounded-lg p-4" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
                   <SectionTitle
                     icon={AtSign}
                     title="Sender account"
@@ -582,27 +622,25 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                     right={
                       <button
                         onClick={() => navigate('/admin/senders-account')}
-                        className="inline-flex items-center gap-1 text-[11px] font-medium text-[#FF6A39] hover:text-[#ff8457]"
+                        className="inline-flex items-center gap-1 text-[11px] font-medium hover:opacity-80"
+                        style={{ color: T.brand }}
                       >
-                        Manage <ExternalLink size={11} />
+                        Manage <ExternalLink size={10} />
                       </button>
                     }
                   />
                   {sender ? (
-                    <InfoRow icon={<AtSign size={13} className="text-[#FF6A39]" />} label="From">
-                      <p className="text-[13px] text-[#E8E6E1] font-medium truncate">
+                    <InfoRow icon={<AtSign size={12} style={{ color: T.brand }} />} label="From">
+                      <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>
                         {sender.display_name || '—'}
                       </p>
-                      <p className="text-[11.5px] text-[#6B727C] font-mono truncate">
+                      <p className="text-[11px] truncate mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                         {sender.email || '—'}
-                      </p>
-                      <p className="text-[10.5px] text-[#3A404F] font-mono mt-0.5">
-                        sender #{sender.id ?? campaign.sender_account_id ?? '—'}
                       </p>
                     </InfoRow>
                   ) : (
-                    <InfoRow icon={<AtSign size={13} className="text-[#6B727C]" />} label="From">
-                      <p className="text-[12.5px] text-[#7A8092]">
+                    <InfoRow icon={<AtSign size={12} style={{ color: T.textFaint }} />} label="From">
+                      <p className="text-[12px]" style={{ color: T.textMuted }}>
                         {campaign.sender_account_id
                           ? `Sender #${campaign.sender_account_id} (details not loaded)`
                           : 'No sender account attached.'}
@@ -613,7 +651,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
               </div>
 
               {/* Template */}
-              <div className="rounded-xl bg-[#0F131A] ring-1 ring-[#232833] p-4">
+              <div className="rounded-lg p-4" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
                 <SectionTitle
                   icon={LayoutTemplate}
                   title="Template"
@@ -621,21 +659,25 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                   right={
                     <button
                       onClick={() => setTab('template')}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium text-[#FF6A39] bg-[#FF6A39]/10 ring-1 ring-[#FF6A39]/20 hover:bg-[#FF6A39]/15 transition-colors"
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-colors hover:bg-white/5"
+                      style={{ background: T.brandSoft, color: T.brand }}
                     >
-                      <Eye size={11} /> Preview
+                      <Eye size={10} /> Preview
                     </button>
                   }
                 />
-                <div className="flex items-center gap-3">
-                  <div className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center bg-[#A78BFA]/10 ring-1 ring-[#A78BFA]/20">
-                    <LayoutTemplate size={14} className="text-[#A78BFA]" />
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="shrink-0 w-8 h-8 rounded-md flex items-center justify-center"
+                    style={{ background: T.purpleSoft, color: T.purple }}
+                  >
+                    <LayoutTemplate size={13} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[13px] text-[#E8E6E1] font-medium truncate">
+                    <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>
                       {template?.name ?? (campaign.template_id ? `Template #${campaign.template_id}` : 'No template attached')}
                     </p>
-                    <p className="text-[10.5px] text-[#3A404F] font-mono mt-0.5">
+                    <p className="text-[10.5px] mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                       template #{campaign.template_id ?? '—'}
                     </p>
                   </div>
@@ -644,34 +686,37 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
 
               {/* Upload */}
               {upload && (
-                <div className="rounded-xl bg-[#0F131A] ring-1 ring-[#232833] p-4">
+                <div className="rounded-lg p-4" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
                   <SectionTitle
                     icon={FileSpreadsheet}
                     title="Source file"
                     subtitle={`${formatNumber(upload.processed_records)} / ${formatNumber(upload.total_records)} processed`}
                     right={
-                      <span className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-[#1B1F29] text-[#9BA0A8] ring-1 ring-[#2A2E37]">
+                      <span
+                        className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                        style={{ background: T.surfaceHi, color: T.textMuted }}
+                      >
                         {upload.status}
                       </span>
                     }
                   />
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center bg-[#FF6A39]/10 ring-1 ring-[#FF6A39]/20">
-                      <FileSpreadsheet size={14} className="text-[#FF6A39]" />
+                  <div className="flex items-center gap-2.5 mb-2.5">
+                    <div
+                      className="shrink-0 w-8 h-8 rounded-md flex items-center justify-center"
+                      style={{ background: T.brandSoft, color: T.brand }}
+                    >
+                      <FileSpreadsheet size={13} />
                     </div>
-                    <p className="text-[13px] text-[#E8E6E1] font-medium truncate">
+                    <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>
                       {upload.original_filename || 'Untitled file'}
                     </p>
                   </div>
-                  <div className="w-full h-1.5 rounded-full bg-[#1F242E] overflow-hidden">
+                  <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-[#FF6A39] to-[#FF8A5C] transition-all duration-500"
+                      className="h-full rounded-full transition-all duration-500"
                       style={{
-                        width: `${
-                          upload.total_records
-                            ? Math.min(100, (upload.processed_records / upload.total_records) * 100)
-                            : 0
-                        }%`,
+                        width: `${upload.total_records ? Math.min(100, (upload.processed_records / upload.total_records) * 100) : 0}%`,
+                        background: T.brand,
                       }}
                     />
                   </div>
@@ -683,47 +728,54 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
           {/* ═══ RECIPIENTS ═══ */}
           {tab === 'recipients' && (
             <div className="space-y-4">
-              {/* Summary chips (click to filter) */}
               {recipients.length > 0 && (
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                  <div className="rounded-xl p-3.5 bg-[#0F131A] ring-1 ring-[#232833]">
-                    <Users size={14} className="text-[#FF6A39] mb-2.5" />
-                    <p className="text-lg font-semibold font-mono leading-none text-[#E8E6E1]">
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+                  <div className="rounded-lg p-3" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+                    <Users size={12} style={{ color: T.brand }} className="mb-2" />
+                    <p className="text-[18px] font-semibold leading-none" style={{ color: T.text, fontFamily: FONT.mono }}>
                       {recipients.length.toLocaleString()}
                     </p>
-                    <p className="text-[10px] uppercase tracking-widest text-[#6B727C] mt-1.5">Total</p>
+                    <p className="text-[10px] uppercase tracking-widest mt-1.5" style={{ color: T.textFaint }}>Total</p>
                   </div>
-                  {recipientSummary.map(({ label, key, Icon, fg }) => (
+                  {recipientSummary.map(({ label, key, Icon, fg, soft }) => (
                     <button
                       key={key}
                       onClick={() => setRStatus(rStatus === key ? 'all' : key)}
-                      className="text-left rounded-xl p-3.5 bg-[#0F131A] ring-1 transition-all hover:-translate-y-0.5"
-                      style={{ ['--tw-ring-color' as any]: rStatus === key ? `${fg}99` : '#232833' }}
+                      className="text-left rounded-lg p-3 transition-colors hover:bg-white/[0.02]"
+                      style={{
+                        background: T.surface2,
+                        boxShadow: rStatus === key ? `inset 0 0 0 1px ${fg}` : `inset 0 0 0 1px ${T.borderSoft}`,
+                      }}
                     >
-                      <span style={{ color: fg }}><Icon size={14} /></span>
-                      <p className="text-lg font-semibold font-mono leading-none text-[#E8E6E1] mt-2.5">
+                      <span style={{ color: fg }}><Icon size={12} /></span>
+                      <p className="text-[18px] font-semibold leading-none mt-2" style={{ color: T.text, fontFamily: FONT.mono }}>
                         {(recipientCounts[key] ?? 0).toLocaleString()}
                       </p>
-                      <p className="text-[10px] uppercase tracking-widest text-[#6B727C] mt-1.5">{label}</p>
+                      <p className="text-[10px] uppercase tracking-widest mt-1.5" style={{ color: T.textFaint }}>{label}</p>
                     </button>
                   ))}
                 </div>
               )}
 
               {/* Toolbar */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
-                <div className="flex items-center gap-2 rounded-xl px-3 py-2 flex-1 min-w-0 bg-[#0F131A] ring-1 ring-[#232833]">
-                  <Search size={14} className="text-[#6B727C] shrink-0" />
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <div
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 flex-1 min-w-0"
+                  style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                >
+                  <Search size={13} style={{ color: T.textFaint }} className="shrink-0" />
                   <input
                     value={rSearch}
                     onChange={(e) => setRSearch(e.target.value)}
                     placeholder="Search by name or email…"
-                    className="w-full bg-transparent text-[13px] outline-none text-[#E8E6E1] placeholder:text-[#6B727C]"
+                    className="w-full bg-transparent text-[13px] outline-none"
+                    style={{ color: T.text }}
                   />
                   {rSearch && (
                     <button
                       onClick={() => setRSearch('')}
-                      className="shrink-0 text-[10px] text-[#6B727C] hover:text-[#E8E6E1] px-1.5 py-0.5 rounded hover:bg-[#232833]"
+                      className="shrink-0 text-[10px] px-1.5 py-0.5 rounded transition-colors hover:bg-white/5"
+                      style={{ color: T.textMuted }}
                     >
                       Clear
                     </button>
@@ -731,11 +783,12 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                 </div>
 
                 <div className="relative">
-                  <Filter size={13} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#6B727C]" />
+                  <Filter size={11} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: T.textFaint }} />
                   <select
                     value={rStatus}
                     onChange={(e) => setRStatus(e.target.value)}
-                    className="pl-8 pr-3 py-2 rounded-xl text-[12.5px] cursor-pointer focus:outline-none bg-[#0F131A] ring-1 ring-[#232833] text-[#E8E6E1]"
+                    className="pl-7 pr-2.5 py-2 rounded-lg text-[12px] cursor-pointer outline-none"
+                    style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
                   >
                     {statusOptions.map((s) => (
                       <option key={s} value={s}>{s === 'all' ? 'All statuses' : s}</option>
@@ -745,31 +798,32 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
 
                 <button
                   onClick={() => setReloadKey((k) => k + 1)}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-medium bg-[#0F131A] ring-1 ring-[#232833] text-[#E8E6E1] hover:bg-[#1B1F29] transition-colors"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors hover:bg-white/5"
+                  style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
                   aria-label="Refresh"
                 >
-                  <RefreshCw size={13} className={detailLoading ? 'animate-spin' : ''} />
+                  <RefreshCw size={12} className={detailLoading ? 'animate-spin' : ''} />
                   <span className="hidden sm:inline">Refresh</span>
                 </button>
                 <button
                   onClick={exportXlsx}
                   disabled={filteredRecipients.length === 0 || exporting}
-                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-semibold text-white bg-[#FF6A39] hover:bg-[#ff7a4d] transition-colors disabled:opacity-40"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-medium text-white transition-all hover:brightness-110 disabled:opacity-40"
+                  style={{ background: T.brand, boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
                 >
                   {exporting ? (
                     <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <FileSpreadsheet size={13} />
+                    <FileSpreadsheet size={12} />
                   )}
                   {exporting ? 'Exporting…' : 'Export XLSX'}
                 </button>
               </div>
 
-              {/* Empty */}
               {filteredRecipients.length === 0 && (
-                <div className="rounded-xl bg-[#0F131A] ring-1 ring-[#232833] py-14 text-center">
-                  <Inbox size={22} className="text-[#3A404F] mx-auto mb-2" />
-                  <p className="text-[13px] font-medium text-[#F2F0EB]">
+                <div className="rounded-lg py-14 text-center" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+                  <Inbox size={20} style={{ color: T.textFaint }} className="mx-auto mb-2" />
+                  <p className="text-[12.5px] font-medium" style={{ color: T.text }}>
                     {detailLoading && recipients.length === 0
                       ? 'Loading recipients…'
                       : recipients.length === 0
@@ -777,7 +831,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                       : 'No recipients match'}
                   </p>
                   {!(detailLoading && recipients.length === 0) && (
-                    <p className="text-[11.5px] mt-1.5 text-[#7A8092]">
+                    <p className="text-[11.5px] mt-1.5" style={{ color: T.textMuted }}>
                       {recipients.length === 0
                         ? 'Upload a recipient file to this campaign to add people.'
                         : 'Try a different search or status filter.'}
@@ -786,29 +840,28 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                 </div>
               )}
 
-              {/* Table */}
               {filteredRecipients.length > 0 && (
-                <div className="rounded-xl bg-[#0F131A] ring-1 ring-[#232833] overflow-hidden">
+                <div className="rounded-lg overflow-hidden" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
                   <div className="overflow-x-auto cm-scroll">
                     <table className="w-full text-left min-w-[560px]">
                       <thead>
-                        <tr className="border-b border-[#1F242E] text-[10px] uppercase tracking-widest text-[#6B727C]">
+                        <tr className="text-[10px] uppercase tracking-widest" style={{ color: T.textFaint, borderBottom: `1px solid ${T.borderSoft}` }}>
                           <th className="px-4 py-2.5 font-medium">Recipient</th>
                           <th className="px-4 py-2.5 font-medium">Status</th>
                           <th className="px-4 py-2.5 font-medium">Last email</th>
                           <th className="px-4 py-2.5 font-medium text-right">ID</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#1F242E]">
+                      <tbody>
                         {pageRows.map((r) => {
                           const last = lastLogByRecipient[r.id];
                           return (
-                            <tr key={r.id} className="hover:bg-[#161B25] transition-colors">
+                            <tr key={r.id} className="transition-colors hover:bg-white/[0.02]" style={{ borderTop: `1px solid ${T.borderSoft}` }}>
                               <td className="px-4 py-2.5">
-                                <p className="text-[12.5px] text-[#F2F0EB] font-medium truncate max-w-[240px]">
+                                <p className="text-[12px] font-medium truncate max-w-[240px]" style={{ color: T.text }}>
                                   {r.name || '—'}
                                 </p>
-                                <p className="text-[11px] text-[#7A8092] font-mono truncate max-w-[240px]">
+                                <p className="text-[11px] truncate max-w-[240px] mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                                   {r.email}
                                 </p>
                               </td>
@@ -817,15 +870,15 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                                 {last ? (
                                   <div className="flex items-center gap-2">
                                     <StatusPill status={last.status} />
-                                    <span className="text-[10.5px] text-[#6B727C] font-mono whitespace-nowrap">
+                                    <span className="text-[10.5px] whitespace-nowrap" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                                       {formatDate(last.sent_at)}
                                     </span>
                                   </div>
                                 ) : (
-                                  <span className="text-[11.5px] text-[#3A404F]">Not sent</span>
+                                  <span className="text-[11px]" style={{ color: T.textFaint }}>Not sent</span>
                                 )}
                               </td>
-                              <td className="px-4 py-2.5 text-right text-[10.5px] text-[#3A404F] font-mono">#{r.id}</td>
+                              <td className="px-4 py-2.5 text-right text-[10.5px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>#{r.id}</td>
                             </tr>
                           );
                         })}
@@ -833,26 +886,27 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                     </table>
                   </div>
 
-                  <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-[#1F242E]">
-                    <p className="text-[11.5px] text-[#7A8092]">
-                      <span className="font-mono text-[#F2F0EB]">{filteredRecipients.length.toLocaleString()}</span>{' '}
+                  <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-t" style={{ borderColor: T.borderSoft }}>
+                    <p className="text-[11px]" style={{ color: T.textFaint }}>
+                      <span style={{ color: T.text, fontFamily: FONT.mono }}>{filteredRecipients.length.toLocaleString()}</span>{' '}
                       {filteredRecipients.length === 1 ? 'recipient' : 'recipients'}
-                      {filteredRecipients.length !== recipients.length &&
-                        ` of ${recipients.length.toLocaleString()}`}
+                      {filteredRecipients.length !== recipients.length && ` of ${recipients.length.toLocaleString()}`}
                     </p>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <button
                         onClick={() => setRPage((p) => Math.max(1, p - 1))}
                         disabled={rPage === 1}
-                        className="px-3 py-1.5 rounded-lg text-[11.5px] bg-[#141821] ring-1 ring-[#232833] text-[#C7C9CE] hover:bg-[#1B1F29] disabled:opacity-40"
+                        className="px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/5 disabled:hover:bg-transparent"
+                        style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
                       >
                         Previous
                       </button>
-                      <span className="text-[11px] text-[#6B727C] font-mono">{rPage} / {totalPages}</span>
+                      <span className="text-[11px] px-1.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>{rPage} / {totalPages}</span>
                       <button
                         onClick={() => setRPage((p) => Math.min(totalPages, p + 1))}
                         disabled={rPage === totalPages}
-                        className="px-3 py-1.5 rounded-lg text-[11.5px] bg-[#141821] ring-1 ring-[#232833] text-[#C7C9CE] hover:bg-[#1B1F29] disabled:opacity-40"
+                        className="px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/5 disabled:hover:bg-transparent"
+                        style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
                       >
                         Next
                       </button>
@@ -865,51 +919,56 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
 
           {/* ═══ DELIVERY ═══ */}
           {tab === 'delivery' && (
-            <div className="space-y-5">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <StatCard label="Sent"      value={formatNumber(stats.logsByStatus.Sent ?? 0)}      icon={Clock}       accent="#60A5FA" />
-                <StatCard label="Delivered" value={formatNumber(stats.logsByStatus.Delivered ?? 0)} icon={MailCheck}   accent="#34D399" />
-                <StatCard label="Bounced"   value={formatNumber(stats.logsByStatus.Bounced ?? 0)}   icon={MailWarning} accent="#FBBF24" />
-                <StatCard label="Failed"    value={formatNumber(stats.logsByStatus.Failed ?? 0)}    icon={MailX}       accent="#F87171" />
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <StatCard label="Sent"      value={formatNumber(stats.logsByStatus.Sent ?? 0)}      icon={Clock}       accent={T.info}    accentSoft={T.infoSoft} />
+                <StatCard label="Delivered" value={formatNumber(stats.logsByStatus.Delivered ?? 0)} icon={MailCheck}   accent={T.success} accentSoft={T.successSoft} />
+                <StatCard label="Bounced"   value={formatNumber(stats.logsByStatus.Bounced ?? 0)}   icon={MailWarning} accent={T.warn}    accentSoft={T.warnSoft} />
+                <StatCard label="Failed"    value={formatNumber(stats.logsByStatus.Failed ?? 0)}    icon={MailX}       accent={T.danger}  accentSoft={T.dangerSoft} />
               </div>
 
               {logs.length === 0 ? (
-                <div className="rounded-xl bg-[#0F131A] ring-1 ring-[#232833] p-8 text-center">
-                  <BarChart3 size={22} className="text-[#3A404F] mx-auto mb-2" />
-                  <p className="text-[12.5px] text-[#7A8092]">
+                <div className="rounded-lg p-8 text-center" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+                  <BarChart3 size={20} style={{ color: T.textFaint }} className="mx-auto mb-2" />
+                  <p className="text-[12px]" style={{ color: T.textMuted }}>
                     {detailLoading ? 'Loading email logs…' : 'No email logs yet.'}
                   </p>
                 </div>
               ) : (
-                <div className="rounded-xl bg-[#0F131A] ring-1 ring-[#232833] overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-[#1F242E] flex items-center justify-between">
-                    <p className="text-[11px] uppercase tracking-widest text-[#6B727C]">Recent events</p>
+                <div className="rounded-lg overflow-hidden" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+                  <div className="px-4 py-2.5 flex items-center justify-between border-b" style={{ borderColor: T.borderSoft }}>
+                    <p className="text-[10.5px] uppercase tracking-widest" style={{ color: T.textFaint }}>Recent events</p>
                     <button
                       onClick={() => navigate('/admin/emaillogs')}
-                      className="inline-flex items-center gap-1 text-[11px] font-medium text-[#FF6A39] hover:text-[#ff8457]"
+                      className="inline-flex items-center gap-1 text-[11px] font-medium hover:opacity-80"
+                      style={{ color: T.brand }}
                     >
-                      Open logs <ExternalLink size={11} />
+                      Open logs <ExternalLink size={10} />
                     </button>
                   </div>
-                  <ul className="divide-y divide-[#1F242E] max-h-[280px] overflow-y-auto cm-scroll">
+                  <ul className="max-h-[280px] overflow-y-auto cm-scroll">
                     {logs.slice(0, 20).map((l) => {
                       const r = recipientById[l.recipient_id];
                       const meta = LOG_STATUS_META[l.status] ?? FALLBACK_LOG;
                       const Icon = meta.Icon;
                       return (
-                        <li key={l.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                        <li
+                          key={l.id}
+                          className="flex items-center justify-between gap-3 px-4 py-2.5"
+                          style={{ borderTop: `1px solid ${T.borderSoft}` }}
+                        >
                           <div className="min-w-0">
-                            <p className="text-[12px] text-[#E8E6E1] truncate">
+                            <p className="text-[12px] truncate" style={{ color: T.text }}>
                               {r?.email || r?.name || `Recipient #${l.recipient_id ?? '—'}`}
                             </p>
-                            <p className="text-[10.5px] text-[#6B727C] font-mono truncate">
+                            <p className="text-[10.5px] truncate mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                               {formatRelative(l.sent_at)}
-                              <span className="text-[#3A404F]"> · </span>
+                              <span style={{ color: T.textFaint }}> · </span>
                               {formatDate(l.sent_at)}
                             </p>
                           </div>
                           <span
-                            className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-medium"
+                            className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium"
                             style={{ background: meta.bg, color: meta.fg, boxShadow: `inset 0 0 0 1px ${meta.ring}` }}
                           >
                             <Icon size={10} />
@@ -919,7 +978,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                       );
                     })}
                     {logs.length > 20 && (
-                      <li className="text-center text-[11px] text-[#6B727C] py-3">
+                      <li className="text-center text-[11px] py-3" style={{ color: T.textFaint, borderTop: `1px solid ${T.borderSoft}` }}>
                         + {formatNumber(logs.length - 20)} more events
                       </li>
                     )}
@@ -931,12 +990,12 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
 
           {/* ═══ TEMPLATE ═══ */}
           {tab === 'template' && (
-            <div className="rounded-xl ring-1 ring-[#232833] overflow-hidden bg-[#0F131A]">
-              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[#1F242E]">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#FF5F57]" />
-                <span className="w-2.5 h-2.5 rounded-full bg-[#FEBC2E]" />
-                <span className="w-2.5 h-2.5 rounded-full bg-[#28C840]" />
-                <span className="ml-3 text-[11px] text-[#6B727C] font-mono truncate">
+            <div className="rounded-lg overflow-hidden" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+              <div className="flex items-center gap-2 px-4 py-2.5 border-b" style={{ borderColor: T.borderSoft }}>
+                <span className="w-2 h-2 rounded-full bg-[#EF4444]" />
+                <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
+                <span className="w-2 h-2 rounded-full bg-[#22C55E]" />
+                <span className="ml-2.5 text-[11px] truncate" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                   {template?.name ?? (campaign.template_id ? `template #${campaign.template_id}` : 'No template')}
                 </span>
               </div>
@@ -945,12 +1004,13 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                   title="Template preview"
                   srcDoc={template.html_content}
                   sandbox=""
-                  className="w-full h-[440px] bg-white"
+                  className="w-full bg-white"
+                  style={{ height: 440, border: 0 }}
                 />
               ) : (
-                <div className="p-10 text-center bg-[#0F131A]">
-                  <LayoutTemplate size={22} className="text-[#3A404F] mx-auto mb-2" />
-                  <p className="text-[12.5px] text-[#7A8092]">
+                <div className="p-10 text-center">
+                  <LayoutTemplate size={20} style={{ color: T.textFaint }} className="mx-auto mb-2" />
+                  <p className="text-[12px]" style={{ color: T.textMuted }}>
                     {detailLoading
                       ? 'Loading template…'
                       : campaign.template_id
@@ -964,28 +1024,30 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between gap-2 p-4 md:p-5 border-t border-[#1F242E]">
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="text-[11px] text-[#6B727C] font-mono shrink-0">#{campaign.id}</span>
-            <span className="text-[#3A404F] shrink-0">·</span>
-            <span className="text-[11px] text-[#6B727C] truncate">
-              owner <span className="text-[#9BA0A8]">{ownerLabel}</span>
+        <div className="flex items-center justify-between gap-2 p-4 border-t" style={{ borderColor: T.borderSoft }}>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[10.5px] shrink-0" style={{ color: T.textFaint, fontFamily: FONT.mono }}>#{campaign.id}</span>
+            <span className="shrink-0" style={{ color: T.textFaint }}>·</span>
+            <span className="text-[11px] truncate" style={{ color: T.textFaint }}>
+              owner <span style={{ color: T.textMuted }}>{ownerLabel}</span>
             </span>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             {tab !== 'recipients' && (
               <button
                 onClick={() => setTab('recipients')}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[12px] font-medium text-[#FF6A39] bg-[#FF6A39]/10 ring-1 ring-[#FF6A39]/20 hover:bg-[#FF6A39]/15 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-colors hover:bg-white/5"
+                style={{ background: T.brandSoft, color: T.brand, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
               >
-                <Users size={13} />
+                <Users size={12} />
                 Recipients
               </button>
             )}
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm rounded-xl bg-[#0F131A] ring-1 ring-[#232833] text-[#C7C9CE] hover:bg-[#1B1F29] hover:ring-[#333A48] transition-all"
+              className="px-3.5 py-2 text-[12px] rounded-md font-medium transition-colors hover:bg-white/5"
+              style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
             >
               Close
             </button>
@@ -996,4 +1058,4 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
   );
 };
 
-export default AdminCampaignModal;
+export default AdminCampaignModal;  

@@ -1,74 +1,53 @@
 // AdminSettings.tsx
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import AdminSidebar from "./AdminSidebar";
 import {
-  Settings, Save, Mail, Shield, Bell, Key, DollarSign,
-  AlertTriangle, CheckCircle2, X, Plus, Trash2, Edit,
-  RefreshCw, Eye, EyeOff, Copy, Check, Menu, Download,
-  ChevronRight, Sparkles, SlidersHorizontal, Globe, Users,
+  Save, Shield, X, Menu, Eye, EyeOff,
+  Loader2, AlertTriangle, CheckCircle2, User as UserIcon,
+  Mail, Key, Lock, ShieldCheck, Sparkles,
 } from "lucide-react";
 
-/* ─────────────────────────── Types ─────────────────────────── */
+/* ─────────────── design tokens ─────────────── */
 
-interface SMTPConfig {
-  id: string;
-  name: string;
-  host: string;
-  port: number;
-  username: string;
-  encryption: "TLS" | "SSL" | "None";
-  status: "Active" | "Inactive" | "Error";
-}
-
-interface Webhook {
-  id: string;
-  name: string;
-  url: string;
-  status: "Active" | "Inactive";
-}
-
-/* ─────────────────────────── Tokens ─────────────────────────── */
+const T = {
+  bg:           "#0A0B10",
+  surface:      "#111319",
+  surface2:     "#161922",
+  surfaceHi:    "#1B1F2A",
+  border:       "#232838",
+  borderSoft:   "#1B1F2A",
+  text:         "#E9EBF0",
+  textMuted:    "#9CA3B4",
+  textFaint:    "#6B7280",
+  brand:        "#6366F1",
+  brandSoft:    "rgba(99,102,241,0.12)",
+  brandBorder:  "rgba(99,102,241,0.35)",
+  success:      "#22C55E",
+  successSoft:  "rgba(34,197,94,0.12)",
+  successBorder:"rgba(34,197,94,0.35)",
+  warn:         "#F59E0B",
+  warnSoft:     "rgba(245,158,11,0.12)",
+  warnBorder:   "rgba(245,158,11,0.35)",
+  danger:       "#EF4444",
+  dangerSoft:   "rgba(239,68,68,0.12)",
+  dangerBorder: "rgba(239,68,68,0.35)",
+  info:         "#38BDF8",
+  infoSoft:     "rgba(56,189,248,0.12)",
+  infoBorder:   "rgba(56,189,248,0.35)",
+};
 
 const FONT = {
-  display: "'Space Grotesk', sans-serif",
-  body: "'Inter', sans-serif",
-  mono: "'JetBrains Mono', monospace",
+  display: "'Inter', system-ui, -apple-system, sans-serif",
+  body:    "'Inter', system-ui, -apple-system, sans-serif",
+  mono:    "'JetBrains Mono', ui-monospace, monospace",
 };
 
-const C = {
-  primary: "#FF6A39",
-  primarySoft: "rgba(255,106,57,0.10)",
-  primaryRing: "rgba(255,106,57,0.22)",
-  success: "#34D399",
-  successSoft: "rgba(52,211,153,0.10)",
-  successRing: "rgba(52,211,153,0.22)",
-  warning: "#FBBF24",
-  warningSoft: "rgba(251,191,36,0.10)",
-  warningRing: "rgba(251,191,36,0.22)",
-  danger: "#F87171",
-  dangerSoft: "rgba(248,113,113,0.10)",
-  dangerRing: "rgba(248,113,113,0.22)",
-  neutral: "#9BA0A8",
-  neutralSoft: "rgba(155,160,168,0.10)",
-  neutralRing: "rgba(155,160,168,0.22)",
-  dark: "#F2F0EB",
-  bg: "#0B0E13",
-  surface: "#141821",
-  inner: "#0F131C",
-  rowHover: "#11151E",
-  border: "#1A1F2B",
-  borderHover: "#232938",
-  textMuted: "#7A8092",
-  textBody: "#C7C9CE",
-};
+const RING = `inset 0 0 0 1px ${T.border}`;
 
-/* ─────────────────────────── Primitives ─────────────────────────── */
+/* ─────────────── primitives ─────────────── */
 
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => (
-  <div
-    className={`rounded-3xl soft-ring transition-colors ${className}`}
-    style={{ background: "linear-gradient(180deg, #141821 0%, #10141D 100%)" }}
-  >
+  <div className={`rounded-xl ${className}`} style={{ background: T.surface, boxShadow: RING }}>
     {children}
   </div>
 );
@@ -76,919 +55,526 @@ const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ chi
 const InputShell: React.FC<{
   icon?: React.ComponentType<{ size?: number; className?: string }>;
   children: React.ReactNode;
-}> = ({ icon: Icon, children }) => (
+  disabled?: boolean;
+}> = ({ icon: Icon, children, disabled }) => (
   <div
-    className="flex items-center gap-2.5 rounded-2xl px-3.5 py-2.5 transition-all"
-    style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
+    className="flex items-center gap-2 rounded-lg px-3 py-2 transition-all"
+    style={{
+      background: T.surface2,
+      boxShadow: `inset 0 0 0 1px ${T.borderSoft}`,
+      opacity: disabled ? 0.6 : 1,
+    }}
     onFocusCapture={(e) =>
-      (e.currentTarget.style.boxShadow =
-        "inset 0 0 0 1px rgba(255,106,57,0.55), 0 0 0 4px rgba(255,106,57,0.10)")
+      (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brandBorder}, 0 0 0 3px ${T.brandSoft}`)
     }
-    onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${C.border}`)}
+    onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.borderSoft}`)}
   >
-    {Icon && <Icon size={14} className="text-[#6A7080] shrink-0" />}
+    {Icon && <Icon size={12} className="shrink-0" />}
     {children}
   </div>
 );
 
-const textInputCls =
-  "w-full bg-transparent text-[13px] text-[#E8E6E1] placeholder:text-[#5A6172] outline-none";
-const monoInputCls = `${textInputCls} font-mono`;
+const textInputCls = "w-full bg-transparent text-[13px] outline-none";
 
 const Field: React.FC<{ label: string; hint?: string; htmlFor?: string; children: React.ReactNode }> = ({
   label, hint, htmlFor, children,
 }) => (
   <div>
-    <label htmlFor={htmlFor} className="block text-[11.5px] font-medium text-[#C7C9CE] mb-1.5">
+    <label htmlFor={htmlFor} className="block text-[11.5px] font-medium mb-1.5" style={{ color: T.textMuted }}>
       {label}
     </label>
     {children}
-    {hint && <p className="mt-1.5 text-[11px] text-[#7A8092]">{hint}</p>}
+    {hint && <p className="mt-1.5 text-[11px]" style={{ color: T.textFaint }}>{hint}</p>}
   </div>
 );
 
-const Toggle: React.FC<{ checked: boolean; onChange: () => void; label: string }> = ({
-  checked, onChange, label,
+/* ─── FIXED TOGGLE ─── */
+const Toggle: React.FC<{ checked: boolean; onChange: () => void; label: string; disabled?: boolean }> = ({
+  checked, onChange, label, disabled,
 }) => (
   <button
     role="switch"
     aria-checked={checked}
     aria-label={label}
+    disabled={disabled}
     onClick={onChange}
-    className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
+    className="relative h-5 w-9 shrink-0 rounded-full transition-colors duration-200 ease-out disabled:opacity-50 disabled:cursor-not-allowed"
     style={{
-      background: checked ? C.primary : C.borderHover,
-      boxShadow: checked ? "0 0 0 3px rgba(255,106,57,0.15)" : `inset 0 0 0 1px ${C.border}`,
+      background: checked ? T.brand : T.surfaceHi,
+      boxShadow: `inset 0 0 0 1px ${checked ? T.brandBorder : T.borderSoft}`,
     }}
   >
     <span
-      className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
-      style={{ transform: checked ? "translateX(22px)" : "translateX(2px)" }}
+      className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out will-change-transform"
+      style={{
+        transform: checked ? "translateX(16px)" : "translateX(0)",
+        boxShadow: "0 1px 2px rgba(0,0,0,0.25)",
+      }}
     />
   </button>
 );
 
-const Pill: React.FC<{
-  fg: string;
-  bg: string;
-  ring: string;
-  children: React.ReactNode;
-  icon?: React.ComponentType<{ size?: number }>;
-}> = ({ fg, bg, ring, children, icon: Icon }) => (
-  <span
-    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
-    style={{ background: bg, color: fg, boxShadow: `inset 0 0 0 1px ${ring}` }}
-  >
-    {Icon && <Icon size={11} />}
-    {children}
-  </span>
-);
-
-const ToggleRow: React.FC<{
-  title: string;
-  description: string;
-  checked: boolean;
-  onChange: () => void;
-}> = ({ title, description, checked, onChange }) => (
+const Toast: React.FC<{ type: "success" | "error"; msg: string; onClose: () => void }> = ({ type, msg, onClose }) => (
   <div
-    className="flex flex-wrap items-center justify-between gap-3 py-3.5 first:pt-0"
-    style={{ borderBottom: `1px solid ${C.border}` }}
+    className="fixed bottom-5 right-5 z-[70] rounded-lg px-4 py-2.5 text-[12px] font-medium flex items-center gap-2"
+    style={{
+      background: T.surface,
+      color: type === "success" ? T.success : T.danger,
+      boxShadow: `inset 0 0 0 1px ${type === "success" ? T.successBorder : T.dangerBorder}, 0 20px 40px -20px rgba(0,0,0,0.7)`,
+    }}
   >
-    <div className="min-w-0 flex-1">
-      <p className="text-[13px] font-medium" style={{ color: C.dark }}>{title}</p>
-      <p className="text-[11.5px] mt-0.5" style={{ color: C.textMuted }}>{description}</p>
-    </div>
-    <Toggle checked={checked} onChange={onChange} label={title} />
+    {type === "success" ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
+    <span>{msg}</span>
+    <button onClick={onClose} className="ml-1 opacity-60 hover:opacity-100" aria-label="Dismiss">
+      <X size={11} />
+    </button>
   </div>
 );
 
-/* ─────────────────────────── Page ─────────────────────────── */
+/* ─────────────── page ─────────────── */
 
-type SectionKey = "general" | "smtp" | "security" | "notifications" | "api" | "billing";
+type SectionKey = "profile" | "password" | "security";
 
 const AdminSettings = () => {
-  const [activeSection, setActiveSection] = useState<SectionKey>("general");
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<SectionKey>("password");
+  const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  // General
-  const [workspaceName, setWorkspaceName] = useState("MailForge Platform");
-  const [timezone, setTimezone] = useState("UTC");
-  const [dateFormat, setDateFormat] = useState("MM/DD/YYYY");
-  const [language, setLanguage] = useState("English");
+  const [displayName, setDisplayName] = useState("Admin User");
+  const [savedName, setSavedName] = useState("Admin User");
+  const [savingName, setSavingName] = useState(false);
 
-  // Security
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
   const [twoFactorAuth, setTwoFactorAuth] = useState(false);
-  const [sessionTimeout, setSessionTimeout] = useState("60");
-  const [passwordPolicy, setPasswordPolicy] = useState("strict");
-  const [ipWhitelist, setIpWhitelist] = useState<string[]>([]);
-  const [newIp, setNewIp] = useState("");
+  const [savingTfa, setSavingTfa] = useState(false);
 
-  // Notifications
-  const [notifCampaigns, setNotifCampaigns] = useState(true);
-  const [notifSystem, setNotifSystem] = useState(true);
-  const [notifSecurity, setNotifSecurity] = useState(true);
-  const [notifBilling, setNotifBilling] = useState(false);
-  const [notifWeeklyDigest, setNotifWeeklyDigest] = useState(true);
-  const [emailDigest, setEmailDigest] = useState(true);
+  const showToast = (type: "success" | "error", msg: string) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 3000);
+  };
 
-  // SMTP
-  const [smtpConfigs, setSmtpConfigs] = useState<SMTPConfig[]>([
-    { id: "smtp1", name: "Primary SMTP", host: "smtp.mailforge.io", port: 587, username: "smtp@mailforge.io", encryption: "TLS", status: "Active" },
-    { id: "smtp2", name: "Backup SMTP",  host: "smtp2.mailforge.io", port: 465, username: "backup@mailforge.io", encryption: "SSL", status: "Inactive" },
-    { id: "smtp3", name: "Custom SMTP",  host: "smtp.company.com",  port: 587, username: "custom@company.com",  encryption: "TLS", status: "Error" },
-  ]);
+  const passwordStrength = useMemo(() => {
+    if (!newPassword) return { score: 0, label: "", color: T.surfaceHi };
+    let score = 0;
+    if (newPassword.length >= 8) score++;
+    if (newPassword.length >= 12) score++;
+    if (/[A-Z]/.test(newPassword)) score++;
+    if (/[0-9]/.test(newPassword)) score++;
+    if (/[^A-Za-z0-9]/.test(newPassword)) score++;
 
-  // Webhooks
-  const [webhooks, setWebhooks] = useState<Webhook[]>([
-    { id: "webhook1", name: "Campaign Events", url: "https://api.company.com/webhooks/campaign", status: "Active" },
-    { id: "webhook2", name: "System Events",   url: "https://api.company.com/webhooks/system",   status: "Inactive" },
-  ]);
+    if (score <= 2) return { score, label: "Weak",   color: T.danger };
+    if (score <= 3) return { score, label: "Fair",   color: T.warn };
+    if (score <= 4) return { score, label: "Good",   color: T.info };
+    return { score, label: "Strong", color: T.success };
+  }, [newPassword]);
+
+  const canSavePassword =
+    currentPassword.length > 0 &&
+    newPassword.length >= 8 &&
+    newPassword === confirmPassword &&
+    !savingPassword;
+
+  const handleSaveName = async () => {
+    if (displayName.trim() === savedName) return;
+    if (displayName.trim().length < 2) {
+      showToast("error", "Display name must be at least 2 characters.");
+      return;
+    }
+    setSavingName(true);
+    await new Promise((r) => setTimeout(r, 500));
+    setSavedName(displayName.trim());
+    setSavingName(false);
+    showToast("success", "Display name updated.");
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError(null);
+
+    if (!currentPassword) return setPasswordError("Enter your current password.");
+    if (newPassword.length < 8) return setPasswordError("New password must be at least 8 characters.");
+    if (newPassword === currentPassword) return setPasswordError("New password must be different from current.");
+    if (newPassword !== confirmPassword) return setPasswordError("Passwords don't match.");
+
+    setSavingPassword(true);
+    try {
+      await new Promise((r) => setTimeout(r, 700));
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      showToast("success", "Password updated successfully.");
+    } catch (e: any) {
+      setPasswordError(e?.message ?? "Failed to update password.");
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  const handleToggleTfa = async () => {
+    setSavingTfa(true);
+    await new Promise((r) => setTimeout(r, 500));
+    const next = !twoFactorAuth;
+    setTwoFactorAuth(next);
+    setSavingTfa(false);
+    showToast("success", next ? "Two-factor authentication enabled." : "Two-factor authentication disabled.");
+  };
 
   const sections: { id: SectionKey; label: string; hint: string; icon: React.ElementType }[] = [
-    { id: "general",       label: "General",           hint: "Platform basics",   icon: Settings },
-    { id: "smtp",          label: "SMTP configuration", hint: "Mail servers",      icon: Mail },
-    { id: "security",      label: "Security",          hint: "Access & policies", icon: Shield },
-    { id: "notifications", label: "Notifications",     hint: "What you get told", icon: Bell },
-    { id: "api",           label: "API & webhooks",    hint: "Integrations",      icon: Key },
-    { id: "billing",       label: "Billing",           hint: "Plan & invoices",   icon: DollarSign },
+    { id: "password", label: "Change password", hint: "Update your sign-in password", icon: Lock },
+    { id: "profile",  label: "Profile",         hint: "Your name and email",          icon: UserIcon },
+    { id: "security", label: "Security",        hint: "Two-factor authentication",     icon: Shield },
   ];
-
-  /* ── Handlers (unchanged behavior) ─────────── */
-  const handleCopyApiKey = () => {
-    navigator.clipboard?.writeText("mf_live_9f2a1c7e4b8d3f6091a2c4e");
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const addIpToWhitelist = () => {
-    const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
-    if (newIp && !ipWhitelist.includes(newIp) && ipRegex.test(newIp)) {
-      setIpWhitelist([...ipWhitelist, newIp]);
-      setNewIp("");
-    } else if (newIp && !ipWhitelist.includes(newIp)) {
-      alert("Please enter a valid IP address");
-    }
-  };
-
-  const removeIpFromWhitelist = (ip: string) =>
-    setIpWhitelist(ipWhitelist.filter((i) => i !== ip));
-
-  const handleEditSMTP = (id: string) => {
-    console.log("Edit SMTP:", id);
-    alert(`Edit SMTP configuration: ${id}`);
-  };
-  const handleDeleteSMTP = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this SMTP configuration?")) {
-      setSmtpConfigs(smtpConfigs.filter((config) => config.id !== id));
-    }
-  };
-  const handleAddSMTP = () => alert("Add new SMTP configuration");
-
-  const handleEditWebhook = (id: string) => {
-    console.log("Edit webhook:", id);
-    alert(`Edit webhook: ${id}`);
-  };
-  const handleDeleteWebhook = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this webhook?")) {
-      setWebhooks(webhooks.filter((webhook) => webhook.id !== id));
-    }
-  };
-  const handleAddWebhook = () => alert("Add new webhook");
-
-  const handleSaveChanges = () => alert("Settings saved successfully!");
-
-  /* ── Section renderers ─────────────────────── */
-
-  const renderSection = () => {
-    switch (activeSection) {
-      case "general":
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Field label="Platform name" htmlFor="workspaceName">
-              <InputShell icon={Globe}>
-                <input
-                  id="workspaceName"
-                  type="text"
-                  value={workspaceName}
-                  onChange={(e) => setWorkspaceName(e.target.value)}
-                  className={textInputCls}
-                />
-              </InputShell>
-            </Field>
-
-            <Field label="Timezone" htmlFor="timezone">
-              <InputShell>
-                <select
-                  id="timezone"
-                  value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
-                  className={textInputCls}
-                >
-                  <option value="UTC">UTC</option>
-                  <option value="America/New_York">America/New_York (GMT-4)</option>
-                  <option value="Europe/London">Europe/London (GMT+0)</option>
-                  <option value="Asia/Dubai">Asia/Dubai (GMT+4)</option>
-                  <option value="Asia/Karachi">Asia/Karachi (GMT+5)</option>
-                  <option value="Asia/Singapore">Asia/Singapore (GMT+8)</option>
-                </select>
-              </InputShell>
-            </Field>
-
-            <Field label="Date format" htmlFor="dateFormat">
-              <InputShell>
-                <select
-                  id="dateFormat"
-                  value={dateFormat}
-                  onChange={(e) => setDateFormat(e.target.value)}
-                  className={textInputCls}
-                >
-                  <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                  <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                  <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                </select>
-              </InputShell>
-            </Field>
-
-            <Field label="Language" htmlFor="language">
-              <InputShell>
-                <select
-                  id="language"
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className={textInputCls}
-                >
-                  <option value="English">English</option>
-                  <option value="Spanish">Spanish</option>
-                  <option value="French">French</option>
-                  <option value="German">German</option>
-                  <option value="Chinese">Chinese</option>
-                </select>
-              </InputShell>
-            </Field>
-          </div>
-        );
-
-      case "smtp":
-        return (
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h3 style={{ fontFamily: FONT.display }} className="text-[15px] font-semibold tracking-tight text-[#F2F0EB]">
-                  SMTP configurations
-                </h3>
-                <p className="text-[11.5px] mt-0.5" style={{ color: C.textMuted }}>
-                  Manage the mail servers this platform sends through.
-                </p>
-              </div>
-              <button
-                onClick={handleAddSMTP}
-                className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
-                style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.6)" }}
-              >
-                <Plus size={13} /> Add SMTP
-              </button>
-            </div>
-
-            <div className="space-y-2.5">
-              {smtpConfigs.map((config) => {
-                const statusMeta =
-                  config.status === "Active"
-                    ? { fg: C.success, bg: C.successSoft, ring: C.successRing }
-                    : config.status === "Error"
-                    ? { fg: C.danger, bg: C.dangerSoft, ring: C.dangerRing }
-                    : { fg: C.neutral, bg: C.neutralSoft, ring: C.neutralRing };
-                return (
-                  <div
-                    key={config.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl p-4"
-                    style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-[13.5px] font-semibold" style={{ color: C.dark }}>{config.name}</p>
-                        <Pill fg={statusMeta.fg} bg={statusMeta.bg} ring={statusMeta.ring}>{config.status}</Pill>
-                      </div>
-                      <p className="mt-1 text-[11.5px] truncate" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
-                        {config.host}:{config.port} · {config.encryption} · {config.username}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => handleEditSMTP(config.id)}
-                        className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-medium transition-colors"
-                        style={{ background: C.surface, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                      >
-                        <Edit size={12} /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteSMTP(config.id)}
-                        className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-[12px] font-medium transition-colors"
-                        style={{ background: C.dangerSoft, color: C.danger, boxShadow: `inset 0 0 0 1px ${C.dangerRing}` }}
-                      >
-                        <Trash2 size={12} /> Remove
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-
-      case "security":
-        return (
-          <div className="space-y-4">
-            {/* 2FA */}
-            <div
-              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4"
-              style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-medium" style={{ color: C.dark }}>Two-factor authentication</p>
-                <p className="text-[11.5px] mt-0.5" style={{ color: C.textMuted }}>Require 2FA for all admin accounts.</p>
-              </div>
-              <Toggle
-                checked={twoFactorAuth}
-                onChange={() => setTwoFactorAuth(!twoFactorAuth)}
-                label="Toggle two-factor authentication"
-              />
-            </div>
-
-            <Field label="Session timeout" hint="Auto-logout after inactivity." htmlFor="sessionTimeout">
-              <InputShell>
-                <select
-                  id="sessionTimeout"
-                  value={sessionTimeout}
-                  onChange={(e) => setSessionTimeout(e.target.value)}
-                  className={textInputCls}
-                >
-                  <option value="15">15 minutes</option>
-                  <option value="30">30 minutes</option>
-                  <option value="60">1 hour</option>
-                  <option value="120">2 hours</option>
-                  <option value="240">4 hours</option>
-                </select>
-              </InputShell>
-            </Field>
-
-            <Field label="Password policy" htmlFor="passwordPolicy">
-              <InputShell>
-                <select
-                  id="passwordPolicy"
-                  value={passwordPolicy}
-                  onChange={(e) => setPasswordPolicy(e.target.value)}
-                  className={textInputCls}
-                >
-                  <option value="basic">Basic (min 8 characters)</option>
-                  <option value="medium">Medium (8+ chars, 1 uppercase, 1 number)</option>
-                  <option value="strict">Strict (12+ chars, upper, lower, number, symbol)</option>
-                </select>
-              </InputShell>
-            </Field>
-
-            <div>
-              <label className="block text-[11.5px] font-medium text-[#C7C9CE] mb-1.5">IP whitelist</label>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <InputShell>
-                  <input
-                    type="text"
-                    value={newIp}
-                    onChange={(e) => setNewIp(e.target.value)}
-                    placeholder="Enter IP address"
-                    className={monoInputCls}
-                    onKeyDown={(e) => { if (e.key === "Enter") addIpToWhitelist(); }}
-                  />
-                </InputShell>
-                <button
-                  onClick={addIpToWhitelist}
-                  className="shrink-0 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
-                  style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.6)" }}
-                >
-                  Add
-                </button>
-              </div>
-              <p className="mt-1.5 text-[11px]" style={{ color: C.textMuted }}>Restrict admin access to specific IPs.</p>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                {ipWhitelist.map((ip) => (
-                  <span
-                    key={ip}
-                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px]"
-                    style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}`, fontFamily: FONT.mono }}
-                  >
-                    {ip}
-                    <button
-                      onClick={() => removeIpFromWhitelist(ip)}
-                      className="opacity-60 hover:opacity-100 transition-opacity"
-                      aria-label={`Remove ${ip} from whitelist`}
-                    >
-                      <X size={11} />
-                    </button>
-                  </span>
-                ))}
-                {ipWhitelist.length === 0 && (
-                  <span className="text-[11.5px]" style={{ color: C.textMuted }}>No IPs whitelisted yet.</span>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-
-      case "notifications":
-        return (
-          <div>
-            <ToggleRow
-              title="Campaign notifications"
-              description="Campaign completion and failure alerts."
-              checked={notifCampaigns}
-              onChange={() => setNotifCampaigns(!notifCampaigns)}
-            />
-            <ToggleRow
-              title="System notifications"
-              description="System health and maintenance alerts."
-              checked={notifSystem}
-              onChange={() => setNotifSystem(!notifSystem)}
-            />
-            <ToggleRow
-              title="Security alerts"
-              description="Security incidents and login alerts."
-              checked={notifSecurity}
-              onChange={() => setNotifSecurity(!notifSecurity)}
-            />
-            <ToggleRow
-              title="Billing notifications"
-              description="Invoices, payments, and subscription alerts."
-              checked={notifBilling}
-              onChange={() => setNotifBilling(!notifBilling)}
-            />
-            <ToggleRow
-              title="Weekly digest"
-              description="Weekly summary of platform activity."
-              checked={notifWeeklyDigest}
-              onChange={() => setNotifWeeklyDigest(!notifWeeklyDigest)}
-            />
-            <ToggleRow
-              title="Email digest"
-              description="Also deliver these notifications to your inbox."
-              checked={emailDigest}
-              onChange={() => setEmailDigest(!emailDigest)}
-            />
-          </div>
-        );
-
-      case "api":
-        return (
-          <div className="space-y-5">
-            <Field label="API key" hint="Use this key to authenticate API requests. Keep it secret.">
-              <div className="flex flex-col sm:flex-row gap-2">
-                <InputShell icon={Key}>
-                  <input
-                    readOnly
-                    value={showApiKey ? "mf_live_9f2a1c7e4b8d3f6091a2c4e" : "••••••••••••••••••••••••"}
-                    className={monoInputCls}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowApiKey(!showApiKey)}
-                    aria-label={showApiKey ? "Hide API key" : "Show API key"}
-                    className="shrink-0 text-[#5A6172] hover:text-[#C7C9CE] transition-colors"
-                  >
-                    {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </InputShell>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={handleCopyApiKey}
-                    className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2.5 text-[12px] font-medium transition-colors"
-                    style={{
-                      background: copied ? C.successSoft : C.inner,
-                      color: copied ? C.success : C.textBody,
-                      boxShadow: `inset 0 0 0 1px ${copied ? C.successRing : C.border}`,
-                    }}
-                  >
-                    {copied ? <Check size={13} /> : <Copy size={13} />}
-                    {copied ? "Copied" : "Copy"}
-                  </button>
-                  <button
-                    aria-label="Regenerate API key"
-                    className="inline-flex items-center justify-center rounded-2xl p-2.5 transition-colors"
-                    style={{ background: C.inner, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                  >
-                    <RefreshCw size={13} />
-                  </button>
-                </div>
-              </div>
-            </Field>
-
-            <div className="pt-5" style={{ borderTop: `1px solid ${C.border}` }}>
-              <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
-                <div>
-                  <h3 style={{ fontFamily: FONT.display }} className="text-[14px] font-semibold tracking-tight text-[#F2F0EB]">
-                    Webhooks
-                  </h3>
-                  <p className="text-[11.5px] mt-0.5" style={{ color: C.textMuted }}>
-                    Endpoints we POST events to.
-                  </p>
-                </div>
-                <button
-                  onClick={handleAddWebhook}
-                  className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
-                  style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.6)" }}
-                >
-                  <Plus size={13} /> Add webhook
-                </button>
-              </div>
-
-              <div className="space-y-2.5">
-                {webhooks.map((webhook) => {
-                  const meta = webhook.status === "Active"
-                    ? { fg: C.success, bg: C.successSoft, ring: C.successRing }
-                    : { fg: C.warning, bg: C.warningSoft, ring: C.warningRing };
-                  return (
-                    <div
-                      key={webhook.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl p-4"
-                      style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-[13px] font-medium" style={{ color: C.dark }}>{webhook.name}</p>
-                          <Pill fg={meta.fg} bg={meta.bg} ring={meta.ring}>{webhook.status}</Pill>
-                        </div>
-                        <p className="mt-1 text-[11.5px] truncate" style={{ color: C.textMuted, fontFamily: FONT.mono }}>
-                          {webhook.url}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={() => handleEditWebhook(webhook.id)}
-                          aria-label={`Edit ${webhook.name}`}
-                          className="p-2 rounded-xl transition-colors"
-                          style={{ background: C.surface, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                        >
-                          <Edit size={13} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteWebhook(webhook.id)}
-                          aria-label={`Delete ${webhook.name}`}
-                          className="p-2 rounded-xl transition-colors"
-                          style={{ background: C.dangerSoft, color: C.danger, boxShadow: `inset 0 0 0 1px ${C.dangerRing}` }}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="pt-5" style={{ borderTop: `1px solid ${C.border}` }}>
-              <Field label="API rate limits" hint="Applies across all API keys.">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <InputShell>
-                    <input type="number" defaultValue="1000" className={monoInputCls} />
-                  </InputShell>
-                  <InputShell>
-                    <input type="number" defaultValue="10000" className={monoInputCls} />
-                  </InputShell>
-                </div>
-              </Field>
-              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <p className="text-[11px]" style={{ color: C.textMuted }}>Requests per minute</p>
-                <p className="text-[11px]" style={{ color: C.textMuted }}>Requests per hour</p>
-              </div>
-            </div>
-          </div>
-        );
-
-      case "billing":
-        return (
-          <div className="space-y-4">
-            {/* Plan */}
-            <div
-              className="rounded-2xl p-5"
-              style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-            >
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <h3 style={{ fontFamily: FONT.display }} className="text-[16px] font-semibold tracking-tight text-[#F2F0EB]">
-                      Enterprise Plan
-                    </h3>
-                    <Pill fg={C.success} bg={C.successSoft} ring={C.successRing}>Active</Pill>
-                  </div>
-                  <p className="mt-1 text-[12.5px]" style={{ color: C.textMuted }}>
-                    Unlimited workspaces · 10,000 emails/day · Priority support
-                  </p>
-                </div>
-                <div className="text-left md:text-right">
-                  <p className="text-[24px] font-bold leading-none" style={{ fontFamily: FONT.mono, color: C.dark }}>
-                    $499
-                    <span className="text-[12px] font-normal ml-1" style={{ color: C.textMuted }}>/mo</span>
-                  </p>
-                  <p className="text-[11px] mt-1" style={{ color: C.textMuted }}>Next billing: Sep 15, 2026</p>
-                </div>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2 pt-4" style={{ borderTop: `1px solid ${C.border}` }}>
-                <button
-                  className="rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold text-white transition-all hover:-translate-y-0.5"
-                  style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.6)" }}
-                >
-                  Upgrade plan
-                </button>
-                <button
-                  className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-colors"
-                  style={{ background: C.surface, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                >
-                  Manage subscription
-                </button>
-                <button
-                  className="rounded-2xl px-4 py-2.5 text-[12.5px] font-medium transition-colors"
-                  style={{ background: C.dangerSoft, color: C.danger, boxShadow: `inset 0 0 0 1px ${C.dangerRing}` }}
-                >
-                  Cancel subscription
-                </button>
-              </div>
-            </div>
-
-            {/* Payment method */}
-            <div
-              className="rounded-2xl p-4"
-              style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-            >
-              <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
-                <div>
-                  <h4 style={{ fontFamily: FONT.display }} className="text-[13.5px] font-semibold" ><span style={{ color: C.dark }}>Payment method</span></h4>
-                  <p className="text-[11.5px] mt-0.5" style={{ color: C.textMuted }}>Manage the card on file.</p>
-                </div>
-                <button
-                  className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[12px] font-semibold text-white"
-                  style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.6)" }}
-                >
-                  <Plus size={13} /> Add card
-                </button>
-              </div>
-
-              <div
-                className="flex items-center justify-between gap-3 rounded-2xl p-3"
-                style={{ background: C.surface, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-[16px]"
-                    style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                  >
-                    💳
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-medium truncate" style={{ color: C.dark }}>Visa ending in 4242</p>
-                    <p className="text-[11px] truncate" style={{ color: C.textMuted }}>Expires 12/2026</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Pill fg={C.success} bg={C.successSoft} ring={C.successRing}>Default</Pill>
-                  <button className="p-2 rounded-xl transition-colors" style={{ color: C.textMuted }} aria-label="Edit card">
-                    <Edit size={13} />
-                  </button>
-                  <button className="p-2 rounded-xl transition-colors" style={{ color: C.danger }} aria-label="Delete card">
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Billing history */}
-            <div
-              className="rounded-2xl p-4"
-              style={{ background: C.inner, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-            >
-              <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
-                <div>
-                  <h4 style={{ fontFamily: FONT.display }} className="text-[13.5px] font-semibold"><span style={{ color: C.dark }}>Billing history</span></h4>
-                  <p className="text-[11.5px] mt-0.5" style={{ color: C.textMuted }}>Recent invoices and payments.</p>
-                </div>
-                <button
-                  className="inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2 text-[12px] font-medium transition-colors"
-                  style={{ background: C.surface, color: C.textBody, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                >
-                  <Download size={13} /> Export all
-                </button>
-              </div>
-
-              <div className="space-y-2">
-                {[
-                  { id: "INV-2026-001", date: "Aug 15, 2026" },
-                  { id: "INV-2026-000", date: "Jul 15, 2026" },
-                ].map((inv) => (
-                  <div
-                    key={inv.id}
-                    className="flex items-center justify-between gap-3 rounded-2xl p-3"
-                    style={{ background: C.surface, boxShadow: `inset 0 0 0 1px ${C.border}` }}
-                  >
-                    <div className="min-w-0">
-                      <p className="text-[13px] font-medium truncate" style={{ color: C.dark }}>Invoice #{inv.id}</p>
-                      <p className="text-[11px] truncate" style={{ color: C.textMuted }}>{inv.date}</p>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-[13px] font-medium" style={{ fontFamily: FONT.mono, color: C.dark }}>$499.00</span>
-                      <Pill fg={C.success} bg={C.successSoft} ring={C.successRing} icon={CheckCircle2}>Paid</Pill>
-                      <button className="p-2 rounded-xl transition-colors" style={{ color: C.textMuted }} aria-label="Download invoice">
-                        <Download size={13} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Danger zone */}
-            <div
-              className="rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4"
-              style={{ background: "rgba(248,113,113,0.05)", boxShadow: `inset 0 0 0 1px ${C.dangerRing}` }}
-            >
-              <div className="flex items-start gap-3.5">
-                <div
-                  className="shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
-                  style={{ background: C.dangerSoft, boxShadow: `inset 0 0 0 1px ${C.dangerRing}` }}
-                >
-                  <AlertTriangle size={18} style={{ color: C.danger }} />
-                </div>
-                <div className="min-w-0">
-                  <h4 style={{ fontFamily: FONT.display }} className="text-[14px] font-semibold" ><span style={{ color: C.danger }}>Delete platform</span></h4>
-                  <p className="text-[12px] mt-0.5 max-w-xl" style={{ color: "#E8A5A5" }}>
-                    Permanently delete the entire platform and all associated data. This action cannot be undone.
-                  </p>
-                </div>
-              </div>
-              <button
-                className="shrink-0 inline-flex items-center gap-1.5 rounded-2xl px-4 py-2.5 text-[12.5px] font-semibold transition-all self-start md:self-auto"
-                style={{ background: C.dangerSoft, color: C.danger, boxShadow: `inset 0 0 0 1px ${C.dangerRing}` }}
-              >
-                <Trash2 size={13} /> Delete platform
-              </button>
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
 
   const activeMeta = sections.find((s) => s.id === activeSection)!;
 
   return (
-    <div className="flex min-h-screen overflow-hidden" style={{ background: C.bg, fontFamily: FONT.body }}>
+    <div
+      className="flex w-full overflow-hidden"
+      style={{ fontFamily: FONT.body, background: T.bg, height: "100dvh" }}
+    >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; }
 
         @keyframes floatIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
         .float-in { animation: floatIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
 
-        .as-main::-webkit-scrollbar { width: 10px; }
+        .as-main::-webkit-scrollbar { width: 8px; }
         .as-main::-webkit-scrollbar-track { background: transparent; }
-        .as-main::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 10px; border: 2px solid #0B0E13; }
-        .as-main::-webkit-scrollbar-thumb:hover { background: #2A2F3B; }
+        .as-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
+        .as-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
 
-        .soft-ring { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 1px 0 rgba(255,255,255,0.02); }
-        .glow-top {
-          background:
-            radial-gradient(900px 240px at 50% -80px, rgba(255,106,57,0.10), transparent 70%),
-            radial-gradient(700px 200px at 20% -60px, rgba(52,211,153,0.06), transparent 70%);
-        }
-        select option { background: #141821; color: #E8E6E1; }
+        select option { background: ${T.surface2}; color: ${T.text}; }
         .as-rail::-webkit-scrollbar { height: 4px; }
-        .as-rail::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 4px; }
+        .as-rail::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 4px; }
       `}</style>
 
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+          className="lg:hidden fixed inset-0 z-40 bg-black/70"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       <div className={`
-        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-300 ease-out
+        fixed lg:sticky top-0 z-50 h-full shrink-0 transition-transform duration-200 ease-out
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}>
         <AdminSidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      <main className="as-main flex-1 overflow-y-auto" style={{ background: C.bg, height: "100vh", width: "100%" }}>
-        <div className="glow-top">
-          <div className="max-w-[1320px] mx-auto px-4 md:px-6 lg:px-10 py-8 md:py-10 lg:py-12">
+      <main className="as-main flex-1 min-w-0 overflow-y-auto overflow-x-hidden" style={{ background: T.bg }}>
+        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 900 }}>
 
-            {/* ── Header ─────────────────────────── */}
-            <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
-              <div className="flex items-start gap-3 md:gap-4">
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="lg:hidden mt-1 p-2 rounded-2xl text-[#C7C9CE] transition-colors soft-ring"
-                  style={{ background: C.surface }}
-                  aria-label="Open menu"
-                >
-                  <Menu size={18} />
-                </button>
-                <div>
-                  <div className="flex items-center gap-2 mb-2.5">
-                    <span
-                      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                      style={{ background: C.primarySoft, color: C.primary, boxShadow: `inset 0 0 0 1px ${C.primaryRing}` }}
-                    >
-                      <Sparkles size={11} /> Admin
-                    </span>
-                    <span className="text-[11px]" style={{ color: "#5A6172", fontFamily: FONT.mono }}>
-                      · {sections.length} sections
-                    </span>
-                  </div>
-
-                  <h1
-                    style={{ fontFamily: FONT.display, letterSpacing: "-0.025em" }}
-                    className="text-[28px] md:text-[34px] lg:text-[40px] font-bold leading-[1.05] text-[#F2F0EB]"
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-7">
+            <div className="flex items-start gap-3">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden mt-1 p-2 rounded-lg transition-colors hover:bg-white/5"
+                style={{ background: T.surface, color: T.textMuted, boxShadow: RING }}
+                aria-label="Open menu"
+              >
+                <Menu size={18} />
+              </button>
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
+                    style={{ background: T.brandSoft, color: T.brand, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
                   >
-                    Settings
-                  </h1>
-                  <p className="mt-2 text-[14px] md:text-[15px] max-w-lg" style={{ color: C.textMuted }}>
-                    Configure platform settings and preferences.
-                  </p>
+                    <Sparkles size={10} /> Account
+                  </span>
+                  <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                    · {sections.length} sections
+                  </span>
+                </div>
+                <h1 className="text-[26px] md:text-[30px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
+                  Settings
+                </h1>
+                <p className="mt-1 text-[13.5px] max-w-lg" style={{ color: T.textMuted }}>
+                  Manage your account and security preferences.
+                </p>
+              </div>
+            </div>
+          </header>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-4 md:gap-5">
+            <nav className="as-rail flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0">
+              {sections.map((s) => {
+                const Icon = s.icon;
+                const isActive = activeSection === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setActiveSection(s.id)}
+                    className="group shrink-0 lg:shrink flex items-center gap-2 rounded-md px-2.5 py-2 text-left transition-colors lg:w-full"
+                    style={{
+                      background: isActive ? T.brandSoft : T.surface,
+                      boxShadow: isActive
+                        ? `inset 0 0 0 1px ${T.brandBorder}`
+                        : `inset 0 0 0 1px ${T.borderSoft}`,
+                    }}
+                  >
+                    <Icon size={12} className="shrink-0" style={{ color: isActive ? T.brand : T.textMuted }} />
+                    <span
+                      className="text-[12px] font-medium whitespace-nowrap"
+                      style={{ color: isActive ? T.text : T.textMuted }}
+                    >
+                      {s.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </nav>
+
+            <Card className="p-5 md:p-6 float-in">
+              <div className="flex items-start gap-3 mb-5 pb-4" style={{ borderBottom: `1px solid ${T.borderSoft}` }}>
+                <div
+                  className="shrink-0 w-8 h-8 rounded-md flex items-center justify-center"
+                  style={{ background: T.brandSoft, color: T.brand }}
+                >
+                  <activeMeta.icon size={14} />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-[15px] font-semibold truncate" style={{ color: T.text }}>
+                    {activeMeta.label}
+                  </h2>
+                  <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>{activeMeta.hint}</p>
                 </div>
               </div>
 
-              <button
-                onClick={handleSaveChanges}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl text-[13px] font-semibold text-white transition-all hover:-translate-y-0.5 self-start md:self-auto"
-                style={{ background: C.primary, boxShadow: "0 12px 30px -12px rgba(255,106,57,0.65)" }}
-              >
-                <Save size={14} /> Save changes
-              </button>
-            </header>
-
-            {/* ── Layout ─────────────────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-5 md:gap-6">
-
-              {/* Section rail */}
-              <nav className="as-rail flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0">
-                {sections.map((s) => {
-                  const Icon = s.icon;
-                  const isActive = activeSection === s.id;
-                  return (
-                    <button
-                      key={s.id}
-                      onClick={() => setActiveSection(s.id)}
-                      className="group shrink-0 lg:shrink flex items-center gap-2.5 rounded-2xl px-3.5 py-2.5 text-left transition-all lg:w-full"
-                      style={{
-                        background: isActive ? C.primarySoft : C.surface,
-                        boxShadow: isActive
-                          ? `inset 0 0 0 1px ${C.primaryRing}`
-                          : `inset 0 0 0 1px ${C.border}`,
-                      }}
+              {activeSection === "password" && (
+                <div className="space-y-4">
+                  {passwordError && (
+                    <div
+                      role="alert"
+                      className="flex items-start gap-2.5 rounded-lg px-3.5 py-2.5"
+                      style={{ background: T.dangerSoft, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
                     >
-                      <Icon size={14} className="shrink-0" style={{ color: isActive ? C.primary : C.textMuted }} />
-                      <span
-                        className="text-[12.5px] font-medium whitespace-nowrap"
-                        style={{ color: isActive ? C.dark : C.textBody }}
-                      >
-                        {s.label}
-                      </span>
-                      <ChevronRight
-                        size={13}
-                        className="hidden lg:block ml-auto shrink-0 transition-transform group-hover:translate-x-0.5"
-                        style={{ color: isActive ? C.primary : C.border }}
+                      <AlertTriangle size={13} style={{ color: T.danger }} className="shrink-0 mt-0.5" />
+                      <p className="text-[12px]" style={{ color: T.danger }}>{passwordError}</p>
+                    </div>
+                  )}
+
+                  <Field label="Current password" htmlFor="currentPassword">
+                    <InputShell icon={Lock}>
+                      <input
+                        id="currentPassword"
+                        type={showCurrent ? "text" : "password"}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="Enter current password"
+                        className={textInputCls}
+                        style={{ color: T.text }}
+                        autoComplete="current-password"
                       />
-                    </button>
-                  );
-                })}
-              </nav>
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrent(!showCurrent)}
+                        aria-label={showCurrent ? "Hide password" : "Show password"}
+                        className="shrink-0 transition-opacity hover:opacity-80"
+                        style={{ color: T.textFaint }}
+                      >
+                        {showCurrent ? <EyeOff size={13} /> : <Eye size={13} />}
+                      </button>
+                    </InputShell>
+                  </Field>
 
-              {/* Section content */}
-              <Card className="p-5 md:p-6 lg:p-7 float-in">
-                <div className="flex items-start gap-3.5 mb-5 pb-4" style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <div
-                    className="shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center"
-                    style={{ background: C.primarySoft, boxShadow: `inset 0 0 0 1px ${C.primaryRing}` }}
-                  >
-                    <activeMeta.icon size={16} style={{ color: C.primary }} />
-                  </div>
-                  <div className="min-w-0">
-                    <h2
-                      style={{ fontFamily: FONT.display, letterSpacing: "-0.01em" }}
-                      className="text-[16px] md:text-[18px] font-bold text-[#F2F0EB] truncate"
+                  <Field label="New password" htmlFor="newPassword" hint="Use at least 8 characters.">
+                    <InputShell icon={Key}>
+                      <input
+                        id="newPassword"
+                        type={showNew ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Enter new password"
+                        className={textInputCls}
+                        style={{ color: T.text }}
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNew(!showNew)}
+                        aria-label={showNew ? "Hide password" : "Show password"}
+                        className="shrink-0 transition-opacity hover:opacity-80"
+                        style={{ color: T.textFaint }}
+                      >
+                        {showNew ? <EyeOff size={13} /> : <Eye size={13} />}
+                      </button>
+                    </InputShell>
+                  </Field>
+
+                  {newPassword && (
+                    <div>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <div
+                            key={i}
+                            className="h-1 flex-1 rounded-full transition-colors"
+                            style={{
+                              background: i <= passwordStrength.score ? passwordStrength.color : T.surfaceHi,
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <p className="mt-1.5 text-[10.5px]" style={{ color: passwordStrength.color }}>
+                        {passwordStrength.label}
+                      </p>
+                    </div>
+                  )}
+
+                  <Field label="Confirm new password" htmlFor="confirmPassword">
+                    <InputShell icon={Key}>
+                      <input
+                        id="confirmPassword"
+                        type={showConfirm ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Re-enter new password"
+                        className={textInputCls}
+                        style={{ color: T.text }}
+                        autoComplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirm(!showConfirm)}
+                        aria-label={showConfirm ? "Hide password" : "Show password"}
+                        className="shrink-0 transition-opacity hover:opacity-80"
+                        style={{ color: T.textFaint }}
+                      >
+                        {showConfirm ? <EyeOff size={13} /> : <Eye size={13} />}
+                      </button>
+                    </InputShell>
+                  </Field>
+
+                  {confirmPassword && newPassword !== confirmPassword && (
+                    <p className="text-[11px] inline-flex items-center gap-1" style={{ color: T.danger }}>
+                      <AlertTriangle size={11} /> Passwords don't match.
+                    </p>
+                  )}
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      onClick={handleChangePassword}
+                      disabled={!canSavePassword}
+                      className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-medium text-white transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100"
+                      style={{ background: T.brand, boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
                     >
-                      {activeMeta.label}
-                    </h2>
-                    <p className="text-[12px] mt-0.5" style={{ color: C.textMuted }}>{activeMeta.hint}</p>
+                      {savingPassword ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                      {savingPassword ? "Updating…" : "Update password"}
+                    </button>
                   </div>
                 </div>
-                {renderSection()}
-              </Card>
-            </div>
+              )}
+
+              {activeSection === "profile" && (
+                <div className="space-y-4">
+                  <Field label="Display name" htmlFor="displayName" hint="This is how your name appears across the platform.">
+                    <InputShell icon={UserIcon}>
+                      <input
+                        id="displayName"
+                        type="text"
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        placeholder="Enter display name"
+                        className={textInputCls}
+                        style={{ color: T.text }}
+                        maxLength={60}
+                      />
+                    </InputShell>
+                  </Field>
+
+                  <Field label="Email address" htmlFor="email" hint="To change your email, contact support.">
+                    <InputShell icon={Mail} disabled>
+                      <input
+                        id="email"
+                        type="email"
+                        value="admin@mailforge.io"
+                        readOnly
+                        className={`${textInputCls} cursor-not-allowed`}
+                        style={{ color: T.textMuted }}
+                      />
+                    </InputShell>
+                  </Field>
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      onClick={handleSaveName}
+                      disabled={savingName || displayName.trim() === savedName || displayName.trim().length < 2}
+                      className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-medium text-white transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100"
+                      style={{ background: T.brand, boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+                    >
+                      {savingName ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                      {savingName ? "Saving…" : "Save"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {activeSection === "security" && (
+                <div className="space-y-4">
+                  <div
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg p-4"
+                    style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                  >
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <div
+                        className="shrink-0 w-9 h-9 rounded-md flex items-center justify-center"
+                        style={{ background: T.brandSoft, color: T.brand }}
+                      >
+                        <ShieldCheck size={15} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[12.5px] font-medium" style={{ color: T.text }}>
+                          Two-factor authentication
+                        </p>
+                        <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
+                          {twoFactorAuth
+                            ? "Enabled — your account is protected with a second factor."
+                            : "Add an extra layer of security to your account."}
+                        </p>
+                      </div>
+                    </div>
+                    <Toggle
+                      checked={twoFactorAuth}
+                      onChange={handleToggleTfa}
+                      disabled={savingTfa}
+                      label="Toggle two-factor authentication"
+                    />
+                  </div>
+
+                  <div
+                    className="rounded-lg p-3.5 flex items-start gap-2.5"
+                    style={{ background: T.infoSoft, boxShadow: `inset 0 0 0 1px ${T.infoBorder}` }}
+                  >
+                    <Shield size={13} style={{ color: T.info }} className="shrink-0 mt-0.5" />
+                    <p className="text-[11.5px] leading-relaxed" style={{ color: T.info }}>
+                      When two-factor authentication is enabled, you'll be asked for a one-time code from
+                      your authenticator app whenever you sign in on a new device.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </Card>
           </div>
         </div>
       </main>
+
+      {toast && (
+        <Toast
+          type={toast.type}
+          msg={toast.msg}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 };

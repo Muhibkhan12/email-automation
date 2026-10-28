@@ -1,154 +1,155 @@
 // AdminSidebar.tsx
-import { useEffect, useRef, useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, BarChart3, Bell, Mail, FileText,
   Settings as SettingsIcon, Users, AtSign, ListOrdered,
   Megaphone, ChevronRight, ShieldCheck, Activity, X,
   LogOut, Shield, UserCog, User as UserIcon, Loader2,
-} from 'lucide-react'
-import { getProfile, logoutUser } from '../../services/AuthServices'
-import type { User } from '../../types/UserTypes'
+} from "lucide-react";
+import { getProfile, logoutUser } from "../../services/AuthServices";
+import type { User } from "../../types/UserTypes";
 
-/* ─────────────── tokens ─────────────── */
+/* ─────────────── design tokens ─────────────── */
 
-const COLOR = {
-  primary: '#FF6A39',
-  primarySoft: 'rgba(255,106,57,0.12)',
-  primaryRing: 'rgba(255,106,57,0.22)',
-  danger: '#F87171',
-  dangerSoft: 'rgba(248,113,113,0.10)',
-  dangerRing: 'rgba(248,113,113,0.22)',
-  success: '#34D399',
-  successSoft: 'rgba(52,211,153,0.12)',
-  successRing: 'rgba(52,211,153,0.22)',
-  dark: '#F2F0EB',
-  bg: '#0B0E13',
-  panel: '#0E131C',
-  panelTop: '#10141D',
-  surface: '#141821',
-  inner: '#0F131C',
-  border: '#1A1F2B',
-  borderHover: '#232938',
-  textMuted: '#7A8092',
-  textBody: '#C7C9CE',
-}
+const T = {
+  bg:           "#0A0B10",
+  surface:      "#111319",
+  surface2:     "#161922",
+  surfaceHi:    "#1B1F2A",
+  border:       "#232838",
+  borderSoft:   "#1B1F2A",
+  text:         "#E9EBF0",
+  textMuted:    "#9CA3B4",
+  textFaint:    "#6B7280",
+  brand:        "#6366F1",
+  brandSoft:    "rgba(99,102,241,0.12)",
+  brandBorder:  "rgba(99,102,241,0.35)",
+  success:      "#22C55E",
+  successSoft:  "rgba(34,197,94,0.12)",
+  successBorder:"rgba(34,197,94,0.35)",
+  warn:         "#F59E0B",
+  warnSoft:     "rgba(245,158,11,0.12)",
+  warnBorder:   "rgba(245,158,11,0.35)",
+  danger:       "#EF4444",
+  dangerSoft:   "rgba(239,68,68,0.12)",
+  dangerBorder: "rgba(239,68,68,0.35)",
+  info:         "#38BDF8",
+  infoSoft:     "rgba(56,189,248,0.12)",
+  infoBorder:   "rgba(56,189,248,0.35)",
+  purple:       "#A78BFA",
+  purpleSoft:   "rgba(167,139,250,0.12)",
+  purpleBorder: "rgba(167,139,250,0.35)",
+};
 
-const FONT_MONO = "'JetBrains Mono', monospace"
-const FONT_DISPLAY = "'Space Grotesk', sans-serif"
+const FONT = {
+  display: "'Inter', system-ui, -apple-system, sans-serif",
+  body:    "'Inter', system-ui, -apple-system, sans-serif",
+  mono:    "'JetBrains Mono', ui-monospace, monospace",
+};
+
+const RING = `inset 0 0 0 1px ${T.border}`;
 
 /* ─────────────── helpers ─────────────── */
 
 const initialsOf = (name?: string) => {
-  if (!name) return '??'
-  const parts = name.trim().split(/\s+/).slice(0, 2)
-  return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || '??'
-}
+  if (!name) return "??";
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "??";
+};
 
 /* ─────────────── nav config ─────────────── */
 
 const navGroups = [
   {
-    label: 'Overview',
+    label: "Overview",
     items: [
-      { name: 'Dashboard',     path: '/admin/dashboard', icon: LayoutDashboard },
-      { name: 'Analytics',     path: '/admin/analytics', icon: BarChart3 },
-      { name: 'System Health', path: '/admin/system',    icon: Activity },
+      { name: "Dashboard",     path: "/admin/dashboard", icon: LayoutDashboard },
+      { name: "Analytics",     path: "/admin/analytics", icon: BarChart3 },
+      { name: "System Health", path: "/admin/system",    icon: Activity },
     ],
   },
   {
-    label: 'Management',
+    label: "Management",
     items: [
-      { name: 'Campaigns', path: '/admin/campaigns', icon: Megaphone, badge: 'Live' },
-      { name: 'Users',     path: '/admin/users',     icon: Users },
-      { name: 'Templates', path: '/admin/templates', icon: FileText },
+      { name: "Campaigns", path: "/admin/campaigns", icon: Megaphone, badge: "Live" },
+      { name: "Users",     path: "/admin/users",     icon: Users },
+      { name: "Templates", path: "/admin/templates", icon: FileText },
     ],
   },
   {
-    label: 'Monitoring',
+    label: "Monitoring",
     items: [
-      { name: 'Email Logs',      path: '/admin/emaillogs',       icon: Mail },
-      { name: 'Queue Monitor',   path: '/admin/queuemonitor',    icon: ListOrdered },
-      { name: 'Sender Accounts', path: '/admin/senders-account', icon: AtSign },
+      { name: "Email Logs",      path: "/admin/emaillogs",       icon: Mail },
+      { name: "Queue Monitor",   path: "/admin/queuemonitor",    icon: ListOrdered },
+      { name: "Sender Accounts", path: "/admin/senders-account", icon: AtSign },
     ],
   },
   {
-    label: 'System',
+    label: "System",
     items: [
-      { name: 'Notifications', path: '/admin/notifications', icon: Bell },
-      { name: 'Settings',      path: '/admin/settings',      icon: SettingsIcon },
+      { name: "Notifications", path: "/admin/notifications", icon: Bell },
+      { name: "Settings",      path: "/admin/settings",      icon: SettingsIcon },
     ],
   },
-]
+];
 
 /* ─────────────── nav item ─────────────── */
 
 interface NavItemProps {
-  path: string
-  name: string
-  icon: React.ElementType
-  badge?: string
-  onClose?: () => void
+  path: string;
+  name: string;
+  icon: React.ElementType;
+  badge?: string;
+  onClose?: () => void;
 }
 
 const NavItem = ({ path, name, icon: Icon, badge, onClose }: NavItemProps) => (
   <NavLink
     to={path}
-    end={path === '/admin'}
+    end={path === "/admin"}
     onClick={onClose}
-    className="group relative flex items-center gap-2.5 md:gap-3 pl-3 md:pl-3.5 pr-2.5 py-2 md:py-2.5 rounded-xl text-[12.5px] md:text-[13.5px] font-medium transition-all duration-150 hover:translate-x-0.5"
+    className="group relative flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12.5px] font-medium transition-colors"
   >
     {({ isActive }: { isActive: boolean }) => (
       <>
         <span
           aria-hidden
-          className="absolute left-0 top-1/2 -translate-y-1/2 h-4 md:h-5 w-[3px] rounded-full transition-all duration-200"
+          className="absolute inset-0 rounded-md transition-colors"
           style={{
-            background: COLOR.primary,
-            opacity: isActive ? 1 : 0,
-            boxShadow: isActive ? `0 0 10px ${COLOR.primary}88` : 'none',
+            background: isActive ? T.brandSoft : "transparent",
+            boxShadow: isActive ? `inset 0 0 0 1px ${T.brandBorder}` : "inset 0 0 0 1px transparent",
           }}
         />
 
         <span
-          aria-hidden
-          className={`absolute inset-0 rounded-xl transition-colors ${
-            isActive
-              ? 'bg-[#FF6A39]/10 ring-1 ring-[#FF6A39]/25'
-              : 'ring-1 ring-transparent group-hover:bg-[#141821] group-hover:ring-[#232938]'
-          }`}
-        />
-
-        <span
-          className={`relative shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${
-            isActive
-              ? 'bg-[#FF6A39]/15 ring-1 ring-[#FF6A39]/25'
-              : 'bg-[#141821] ring-1 ring-[#1A1F2B] group-hover:ring-[#232938]'
-          }`}
+          className="relative shrink-0 w-7 h-7 rounded-md flex items-center justify-center transition-colors"
+          style={{
+            background: isActive ? "rgba(99,102,241,0.18)" : T.surface2,
+            boxShadow: `inset 0 0 0 1px ${isActive ? T.brandBorder : T.borderSoft}`,
+          }}
         >
           <Icon
-            size={14}
-            className="md:w-[15px] md:h-[15px]"
+            size={13}
             strokeWidth={2}
-            style={{ color: isActive ? COLOR.primary : COLOR.textMuted }}
+            style={{ color: isActive ? T.brand : T.textMuted }}
           />
         </span>
 
         <span
-          className={`relative flex-1 truncate transition-colors ${
-            isActive ? 'text-[#F2F0EB]' : 'text-[#C7C9CE] group-hover:text-[#F2F0EB]'
-          }`}
+          className="relative flex-1 truncate transition-colors"
+          style={{ color: isActive ? T.text : T.textMuted }}
         >
           {name}
         </span>
 
         {badge && (
           <span
-            className="relative shrink-0 text-[10px] md:text-[10.5px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap"
+            className="relative shrink-0 text-[10.5px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap"
             style={{
-              background: COLOR.successSoft,
-              color: COLOR.success,
-              boxShadow: `inset 0 0 0 1px ${COLOR.successRing}`,
+              background: T.successSoft,
+              color: T.success,
+              boxShadow: `inset 0 0 0 1px ${T.successBorder}`,
             }}
           >
             {badge}
@@ -158,133 +159,127 @@ const NavItem = ({ path, name, icon: Icon, badge, onClose }: NavItemProps) => (
         {isActive && (
           <ChevronRight
             size={13}
-            className="relative shrink-0 md:w-[14px] md:h-[14px]"
-            style={{ color: COLOR.primary }}
+            className="relative shrink-0"
+            style={{ color: T.brand }}
           />
         )}
       </>
     )}
   </NavLink>
-)
+);
 
 /* ─────────────── hooks ─────────────── */
 
 const useEscape = (active: boolean, handler: () => void) => {
   useEffect(() => {
-    if (!active) return
+    if (!active) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handler()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [active, handler])
-}
+      if (e.key === "Escape") handler();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [active, handler]);
+};
 
 const useClickOutside = <T extends HTMLElement>(active: boolean, handler: () => void) => {
-  const ref = useRef<T>(null)
+  const ref = useRef<T>(null);
   useEffect(() => {
-    if (!active) return
+    if (!active) return;
     const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) handler()
-    }
-    window.addEventListener('mousedown', onDown)
-    return () => window.removeEventListener('mousedown', onDown)
-  }, [active, handler])
-  return ref
-}
+      if (ref.current && !ref.current.contains(e.target as Node)) handler();
+    };
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [active, handler]);
+  return ref;
+};
 
 /* ─────────────── profile menu ─────────────── */
 
 interface ProfileMenuProps {
-  onClose: () => void
-  user: User | null
-  loadingUser: boolean
-  compact?: boolean
+  onClose: () => void;
+  user: User | null;
+  loadingUser: boolean;
 }
 
-const ProfileMenu = ({ onClose, user, loadingUser, compact }: ProfileMenuProps) => {
-  const navigate = useNavigate()
-  const [confirmingLogout, setConfirmingLogout] = useState(false)
-  const [loggingOut, setLoggingOut] = useState(false)
+const ProfileMenu = ({ onClose, user, loadingUser }: ProfileMenuProps) => {
+  const navigate = useNavigate();
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
-  useEscape(true, onClose)
+  useEscape(true, onClose);
 
   const handleLogout = async () => {
     if (!confirmingLogout) {
-      setConfirmingLogout(true)
-      setTimeout(() => setConfirmingLogout(false), 4000)
-      return
+      setConfirmingLogout(true);
+      setTimeout(() => setConfirmingLogout(false), 4000);
+      return;
     }
-
     try {
-      setLoggingOut(true)
-      await logoutUser()
+      setLoggingOut(true);
+      await logoutUser();
     } catch (err) {
-      console.warn('Logout request failed, clearing local session anyway:', err)
+      console.warn("Logout request failed, clearing local session anyway:", err);
     } finally {
-      setLoggingOut(false)
-      onClose()
-      navigate('/')
+      setLoggingOut(false);
+      onClose();
+      navigate("/");
     }
-  }
+  };
 
-  const displayName = user?.username || 'Signed in'
-  const displayEmail = user?.email || '—'
-  const initials = initialsOf(user?.username)
+  const displayName = user?.username || "Signed in";
+  const displayEmail = user?.email || "—";
+  const initials = initialsOf(user?.username);
 
   const menuItems: { label: string; icon: React.ElementType; onClick: () => void }[] = [
-    { label: 'View profile',     icon: UserIcon, onClick: () => { onClose(); navigate('/admin/profile') } },
-    { label: 'Account settings', icon: UserCog,  onClick: () => { onClose(); navigate('/admin/settings') } },
-  ]
-
-  const wrapperCls = compact
-    ? 'absolute left-2 right-2 bottom-full mb-2'
-    : 'absolute left-2 right-2 bottom-full mb-2 md:left-2 md:right-2'
+    { label: "View profile",     icon: UserIcon, onClick: () => { onClose(); navigate("/admin/profile"); } },
+    { label: "Account settings", icon: UserCog,  onClick: () => { onClose(); navigate("/admin/settings"); } },
+  ];
 
   return (
     <div
       role="menu"
       aria-label="Profile menu"
-      className={`${wrapperCls} rounded-2xl overflow-hidden float-in`}
+      className="absolute left-2 right-2 bottom-full mb-2 rounded-xl overflow-hidden"
       style={{
-        background: COLOR.surface,
-        boxShadow: `inset 0 0 0 1px ${COLOR.borderHover}, 0 30px 60px -20px rgba(0,0,0,0.8)`,
+        background: T.surface,
+        boxShadow: `inset 0 0 0 1px ${T.border}, 0 24px 48px -16px rgba(0,0,0,0.8)`,
         zIndex: 50,
       }}
     >
       {/* Header */}
-      <div className="p-3 border-b" style={{ borderColor: COLOR.border }}>
-        <div className="flex items-center gap-3">
+      <div className="p-3 border-b" style={{ borderColor: T.borderSoft }}>
+        <div className="flex items-center gap-2.5">
           <div
-            className="relative shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background: COLOR.primarySoft, boxShadow: `inset 0 0 0 1px ${COLOR.primaryRing}` }}
+            className="relative shrink-0 w-9 h-9 rounded-md flex items-center justify-center"
+            style={{ background: T.brandSoft, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
           >
             {loadingUser ? (
-              <Loader2 size={16} className="animate-spin" style={{ color: COLOR.primary }} />
+              <Loader2 size={14} className="animate-spin" style={{ color: T.brand }} />
             ) : (
-              <span className="text-[12px] font-bold" style={{ color: COLOR.primary, fontFamily: FONT_MONO }}>
+              <span className="text-[11.5px] font-bold" style={{ color: T.brand, fontFamily: FONT.mono }}>
                 {initials}
               </span>
             )}
             <span
               className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
-              style={{ background: COLOR.success, borderColor: COLOR.surface, boxShadow: `0 0 8px ${COLOR.success}88` }}
+              style={{ background: T.success, borderColor: T.surface }}
             />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-semibold truncate" style={{ color: COLOR.dark, fontFamily: FONT_DISPLAY }}>
-              {loadingUser ? 'Loading…' : displayName}
+            <p className="text-[12.5px] font-semibold truncate" style={{ color: T.text }}>
+              {loadingUser ? "Loading…" : displayName}
             </p>
-            <p className="text-[11px] truncate" style={{ color: COLOR.textMuted, fontFamily: FONT_MONO }}>
-              {loadingUser ? '—' : displayEmail}
+            <p className="text-[11px] truncate mt-0.5" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+              {loadingUser ? "—" : displayEmail}
             </p>
           </div>
         </div>
 
         {user?.role && (
           <span
-            className="mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-medium"
-            style={{ background: COLOR.primarySoft, color: COLOR.primary, boxShadow: `inset 0 0 0 1px ${COLOR.primaryRing}` }}
+            className="mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium"
+            style={{ background: T.brandSoft, color: T.brand, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
           >
             <Shield size={10} />
             {user.role}
@@ -299,28 +294,22 @@ const ProfileMenu = ({ onClose, user, loadingUser, compact }: ProfileMenuProps) 
             key={label}
             role="menuitem"
             onClick={onClick}
-            className="group w-full flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[12.5px] transition-colors"
-            style={{ color: COLOR.textBody }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = COLOR.surface
-              e.currentTarget.style.color = COLOR.dark
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = COLOR.textBody
-            }}
+            className="group w-full flex items-center gap-2.5 rounded-md px-2 py-2 text-left text-[12.5px] transition-colors hover:bg-white/[0.03]"
+            style={{ color: T.textMuted }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = T.text)}
+            onMouseLeave={(e) => (e.currentTarget.style.color = T.textMuted)}
           >
             <span
-              className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
-              style={{ background: COLOR.inner, boxShadow: `inset 0 0 0 1px ${COLOR.border}` }}
+              className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center"
+              style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
             >
-              <Icon size={13} style={{ color: COLOR.textMuted }} />
+              <Icon size={12} style={{ color: T.textMuted }} />
             </span>
             <span className="flex-1 truncate">{label}</span>
             <ChevronRight
-              size={13}
+              size={12}
               className="shrink-0 transition-transform group-hover:translate-x-0.5"
-              style={{ color: COLOR.border }}
+              style={{ color: T.textFaint }}
             />
           </button>
         ))}
@@ -332,126 +321,114 @@ const ProfileMenu = ({ onClose, user, loadingUser, compact }: ProfileMenuProps) 
           role="menuitem"
           onClick={handleLogout}
           disabled={loggingOut}
-          className="w-full flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[12.5px] font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full flex items-center gap-2.5 rounded-md px-2 py-2 text-left text-[12.5px] font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           style={{
-            background: confirmingLogout ? COLOR.dangerSoft : 'transparent',
-            color: COLOR.danger,
-            boxShadow: confirmingLogout ? `inset 0 0 0 1px ${COLOR.dangerRing}` : 'none',
+            background: confirmingLogout ? T.dangerSoft : "transparent",
+            color: T.danger,
+            boxShadow: confirmingLogout ? `inset 0 0 0 1px ${T.dangerBorder}` : "none",
           }}
           onMouseEnter={(e) => {
-            if (!confirmingLogout) e.currentTarget.style.background = COLOR.dangerSoft
+            if (!confirmingLogout) e.currentTarget.style.background = T.dangerSoft;
           }}
           onMouseLeave={(e) => {
-            if (!confirmingLogout) e.currentTarget.style.background = 'transparent'
+            if (!confirmingLogout) e.currentTarget.style.background = "transparent";
           }}
         >
           <span
-            className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center"
-            style={{ background: COLOR.dangerSoft, boxShadow: `inset 0 0 0 1px ${COLOR.dangerRing}` }}
+            className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center"
+            style={{ background: T.dangerSoft, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
           >
             {loggingOut ? (
-              <Loader2 size={13} className="animate-spin" style={{ color: COLOR.danger }} />
+              <Loader2 size={12} className="animate-spin" style={{ color: T.danger }} />
             ) : (
-              <LogOut size={13} style={{ color: COLOR.danger }} />
+              <LogOut size={12} style={{ color: T.danger }} />
             )}
           </span>
           <span className="flex-1 truncate">
-            {loggingOut ? 'Signing out…' : confirmingLogout ? 'Click again to confirm' : 'Log out'}
+            {loggingOut ? "Signing out…" : confirmingLogout ? "Click again to confirm" : "Log out"}
           </span>
         </button>
       </div>
     </div>
-  )
-}
+  );
+};
 
 /* ─────────────── sidebar ─────────────── */
 
 interface AdminSidebarProps {
-  onClose?: () => void
+  onClose?: () => void;
 }
 
 const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
-  const isMobile = !!onClose
-  const [profileOpen, setProfileOpen] = useState(false)
-  const containerRef = useClickOutside<HTMLDivElement>(profileOpen, () => setProfileOpen(false))
+  const [profileOpen, setProfileOpen] = useState(false);
+  const containerRef = useClickOutside<HTMLDivElement>(profileOpen, () => setProfileOpen(false));
 
-  /* ── Load the real user once, at the sidebar level ── */
-  const [user, setUser] = useState<User | null>(null)
-  const [loadingUser, setLoadingUser] = useState(true)
+  const [user, setUser] = useState<User | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
   useEffect(() => {
-    let cancelled = false
-    ;(async () => {
+    let cancelled = false;
+    (async () => {
       try {
-        const data = await getProfile()
-        if (!cancelled) setUser(data)
+        const data = await getProfile();
+        if (!cancelled) setUser(data);
       } catch (err) {
-        console.warn('Failed to load admin profile for sidebar:', err)
+        console.warn("Failed to load admin profile for sidebar:", err);
       } finally {
-        if (!cancelled) setLoadingUser(false)
+        if (!cancelled) setLoadingUser(false);
       }
-    })()
+    })();
     return () => {
-      cancelled = true
-    }
-  }, [])
+      cancelled = true;
+    };
+  }, []);
 
-  const displayName = user?.username ?? ''
-  const displayEmail = user?.email ?? ''
-  const initials = initialsOf(user?.username)
+  const displayName = user?.username ?? "";
+  const displayEmail = user?.email ?? "";
+  const initials = initialsOf(user?.username);
 
   return (
     <div
-      className="w-64 md:w-64 h-screen flex flex-col"
+      className="w-64 h-screen flex flex-col"
       style={{
-        background: `linear-gradient(180deg, ${COLOR.panelTop} 0%, ${COLOR.panel} 100%)`,
-        borderRight: `1px solid ${COLOR.border}`,
-        boxShadow: 'inset -1px 0 0 rgba(255,255,255,0.02)',
+        background: T.surface,
+        borderRight: `1px solid ${T.border}`,
       }}
     >
       <style>{`
         .asb-nav::-webkit-scrollbar { width: 6px; }
         .asb-nav::-webkit-scrollbar-track { background: transparent; }
-        .asb-nav::-webkit-scrollbar-thumb { background: #1E232E; border-radius: 10px; }
-        .asb-nav::-webkit-scrollbar-thumb:hover { background: #2A2F3B; }
-
-        @keyframes floatIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-        .float-in { animation: floatIn 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .asb-nav::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
+        .asb-nav::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
       `}</style>
 
-      {/* ── Brand row ────────────────────────── */}
-      <div className="flex items-center gap-2.5 px-3 md:px-4 h-14 md:h-16 shrink-0 border-b" style={{ borderColor: COLOR.border }}>
+      {/* ── Brand row ── */}
+      <div className="flex items-center gap-2.5 px-4 h-16 shrink-0 border-b" style={{ borderColor: T.border }}>
         <div
-          className="w-8 h-8 md:w-9 md:h-9 rounded-xl flex items-center justify-center shrink-0"
+          className="w-9 h-9 rounded-md flex items-center justify-center shrink-0"
           style={{
-            background: 'linear-gradient(135deg, #FF6A39, #FFC24B)',
-            boxShadow: '0 8px 20px -8px rgba(255,106,57,0.6)',
+            background: `linear-gradient(135deg, ${T.brand}, #818CF8)`,
+            boxShadow: "0 6px 18px -8px rgba(99,102,241,0.6)",
           }}
         >
-          <span className="text-[13px] md:text-sm font-bold" style={{ color: COLOR.bg }}>A</span>
+          <span className="text-[13px] font-bold text-white">A</span>
         </div>
 
         <div className="min-w-0 flex-1">
-          <p
-            className="text-[13px] md:text-[14.5px] font-semibold tracking-tight truncate"
-            style={{ color: COLOR.dark, fontFamily: FONT_DISPLAY }}
-          >
+          <p className="text-[13.5px] font-semibold tracking-tight truncate" style={{ color: T.text }}>
             MailForge Admin
           </p>
-          <p
-            className="text-[10px] md:text-[10.5px] truncate"
-            style={{ color: COLOR.textMuted, fontFamily: FONT_MONO }}
-          >
+          <p className="text-[10.5px] truncate mt-0.5" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
             console · v1.4
           </p>
         </div>
 
         <span
-          className="shrink-0 text-[10px] md:text-[10.5px] font-medium px-2 py-0.5 rounded-full"
+          className="shrink-0 text-[10.5px] font-medium px-2 py-0.5 rounded-full"
           style={{
-            background: COLOR.primarySoft,
-            color: COLOR.primary,
-            boxShadow: `inset 0 0 0 1px ${COLOR.primaryRing}`,
+            background: T.brandSoft,
+            color: T.brand,
+            boxShadow: `inset 0 0 0 1px ${T.brandBorder}`,
           }}
         >
           Admin
@@ -461,71 +438,63 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
           <button
             onClick={onClose}
             aria-label="Close menu"
-            className="lg:hidden shrink-0 p-1.5 rounded-lg transition-colors"
-            style={{ color: COLOR.textMuted }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = COLOR.surface)}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            className="lg:hidden shrink-0 p-1.5 rounded-md transition-colors hover:bg-white/5"
+            style={{ color: T.textMuted }}
           >
             <X size={16} />
           </button>
         )}
       </div>
 
-      {/* ── Admin status card ───────────────── */}
+      {/* ── Admin status card ── */}
       <div
-        className="mx-3 md:mx-4 mt-3 md:mt-4 px-3 md:px-3.5 py-2.5 md:py-3 rounded-2xl shrink-0"
+        className="mx-3 mt-3 px-3 py-2.5 rounded-lg shrink-0"
         style={{
-          background: COLOR.primarySoft,
-          boxShadow: `inset 0 0 0 1px ${COLOR.primaryRing}`,
+          background: T.brandSoft,
+          boxShadow: `inset 0 0 0 1px ${T.brandBorder}`,
         }}
       >
         <div className="flex items-center gap-2 mb-1.5">
           <div
             className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(255,106,57,0.16)', boxShadow: `inset 0 0 0 1px ${COLOR.primaryRing}` }}
+            style={{ background: "rgba(99,102,241,0.18)", boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
           >
-            <ShieldCheck size={12} style={{ color: COLOR.primary }} />
+            <ShieldCheck size={12} style={{ color: T.brand }} />
           </div>
-          <span
-            className="text-[11px] md:text-xs font-semibold"
-            style={{ color: COLOR.primary, fontFamily: FONT_DISPLAY }}
-          >
-            {user?.role ? user.role : 'Signed in'}
+          <span className="text-[11px] font-semibold" style={{ color: T.brand }}>
+            {user?.role ? user.role : "Signed in"}
           </span>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-2.5">
+        <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            </span>
-            <span className="text-[10px] md:text-[10.5px]" style={{ color: COLOR.textBody, fontFamily: FONT_MONO }}>
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.success }} />
+            <span className="text-[10.5px]" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
               online
             </span>
           </span>
-          <span className="text-[10px] md:text-[10.5px]" style={{ color: COLOR.border }}>·</span>
-          <span className="text-[10px] md:text-[10.5px]" style={{ color: COLOR.textMuted, fontFamily: FONT_MONO }}>
+          <span className="text-[10.5px]" style={{ color: T.textFaint }}>·</span>
+          <span className="text-[10.5px]" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
             12.4k sent
           </span>
         </div>
       </div>
 
-      {/* ── Nav ──────────────────────────────── */}
-      <nav className="asb-nav flex-1 overflow-y-auto px-2 md:px-3 py-4 md:py-5 space-y-5 md:space-y-6">
+      {/* ── Nav ── */}
+      <nav className="asb-nav flex-1 overflow-y-auto px-2 py-4 space-y-5">
         {navGroups.map((group) => (
           <div key={group.label}>
-            <div className="flex items-center gap-2 px-3 mb-2">
+            <div className="flex items-center gap-2 px-2.5 mb-2">
               <p
-                className="text-[9.5px] md:text-[10px] font-semibold uppercase"
-                style={{ color: COLOR.textMuted, letterSpacing: '0.12em' }}
+                className="text-[9.5px] font-semibold uppercase tracking-[0.12em]"
+                style={{ color: T.textFaint }}
               >
                 {group.label}
               </p>
-              <span className="flex-1 h-px" style={{ background: COLOR.border }} />
+              <span className="flex-1 h-px" style={{ background: T.borderSoft }} />
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {group.items.map((item) => (
                 <NavItem key={item.path} {...item} onClose={onClose} />
               ))}
@@ -534,13 +503,16 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
         ))}
       </nav>
 
-      {/* ── Footer account ───────────────────── */}
-      <div ref={containerRef} className="relative px-2 md:px-3 py-3 md:py-4 shrink-0 border-t" style={{ borderColor: COLOR.border }}>
+      {/* ── Footer account ── */}
+      <div
+        ref={containerRef}
+        className="relative px-2 py-3 shrink-0 border-t"
+        style={{ borderColor: T.border }}
+      >
         {profileOpen && (
           <ProfileMenu
             user={user}
             loadingUser={loadingUser}
-            compact={isMobile}
             onClose={() => setProfileOpen(false)}
           />
         )}
@@ -550,56 +522,45 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
           onClick={() => setProfileOpen((o) => !o)}
           aria-haspopup="menu"
           aria-expanded={profileOpen}
-          className="group w-full flex items-center gap-2.5 md:gap-3 px-2 md:px-2.5 py-2 md:py-2.5 rounded-xl text-left transition-colors"
+          className="group w-full flex items-center gap-2.5 px-2 py-2 rounded-md text-left transition-colors"
           style={{
-            background: profileOpen ? COLOR.surface : 'transparent',
-            boxShadow: profileOpen
-              ? `inset 0 0 0 1px ${COLOR.borderHover}`
-              : 'inset 0 0 0 1px transparent',
+            background: profileOpen ? T.surface2 : "transparent",
+            boxShadow: profileOpen ? `inset 0 0 0 1px ${T.border}` : "inset 0 0 0 1px transparent",
           }}
         >
           <div
-            className="relative shrink-0 w-8 h-8 md:w-9 md:h-9 rounded-xl flex items-center justify-center"
+            className="relative shrink-0 w-8 h-8 rounded-md flex items-center justify-center"
             style={{
-              background: COLOR.primarySoft,
-              boxShadow: `inset 0 0 0 1px ${COLOR.primaryRing}`,
+              background: T.brandSoft,
+              boxShadow: `inset 0 0 0 1px ${T.brandBorder}`,
             }}
           >
             {loadingUser ? (
-              <Loader2 size={14} className="animate-spin" style={{ color: COLOR.primary }} />
+              <Loader2 size={14} className="animate-spin" style={{ color: T.brand }} />
             ) : (
-              <span
-                className="text-[10.5px] md:text-[11.5px] font-bold"
-                style={{ color: COLOR.primary, fontFamily: FONT_MONO }}
-              >
+              <span className="text-[11px] font-bold" style={{ color: T.brand, fontFamily: FONT.mono }}>
                 {initials}
               </span>
             )}
             <span
               className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
-              style={{ background: COLOR.success, borderColor: COLOR.panelTop, boxShadow: `0 0 8px ${COLOR.success}88` }}
+              style={{ background: T.success, borderColor: T.surface }}
             />
           </div>
 
           <div className="flex-1 min-w-0">
             {loadingUser ? (
               <>
-                <div className="h-[10px] w-24 rounded bg-[#1A1F2B] animate-pulse" />
-                <div className="h-[9px] w-32 rounded bg-[#1A1F2B] animate-pulse mt-1.5" />
+                <div className="h-[10px] w-24 rounded animate-pulse" style={{ background: T.surfaceHi }} />
+                <div className="h-[9px] w-32 rounded animate-pulse mt-1.5" style={{ background: T.surfaceHi }} />
               </>
             ) : (
               <>
-                <p
-                  className="text-[12px] md:text-[13px] font-semibold truncate"
-                  style={{ color: COLOR.dark, fontFamily: FONT_DISPLAY }}
-                >
-                  {displayName || 'Signed in'}
+                <p className="text-[12.5px] font-semibold truncate" style={{ color: T.text }}>
+                  {displayName || "Signed in"}
                 </p>
-                <p
-                  className="text-[10px] md:text-[11px] truncate"
-                  style={{ color: COLOR.textMuted, fontFamily: FONT_MONO }}
-                >
-                  {displayEmail || '—'}
+                <p className="text-[11px] truncate mt-0.5" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+                  {displayEmail || "—"}
                 </p>
               </>
             )}
@@ -607,13 +568,13 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
 
           <ChevronRight
             size={14}
-            className={`shrink-0 transition-all ${profileOpen ? 'rotate-90' : 'group-hover:translate-x-0.5'}`}
-            style={{ color: profileOpen ? COLOR.primary : COLOR.border }}
+            className={`shrink-0 transition-all ${profileOpen ? "rotate-90" : "group-hover:translate-x-0.5"}`}
+            style={{ color: profileOpen ? T.brand : T.textFaint }}
           />
         </button>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default AdminSidebar
+export default AdminSidebar;
