@@ -6,6 +6,7 @@ from html import escape
 from html.parser import HTMLParser
 
 from celery.utils.log import get_task_logger  # type: ignore
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database import SessionLocal
@@ -28,26 +29,30 @@ MAX_ERROR_LEN = 500
 LIMIT_RESCHEDULE_PAD = 5    # seconds, small buffer after a limit window resets
 DISPATCH_BATCH = 50         # max emails queued per dispatcher run
 DISPATCH_LOOKAHEAD = 45     # seconds: dispatcher queues emails due within this window (with exact eta)
+OVERDUE_GRACE = 90          # seconds: isse zyada late row ko fresh random time milta hai
 STALE_QUEUED_MINUTES = 30   # QUEUED older than this = lost task, put back to PENDING
 
 # Random gap buckets (all values in SECONDS): (probability, min_gap, max_gap)
 # Mix of quick follow-ups and longer pauses, so the pattern looks human.
 GAP_BUCKETS = [
-    (0.50, 15, 60),     # 15s - 1 min
-    (0.30, 60, 180),    # 1 - 3 min
-    (0.15, 180, 420),   # 3 - 7 min
-    (0.05, 420, 900),   # 7 - 15 min (occasional long pause)
+    (0.55, 10, 45),     # 10-45 sec
+    (0.30, 45, 120),    # 45 sec - 2 min
+    (0.12, 120, 300),   # 2 - 5 min
+    (0.03, 300, 600),   # 5 - 10 min (kabhi kabhi lamba pause)
 ]
 FIRST_SEND_DELAY = (2, 20)  # first email goes out within 2-20 seconds of start
+
+# Daily limit is spread over this many seconds (12h working window).
+DAILY_SPREAD_SECONDS = 43200.0
 
 # Domains that get PLAIN TEXT instead of the HTML template.
 PLAIN_TEXT_DOMAINS = {"gmail.com", "googlemail.com"}
 
 # Used when SenderAccount has no such column. EDIT THESE.
 SENDER_DEFAULTS = {
-    "company": "Your Company",
+    "company": "Harbour Funding",
     "title": "Funding Advisor",
-    "phone": "",
+    "website" : "https://www.harbourfundingsolutions.com/"
 }
 
 # Matches {{ key }} and [Key Name]
@@ -450,8 +455,7 @@ def _random_gap() -> float:
 def schedule_campaign_sends(db: Session, campaign_id: int) -> int:
     """
     Start now. Every PENDING valid recipient gets a send time = previous send
-    time + a random gap (mixed 15s .. 15min). The last scheduled_at is the
-    campaign's completion time.
+    time + a random gap. The last scheduled_at is the campaign's completion time.
 
     If the sender's hourly/daily limit needs a slower average speed, ALL gaps
     are scaled up together (keeps the randomness, just stretches it).
@@ -482,7 +486,7 @@ def schedule_campaign_sends(db: Session, campaign_id: int) -> int:
         if sender.hourly_limit:
             needed = max(needed, 3600.0 / sender.hourly_limit)
         if sender.daily_limit:
-            needed = max(needed, 86400.0 / sender.daily_limit)
+            needed = max(needed, DAILY_SPREAD_SECONDS / sender.daily_limit)
     if gaps and needed:
         mean = sum(gaps) / len(gaps)
         if mean < needed:
@@ -736,14 +740,16 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
 )
 def dispatch_due_task():
     """
-    Queue every recipient due within the next DISPATCH_LOOKAHEAD seconds.
-    Each email is queued with eta=its exact scheduled_at, so it goes out at
-    that exact second (not at the next beat tick).
+    Queue every recipient due within DISPATCH_LOOKAHEAD seconds, with eta=exact time.
+    Rows that are badly overdue (backlog) get a fresh random gap instead of
+    firing all at once.
     """
     db: Session = SessionLocal()
     try:
         now = datetime.now(UTC).replace(tzinfo=None)
         horizon = now + timedelta(seconds=DISPATCH_LOOKAHEAD)
+        overdue_cutoff = now - timedelta(seconds=OVERDUE_GRACE)
+
         rows = (
             db.query(
                 CampaignRecipient.id,
@@ -765,10 +771,45 @@ def dispatch_due_task():
         if not rows:
             return 0
 
-        # Claim each row individually; only queue the ones WE claimed.
-        # (Protects against overlapping runs queueing the same recipient twice.)
-        claimed = []
+        # Per sender: next free time slot (after anything already queued).
+        cursors: dict[int, datetime] = {}
+
+        def cursor_for(sender_id: int) -> datetime:
+            if sender_id not in cursors:
+                last = (
+                    db.query(func.max(CampaignRecipient.scheduled_at))
+                    .join(Campaign, Campaign.id == CampaignRecipient.campaign_id)
+                    .filter(
+                        Campaign.sender_account_id == sender_id,
+                        CampaignRecipient.status == RecipientStatus.QUEUED,
+                    )
+                    .scalar()
+                )
+                cursors[sender_id] = max(now, last) if last else now
+            return cursors[sender_id]
+
+        claimed = []  # (row, final_scheduled_at)
         for r in rows:
+            sched = r.scheduled_at
+
+            if sched < overdue_cutoff:
+                new_t = cursor_for(r.sender_account_id) + timedelta(seconds=_random_gap())
+                cursors[r.sender_account_id] = new_t
+                sched = new_t
+
+                if new_t > horizon:
+                    # Not due yet: just give it the new time, keep PENDING.
+                    db.query(CampaignRecipient).filter(
+                        CampaignRecipient.id == r.id,
+                        CampaignRecipient.status == RecipientStatus.PENDING,
+                    ).update(
+                        {CampaignRecipient.scheduled_at: new_t},
+                        synchronize_session=False,
+                    )
+                    continue
+
+            # Claim each row individually; only queue the ones WE claimed.
+            # (Protects against overlapping runs queueing the same recipient twice.)
             updated = (
                 db.query(CampaignRecipient)
                 .filter(
@@ -776,19 +817,22 @@ def dispatch_due_task():
                     CampaignRecipient.status == RecipientStatus.PENDING,
                 )
                 .update(
-                    {CampaignRecipient.status: RecipientStatus.QUEUED},
+                    {
+                        CampaignRecipient.status: RecipientStatus.QUEUED,
+                        CampaignRecipient.scheduled_at: sched,
+                    },
                     synchronize_session=False,
                 )
             )
             if updated == 1:
-                claimed.append(r)
+                claimed.append((r, sched))
         db.commit()
 
-        for r in claimed:
+        for r, sched in claimed:
             send_email_task.apply_async(
                 args=[r.id, r.sender_account_id, r.campaign_id],
                 queue="email_sender_queue",
-                eta=_as_aware(r.scheduled_at),  # exact second; past time = run now
+                eta=_as_aware(sched),  # exact second; past time = run now
             )
         return len(claimed)
     except Exception:
