@@ -1,16 +1,17 @@
 from pydantic import BaseModel, ConfigDict
+from models.campaigns import CampaignStatus  
 from enum import Enum
 
 
-class CampaignStatus(str, Enum):
-    DRAFT = "Draft"
-    READY = "Ready"
-    SCHEDULED = "Scheduled"
-    RUNNING = "Running"
-    PAUSED = "Paused"
-    COMPLETED = "Completed"
-    FAILED = "Failed"
-    CANCELLED = "Cancelled"
+# class CampaignStatus(str, Enum):
+#     DRAFT = "Draft"
+#     READY = "Ready"
+#     SCHEDULED = "Scheduled"
+#     RUNNING = "Running"
+#     PAUSED = "Paused"
+#     COMPLETED = "Completed"
+#     FAILED = "Failed"
+#     CANCELLED = "Cancelled"
 
 
 class AddCampaignSchema(BaseModel):
