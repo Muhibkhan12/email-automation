@@ -233,7 +233,7 @@ const ConnectModal: React.FC<{
 }> = ({ busyId, error, onClose, onConnect }) => {
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      className="fixed inset-0 z-60 flex items-center justify-center p-4"
       onClick={() => !busyId && onClose()}
       style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
       role="dialog"
@@ -293,7 +293,7 @@ const ConnectModal: React.FC<{
                 key={p.id}
                 onClick={() => onConnect(p.id)}
                 disabled={disabled || busy}
-                className="w-full text-left rounded-lg px-3.5 py-3 transition-colors hover:bg-white/[0.03] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                className="w-full text-left rounded-lg px-3.5 py-3 transition-colors hover:bg-white/3 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
                 style={{
                   background: T.surface2,
                   boxShadow: `inset 0 0 0 1px ${T.borderSoft}`,
@@ -371,7 +371,7 @@ const DeleteConfirmModal: React.FC<{
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      className="fixed inset-0 z-60 flex items-center justify-center p-4"
       onClick={() => !busy && onCancel()}
       style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
       role="dialog"
@@ -391,7 +391,7 @@ const DeleteConfirmModal: React.FC<{
               <Link2Off size={16} />
             </div>
             <div className="min-w-0">
-              <h3 className="text-[15px] font-semibold break-words" style={{ color: T.text }}>
+              <h3 className="text-[15px] font-semibold wrap-break-word" style={{ color: T.text }}>
                 Disconnect “{label}”?
               </h3>
               <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
@@ -1074,7 +1074,7 @@ const AdminSenderAccounts = () => {
       {/* Edit modal */}
       {editingAccount && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          className="fixed inset-0 z-60 flex items-center justify-center p-4"
           onClick={() => !saving && setEditingAccount(null)}
           style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
           role="dialog"

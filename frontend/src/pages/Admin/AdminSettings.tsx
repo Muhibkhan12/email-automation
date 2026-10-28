@@ -116,7 +116,7 @@ const Toggle: React.FC<{ checked: boolean; onChange: () => void; label: string; 
 
 const Toast: React.FC<{ type: "success" | "error"; msg: string; onClose: () => void }> = ({ type, msg, onClose }) => (
   <div
-    className="fixed bottom-5 right-5 z-[70] rounded-lg px-4 py-2.5 text-[12px] font-medium flex items-center gap-2"
+    className="fixed bottom-5 right-5 z-70 rounded-lg px-4 py-2.5 text-[12px] font-medium flex items-center gap-2"
     style={{
       background: T.surface,
       color: type === "success" ? T.success : T.danger,

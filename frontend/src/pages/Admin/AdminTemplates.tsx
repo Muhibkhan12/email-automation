@@ -403,7 +403,7 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
     >
       {/* Top bar */}
       <div
-        className="flex-shrink-0 px-3 md:px-5 py-3"
+        className="shrink-0 px-3 md:px-5 py-3"
         style={{ background: T.surface, borderBottom: `1px solid ${T.borderSoft}` }}
       >
         <div className="flex flex-wrap items-center gap-2.5 md:gap-3">
@@ -545,7 +545,7 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
         {/* Code pane */}
         <div className="flex flex-col h-full min-h-0">
           <div
-            className="flex items-center justify-between px-4 py-2 flex-shrink-0"
+            className="flex items-center justify-between px-4 py-2 shrink-0"
             style={{ background: T.bg, borderBottom: `1px solid ${T.borderSoft}` }}
           >
             <div className="flex items-center gap-2">
@@ -569,7 +569,7 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
         {/* Preview pane */}
         <div className="flex flex-col h-full min-h-0" style={{ borderLeft: `1px solid ${T.borderSoft}` }}>
           <div
-            className="flex items-center justify-between px-4 py-2 flex-shrink-0"
+            className="flex items-center justify-between px-4 py-2 shrink-0"
             style={{ background: T.bg, borderBottom: `1px solid ${T.borderSoft}` }}
           >
             <div className="flex items-center gap-2">
@@ -624,7 +624,7 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
       {/* Delete confirm */}
       {showDeleteConfirm && onDelete && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          className="fixed inset-0 z-60 flex items-center justify-center p-4"
           onClick={() => !deleting && setShowDeleteConfirm(false)}
           style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
         >
@@ -684,7 +684,7 @@ const StatCard: FC<{
   accent: string;
   accentSoft: string;
   accentBorder: string;
-}> = ({ title, value, description, icon: Icon, accent, accentSoft, accentBorder }) => (
+}> = ({ title, value, description, icon: Icon, accent, accentSoft }) => (
   <div className="rounded-xl p-4" style={{ background: T.surface, boxShadow: RING }}>
     <div className="flex items-start justify-between mb-3">
       <div
@@ -757,7 +757,7 @@ const DeleteConfirmModal: FC<{
   onConfirm: () => void;
 }> = ({ name, busy, onCancel, onConfirm }) => (
   <div
-    className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+    className="fixed inset-0 z-60 flex items-center justify-center p-4"
     onClick={() => !busy && onCancel()}
     style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
   >
@@ -775,7 +775,7 @@ const DeleteConfirmModal: FC<{
             <Trash2 size={16} />
           </div>
           <div className="min-w-0">
-            <h3 className="text-[15px] font-semibold break-words" style={{ color: T.text }}>
+            <h3 className="text-[15px] font-semibold wrap-break-word" style={{ color: T.text }}>
               Delete “{name}”?
             </h3>
             <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
@@ -952,7 +952,7 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      className="fixed inset-0 z-60 flex items-center justify-center p-4"
       onClick={() => !busy && onClose()}
       style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
     >
@@ -962,7 +962,7 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
         style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 p-5 border-b flex-shrink-0" style={{ borderColor: T.borderSoft }}>
+        <div className="flex items-start justify-between gap-3 p-5 border-b shrink-0" style={{ borderColor: T.borderSoft }}>
           <div className="flex items-start gap-3">
             <div
               className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
@@ -1224,7 +1224,7 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
           </div>
 
           {/* Right: live preview */}
-          <div className="p-5 flex flex-col min-h-[320px]">
+          <div className="p-5 flex flex-col min-h-80">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Eye size={12} style={{ color: T.textFaint }} />
@@ -1266,7 +1266,7 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 p-5 border-t flex-shrink-0" style={{ borderColor: T.borderSoft }}>
+        <div className="flex items-center justify-end gap-2 p-5 border-t shrink-0" style={{ borderColor: T.borderSoft }}>
           <button
             onClick={onClose}
             disabled={busy}
@@ -1308,7 +1308,7 @@ const AIGenerateModal: FC<{
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      className="fixed inset-0 z-60 flex items-center justify-center p-4"
       onClick={() => !busy && onClose()}
       style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
     >
@@ -1805,7 +1805,7 @@ const EmailTemplatesAdmin = () => {
                     onKeyDown={(e) => {
                       if (e.target === e.currentTarget && e.key === "Enter") openEditor(t);
                     }}
-                    className="group float-in rounded-xl overflow-hidden text-left transition-colors hover:bg-white/[0.02] cursor-pointer"
+                    className="group float-in rounded-xl overflow-hidden text-left transition-colors hover:bg-white/2 cursor-pointer"
                     style={{
                       background: T.surface,
                       boxShadow: `inset 0 0 0 1px ${T.borderSoft}`,
@@ -1943,7 +1943,7 @@ const EmailTemplatesAdmin = () => {
       {/* Toast */}
       {toast && (
         <div
-          className="fixed bottom-5 right-5 z-[70] float-in rounded-lg px-4 py-2.5 text-[12px] font-medium"
+          className="fixed bottom-5 right-5 z-70 float-in rounded-lg px-4 py-2.5 text-[12px] font-medium"
           style={{
             background: T.surface,
             color: toast.type === "success" ? T.success : T.danger,

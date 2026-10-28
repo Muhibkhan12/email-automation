@@ -480,7 +480,7 @@ const AdminEmailLogs = () => {
                     className="text-[10px] uppercase tracking-widest"
                     style={{ color: T.textFaint, borderBottom: `1px solid ${T.borderSoft}` }}
                   >
-                    <th className="px-4 md:px-5 py-2.5 w-[42px]" scope="col">
+                    <th className="px-4 md:px-5 py-2.5 w-10.5" scope="col">
                       <button
                         onClick={toggleAll}
                         aria-label={allVisibleSelected ? "Deselect all visible" : "Select all visible"}
@@ -497,7 +497,7 @@ const AdminEmailLogs = () => {
                     <th className="px-3 py-2.5 font-medium" scope="col">Status</th>
                     <th className="px-3 py-2.5 font-medium" scope="col">Workspace</th>
                     <th className="px-4 md:px-5 py-2.5 font-medium text-right" scope="col">Sent at</th>
-                    <th className="w-[48px]" scope="col"><span className="sr-only">Actions</span></th>
+                    <th className="w-12" scope="col"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -575,27 +575,27 @@ const AdminEmailLogs = () => {
                         </td>
                         <td className="px-3 py-3">
                           <div className="min-w-0">
-                            <p className="text-[12px] truncate max-w-[180px]" style={{ color: T.textMuted }}>
+                            <p className="text-[12px] truncate max-w-45" style={{ color: T.textMuted }}>
                               {log.recipient}
                             </p>
-                            <p className="text-[10.5px] truncate max-w-[180px] mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                            <p className="text-[10.5px] truncate max-w-45 mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                               {log.sender}
                             </p>
                           </div>
                         </td>
                         <td className="px-3 py-3">
-                          <p className="text-[12px] truncate max-w-[160px]" style={{ color: T.text }}>
+                          <p className="text-[12px] truncate max-w-40" style={{ color: T.text }}>
                             {log.campaign}
                           </p>
                         </td>
                         <td className="px-3 py-3">
-                          <p className="text-[11.5px] truncate max-w-[200px]" style={{ color: T.textMuted }}>
+                          <p className="text-[11.5px] truncate max-w-50" style={{ color: T.textMuted }}>
                             {log.subject}
                           </p>
                         </td>
                         <td className="px-3 py-3"><StatusPill status={log.status} /></td>
                         <td className="px-3 py-3">
-                          <span className="text-[11.5px] truncate max-w-[140px] block" style={{ color: T.textMuted }}>
+                          <span className="text-[11.5px] truncate max-w-35 block" style={{ color: T.textMuted }}>
                             {log.workspace}
                           </span>
                         </td>
@@ -649,7 +649,7 @@ const AdminEmailLogs = () => {
                         key={p}
                         onClick={() => setPage(p)}
                         aria-current={active ? "page" : undefined}
-                        className="min-w-[30px] rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors"
+                        className="min-w-7.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors"
                         style={{
                           background: active ? T.brand : "transparent",
                           color: active ? "#fff" : T.textMuted,
@@ -668,7 +668,7 @@ const AdminEmailLogs = () => {
                       <button
                         onClick={() => setPage(totalPages)}
                         aria-current={page === totalPages ? "page" : undefined}
-                        className="min-w-[30px] rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors"
+                        className="min-w-7.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors"
                         style={{
                           background: page === totalPages ? T.brand : "transparent",
                           color: page === totalPages ? "#fff" : T.textMuted,

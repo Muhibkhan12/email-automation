@@ -2,9 +2,9 @@
 import React, { useState } from "react";
 import AdminSidebar from "./AdminSidebar";
 import {
-  Activity, Clock, Loader2, CheckCircle2, XCircle,
+  Clock, Loader2, CheckCircle2, XCircle,
   Pause, Play, Cpu, RefreshCw, ArrowUpRight, ArrowDownRight,
-  Zap, MoreHorizontal, ChevronLeft, ChevronRight, Menu,
+  MoreHorizontal, ChevronLeft, ChevronRight, Menu,
 } from "lucide-react";
 
 /* ─────────────── types ─────────────── */
@@ -404,7 +404,7 @@ const AdminQueueMonitor = () => {
                     />
 
                     <div className="flex flex-col lg:flex-row lg:items-center gap-3 pl-4 pr-3.5 py-3">
-                      <div className="flex items-center gap-2.5 min-w-0 lg:w-[200px] shrink-0">
+                      <div className="flex items-center gap-2.5 min-w-0 lg:w-50 shrink-0">
                         <div
                           className="relative w-8 h-8 rounded-md flex items-center justify-center shrink-0"
                           style={{ background: T.surfaceHi, color: offline ? T.textFaint : meta.fg }}
@@ -647,13 +647,13 @@ const AdminQueueMonitor = () => {
                           </span>
                         </td>
                         <td className="px-3 py-3">
-                          <span className="text-[11.5px] truncate block max-w-[200px]"
+                          <span className="text-[11.5px] truncate block max-w-50"
                             style={{ fontFamily: FONT.mono, color: T.textMuted }}>
                             {job.recipient}
                           </span>
                         </td>
                         <td className="px-3 py-3">
-                          <span className="text-[11.5px] truncate block max-w-[220px]"
+                          <span className="text-[11.5px] truncate block max-w-55"
                             style={{ fontFamily: FONT.mono, color: T.textMuted }}>
                             {job.sender}
                           </span>
@@ -700,7 +700,7 @@ const AdminQueueMonitor = () => {
                   <ChevronLeft size={12} />
                 </button>
                 <span
-                  className="min-w-[30px] rounded-md px-2.5 py-1.5 text-[11.5px] font-medium text-center"
+                  className="min-w-7.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium text-center"
                   style={{ background: T.brand, color: "#fff", fontFamily: FONT.mono }}
                 >
                   1

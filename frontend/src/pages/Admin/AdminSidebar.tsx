@@ -4,7 +4,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, BarChart3, Bell, Mail, FileText,
   Settings as SettingsIcon, Users, AtSign, ListOrdered,
-  Megaphone, ChevronRight, ShieldCheck, Activity, X,
+  Megaphone, ChevronRight, Activity, X,
   LogOut, Shield, UserCog, User as UserIcon, Loader2,
 } from "lucide-react";
 import { getProfile, logoutUser } from "../../services/AuthServices";
@@ -48,7 +48,6 @@ const FONT = {
   mono:    "'JetBrains Mono', ui-monospace, monospace",
 };
 
-const RING = `inset 0 0 0 1px ${T.border}`;
 
 /* ─────────────── helpers ─────────────── */
 
@@ -294,7 +293,7 @@ const ProfileMenu = ({ onClose, user, loadingUser }: ProfileMenuProps) => {
             key={label}
             role="menuitem"
             onClick={onClick}
-            className="group w-full flex items-center gap-2.5 rounded-md px-2 py-2 text-left text-[12.5px] transition-colors hover:bg-white/[0.03]"
+            className="group w-full flex items-center gap-2.5 rounded-md px-2 py-2 text-left text-[12.5px] transition-colors hover:bg-white/3"
             style={{ color: T.textMuted }}
             onMouseEnter={(e) => (e.currentTarget.style.color = T.text)}
             onMouseLeave={(e) => (e.currentTarget.style.color = T.textMuted)}
@@ -446,40 +445,6 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
         )}
       </div>
 
-      {/* ── Admin status card ── */}
-      <div
-        className="mx-3 mt-3 px-3 py-2.5 rounded-lg shrink-0"
-        style={{
-          background: T.brandSoft,
-          boxShadow: `inset 0 0 0 1px ${T.brandBorder}`,
-        }}
-      >
-        <div className="flex items-center gap-2 mb-1.5">
-          <div
-            className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
-            style={{ background: "rgba(99,102,241,0.18)", boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
-          >
-            <ShieldCheck size={12} style={{ color: T.brand }} />
-          </div>
-          <span className="text-[11px] font-semibold" style={{ color: T.brand }}>
-            {user?.role ? user.role : "Signed in"}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.success }} />
-            <span className="text-[10.5px]" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
-              online
-            </span>
-          </span>
-          <span className="text-[10.5px]" style={{ color: T.textFaint }}>·</span>
-          <span className="text-[10.5px]" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
-            12.4k sent
-          </span>
-        </div>
-      </div>
-
       {/* ── Nav ── */}
       <nav className="asb-nav flex-1 overflow-y-auto px-2 py-4 space-y-5">
         {navGroups.map((group) => (
@@ -551,8 +516,8 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
           <div className="flex-1 min-w-0">
             {loadingUser ? (
               <>
-                <div className="h-[10px] w-24 rounded animate-pulse" style={{ background: T.surfaceHi }} />
-                <div className="h-[9px] w-32 rounded animate-pulse mt-1.5" style={{ background: T.surfaceHi }} />
+                <div className="h-2.5 w-24 rounded animate-pulse" style={{ background: T.surfaceHi }} />
+                <div className="h-2.25 w-32 rounded animate-pulse mt-1.5" style={{ background: T.surfaceHi }} />
               </>
             ) : (
               <>

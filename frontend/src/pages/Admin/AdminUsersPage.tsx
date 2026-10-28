@@ -170,7 +170,7 @@ const StatPill: React.FC<{
   <button
     type="button"
     onClick={onClick}
-    className="group text-left rounded-lg p-4 transition-colors hover:bg-white/[0.02]"
+    className="group text-left rounded-lg p-4 transition-colors hover:bg-white/2"
     style={{
       background: T.surface,
       boxShadow: active ? `inset 0 0 0 1.5px ${accentBorder}` : `inset 0 0 0 1px ${T.border}`,
@@ -625,7 +625,7 @@ const AdminUsers = () => {
                         }}
                         title={d}
                       >
-                        <span className="inline-flex flex-col gap-[3px]">
+                        <span className="inline-flex flex-col gap-0.75">
                           <span className="w-3 h-px" style={{ background: "currentColor" }} />
                           <span className="w-3 h-px" style={{ background: "currentColor" }} />
                           <span className="w-3 h-px" style={{ background: "currentColor" }} />
@@ -667,7 +667,7 @@ const AdminUsers = () => {
               <table className="w-full text-left" style={{ minWidth: 720 }}>
                 <thead>
                   <tr className="text-[10px] uppercase tracking-widest" style={{ color: T.textFaint, borderBottom: `1px solid ${T.borderSoft}` }}>
-                    <th className="w-[46px] px-4 md:px-5 py-2.5" scope="col">
+                    <th className="w-11.5 px-4 md:px-5 py-2.5" scope="col">
                       <button
                         onClick={toggleAllVisible}
                         aria-label={allVisibleSelected ? "Deselect all visible" : "Select all visible"}
@@ -679,9 +679,9 @@ const AdminUsers = () => {
                     </th>
                     <SortHeader field="username"   label="User"   sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
                     <SortHeader field="email"      label="Email"  sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
-                    <th className="px-3 py-2.5 font-medium w-[130px]" scope="col">Role</th>
+                    <th className="px-3 py-2.5 font-medium w-32.5" scope="col">Role</th>
                     <SortHeader field="created_at" label="Joined" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} align="right" />
-                    <th className="w-[90px] px-4 md:px-5 py-2.5" scope="col"><span className="sr-only">Actions</span></th>
+                    <th className="w-22.5 px-4 md:px-5 py-2.5" scope="col"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
 
@@ -798,7 +798,7 @@ const AdminUsers = () => {
                         <td className={`px-3 ${d.cell}`}>
                           <div className="flex items-center gap-2 min-w-0">
                             <Mail size={11} className="shrink-0" style={{ color: T.textFaint }} />
-                            <span className="text-[11.5px] truncate max-w-[240px]" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+                            <span className="text-[11.5px] truncate max-w-60" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
                               {u.email || "—"}
                             </span>
                           </div>
@@ -1020,13 +1020,13 @@ const UserDrawer: React.FC<{
   return (
     <>
       <div
-        className="fixed inset-0 z-[55] bg-black/60 lg:bg-black/40"
+        className="fixed inset-0 z-55 bg-black/60 lg:bg-black/40"
         onClick={onClose}
         aria-hidden
       />
       <aside
-        className="drawer-in fixed z-[56] inset-x-2 bottom-2 top-auto max-h-[85vh] rounded-2xl overflow-hidden
-                   lg:inset-y-4 lg:right-4 lg:left-auto lg:bottom-4 lg:top-4 lg:w-[400px] lg:max-h-none"
+        className="drawer-in fixed z-56 inset-x-2 bottom-2 top-auto max-h-[85vh] rounded-2xl overflow-hidden
+                   lg:inset-y-4 lg:right-4 lg:left-auto lg:bottom-4 lg:top-4 lg:w-100 lg:max-h-none"
         style={{
           background: T.surface,
           boxShadow: `inset 0 0 0 1px ${T.border}, 0 30px 60px -20px rgba(0,0,0,0.8)`,
@@ -1178,7 +1178,7 @@ const EditUserModal: React.FC<{
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      className="fixed inset-0 z-60 flex items-center justify-center p-4"
       onClick={onClose}
       style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
     >
@@ -1325,7 +1325,7 @@ const DeleteUserModal: React.FC<{
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      className="fixed inset-0 z-60 flex items-center justify-center p-4"
       onClick={onClose}
       style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
     >
@@ -1417,7 +1417,7 @@ const BulkDeleteModal: React.FC<{
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      className="fixed inset-0 z-60 flex items-center justify-center p-4"
       onClick={onClose}
       style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
     >
@@ -1504,7 +1504,7 @@ const PageNum: React.FC<{ children: React.ReactNode; active?: boolean; onClick: 
   <button
     onClick={onClick}
     aria-current={active ? "page" : undefined}
-    className="min-w-[30px] rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors"
+    className="min-w-7.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors"
     style={{
       background: active ? T.brand : "transparent",
       color: active ? "#fff" : T.textMuted,

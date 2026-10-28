@@ -16,47 +16,58 @@ export default function NotFound() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
+        /* ---------- animation primitives ---------- */
+
         @keyframes ping {
-          75%, 100% { transform: scale(2.2); opacity: 0; }
+          0%        { transform: scale(1);   opacity: 0.75; }
+          75%, 100% { transform: scale(2.2); opacity: 0;    }
         }
         .ping { animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite; }
 
-        @keyframes floatIn {
-          from { opacity: 0; transform: translateY(10px) scale(0.98); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
+        @keyframes pulseRing {
+          0%   { transform: scale(1);   opacity: 0.65; }
+          100% { transform: scale(2.4); opacity: 0;    }
         }
-        .float-in { animation: floatIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+        .pulse-ring { animation: pulseRing 2.4s ease-out infinite; }
 
         @keyframes drift {
-          0%   { transform: translate(0, 0) rotate(0deg); }
+          0%   { transform: translate(0, 0)      rotate(0deg);   }
           33%  { transform: translate(3px, -4px) rotate(1.5deg); }
-          66%  { transform: translate(-2px, 2px) rotate(-1deg); }
-          100% { transform: translate(0, 0) rotate(0deg); }
+          66%  { transform: translate(-2px, 2px) rotate(-1deg);  }
+          100% { transform: translate(0, 0)      rotate(0deg);   }
         }
         .drift { animation: drift 7s ease-in-out infinite; }
 
         @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
+          0%   { background-position: -200% 0; }
+          100% { background-position:  200% 0; }
         }
         .shimmer {
-          background: linear-gradient(90deg, transparent 0%, rgba(255,106,57,0.1) 50%, transparent 100%);
+          background: linear-gradient(90deg, transparent 0%, rgba(255,106,57,0.16) 50%, transparent 100%);
           background-size: 200% 100%;
-          animation: shimmer 3s ease-in-out infinite;
+          animation: shimmer 3.5s ease-in-out infinite;
         }
 
-        @keyframes pulseRing {
-          0% { transform: scale(1); opacity: 0.6; }
-          100% { transform: scale(2.6); opacity: 0; }
+        @keyframes floatIn {
+          from { opacity: 0; transform: translateY(10px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0)   scale(1);    }
         }
-        .pulse-ring { animation: pulseRing 2.5s ease-out infinite; }
+        .float-in { animation: floatIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 
-        .soft-ring { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), 0 1px 0 rgba(255,255,255,0.03); }
+        /* ---------- surface treatment ---------- */
+
+        .soft-ring {
+          box-shadow:
+            inset 0 0 0 1px rgba(255,255,255,0.05),
+            0 1px 0 rgba(255,255,255,0.03);
+        }
 
         .glass {
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
         }
+
+        /* ---------- reduced motion ---------- */
 
         @media (prefers-reduced-motion: reduce) {
           .ping, .float-in, .drift, .shimmer, .pulse-ring { animation: none !important; }
@@ -125,29 +136,42 @@ export default function NotFound() {
           className="rounded-2xl p-6 text-center soft-ring glass relative overflow-hidden"
           style={{ background: "linear-gradient(180deg, rgba(20,24,33,0.95) 0%, rgba(14,18,26,0.98) 100%)" }}
         >
+          {/* Shimmer top edge */}
           <div className="absolute top-0 left-0 right-0 h-px shimmer" />
 
           {/* Icon plate */}
           <div className="mx-auto mb-5 relative w-16 h-16">
+            {/* halo rings */}
             <div
               className="absolute inset-0 rounded-full"
-              style={{ boxShadow: "inset 0 0 0 1px rgba(255,106,57,0.12)" }}
+              style={{ boxShadow: "inset 0 0 0 1px rgba(255,106,57,0.14)" }}
             />
             <div
               className="absolute -inset-2.5 rounded-full"
               style={{ boxShadow: "inset 0 0 0 1px rgba(255,106,57,0.06)" }}
             />
+
+            {/* drifting plate */}
             <div
               className="drift w-full h-full mx-auto rounded-2xl flex items-center justify-center relative"
               style={{
                 background: "linear-gradient(135deg, rgba(255,106,57,0.25), rgba(255,106,57,0.05))",
-                boxShadow: "inset 0 0 0 1px rgba(255,106,57,0.3), 0 16px 32px -16px rgba(255,106,57,0.6)",
+                boxShadow:
+                  "inset 0 0 0 1px rgba(255,106,57,0.32), 0 16px 32px -16px rgba(255,106,57,0.6)",
               }}
             >
               <MailX className="w-6 h-6" style={{ color: "#FF6A39" }} strokeWidth={1.7} />
-              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full" style={{ background: "#FF6A39" }}>
+
+              {/* pulse dot — anchored inside the plate's top-right corner */}
+              <span
+                className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full"
+                style={{ background: "#FF6A39" }}
+              >
                 <span className="absolute inset-0 rounded-full ping" style={{ background: "#FF6A39" }} />
-                <span className="absolute inset-0 rounded-full pulse-ring" style={{ boxShadow: "0 0 0 1px #FF6A39" }} />
+                <span
+                  className="absolute inset-0 rounded-full pulse-ring"
+                  style={{ boxShadow: "0 0 0 1px #FF6A39" }}
+                />
               </span>
             </div>
           </div>
@@ -159,7 +183,7 @@ export default function NotFound() {
               style={{
                 background: "rgba(255,106,57,0.08)",
                 color: "#FF8A5C",
-                boxShadow: "inset 0 0 0 1px rgba(255,106,57,0.18)",
+                boxShadow: "inset 0 0 0 1px rgba(255,106,57,0.2)",
               }}
             >
               <Search size={10} />

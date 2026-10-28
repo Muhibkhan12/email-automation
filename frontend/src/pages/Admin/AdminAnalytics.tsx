@@ -833,7 +833,7 @@ const AdminAnalytics = () => {
                           ? { fg: T.warn,    bg: T.warnSoft,    ring: T.warnBorder,    label: "Medium" }
                           : { fg: T.danger,  bg: T.dangerSoft,  ring: T.dangerBorder,  label: "Low" };
                       return (
-                        <tr key={w.name} className="transition-colors hover:bg-white/[0.02]"
+                        <tr key={w.name} className="transition-colors hover:bg-white/2"
                           style={{ borderTop: `1px solid ${T.borderSoft}` }}>
                           <td className="px-4 md:px-5 py-3">
                             <div className="flex items-center gap-2.5 min-w-0">
