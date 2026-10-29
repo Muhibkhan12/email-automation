@@ -27,12 +27,11 @@ class Campaign(Base):
     subject: Mapped[str] = mapped_column(String(255), nullable=False)
 
     template_id: Mapped[int] = mapped_column(
-        ForeignKey("html_templates.id", ondelete="RESTRICT"), nullable=False
+        ForeignKey("html_templates.id", ondelete="RESTRICT"), nullable=True
     )
     sender_account_id: Mapped[int] = mapped_column(
-        ForeignKey("sender_accounts.id", ondelete="RESTRICT"), nullable=False
+        ForeignKey("sender_accounts.id", ondelete="RESTRICT"), nullable=True
     )
-
     # Progress counters
     recipient_count: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"
@@ -43,13 +42,11 @@ class Campaign(Base):
     failed_count: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"
     )
-
     status: Mapped[CampaignStatus] = mapped_column(
         SqlEnum(CampaignStatus),
         default=CampaignStatus.DRAFT,
         nullable=False,
     )
-
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC)
     )
@@ -58,7 +55,6 @@ class Campaign(Base):
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC),
     )
-
     # Relationships
     template = relationship("HTMLTemplate", back_populates="campaigns")
     user = relationship("User", back_populates="campaigns")
