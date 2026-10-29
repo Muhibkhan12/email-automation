@@ -2,9 +2,9 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pathlib import Path
 
-from services.user import GetCurrentUser
 from models.upload_file import Upload
 from schema.upload_file import UploadFileSchema
+from models.campaign_recipients import CampaignRecipient
 import os
 
 
@@ -52,14 +52,19 @@ def get_upload_by_campaign(
 
 def delete_upload_file(
     db: Session,
-    upload_file_id: int
+    upload_file_id: int,
+    user_id: int,
 ):
-    upload = db.get(Upload, upload_file_id)
+    upload = (
+        db.query(Upload)
+        .filter(Upload.id == upload_file_id, Upload.user_id == user_id)
+        .first()
+    )
 
     if upload is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Upload not found."
+            detail="Upload file not found",
         )
 
     file_path = (STORAGE_DIR / upload.file_path).resolve()
@@ -68,10 +73,15 @@ def delete_upload_file(
     if not file_path.is_relative_to(STORAGE_DIR):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid file path."
+            detail="Invalid file path.",
         )
 
     try:
+        # Recipients (aur unke logs) rakhne hain, bas upload se alag karna hai
+        db.query(CampaignRecipient).filter(
+            CampaignRecipient.upload_id == upload_file_id
+        ).update({"upload_id": None}, synchronize_session=False)
+
         db.delete(upload)
         db.commit()
     except Exception:
@@ -81,12 +91,9 @@ def delete_upload_file(
     try:
         file_path.unlink(missing_ok=True)
     except OSError:
-        # Log this failure so the file can be cleaned up later.
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database record deleted, but file cleanup failed."
+            detail="Database record deleted, but file cleanup failed.",
         )
 
-    return {
-        "message": "Upload deleted successfully."
-    }
+    return {"message": "File deleted successfully"}

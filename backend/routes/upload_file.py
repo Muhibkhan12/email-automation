@@ -25,7 +25,7 @@ from services.validate_file import (
     save_file_to_storage,
 )
 
-from services.upload_file import add_upload_file
+from services.upload_file import add_upload_file, delete_upload_file
 
 campaign_upload_router = APIRouter(
     prefix="/campaigns",
@@ -153,30 +153,7 @@ def update_uploaded_file(
 @upload_file_crud.delete("/{id}")
 def delete_uploaded_file(
     id: int,
-    credentials: DeleteFileSchema,
     db: Session = Depends(get_db),
     current_user = Depends(GetCurrentUser),
 ):
-    data = (
-        db.query(Upload)
-        .filter(Upload.id == id, Upload.user_id == current_user.id)
-        .first()
-    )
-
-    if not data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Upload file not found",
-        )
-
-    try:
-        db.delete(data)
-        db.commit()
-
-    except Exception:
-        db.rollback()
-        raise
-
-    return {
-        "message": "File deleted successfully",
-    }
+    return delete_upload_file(db, id, current_user.id)

@@ -12,7 +12,7 @@ import { useHtmlTemplates } from "../../contexts/HtmlTemplatesContext";
 import {
   Building2, Users, Send, ArrowUpRight, ArrowDownRight,
   ShieldCheck, ShieldAlert, ShieldX, Activity, AlertTriangle,
-  CheckCircle2, ExternalLink, Menu,
+  CheckCircle2, Menu,
   ChevronRight, TrendingUp, Mail,
   RefreshCw, Inbox, Crown, ArrowRight,
 } from "lucide-react";

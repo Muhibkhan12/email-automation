@@ -63,7 +63,6 @@ const navGroups = [
     label: 'Delivery',
     items: [
       { name: 'Email Logs',     path: '/user/emaillogs',      icon: Mail },
-      { name: 'Queue Monitor',  path: '/user/queuemonitor',   icon: ListOrdered },
       { name: 'Sender Account', path: '/user/sender-account', icon: AtSign },
     ],
   },
