@@ -10,28 +10,38 @@ import {
 import { getProfile, logoutUser } from '../../services/AuthServices'
 import type { User } from '../../types/UserTypes'
 
-/* ─────────────── design tokens (aligned with app) ─────────────── */
+/* ─────────────── design tokens (aligned with UserDashboard) ─────────────── */
 const T = {
-  bg:          '#0A0B10',
-  panel:       '#0D0F15',
-  panelTop:    '#101219',
-  surface:     '#161922',
-  surfaceHi:   '#1B1F2A',
-  border:      '#232838',
-  borderSoft:  '#1B1F2A',
-  text:        '#E9EBF0',
-  textMuted:   '#9CA3B4',
-  textFaint:   '#6B7280',
-  brand:       '#6366F1',
-  brandSoft:   'rgba(99,102,241,0.12)',
-  brandBorder: 'rgba(99,102,241,0.35)',
-  success:     '#22C55E',
-  danger:      '#EF4444',
-  dangerSoft:  'rgba(239,68,68,0.12)',
-  dangerBorder:'rgba(239,68,68,0.32)',
+  // Sidebar gradient — navy family matching dashboard bg (#0B0D14)
+  panel:       '#101420',
+  panelTop:    '#141828',
+
+  // Surfaces — layered above the panel
+  surface:     '#1A1F2E',
+  surfaceHi:   '#222838',
+
+  // Borders — visible but restrained
+  border:      '#2E364A',
+  borderSoft:  '#232A3C',
+
+  // Text — bright, matching dashboard
+  text:        '#F2F4F8',
+  textMuted:   '#B6BECE',
+  textFaint:   '#8B93A7',
+
+  // Brand — brighter indigo
+  brand:       '#7C7FF2',
+  brandSoft:   'rgba(124,127,242,0.14)',
+  brandBorder: 'rgba(124,127,242,0.42)',
+
+  // Status
+  success:     '#34D399',
+  danger:      '#F87171',
+  dangerSoft:  'rgba(248,113,113,0.14)',
+  dangerBorder:'rgba(248,113,113,0.38)',
 }
 
-const FONT_MONO = "'JetBrains Mono', ui-monospace, monospace"
+const FONT_MONO = "'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace"
 
 /* ─────────────── helpers ─────────────── */
 const initialsOf = (name?: string) => {
@@ -104,7 +114,7 @@ const NavItem = ({ path, name, icon: Icon, onClose }: NavItemProps) => (
         <span
           className="relative shrink-0 w-6.5 h-6.5 rounded-md flex items-center justify-center transition-colors"
           style={{
-            background: isActive ? 'rgba(99,102,241,0.18)' : T.surface,
+            background: isActive ? 'rgba(124,127,242,0.20)' : T.surface,
             boxShadow: `inset 0 0 0 1px ${isActive ? T.brandBorder : T.borderSoft}`,
             color: isActive ? T.brand : T.textMuted,
           }}
@@ -343,8 +353,8 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
           style={{
-            background: `linear-gradient(135deg, ${T.brand}, #8B5CF6)`,
-            boxShadow: '0 4px 12px -4px rgba(99,102,241,0.6)',
+            background: `linear-gradient(135deg, ${T.brand}, #A78BFA)`,
+            boxShadow: '0 4px 14px -4px rgba(124,127,242,0.65)',
           }}
         >
           <span className="text-[13px] font-bold text-white">M</span>
@@ -445,7 +455,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
             )}
             <span
               className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
-              style={{ background: T.success, borderColor: T.panelTop }}
+              style={{ background: T.success, borderColor: T.panel }}
             />
           </div>
 
@@ -572,7 +582,7 @@ const SidebarWithMobile = () => {
       <div
         className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-3 py-2.5"
         style={{
-          background: 'rgba(13,15,21,0.85)',
+          background: 'rgba(16,20,32,0.85)',
           backdropFilter: 'blur(10px)',
           borderBottom: `1px solid ${T.borderSoft}`,
         }}
@@ -581,7 +591,7 @@ const SidebarWithMobile = () => {
         <div className="flex items-center gap-2 min-w-0">
           <div
             className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
-            style={{ background: `linear-gradient(135deg, ${T.brand}, #8B5CF6)` }}
+            style={{ background: `linear-gradient(135deg, ${T.brand}, #A78BFA)` }}
           >
             <span className="text-[10px] font-bold text-white">M</span>
           </div>

@@ -9,42 +9,57 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 
-/* ─────────────── design tokens ─────────────── */
+/* ─────────────── design tokens (aligned with UserDashboard) ─────────────── */
 
 const T = {
-  bg:          "#0A0B10",
-  surface:     "#111319",
-  surface2:    "#161922",
-  surfaceHi:   "#1B1F2A",
-  border:      "#232838",
-  borderSoft:  "#1B1F2A",
-  text:        "#E9EBF0",
-  textMuted:   "#9CA3B4",
-  textFaint:   "#6B7280",
-  brand:       "#6366F1",
-  brandSoft:   "rgba(99,102,241,0.12)",
-  brandBorder: "rgba(99,102,241,0.35)",
-  success:     "#22C55E",
-  successSoft: "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:        "#F59E0B",
-  warnSoft:    "rgba(245,158,11,0.12)",
-  warnBorder:  "rgba(245,158,11,0.35)",
-  danger:      "#EF4444",
-  dangerSoft:  "rgba(239,68,68,0.12)",
-  dangerBorder:"rgba(239,68,68,0.35)",
-  info:        "#38BDF8",
-  infoSoft:    "rgba(56,189,248,0.12)",
-  infoBorder:  "rgba(56,189,248,0.35)",
-  purple:      "#A78BFA",
-  purpleSoft:  "rgba(167,139,250,0.12)",
-  purpleBorder:"rgba(167,139,250,0.35)",
+  // Canvas — navy family matching dashboard
+  bg:          "#0B0D14",
+
+  // Surfaces — layered above canvas
+  surface:     "#131722",
+  surface2:    "#1A1F2E",
+  surfaceHi:   "#222838",
+
+  // Borders — visible but restrained
+  border:      "#2E364A",
+  borderSoft:  "#232A3C",
+
+  // Text — brighter, matching dashboard
+  text:        "#F2F4F8",
+  textMuted:   "#B6BECE",
+  textFaint:   "#8B93A7",
+
+  // Brand — brighter indigo
+  brand:       "#7C7FF2",
+  brandSoft:   "rgba(124,127,242,0.14)",
+  brandBorder: "rgba(124,127,242,0.42)",
+
+  // Status — brighter, more legible
+  success:      "#34D399",
+  successSoft:  "rgba(52,211,153,0.14)",
+  successBorder:"rgba(52,211,153,0.42)",
+
+  warn:         "#FBBF24",
+  warnSoft:     "rgba(251,191,36,0.14)",
+  warnBorder:   "rgba(251,191,36,0.42)",
+
+  danger:       "#F87171",
+  dangerSoft:   "rgba(248,113,113,0.14)",
+  dangerBorder: "rgba(248,113,113,0.42)",
+
+  info:         "#38BDF8",
+  infoSoft:     "rgba(56,189,248,0.14)",
+  infoBorder:   "rgba(56,189,248,0.42)",
+
+  purple:       "#C4B5FD",
+  purpleSoft:   "rgba(196,181,253,0.14)",
+  purpleBorder: "rgba(196,181,253,0.42)",
 }
 
 const FONT = {
   display: "'Inter', system-ui, -apple-system, sans-serif",
   body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
+  mono:    "'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace",
 }
 
 const RING = `inset 0 0 0 1px ${T.border}`
@@ -166,7 +181,7 @@ const Analytics = () => {
   return (
     <div className="flex min-h-screen" style={{ background: T.bg, fontFamily: FONT.body }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
         .an-main::-webkit-scrollbar { width: 8px; }
         .an-main::-webkit-scrollbar-track { background: transparent; }
@@ -339,7 +354,7 @@ const Analytics = () => {
                         className="mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-medium"
                         style={{
                           fontFamily: FONT.mono,
-                          background: dropFromPrev ? T.dangerSoft : "rgba(156,163,180,0.12)",
+                          background: dropFromPrev ? T.dangerSoft : "rgba(139,147,167,0.14)",
                           color: dropFromPrev ? T.danger : T.textMuted,
                         }}
                       >
@@ -380,11 +395,11 @@ const Analytics = () => {
                   <AreaChart data={activity} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="fillSentA" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={T.textMuted} stopOpacity={0.18} />
+                        <stop offset="0%" stopColor={T.textMuted} stopOpacity={0.20} />
                         <stop offset="100%" stopColor={T.textMuted} stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="fillOpenedA" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={T.brand} stopOpacity={0.28} />
+                        <stop offset="0%" stopColor={T.brand} stopOpacity={0.32} />
                         <stop offset="100%" stopColor={T.brand} stopOpacity={0} />
                       </linearGradient>
                     </defs>

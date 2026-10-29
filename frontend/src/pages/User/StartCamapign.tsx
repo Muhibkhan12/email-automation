@@ -27,48 +27,74 @@ import {
   type CampaignProgressDTO,
 } from "../../services/WorkerService";
 
-/* ───────── tokens (unchanged) ───────── */
+/* ───────── tokens (aligned with UserDashboard / Sidebar / Analytics) ───────── */
 const T = {
-  bg: "#0A0B10", surface: "#111319", surface2: "#161922", surfaceHi: "#1B1F2A",
-  border: "#232838", borderSoft: "#1B1F2A", text: "#E9EBF0",
-  textMuted: "#9CA3B4", textFaint: "#6B7280",
-  brand: "#6366F1", brandSoft: "rgba(99,102,241,0.12)", brandBorder: "rgba(99,102,241,0.35)",
-  success: "#22C55E", successSoft: "rgba(34,197,94,0.12)",
-  warn: "#F59E0B", warnSoft: "rgba(245,158,11,0.12)",
-  danger: "#EF4444", dangerSoft: "rgba(239,68,68,0.12)",
-  info: "#38BDF8", purple: "#A78BFA",
+  bg:        "#0B0D14",
+  surface:   "#131722",
+  surface2:  "#1A1F2E",
+  surfaceHi: "#222838",
+
+  border:    "#2E364A",
+  borderSoft:"#232A3C",
+
+  text:      "#F2F4F8",
+  textMuted: "#B6BECE",
+  textFaint: "#8B93A7",
+
+  brand:       "#7C7FF2",
+  brandSoft:   "rgba(124,127,242,0.14)",
+  brandBorder: "rgba(124,127,242,0.42)",
+
+  success:      "#34D399",
+  successSoft:  "rgba(52,211,153,0.14)",
+  successBorder:"rgba(52,211,153,0.42)",
+
+  warn:         "#FBBF24",
+  warnSoft:     "rgba(251,191,36,0.14)",
+  warnBorder:   "rgba(251,191,36,0.42)",
+
+  danger:       "#F87171",
+  dangerSoft:   "rgba(248,113,113,0.14)",
+  dangerBorder: "rgba(248,113,113,0.42)",
+
+  info:         "#38BDF8",
+  infoSoft:     "rgba(56,189,248,0.14)",
+  infoBorder:   "rgba(56,189,248,0.42)",
+
+  purple:       "#C4B5FD",
+  purpleSoft:   "rgba(196,181,253,0.14)",
+  purpleBorder: "rgba(196,181,253,0.42)",
 };
 const FONT = {
   display: "'Inter', system-ui, -apple-system, sans-serif",
-  body: "'Inter', system-ui, -apple-system, sans-serif",
-  mono: "'JetBrains Mono', ui-monospace, monospace",
+  body:    "'Inter', system-ui, -apple-system, sans-serif",
+  mono:    "'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace",
 };
 const RING = `inset 0 0 0 1px ${T.border}`;
 const CARD: React.CSSProperties = { background: T.surface, boxShadow: RING };
 
-/* Backend only emits these; "Scheduled" never comes from the server. */
 type Status = "Draft" | "Ready" | "Running" | "Paused" | "Completed" | "Failed" | "Cancelled";
 
 const STATUS_TONE: Record<Status, { color: string; soft: string }> = {
-  Draft: { color: T.textMuted, soft: "rgba(156,163,180,0.10)" },
-  Ready: { color: T.brand, soft: T.brandSoft },
-  Running: { color: T.info, soft: "rgba(56,189,248,0.12)" },
-  Paused: { color: T.warn, soft: T.warnSoft },
-  Completed: { color: T.success, soft: T.successSoft },
-  Failed: { color: T.danger, soft: T.dangerSoft },
-  Cancelled: { color: T.danger, soft: T.dangerSoft },
+  Draft:     { color: T.textMuted, soft: "rgba(139,147,167,0.14)" },
+  Ready:     { color: T.brand,     soft: T.brandSoft },
+  Running:   { color: T.info,      soft: "rgba(56,189,248,0.14)" },
+  Paused:    { color: T.warn,      soft: T.warnSoft },
+  Completed: { color: T.success,   soft: T.successSoft },
+  Failed:    { color: T.danger,    soft: T.dangerSoft },
+  Cancelled: { color: T.danger,    soft: T.dangerSoft },
 };
 
 const STEPS = [
-  { label: "Details", sub: "Name & subject", icon: FileText },
-  { label: "Sender", sub: "Pick account", icon: Mail },
-  { label: "Template", sub: "Choose design", icon: LayoutTemplate },
-  { label: "Recipients", sub: "Upload list", icon: Users },
-  { label: "Review", sub: "Check & send", icon: ClipboardCheck },
+  { label: "Details",    sub: "Name & subject", icon: FileText },
+  { label: "Sender",     sub: "Pick account",   icon: Mail },
+  { label: "Template",   sub: "Choose design",  icon: LayoutTemplate },
+  { label: "Recipients", sub: "Upload list",    icon: Users },
+  { label: "Review",     sub: "Check & send",   icon: ClipboardCheck },
 ];
 
 /* ───────── helpers ───────── */
-const tplId = (t: any): string => String(t?.id ?? t?._id ?? "");
+const tplId   = (t: any): string => String(t?.id ?? t?._id ?? "");
 const tplName = (t: any): string => t?.name ?? t?.title ?? t?.template_name ?? "Untitled template";
 const tplDesc = (t: any): string => t?.description ?? t?.desc ?? t?.subject ?? "";
 const tplHtml = (t: any): string => t?.html ?? t?.html_content ?? t?.content ?? t?.body ?? "";
@@ -96,7 +122,7 @@ const fmt = (iso: string | null | undefined) => {
   return d ? d.toLocaleString() : "—";
 };
 
-/* ───────── primitives (unchanged) ───────── */
+/* ───────── primitives ───────── */
 const Btn: React.FC<{
   variant?: "primary" | "ghost" | "danger" | "subtle";
   size?: "sm" | "md";
@@ -105,10 +131,10 @@ const Btn: React.FC<{
   children: React.ReactNode;
 }> = ({ variant = "ghost", size = "md", onClick, disabled, children }) => {
   const styles: Record<string, React.CSSProperties> = {
-    primary: { background: T.brand, color: "#fff", boxShadow: "0 1px 0 rgba(255,255,255,0.06) inset, 0 6px 18px -8px rgba(99,102,241,0.6)" },
-    ghost: { background: T.surface2, color: T.text, boxShadow: `inset 0 0 0 1px ${T.border}` },
-    subtle: { background: "transparent", color: T.textMuted },
-    danger: { background: T.dangerSoft, color: "#FCA5A5", boxShadow: `inset 0 0 0 1px rgba(239,68,68,0.35)` },
+    primary: { background: T.brand, color: "#fff", boxShadow: "0 1px 0 rgba(255,255,255,0.08) inset, 0 6px 20px -8px rgba(124,127,242,0.7)" },
+    ghost:   { background: T.surface2, color: T.text, boxShadow: `inset 0 0 0 1px ${T.border}` },
+    subtle:  { background: "transparent", color: T.textMuted },
+    danger:  { background: T.dangerSoft, color: "#FCA5A5", boxShadow: `inset 0 0 0 1px rgba(248,113,113,0.4)` },
   };
   return (
     <button onClick={onClick} disabled={disabled}
@@ -154,10 +180,10 @@ const Head = ({ title, sub }: { title: string; sub: string }) => (
 );
 const Notice = ({ tone, children }: { tone: "error" | "warn" | "info" | "success"; children: React.ReactNode }) => {
   const map = {
-    error: { c: T.danger, soft: T.dangerSoft, border: "rgba(239,68,68,0.28)" },
-    warn: { c: T.warn, soft: T.warnSoft, border: "rgba(245,158,11,0.28)" },
-    info: { c: T.info, soft: "rgba(56,189,248,0.10)", border: "rgba(56,189,248,0.28)" },
-    success: { c: T.success, soft: T.successSoft, border: "rgba(34,197,94,0.28)" },
+    error:   { c: T.danger,  soft: T.dangerSoft,  border: "rgba(248,113,113,0.32)" },
+    warn:    { c: T.warn,    soft: T.warnSoft,    border: "rgba(251,191,36,0.32)" },
+    info:    { c: T.info,    soft: T.infoSoft,    border: "rgba(56,189,248,0.32)" },
+    success: { c: T.success, soft: T.successSoft, border: "rgba(52,211,153,0.32)" },
   }[tone];
   return (
     <div className="flex items-start gap-2.5 rounded-lg px-3.5 py-3"
@@ -239,7 +265,6 @@ const CampaignCreatePage = () => {
   const [submitError, setSubmitError] = useState("");
   const [actionError, setActionError] = useState("");
   const [run, setRun] = useState({ sent: 0, failed: 0, total: 0 });
-  /** Live server-side scheduling info from /worker/progress */
   const [live, setLive] = useState<CampaignProgressDTO | null>(null);
 
   const fileRef = useRef<HTMLInputElement>(null);
@@ -281,7 +306,6 @@ const CampaignCreatePage = () => {
     if (status === "Draft" || status === "Ready") setStatus(ready ? "Ready" : "Draft");
   }, [ready, status]);
 
-  /** Merge a progress payload into local state. */
   const applyProgress = (p: CampaignProgressDTO) => {
     setLive(p);
     setRun({
@@ -293,7 +317,6 @@ const CampaignCreatePage = () => {
     if (next) setStatus(next);
   };
 
-  /** Poll /worker/progress while running/paused. */
   useEffect(() => {
     if (!campaignId || !["Running", "Paused"].includes(status)) return;
     let stop = false;
@@ -309,7 +332,6 @@ const CampaignCreatePage = () => {
     // eslint-disable-next-line
   }, [campaignId, status]);
 
-  /* ─── file load (unchanged) ─── */
   const loadFile = async (file?: File) => {
     if (!file) return;
     const token = ++loadTokenRef.current;
@@ -350,7 +372,6 @@ const CampaignCreatePage = () => {
     ready,
   ][step];
 
-  /* ─── launch ─── */
   const launch = async () => {
     if (!sender || !template || uploadId === null) return;
     const userId = auth?.user?.user_id ?? currentUserId;
@@ -381,12 +402,10 @@ const CampaignCreatePage = () => {
         setRun({ sent: 0, failed: 0, total });
       }
 
-      // Backend always starts immediately and schedules random gaps server-side.
       await startCampaign(id, uploadId);
       setStatus("Running");
       setConfirmOpen(false);
       fetchSenders?.();
-      // Fetch initial progress right away so the UI shows the next send time.
       try {
         const p = await getCampaignProgress(id);
         applyProgress(p);
@@ -398,7 +417,6 @@ const CampaignCreatePage = () => {
     }
   };
 
-  /* ─── actions ─── */
   const act = async (fn: (id: number) => Promise<CampaignDTO>, fallback: Status) => {
     if (!campaignId) return;
     setActionError("");
@@ -428,18 +446,17 @@ const CampaignCreatePage = () => {
   const tone = STATUS_TONE[status];
 
   const summaryItems = [
-    { label: "Details", icon: FileText, done: !!name.trim() && !!subject.trim(), value: name.trim() || "Not set yet" },
-    { label: "Sender", icon: Mail, done: !!sender, value: sender?.email ?? "Not selected" },
-    { label: "Template", icon: LayoutTemplate, done: !!template, value: template ? tplName(template) : "Not selected" },
-    { label: "Recipients", icon: Users, done: total > 0 && uploaded, value: total ? `${total.toLocaleString()} valid emails` : "No file uploaded" },
+    { label: "Details",    icon: FileText,       done: !!name.trim() && !!subject.trim(), value: name.trim() || "Not set yet" },
+    { label: "Sender",     icon: Mail,           done: !!sender, value: sender?.email ?? "Not selected" },
+    { label: "Template",   icon: LayoutTemplate, done: !!template, value: template ? tplName(template) : "Not selected" },
+    { label: "Recipients", icon: Users,          done: total > 0 && uploaded, value: total ? `${total.toLocaleString()} valid emails` : "No file uploaded" },
   ];
   const completion = Math.round((summaryItems.filter((s) => s.done).length / summaryItems.length) * 100);
 
-  /* ───────── render ───────── */
   return (
     <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: T.bg }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
         .cm-input { width:100%; border-radius:8px; padding:10px 14px; font-size:13.5px; outline:none;
           background:${T.surface2}; color:${T.text}; box-shadow: inset 0 0 0 1px ${T.border};
           transition: box-shadow .15s, background .15s; }
@@ -472,7 +489,7 @@ const CampaignCreatePage = () => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-medium"
-                  style={{ background: tone.soft, color: tone.color, boxShadow: `inset 0 0 0 1px ${tone.color}33` }}>
+                  style={{ background: tone.soft, color: tone.color, boxShadow: `inset 0 0 0 1px ${tone.color}40` }}>
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: tone.color }} />
                   {status}
                 </span>
@@ -491,7 +508,7 @@ const CampaignCreatePage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-6 items-start">
               <div className="min-w-0 space-y-5">
 
-                {/* Step rail (unchanged) */}
+                {/* Step rail */}
                 <div className="rounded-xl px-1.5 py-1.5 overflow-x-auto cm-scroll" style={{ background: T.surface, boxShadow: RING }}>
                   <div className="flex items-center gap-1 min-w-max sm:min-w-0">
                     {STEPS.map((s, i) => {
@@ -524,7 +541,6 @@ const CampaignCreatePage = () => {
                 </div>
 
                 <Card className="p-5 md:p-7 animate-in fade-in duration-200" key={step}>
-                  {/* Step 0: details (unchanged) */}
                   {step === 0 && (
                     <div className="space-y-6">
                       <Head title="Campaign details" sub="Start by naming your campaign and writing a subject." />
@@ -559,7 +575,6 @@ const CampaignCreatePage = () => {
                     </div>
                   )}
 
-                  {/* Step 1: sender (unchanged) */}
                   {step === 1 && (
                     <div className="space-y-5">
                       <Head title="Sender account" sub="Only connected accounts with capacity left today are shown." />
@@ -622,7 +637,6 @@ const CampaignCreatePage = () => {
                     </div>
                   )}
 
-                  {/* Step 2: template (unchanged) */}
                   {step === 2 && (
                     <div className="space-y-5">
                       <Head title="HTML template" sub="Pick the design for your email." />
@@ -648,7 +662,7 @@ const CampaignCreatePage = () => {
                                     boxShadow: sel ? `inset 0 0 0 1.5px ${T.brandBorder}` : `inset 0 0 0 1px ${T.borderSoft}`,
                                   }}>
                                   <span className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 text-[12px] font-semibold"
-                                    style={{ background: sel ? "rgba(99,102,241,0.2)" : T.surfaceHi, color: sel ? T.brand : T.textMuted }}>
+                                    style={{ background: sel ? "rgba(124,127,242,0.22)" : T.surfaceHi, color: sel ? T.brand : T.textMuted }}>
                                     {tplName(t).slice(0, 1).toUpperCase()}
                                   </span>
                                   <div className="min-w-0 flex-1">
@@ -663,9 +677,9 @@ const CampaignCreatePage = () => {
                           <div className="md:col-span-3 rounded-lg overflow-hidden flex flex-col"
                             style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.border}`, minHeight: 300 }}>
                             <div className="flex items-center gap-2 px-3.5 py-2 border-b" style={{ borderColor: T.borderSoft }}>
-                              <span className="w-2 h-2 rounded-full" style={{ background: "#EF4444", opacity: 0.6 }} />
-                              <span className="w-2 h-2 rounded-full" style={{ background: "#F59E0B", opacity: 0.6 }} />
-                              <span className="w-2 h-2 rounded-full" style={{ background: "#22C55E", opacity: 0.6 }} />
+                              <span className="w-2 h-2 rounded-full" style={{ background: "#F87171", opacity: 0.7 }} />
+                              <span className="w-2 h-2 rounded-full" style={{ background: "#FBBF24", opacity: 0.7 }} />
+                              <span className="w-2 h-2 rounded-full" style={{ background: "#34D399", opacity: 0.7 }} />
                               <span className="ml-2 text-[11px] truncate" style={{ color: T.textFaint }}>{template ? tplName(template) : "Preview"}</span>
                             </div>
                             {template ? (
@@ -689,7 +703,6 @@ const CampaignCreatePage = () => {
                     </div>
                   )}
 
-                  {/* Step 3: recipients (unchanged) */}
                   {step === 3 && (
                     <div className="space-y-6">
                       <Head title="Recipients" sub="Upload a CSV or Excel file with an “email” column." />
@@ -758,9 +771,9 @@ const CampaignCreatePage = () => {
                           {recipients && (
                             <>
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-                                <Stat label="Rows" value={recipients.total.toLocaleString()} />
-                                <Stat label="Valid" value={recipients.valid.toLocaleString()} tone={T.success} />
-                                <Stat label="Invalid" value={recipients.invalid.toLocaleString()} tone={recipients.invalid ? T.danger : T.text} />
+                                <Stat label="Rows"       value={recipients.total.toLocaleString()} />
+                                <Stat label="Valid"      value={recipients.valid.toLocaleString()} tone={T.success} />
+                                <Stat label="Invalid"    value={recipients.invalid.toLocaleString()} tone={recipients.invalid ? T.danger : T.text} />
                                 <Stat label="Duplicates" value={recipients.dupes.toLocaleString()} tone={recipients.dupes ? T.warn : T.text} />
                               </div>
                               {recipients.valid === 0 ? (
@@ -784,17 +797,16 @@ const CampaignCreatePage = () => {
                     </div>
                   )}
 
-                  {/* Step 4: review */}
                   {step === 4 && (
                     <div className="space-y-6">
                       <Head title="Review & start" sub="Check everything before sending." />
 
                       <div className="rounded-lg divide-y" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}`, borderColor: T.borderSoft }}>
                         {([
-                          ["Campaign", name || "—", FileText, 0],
-                          ["Subject", subject || "—", Type, 0],
-                          ["Sender", sender ? `${sender.display_name} <${sender.email}>` : "—", Mail, 1],
-                          ["Template", template ? tplName(template) : "—", LayoutTemplate, 2],
+                          ["Campaign",   name || "—", FileText, 0],
+                          ["Subject",    subject || "—", Type, 0],
+                          ["Sender",     sender ? `${sender.display_name} <${sender.email}>` : "—", Mail, 1],
+                          ["Template",   template ? tplName(template) : "—", LayoutTemplate, 2],
                           ["Recipients", total ? `${total.toLocaleString()} valid (${fileName})` : "—", Users, 3],
                         ] as const).map(([k, v, Icon, goto]) => (
                           <div key={k} className="flex items-center gap-3 px-3.5 py-3" style={{ borderColor: T.borderSoft }}>
@@ -825,7 +837,6 @@ const CampaignCreatePage = () => {
                         ))}
                       </div>
 
-                      {/* NEW: honest scheduling info — replaces the fake "Schedule later" toggle. */}
                       <div className="rounded-lg p-3.5" style={{ background: T.brandSoft, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}>
                         <div className="flex items-start gap-2.5">
                           <Timer size={15} style={{ color: T.brand }} className="mt-0.5 shrink-0" />
@@ -844,7 +855,7 @@ const CampaignCreatePage = () => {
                       <div className="flex items-center gap-2.5 rounded-lg px-3.5 py-3"
                         style={{
                           background: ready ? T.successSoft : T.dangerSoft,
-                          boxShadow: `inset 0 0 0 1px ${ready ? "rgba(34,197,94,0.28)" : "rgba(239,68,68,0.28)"}`,
+                          boxShadow: `inset 0 0 0 1px ${ready ? "rgba(52,211,153,0.32)" : "rgba(248,113,113,0.32)"}`,
                         }}>
                         {ready ? <CheckCircle2 size={15} style={{ color: T.success }} /> : <XCircle size={15} style={{ color: T.danger }} />}
                         <p className="text-[12.5px] font-medium" style={{ color: ready ? T.success : T.danger }}>
@@ -873,7 +884,6 @@ const CampaignCreatePage = () => {
                 </Card>
               </div>
 
-              {/* Sidebar summary (unchanged) */}
               <aside className="hidden lg:block sticky top-6 rounded-xl p-5" style={CARD}>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[13px] font-semibold" style={{ color: T.text }}>Summary</p>
@@ -911,7 +921,6 @@ const CampaignCreatePage = () => {
             </div>
           )}
 
-          {/* Non-editing status view */}
           {!editing && (
             <Card className="p-5 md:p-7 space-y-6 animate-in fade-in">
               <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8">
@@ -937,20 +946,19 @@ const CampaignCreatePage = () => {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
-                <Stat label="Total" value={shownTotal.toLocaleString()} />
-                <Stat label="Sent" value={run.sent.toLocaleString()} tone={T.success} />
-                <Stat label="Failed" value={run.failed.toLocaleString()} tone={run.failed ? T.danger : T.text} />
+                <Stat label="Total"   value={shownTotal.toLocaleString()} />
+                <Stat label="Sent"    value={run.sent.toLocaleString()} tone={T.success} />
+                <Stat label="Failed"  value={run.failed.toLocaleString()} tone={run.failed ? T.danger : T.text} />
                 <Stat label="Pending" value={(live?.pending ?? Math.max(0, shownTotal - done - (live?.queued ?? 0))).toLocaleString()} tone={T.info} />
-                <Stat label="Queued" value={(live?.queued ?? 0).toLocaleString()} tone={T.purple} />
+                <Stat label="Queued"  value={(live?.queued ?? 0).toLocaleString()} tone={T.purple} />
               </div>
 
-              {/* NEW: scheduling info from /worker/progress */}
               {(status === "Running" || status === "Paused") && live && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                   <div className="rounded-lg p-3.5 flex items-center gap-3"
                     style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
                     <span className="w-9 h-9 rounded-md flex items-center justify-center shrink-0"
-                      style={{ background: "rgba(56,189,248,0.12)", color: T.info }}><Timer size={15} /></span>
+                      style={{ background: T.infoSoft, color: T.info }}><Timer size={15} /></span>
                     <div className="min-w-0">
                       <p className="text-[10.5px] uppercase tracking-wide" style={{ color: T.textFaint }}>Next send</p>
                       <p className="text-[13px] font-medium truncate mt-0.5" style={{ color: T.text }}>
@@ -961,7 +969,7 @@ const CampaignCreatePage = () => {
                   <div className="rounded-lg p-3.5 flex items-center gap-3"
                     style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
                     <span className="w-9 h-9 rounded-md flex items-center justify-center shrink-0"
-                      style={{ background: "rgba(167,139,250,0.12)", color: T.purple }}><Hourglass size={15} /></span>
+                      style={{ background: T.purpleSoft, color: T.purple }}><Hourglass size={15} /></span>
                     <div className="min-w-0">
                       <p className="text-[10.5px] uppercase tracking-wide" style={{ color: T.textFaint }}>Estimated finish</p>
                       <p className="text-[13px] font-medium truncate mt-0.5" style={{ color: T.text }}>

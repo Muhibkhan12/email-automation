@@ -17,42 +17,50 @@ import {
   Filter, Sparkles,
 } from 'lucide-react';
 
-/* ─────────────── design tokens ─────────────── */
+/* ─────────────── design tokens (aligned with other pages) ─────────────── */
 
 const T = {
-  bg:          "#0A0B10",
-  surface:     "#111319",
-  surface2:    "#161922",
-  surfaceHi:   "#1B1F2A",
-  border:      "#232838",
-  borderSoft:  "#1B1F2A",
-  text:        "#E9EBF0",
-  textMuted:   "#9CA3B4",
-  textFaint:   "#6B7280",
-  brand:       "#6366F1",
-  brandSoft:   "rgba(99,102,241,0.12)",
-  brandBorder: "rgba(99,102,241,0.35)",
-  success:     "#22C55E",
-  successSoft: "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:        "#F59E0B",
-  warnSoft:    "rgba(245,158,11,0.12)",
-  warnBorder:  "rgba(245,158,11,0.35)",
-  danger:      "#EF4444",
-  dangerSoft:  "rgba(239,68,68,0.12)",
-  dangerBorder:"rgba(239,68,68,0.35)",
-  info:        "#38BDF8",
-  infoSoft:    "rgba(56,189,248,0.12)",
-  infoBorder:  "rgba(56,189,248,0.35)",
-  purple:      "#A78BFA",
-  purpleSoft:  "rgba(167,139,250,0.12)",
-  purpleBorder:"rgba(167,139,250,0.35)",
+  bg:        "#0B0D14",
+  surface:   "#131722",
+  surface2:  "#1A1F2E",
+  surfaceHi: "#222838",
+
+  border:    "#2E364A",
+  borderSoft:"#232A3C",
+
+  text:      "#F2F4F8",
+  textMuted: "#B6BECE",
+  textFaint: "#8B93A7",
+
+  brand:       "#7C7FF2",
+  brandSoft:   "rgba(124,127,242,0.14)",
+  brandBorder: "rgba(124,127,242,0.42)",
+
+  success:      "#34D399",
+  successSoft:  "rgba(52,211,153,0.14)",
+  successBorder:"rgba(52,211,153,0.42)",
+
+  warn:         "#FBBF24",
+  warnSoft:     "rgba(251,191,36,0.14)",
+  warnBorder:   "rgba(251,191,36,0.42)",
+
+  danger:       "#F87171",
+  dangerSoft:   "rgba(248,113,113,0.14)",
+  dangerBorder: "rgba(248,113,113,0.42)",
+
+  info:         "#38BDF8",
+  infoSoft:     "rgba(56,189,248,0.14)",
+  infoBorder:   "rgba(56,189,248,0.42)",
+
+  purple:       "#C4B5FD",
+  purpleSoft:   "rgba(196,181,253,0.14)",
+  purpleBorder: "rgba(196,181,253,0.42)",
 }
 
 const FONT = {
   display: "'Inter', system-ui, -apple-system, sans-serif",
   body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
+  mono:    "'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace",
 }
 
 const RING = `inset 0 0 0 1px ${T.border}`
@@ -65,7 +73,7 @@ type StatusStyle = {
 };
 
 const STATUS_STYLES: Record<CampaignStatus, StatusStyle> = {
-  DRAFT:     { bg: "rgba(156,163,180,0.12)", fg: T.textMuted, ring: "rgba(156,163,180,0.28)", label: "Draft",     Icon: FileEdit },
+  DRAFT:     { bg: "rgba(139,147,167,0.14)", fg: T.textMuted, ring: "rgba(139,147,167,0.32)", label: "Draft",     Icon: FileEdit },
   READY:     { bg: T.infoSoft,               fg: T.info,      ring: T.infoBorder,             label: "Ready",     Icon: Rocket },
   RUNNING:   { bg: T.successSoft,            fg: T.success,   ring: T.successBorder,          label: "Running",   Icon: Megaphone },
   PAUSED:    { bg: T.warnSoft,               fg: T.warn,      ring: T.warnBorder,             label: "Paused",    Icon: PauseCircle },
@@ -174,7 +182,7 @@ const UserCampaigns: React.FC = () => {
   return (
     <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: T.bg }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
         .uc-main::-webkit-scrollbar { width: 8px; }
         .uc-main::-webkit-scrollbar-track { background: transparent; }
@@ -249,7 +257,7 @@ const UserCampaigns: React.FC = () => {
               <button
                 onClick={() => setShowStartModal(true)}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium transition-all hover:brightness-110"
-                style={{ background: T.brand, color: "#fff", boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+                style={{ background: T.brand, color: "#fff", boxShadow: "0 6px 20px -8px rgba(124,127,242,0.7)" }}
               >
                 <Plus size={14} />
                 New campaign
@@ -322,7 +330,7 @@ const UserCampaigns: React.FC = () => {
             >
               <div
                 className="w-10 h-10 mx-auto mb-3 rounded-lg flex items-center justify-center"
-                style={{ background: "rgba(239,68,68,0.18)" }}
+                style={{ background: T.dangerSoft }}
               >
                 <AlertTriangle className="w-4 h-4" style={{ color: T.danger }} />
               </div>
@@ -394,13 +402,13 @@ const UserCampaigns: React.FC = () => {
                     <div
                       key={campaign.id}
                       onClick={() => setSelectedCampaign(campaign)}
-                      className="group relative flex items-center gap-3 p-3.5 rounded-lg cursor-pointer transition-all hover:bg-white/[0.02]"
+                      className="group relative flex items-center gap-3 p-3.5 rounded-lg cursor-pointer transition-all hover:bg-white/[0.03]"
                       style={{ background: T.surface, boxShadow: RING }}
                     >
                       {/* Accent strip */}
                       <span
                         className="absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full"
-                        style={{ background: s.fg, opacity: 0.7 }}
+                        style={{ background: s.fg, opacity: 0.75 }}
                       />
 
                       {/* Icon */}
@@ -435,7 +443,7 @@ const UserCampaigns: React.FC = () => {
                         <span className="text-[10.5px] whitespace-nowrap" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                           {relativeTime(campaign.updated_at)}
                         </span>
-                        <span className="text-[10px]" style={{ color: T.textFaint, fontFamily: FONT.mono, opacity: 0.6 }}>
+                        <span className="text-[10px]" style={{ color: T.textFaint, fontFamily: FONT.mono, opacity: 0.7 }}>
                           #{campaign.id}
                         </span>
                       </div>

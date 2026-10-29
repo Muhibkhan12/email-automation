@@ -19,39 +19,46 @@ interface NormalizedLog {
   sentAt: string;
 }
 
-/* ─────────────── design tokens ─────────────── */
+/* ─────────────── design tokens (aligned with other pages) ─────────────── */
 
 const T = {
-  bg:          "#0A0B10",
-  surface:     "#111319",
-  surface2:    "#161922",
-  surfaceHi:   "#1B1F2A",
-  border:      "#232838",
-  borderSoft:  "#1B1F2A",
-  text:        "#E9EBF0",
-  textMuted:   "#9CA3B4",
-  textFaint:   "#6B7280",
-  brand:       "#6366F1",
-  brandSoft:   "rgba(99,102,241,0.12)",
-  brandBorder: "rgba(99,102,241,0.35)",
-  success:     "#22C55E",
-  successSoft: "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:        "#F59E0B",
-  warnSoft:    "rgba(245,158,11,0.12)",
-  warnBorder:  "rgba(245,158,11,0.35)",
-  danger:      "#EF4444",
-  dangerSoft:  "rgba(239,68,68,0.12)",
-  dangerBorder:"rgba(239,68,68,0.35)",
-  info:        "#38BDF8",
-  infoSoft:    "rgba(56,189,248,0.12)",
-  infoBorder:  "rgba(56,189,248,0.35)",
+  bg:        "#0B0D14",
+  surface:   "#131722",
+  surface2:  "#1A1F2E",
+  surfaceHi: "#222838",
+
+  border:    "#2E364A",
+  borderSoft:"#232A3C",
+
+  text:      "#F2F4F8",
+  textMuted: "#B6BECE",
+  textFaint: "#8B93A7",
+
+  brand:       "#7C7FF2",
+  brandSoft:   "rgba(124,127,242,0.14)",
+  brandBorder: "rgba(124,127,242,0.42)",
+
+  success:      "#34D399",
+  successSoft:  "rgba(52,211,153,0.14)",
+  successBorder:"rgba(52,211,153,0.42)",
+
+  warn:         "#FBBF24",
+  warnSoft:     "rgba(251,191,36,0.14)",
+  warnBorder:   "rgba(251,191,36,0.42)",
+
+  danger:       "#F87171",
+  dangerSoft:   "rgba(248,113,113,0.14)",
+  dangerBorder: "rgba(248,113,113,0.42)",
+
+  info:         "#38BDF8",
+  infoSoft:     "rgba(56,189,248,0.14)",
+  infoBorder:   "rgba(56,189,248,0.42)",
 }
 
 const FONT = {
   display: "'Inter', system-ui, -apple-system, sans-serif",
   body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
+  mono:    "'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace",
 }
 
 const RING = `inset 0 0 0 1px ${T.border}`
@@ -215,7 +222,7 @@ const EmailLogs = () => {
   return (
     <div className="flex min-h-screen overflow-hidden" style={{ background: T.bg, fontFamily: FONT.body }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
         .el-main::-webkit-scrollbar { width: 8px; }
         .el-main::-webkit-scrollbar-track { background: transparent; }
         .el-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 8px; }
@@ -456,7 +463,7 @@ const EmailLogs = () => {
                       return (
                         <tr
                           key={log.id}
-                          className="transition-colors hover:bg-white/[0.02]"
+                          className="transition-colors hover:bg-white/[0.03]"
                           style={{ borderTop: `1px solid ${T.borderSoft}` }}
                         >
                           <td className="px-4 md:px-5 py-3">

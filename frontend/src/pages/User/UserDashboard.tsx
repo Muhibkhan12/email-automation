@@ -22,39 +22,54 @@ import {
 /* ─────────────── design tokens ─────────────── */
 
 const T = {
-  bg:          '#0A0B10',
-  surface:     '#111319',
-  surface2:    '#161922',
-  surfaceHi:   '#1B1F2A',
-  border:      '#232838',
-  borderSoft:  '#1B1F2A',
-  text:        '#E9EBF0',
-  textMuted:   '#9CA3B4',
-  textFaint:   '#6B7280',
-  brand:       '#6366F1',
-  brandSoft:   'rgba(99,102,241,0.12)',
-  brandBorder: 'rgba(99,102,241,0.35)',
-  success:     '#22C55E',
-  successSoft: 'rgba(34,197,94,0.12)',
-  successBorder:'rgba(34,197,94,0.35)',
-  warn:        '#F59E0B',
-  warnSoft:    'rgba(245,158,11,0.12)',
-  warnBorder:  'rgba(245,158,11,0.35)',
-  danger:      '#EF4444',
-  dangerSoft:  'rgba(239,68,68,0.12)',
-  dangerBorder:'rgba(239,68,68,0.35)',
-  purple:      '#A78BFA',
-  purpleSoft:  'rgba(167,139,250,0.12)',
-  purpleBorder:'rgba(167,139,250,0.35)',
-  info:        '#38BDF8',
-  infoSoft:    'rgba(56,189,248,0.12)',
-  infoBorder:  'rgba(56,189,248,0.35)',
+  // Canvas — deeper, navy-tinted so foreground colors pop
+  bg:          '#0B0D14',
+
+  // Surfaces — layered above the canvas for visible depth
+  surface:     '#131722',
+  surface2:    '#1A1F2E',
+  surfaceHi:   '#222838',
+
+  // Borders — visible but restrained
+  border:      '#2E364A',
+  borderSoft:  '#232A3C',
+
+  // Text — the whole point: brighter, but not harsh white
+  text:        '#F2F4F8',   // primary — near-white
+  textMuted:   '#B6BECE',   // secondary — clearly readable
+  textFaint:   '#8B93A7',   // tertiary — still legible, no longer ghost
+
+  // Brand — brighter indigo
+  brand:       '#7C7FF2',
+  brandSoft:   'rgba(124,127,242,0.14)',
+  brandBorder: 'rgba(124,127,242,0.42)',
+
+  // Status — brighter, more legible on dark navy
+  success:      '#34D399',
+  successSoft:  'rgba(52,211,153,0.14)',
+  successBorder:'rgba(52,211,153,0.42)',
+
+  warn:         '#FBBF24',
+  warnSoft:     'rgba(251,191,36,0.14)',
+  warnBorder:   'rgba(251,191,36,0.42)',
+
+  danger:       '#F87171',
+  dangerSoft:   'rgba(248,113,113,0.14)',
+  dangerBorder: 'rgba(248,113,113,0.42)',
+
+  purple:       '#C4B5FD',
+  purpleSoft:   'rgba(196,181,253,0.14)',
+  purpleBorder: 'rgba(196,181,253,0.42)',
+
+  info:         '#38BDF8',
+  infoSoft:     'rgba(56,189,248,0.14)',
+  infoBorder:   'rgba(56,189,248,0.42)',
 }
 
 const FONT = {
   display: "'Inter', system-ui, -apple-system, sans-serif",
   body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
+  mono:    "'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace",
 }
 
 const RING = `inset 0 0 0 1px ${T.border}`
@@ -89,18 +104,18 @@ const dayKey = (iso?: string | null) => {
 /* ─────────────── status maps ─────────────── */
 
 const CAMPAIGN_STATUS_STYLE: Record<string, { bg: string; fg: string; ring: string; label: string }> = {
-  Draft:     { bg: 'rgba(156,163,180,0.10)', fg: T.textMuted, ring: 'rgba(156,163,180,0.28)', label: 'Draft' },
-  Ready:     { bg: T.brandSoft,  fg: T.brand,  ring: T.brandBorder,  label: 'Ready' },
-  Running:   { bg: T.successSoft,fg: T.success,ring: T.successBorder,label: 'Running' },
-  Paused:    { bg: T.warnSoft,   fg: T.warn,   ring: T.warnBorder,   label: 'Paused' },
-  Completed: { bg: T.purpleSoft, fg: T.purple, ring: T.purpleBorder, label: 'Completed' },
-  Cancelled: { bg: T.dangerSoft, fg: T.danger, ring: T.dangerBorder, label: 'Cancelled' },
+  Draft:     { bg: 'rgba(139,147,167,0.14)', fg: T.textMuted, ring: 'rgba(139,147,167,0.32)', label: 'Draft' },
+  Ready:     { bg: T.brandSoft,   fg: T.brand,   ring: T.brandBorder,   label: 'Ready' },
+  Running:   { bg: T.successSoft, fg: T.success, ring: T.successBorder, label: 'Running' },
+  Paused:    { bg: T.warnSoft,    fg: T.warn,    ring: T.warnBorder,    label: 'Paused' },
+  Completed: { bg: T.purpleSoft,  fg: T.purple,  ring: T.purpleBorder,  label: 'Completed' },
+  Cancelled: { bg: T.dangerSoft,  fg: T.danger,  ring: T.dangerBorder,  label: 'Cancelled' },
 }
 
 const accountStatusMeta = {
-  Active:   { icon: ShieldCheck, fg: T.success, bg: T.successSoft, ring: T.successBorder },
-  Warning:  { icon: ShieldAlert, fg: T.warn,    bg: T.warnSoft,    ring: T.warnBorder },
-  Disabled: { icon: ShieldX,     fg: T.textMuted, bg: 'rgba(156,163,180,0.10)', ring: 'rgba(156,163,180,0.28)' },
+  Active:   { icon: ShieldCheck, fg: T.success,  bg: T.successSoft,               ring: T.successBorder },
+  Warning:  { icon: ShieldAlert, fg: T.warn,     bg: T.warnSoft,                  ring: T.warnBorder },
+  Disabled: { icon: ShieldX,     fg: T.textMuted,bg: 'rgba(139,147,167,0.14)',    ring: 'rgba(139,147,167,0.32)' },
 }
 
 const pulseDotColor = {
@@ -289,10 +304,10 @@ const UserDashboard: React.FC = () => {
   }, [senderAcc, myLogs])
 
   const statCards = [
-    { label: 'Emails sent',      value: formatNumber(stats.sent), delta: `${formatNumber(stats.total)} total events`, trend: 'up' as const,   icon: Send,         accent: T.brand,   accentSoft: T.brandSoft },
-    { label: 'Delivery rate',    value: `${stats.deliveryRate}%`, delta: stats.deliveryRate >= 95 ? 'healthy' : 'check failed', trend: stats.deliveryRate >= 95 ? ('up' as const) : ('down' as const), icon: CheckCircle2, accent: T.success, accentSoft: T.successSoft },
-    { label: 'Recipients reached', value: formatNumber(stats.totalRecipients), delta: `${myCampaigns.length} campaigns`, trend: 'up' as const, icon: Users, accent: T.info, accentSoft: T.infoSoft },
-    { label: 'Bounced / failed', value: formatNumber(stats.failed), delta: `${formatNumber(stats.pending)} pending`, trend: stats.failed === 0 ? ('up' as const) : ('down' as const), icon: XCircle, accent: T.danger, accentSoft: T.dangerSoft },
+    { label: 'Emails sent',        value: formatNumber(stats.sent),           delta: `${formatNumber(stats.total)} total events`, trend: 'up' as const,   icon: Send,         accent: T.brand,   accentSoft: T.brandSoft },
+    { label: 'Delivery rate',      value: `${stats.deliveryRate}%`,           delta: stats.deliveryRate >= 95 ? 'healthy' : 'check failed', trend: stats.deliveryRate >= 95 ? ('up' as const) : ('down' as const), icon: CheckCircle2, accent: T.success, accentSoft: T.successSoft },
+    { label: 'Recipients reached', value: formatNumber(stats.totalRecipients), delta: `${myCampaigns.length} campaigns`,        trend: 'up' as const, icon: Users, accent: T.info, accentSoft: T.infoSoft },
+    { label: 'Bounced / failed',   value: formatNumber(stats.failed),         delta: `${formatNumber(stats.pending)} pending`,   trend: stats.failed === 0 ? ('up' as const) : ('down' as const), icon: XCircle, accent: T.danger, accentSoft: T.dangerSoft },
   ]
 
   const runningCount = myCampaigns.filter((c: any) => c.status === 'Running').length
@@ -300,15 +315,21 @@ const UserDashboard: React.FC = () => {
   return (
     <div className="h-screen w-full flex overflow-hidden" style={{ fontFamily: FONT.body, background: T.bg }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
-        @keyframes pulseFade { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @keyframes pulseFade { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
         .pulse-dot { animation: pulseFade 1.8s ease-in-out infinite; }
 
         .db-main::-webkit-scrollbar { width: 8px; }
         .db-main::-webkit-scrollbar-track { background: transparent; }
         .db-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
         .db-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
+
+        /* subtle inner glow on the four big stat numbers so they read brighter */
+        .stat-value {
+          color: ${T.text};
+          text-shadow: 0 0 1px rgba(255,255,255,0.35);
+        }
 
         @media (max-width: 640px) { .stats-grid { grid-template-columns: 1fr 1fr; } }
         @media (max-width: 480px) { .stats-grid { grid-template-columns: 1fr; } }
@@ -378,7 +399,7 @@ const UserDashboard: React.FC = () => {
               <button
                 onClick={() => navigate('/user/campaign')}
                 className="group inline-flex items-center gap-2 px-3.5 py-2 rounded-lg font-medium text-[12.5px] transition-all hover:brightness-110"
-                style={{ background: T.brand, color: '#fff', boxShadow: '0 6px 18px -8px rgba(99,102,241,0.65)' }}
+                style={{ background: T.brand, color: '#fff', boxShadow: '0 6px 18px -8px rgba(124,127,242,0.7)' }}
               >
                 <Mail size={14} />
                 New campaign
@@ -417,7 +438,7 @@ const UserDashboard: React.FC = () => {
                     {delta}
                   </span>
                 </div>
-                <p className="text-[24px] font-semibold tracking-tight leading-none" style={{ color: T.text, fontFamily: FONT.mono }}>
+                <p className="stat-value text-[24px] font-semibold tracking-tight leading-none" style={{ fontFamily: FONT.mono }}>
                   {value}
                 </p>
                 <p className="text-[11.5px] mt-2" style={{ color: T.textMuted }}>{label}</p>
@@ -451,7 +472,7 @@ const UserDashboard: React.FC = () => {
                     <AreaChart data={deliveryTrend} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="fillSent" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={T.brand} stopOpacity={0.3} />
+                          <stop offset="0%" stopColor={T.brand} stopOpacity={0.35} />
                           <stop offset="100%" stopColor={T.brand} stopOpacity={0} />
                         </linearGradient>
                       </defs>
@@ -577,7 +598,7 @@ const UserDashboard: React.FC = () => {
                         return (
                           <tr
                             key={c.id}
-                            className="cursor-pointer transition-colors hover:bg-white/[0.02]"
+                            className="cursor-pointer transition-colors hover:bg-white/[0.03]"
                             style={{ borderTop: `1px solid ${T.borderSoft}` }}
                             onClick={() => navigate('/user/campaign')}
                           >
@@ -687,7 +708,7 @@ const UserDashboard: React.FC = () => {
                         <div key={i} className="flex items-start gap-3">
                           <span
                             className="mt-1.5 w-2 h-2 rounded-full shrink-0"
-                            style={{ background: pulseDotColor[e.tone], boxShadow: `0 0 0 3px ${pulseDotColor[e.tone]}20` }}
+                            style={{ background: pulseDotColor[e.tone], boxShadow: `0 0 0 3px ${pulseDotColor[e.tone]}25` }}
                           />
                           <span className="text-[11.5px] md:text-[12px] leading-relaxed" style={{ fontFamily: FONT.mono, color: T.textMuted }}>
                             {e.text}
