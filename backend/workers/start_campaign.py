@@ -13,9 +13,6 @@ from models.user import User  # noqa: F401
 from models.email_logs import EmailLog  # noqa: F401
 from models.sender_account import SenderAccount  # noqa: F401
 from models.html_templates import HTMLTemplate  # noqa: F401
-from models.campaigns import CampaignStatus as A
-from schema.campaigns import CampaignStatus as B
-print(A is B, A.RUNNING, B.RUNNING)
 
 logger = logging.getLogger(__name__)
 

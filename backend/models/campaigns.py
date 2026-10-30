@@ -18,14 +18,10 @@ class CampaignStatus(str, Enum):
 
 class Campaign(Base):
     __tablename__ = "campaigns"
-
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-
     campaign_name: Mapped[str] = mapped_column(String(255), nullable=False)
     subject: Mapped[str] = mapped_column(String(255), nullable=False)
-
     template_id: Mapped[int] = mapped_column(
         ForeignKey("html_templates.id", ondelete="RESTRICT"), nullable=True
     )

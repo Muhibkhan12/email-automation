@@ -10,6 +10,7 @@ from routes.html_templates import router as html_templates_router
 from routes.email_logs import router as email_logs_router
 from routes.worker import router as worker_router
 from routes.ms_oauth import router as oauth_router
+from routes.admin_senders_account import router as admin_sender_accounts
 
 app = FastAPI(
     title="Email Automation",
@@ -39,3 +40,4 @@ app.include_router(worker_router)
 app.include_router(oauth_router)
 app.include_router(campaign_upload_router)
 app.include_router(upload_file_crud)
+app.include_router(admin_sender_accounts)
