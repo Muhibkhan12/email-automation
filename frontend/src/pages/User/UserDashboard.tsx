@@ -396,15 +396,15 @@ const UserDashboard: React.FC = () => {
                 <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
                 Refresh
               </button>
-              <button
-                onClick={() => navigate('/user/campaign')}
-                className="group inline-flex items-center gap-2 px-3.5 py-2 rounded-lg font-medium text-[12.5px] transition-all hover:brightness-110"
-                style={{ background: T.brand, color: '#fff', boxShadow: '0 6px 18px -8px rgba(124,127,242,0.7)' }}
-              >
-                <Mail size={14} />
-                New campaign
-                <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
-              </button>
+             <button
+  onClick={() => navigate('/user/start-campaign')}
+  className="group inline-flex items-center gap-2 px-3.5 py-2 rounded-lg font-medium text-[12.5px] transition-all hover:brightness-110"
+  style={{ background: T.brand, color: '#fff', boxShadow: '0 6px 18px -8px rgba(124,127,242,0.7)' }}
+>
+  <Mail size={14} />
+  New campaign
+  <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+</button>
             </div>
           </header>
 
@@ -598,7 +598,7 @@ const UserDashboard: React.FC = () => {
                         return (
                           <tr
                             key={c.id}
-                            className="cursor-pointer transition-colors hover:bg-white/[0.03]"
+                            className="cursor-pointer transition-colors hover:bg-white/3"
                             style={{ borderTop: `1px solid ${T.borderSoft}` }}
                             onClick={() => navigate('/user/campaign')}
                           >

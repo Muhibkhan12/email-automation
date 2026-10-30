@@ -370,7 +370,7 @@ const CampaignRecipients: React.FC = () => {
                         return (
                           <tr
                             key={r.id}
-                            className="transition-colors hover:bg-white/[0.02]"
+                            className="transition-colors hover:bg-white/2"
                             style={{ borderTop: `1px solid ${T.borderSoft}` }}
                           >
                             <td className="px-4 md:px-5 py-3">

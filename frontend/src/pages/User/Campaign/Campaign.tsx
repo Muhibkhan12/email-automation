@@ -141,7 +141,7 @@ const UserCampaigns: React.FC = () => {
 
     let created: Campaign;
     try {
-      created = await createCampaign(payload as CreateCampaignData);
+      created = await createCampaign(payload as unknown as CreateCampaignData);
     } catch (err: any) {
       throw new Error(apiErrorMessage(err, 'Could not create the campaign.'));
     }
@@ -255,7 +255,7 @@ const UserCampaigns: React.FC = () => {
                 <span className="hidden sm:inline">Refresh</span>
               </button>
               <button
-                onClick={() => setShowStartModal(true)}
+                onClick={() => navigate('/user/start-campaign')}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium transition-all hover:brightness-110"
                 style={{ background: T.brand, color: "#fff", boxShadow: "0 6px 20px -8px rgba(124,127,242,0.7)" }}
               >
@@ -402,7 +402,7 @@ const UserCampaigns: React.FC = () => {
                     <div
                       key={campaign.id}
                       onClick={() => setSelectedCampaign(campaign)}
-                      className="group relative flex items-center gap-3 p-3.5 rounded-lg cursor-pointer transition-all hover:bg-white/[0.03]"
+                      className="group relative flex items-center gap-3 p-3.5 rounded-lg cursor-pointer transition-all hover:bg-white/3"
                       style={{ background: T.surface, boxShadow: RING }}
                     >
                       {/* Accent strip */}
