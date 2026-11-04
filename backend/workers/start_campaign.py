@@ -2,8 +2,7 @@ import logging
 
 from database import SessionLocal
 from models.campaign_recipients import CampaignRecipient, RecipientStatus
-from models.campaigns import Campaign
-from schema.campaigns import CampaignStatus
+from models.campaigns import Campaign, CampaignStatus
 from workers.celery_app import celery
 from workers.sending_emails import schedule_campaign_sends
 
@@ -13,9 +12,7 @@ from models.user import User  # noqa: F401
 from models.email_logs import EmailLog  # noqa: F401
 from models.sender_account import SenderAccount  # noqa: F401
 from models.html_templates import HTMLTemplate  # noqa: F401
-from models.campaigns import CampaignStatus as A
-from schema.campaigns import CampaignStatus as B
-print(A is B, A.RUNNING, B.RUNNING)
+
 
 logger = logging.getLogger(__name__)
 

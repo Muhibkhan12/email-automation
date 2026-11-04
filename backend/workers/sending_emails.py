@@ -48,11 +48,14 @@ DAILY_SPREAD_SECONDS = 43200.0
 # Domains that get PLAIN TEXT instead of the HTML template.
 PLAIN_TEXT_DOMAINS = {"gmail.com", "googlemail.com"}
 
-# Used when SenderAccount has no such column. EDIT THESE.
+# Defaults used when the SenderAccount row has no such column.
+# Every key referenced below must exist here, OR be accessed with .get() —
+# we now do BOTH (belt + braces) so a missing key can never fail a send.
 SENDER_DEFAULTS = {
     "company": "Harbour Funding",
     "title": "Funding Advisor",
-    "website" : "https://www.harbourfundingsolutions.com/"
+    "website": "https://www.harbourfundingsolutions.com/",
+    "phone": "",  # add your real phone here if templates use {{ sender_phone }}
 }
 
 # Matches {{ key }} and [Key Name]
@@ -128,9 +131,20 @@ def build_context(recipient: CampaignRecipient, sender: SenderAccount) -> dict[s
     recipient_company = (recipient.company or "").strip()
 
     sender_name = (sender.display_name or sender.email or "").strip()
-    sender_company = (getattr(sender, "company_name", None) or SENDER_DEFAULTS["company"] or "").strip()
-    sender_title = (getattr(sender, "job_title", None) or SENDER_DEFAULTS["title"] or "").strip()
-    sender_phone = (getattr(sender, "phone", None) or SENDER_DEFAULTS["phone"] or "").strip()
+    # NOTE: every SenderAccount attribute is looked up via getattr with a
+    # default, and every SENDER_DEFAULTS lookup uses .get() — so a missing
+    # column OR a missing default key can never raise during send.
+    sender_company = (
+        getattr(sender, "company_name", None)
+        or SENDER_DEFAULTS.get("company")
+        or ""
+    ).strip()
+    sender_title = (
+        getattr(sender, "job_title", None)
+        or SENDER_DEFAULTS.get("title")
+        or ""
+    ).strip()
+    sender_phone = (getattr(sender, "phone", None) or SENDER_DEFAULTS.get("phone") or "").strip()
 
     return {
         # recipient
@@ -713,12 +727,15 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
             or self.request.retries >= self.max_retries
         )
         if is_final_attempt:
+            # Preserve the exception type in the log so KeyError/TypeError/
+            # AuthError are distinguishable at a glance in email_logs.
+            error_text = f"{type(exc).__name__}: {exc}"
             record_failure(
                 db,
                 recipient_id,
                 campaign_id,
                 sender_account_id,
-                str(exc),
+                error_text,
                 mark_recipient_failed=not is_auth_error,
             )
             if is_auth_error:

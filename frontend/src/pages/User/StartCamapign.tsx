@@ -21,6 +21,7 @@ import {
   startCampaign,
   pauseCampaign,
   resumeCampaign,
+  cancelCampaign,
   getCampaignProgress,
   parseUtc,
   type CampaignDTO,
@@ -73,10 +74,24 @@ const tplName = (t: any): string => t?.name ?? t?.title ?? t?.template_name ?? "
 const tplDesc = (t: any): string => t?.description ?? t?.desc ?? t?.subject ?? "";
 const tplHtml = (t: any): string => t?.html ?? t?.html_content ?? t?.content ?? t?.body ?? "";
 
+/**
+ * Robust error extractor:
+ *  - handles FastAPI JSON `detail` (string or validation array)
+ *  - handles plain-text bodies (e.g. a Starlette traceback returned as text)
+ *  - falls back to axios's message
+ */
 const errMsg = (e: any, fallback: string) => {
-  const d = e?.response?.data?.detail;
-  if (Array.isArray(d)) return d.map((x: any) => `${(x.loc ?? []).slice(1).join(".")}: ${x.msg}`).join(" | ");
-  return d?.toString?.() ?? e?.response?.data?.message ?? e?.message ?? fallback;
+  const data = e?.response?.data;
+  if (typeof data === "string" && data.trim().length) {
+    return data.split("\n")[0].slice(0, 300);
+  }
+  const d = data?.detail;
+  if (Array.isArray(d)) {
+    return d
+      .map((x: any) => `${(x.loc ?? []).slice(1).join(".")}: ${x.msg}`)
+      .join(" | ");
+  }
+  return d?.toString?.() ?? data?.message ?? e?.message ?? fallback;
 };
 
 const toStatus = (raw?: string): Status | null => {
@@ -247,6 +262,14 @@ const CampaignCreatePage = () => {
   const runRef = useRef(run);
   runRef.current = run;
 
+  /**
+   * Tracks whether the current draft (campaignId) was created for the
+   * current sender/template/name/subject combo. If the user changes any of
+   * those *after* the draft exists, we drop the draft so it doesn't drift.
+   */
+  const draftKeyRef = useRef<string | null>(null);
+  const draftKey = `${senderId ?? ""}|${templateId ?? ""}|${name.trim()}|${subject.trim()}`;
+
   useEffect(() => { fetchSenders?.(); /* eslint-disable-next-line */ }, []);
   useEffect(() => () => { loadTokenRef.current++; }, []);
 
@@ -309,22 +332,108 @@ const CampaignCreatePage = () => {
     // eslint-disable-next-line
   }, [campaignId, status]);
 
-  /* ─── file load (unchanged) ─── */
+  /**
+   * If the user changes the draft's identity inputs (sender / template /
+   * name / subject) after we already created a draft (and possibly uploaded
+   * recipients against it), reset the draft so we don't send from the wrong
+   * configuration. Cheap, safe, and prevents the next silent-inconsistency bug.
+   */
+  useEffect(() => {
+    if (draftKeyRef.current === null) {
+      draftKeyRef.current = draftKey;
+      return;
+    }
+    if (draftKeyRef.current !== draftKey && campaignId !== null) {
+      // Identity changed under an existing draft → drop it.
+      setCampaignId(null);
+      setUploadId(null);
+      setUploaded(false);
+      setRecipients(null);
+      setUploadError(
+        "Sender, template, name or subject changed — please re-upload the recipients."
+      );
+      draftKeyRef.current = draftKey;
+    } else {
+      draftKeyRef.current = draftKey;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey, campaignId]);
+
+  /**
+   * Create (once) the Draft campaign that will own the upload.
+   * Backend contract: POST /campaigns returns `{ id: number, ... }` or `{ campaign: { id } }`.
+   */
+  const ensureDraftCampaign = async (): Promise<number> => {
+    if (campaignId !== null) return campaignId;
+
+    const userId = auth?.user?.user_id ?? currentUserId;
+    if (!userId) throw new Error("User not loaded. Please log in again.");
+    if (!sender) throw new Error("Pick a sender account before uploading recipients.");
+    if (!template) throw new Error("Pick a template before uploading recipients.");
+
+    const templateIdNum = Number((template as any).id ?? (template as any)._id);
+    if (!templateIdNum) throw new Error("Missing template id.");
+
+    const res: any = await createCampaign({
+      user_id: userId,
+      template_id: templateIdNum,
+      sender_account_id: sender.id,
+      campaign_name: name.trim(),
+      subject: subject.trim(),
+      sent_count: 0,
+      status: "Draft",
+    });
+    const campaign = res?.campaign ?? res;
+    const newId: number | undefined = campaign?.id;
+    if (typeof newId !== "number") {
+      throw new Error(`Campaign created but no valid id in response: ${JSON.stringify(res)}`);
+    }
+    setCampaignId(newId);
+    setRun({ sent: 0, failed: 0, total });
+    return newId;
+  };
+
+  /* ─── file load: create draft → upload against its real id ─── */
   const loadFile = async (file?: File) => {
     if (!file) return;
+
+    // Upload requires a draft, which requires a sender + template.
+    if (!sender || !template) {
+      setUploadError(
+        "Pick a sender account and a template before uploading recipients."
+      );
+      return;
+    }
+
     const token = ++loadTokenRef.current;
     const stale = () => token !== loadTokenRef.current;
+
     setUploadError(""); setUploaded(false); setUploadId(null); setRecipients(null);
     setFileName(file.name); setUploading(true); setExtracting(false); setProgress(0);
+
     try {
-      const saved: any = await uploadRecipients(file, setProgress);
+      // 1) Ensure a real campaign row exists, get its id.
+      const owningCampaignId = await ensureDraftCampaign();
       if (stale()) return;
+
+      // 2) Upload the file against that id — the previous "/campaigns/2/upload"
+      //    came from a stale internal id in UploadContext. Now the caller owns it.
+      const saved: any = await uploadRecipients(file, setProgress, owningCampaignId);
+      if (stale()) return;
+
       const id: number | null = saved?.id ?? null;
-      if (!id) throw new Error("File upload ho gayi, lekin response mein file id nahi mili.");
-      setUploadId(id); setUploading(false); setExtracting(true);
+      if (!id) {
+        throw new Error("File upload succeeded but the response had no file id.");
+      }
+      setUploadId(id);
+      setUploading(false);
+      setExtracting(true);
+
+      // 3) Kick off extraction, wait for analytics.
       await ExtractData(id);
       const finished = await waitForAnalytics(id);
       if (stale()) return;
+
       const summary = summaryFromAnalytics(finished);
       setRecipients(summary);
       setUploaded(summary.valid > 0);
@@ -335,6 +444,7 @@ const CampaignCreatePage = () => {
       if (!stale()) { setUploading(false); setExtracting(false); }
     }
   };
+
   const clearFile = () => {
     loadTokenRef.current++;
     setRecipients(null); setFileName(""); setUploaded(false); setUploadId(null);
@@ -350,45 +460,25 @@ const CampaignCreatePage = () => {
     ready,
   ][step];
 
-  /* ─── launch ─── */
+  /* ─── launch: campaign already exists, just start it ─── */
   const launch = async () => {
-    if (!sender || !template || uploadId === null) return;
-    const userId = auth?.user?.user_id ?? currentUserId;
-    if (!userId) { setSubmitError("User not loaded. Please log in again."); return; }
+    if (campaignId === null) {
+      setSubmitError("Campaign was not created yet. Please re-upload the recipients.");
+      return;
+    }
+    if (uploadId === null) {
+      setSubmitError("No uploaded file is attached to this campaign.");
+      return;
+    }
 
     setSubmitting(true); setSubmitError("");
     try {
-      let id = campaignId;
-      if (id === null) {
-        const templateIdNum = Number((template as any).id ?? (template as any)._id);
-        if (!templateIdNum) throw new Error("Missing template id.");
-        const res: any = await createCampaign({
-          user_id: userId,
-          template_id: templateIdNum,
-          sender_account_id: sender.id,
-          campaign_name: name.trim(),
-          subject: subject.trim(),
-          sent_count: 0,
-          status: "Draft",
-        });
-        const campaign = res?.campaign ?? res;
-        const newId = campaign?.id;
-        if (typeof newId !== "number") {
-          throw new Error(`Campaign created but no valid id in response: ${JSON.stringify(res)}`);
-        }
-        id = newId;
-        setCampaignId(newId);
-        setRun({ sent: 0, failed: 0, total });
-      }
-
-      // Backend always starts immediately and schedules random gaps server-side.
-      await startCampaign(id, uploadId);
+      await startCampaign(campaignId, uploadId);
       setStatus("Running");
       setConfirmOpen(false);
       fetchSenders?.();
-      // Fetch initial progress right away so the UI shows the next send time.
       try {
-        const p = await getCampaignProgress(id);
+        const p = await getCampaignProgress(campaignId);
         applyProgress(p);
       } catch { /* ignore */ }
     } catch (e) {
@@ -415,6 +505,8 @@ const CampaignCreatePage = () => {
   };
 
   const reset = () => {
+    loadTokenRef.current++;
+    draftKeyRef.current = null;
     setStep(0); setName(""); setSubject(""); clearFile();
     setSenderId(null); setTemplateId(null);
     setCampaignId(null); setSubmitError(""); setActionError("");
@@ -491,7 +583,7 @@ const CampaignCreatePage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-6 items-start">
               <div className="min-w-0 space-y-5">
 
-                {/* Step rail (unchanged) */}
+                {/* Step rail */}
                 <div className="rounded-xl px-1.5 py-1.5 overflow-x-auto cm-scroll" style={{ background: T.surface, boxShadow: RING }}>
                   <div className="flex items-center gap-1 min-w-max sm:min-w-0">
                     {STEPS.map((s, i) => {
@@ -524,7 +616,7 @@ const CampaignCreatePage = () => {
                 </div>
 
                 <Card className="p-5 md:p-7 animate-in fade-in duration-200" key={step}>
-                  {/* Step 0: details (unchanged) */}
+                  {/* Step 0: details */}
                   {step === 0 && (
                     <div className="space-y-6">
                       <Head title="Campaign details" sub="Start by naming your campaign and writing a subject." />
@@ -559,7 +651,7 @@ const CampaignCreatePage = () => {
                     </div>
                   )}
 
-                  {/* Step 1: sender (unchanged) */}
+                  {/* Step 1: sender */}
                   {step === 1 && (
                     <div className="space-y-5">
                       <Head title="Sender account" sub="Only connected accounts with capacity left today are shown." />
@@ -622,7 +714,7 @@ const CampaignCreatePage = () => {
                     </div>
                   )}
 
-                  {/* Step 2: template (unchanged) */}
+                  {/* Step 2: template */}
                   {step === 2 && (
                     <div className="space-y-5">
                       <Head title="HTML template" sub="Pick the design for your email." />
@@ -689,10 +781,18 @@ const CampaignCreatePage = () => {
                     </div>
                   )}
 
-                  {/* Step 3: recipients (unchanged) */}
+                  {/* Step 3: recipients */}
                   {step === 3 && (
                     <div className="space-y-6">
                       <Head title="Recipients" sub="Upload a CSV or Excel file with an “email” column." />
+
+                      {(!sender || !template) && (
+                        <Notice tone="warn">
+                          Select a sender account (step 2) and a template (step 3) before uploading.
+                          A Draft campaign is created automatically when you upload.
+                        </Notice>
+                      )}
+
                       {!fileName ? (
                         <div
                           role="button" tabIndex={0}
@@ -825,7 +925,6 @@ const CampaignCreatePage = () => {
                         ))}
                       </div>
 
-                      {/* NEW: honest scheduling info — replaces the fake "Schedule later" toggle. */}
                       <div className="rounded-lg p-3.5" style={{ background: T.brandSoft, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}>
                         <div className="flex items-start gap-2.5">
                           <Timer size={15} style={{ color: T.brand }} className="mt-0.5 shrink-0" />
@@ -873,7 +972,7 @@ const CampaignCreatePage = () => {
                 </Card>
               </div>
 
-              {/* Sidebar summary (unchanged) */}
+              {/* Sidebar summary */}
               <aside className="hidden lg:block sticky top-6 rounded-xl p-5" style={CARD}>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[13px] font-semibold" style={{ color: T.text }}>Summary</p>
@@ -944,7 +1043,6 @@ const CampaignCreatePage = () => {
                 <Stat label="Queued" value={(live?.queued ?? 0).toLocaleString()} tone={T.purple} />
               </div>
 
-              {/* NEW: scheduling info from /worker/progress */}
               {(status === "Running" || status === "Paused") && live && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                   <div className="rounded-lg p-3.5 flex items-center gap-3"
