@@ -13,4 +13,11 @@ requirement.txt
 # Ignore build files
 **/dist/
 frontend/dist/
-**/.vercel
+**/.vercel__pycache__/
+*.pyc
+*.pyo
+_stash_conflicts/
+.vscode/
+celerybeat-schedule*
+backend/storage/uploads/
+*.log
