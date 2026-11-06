@@ -7,45 +7,38 @@ import {
 import { SenderAccContext } from "../../contexts/SenderAccountsContext";
 import type { SenderAccount } from "../../types/SenderAccount";
 
-/* ─────────────── design tokens ─────────────── */
+/* ─────────────── design tokens (matching Upload page) ─────────────── */
 
 const T = {
-  bg:          "#0A0B10",
-  surface:     "#111319",
-  surface2:    "#161922",
-  surfaceHi:   "#1B1F2A",
-  border:      "#232838",
-  borderSoft:  "#1B1F2A",
-  text:        "#E9EBF0",
-  textMuted:   "#9CA3B4",
-  textFaint:   "#6B7280",
-  brand:       "#6366F1",
-  brandSoft:   "rgba(99,102,241,0.12)",
-  brandBorder: "rgba(99,102,241,0.35)",
-  success:     "#22C55E",
-  successSoft: "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:        "#F59E0B",
-  warnSoft:    "rgba(245,158,11,0.12)",
-  warnBorder:  "rgba(245,158,11,0.35)",
-  danger:      "#EF4444",
-  dangerSoft:  "rgba(239,68,68,0.12)",
-  dangerBorder:"rgba(239,68,68,0.35)",
-  info:        "#38BDF8",
-  infoSoft:    "rgba(56,189,248,0.12)",
-  infoBorder:  "rgba(56,189,248,0.35)",
-  purple:      "#A78BFA",
-  purpleSoft:  "rgba(167,139,250,0.12)",
-  purpleBorder:"rgba(167,139,250,0.35)",
-}
+  bg:         "#0B0C0E",
+  surface:    "#111214",
+  surface2:   "#16181B",
+  surfaceHi:  "#1C1F23",
+  border:     "#24282E",
+  borderSoft: "#1B1E22",
+
+  text:       "#E8EAED",
+  textMuted:  "#9AA0A6",
+  textFaint:  "#6B7075",
+
+  accent:     "#6EE7A8",
+  accentInk:  "#0B0C0E",
+  accentLine: "#2E6B4D",
+
+  ok:         "#6EE7A8",
+  warn:       "#E0A64A",
+  danger:     "#E06A6A",
+  info:       "#6EC1E7",
+  purple:     "#B39DE0",
+};
 
 const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
-}
+  ui:   "'Inter', system-ui, -apple-system, sans-serif",
+  mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+};
 
-const RING = `inset 0 0 0 1px ${T.border}`
+const HAIRLINE = `1px solid ${T.border}`;
+const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`;
 
 /* ─────────────── helpers ─────────────── */
 
@@ -59,9 +52,9 @@ const providerMeta: Record<Provider, { short: string; grad: string; ring: string
 };
 
 const statusMeta: Record<AccountStatus, { fg: string; bg: string; ring: string; icon: React.ComponentType<{ size?: number }> }> = {
-  Active:       { fg: T.success, bg: T.successSoft, ring: T.successBorder, icon: CheckCircle2 },
-  Warning:      { fg: T.warn,    bg: T.warnSoft,    ring: T.warnBorder,    icon: AlertTriangle },
-  Disconnected: { fg: T.danger,  bg: T.dangerSoft,  ring: T.dangerBorder,  icon: XCircle },
+  Active:       { fg: T.ok,     bg: "rgba(110,231,168,0.10)", ring: "rgba(110,231,168,0.28)", icon: CheckCircle2 },
+  Warning:      { fg: T.warn,   bg: "rgba(224,166,74,0.10)",  ring: "rgba(224,166,74,0.28)",  icon: AlertTriangle },
+  Disconnected: { fg: T.danger, bg: "rgba(224,106,106,0.10)", ring: "rgba(224,106,106,0.28)", icon: XCircle },
 };
 
 const pct = (used: number, limit: number) => (limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0);
@@ -124,22 +117,25 @@ const SenderAccountsPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: T.bg }}>
+    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.ui, background: T.bg }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 1s linear infinite; }
         .sa-main::-webkit-scrollbar { width: 8px; }
         .sa-main::-webkit-scrollbar-track { background: transparent; }
-        .sa-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
+        .sa-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 8px; }
         .sa-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
+        .sa-input::placeholder { color: ${T.textFaint}; }
         select option { background: ${T.surface}; color: ${T.text}; }
+        :focus-visible { outline: 2px solid ${T.accentLine}; outline-offset: 2px; border-radius: 6px; }
         @media (prefers-reduced-motion: reduce) { .spin { animation: none !important; } }
       `}</style>
 
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/70"
+          className="lg:hidden fixed inset-0 z-40"
+          style={{ background: "rgba(11,12,14,0.72)" }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -155,34 +151,35 @@ const SenderAccountsPage = () => {
         <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1160 }}>
 
           {/* Header */}
-          <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-lg transition-colors hover:bg-white/5"
-                style={{ background: T.surface, color: T.textMuted, boxShadow: RING }}
+                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-[120ms]"
+                style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
                 aria-label="Open menu"
               >
-                <Menu size={18} />
+                <Menu size={16} />
               </button>
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                    style={{ background: T.successSoft, color: T.success, boxShadow: `inset 0 0 0 1px ${T.successBorder}` }}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.success }} />
-                    {activeCount} active sender{activeCount === 1 ? "" : "s"}
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="inline-flex items-center gap-2 text-[12px]" style={{ color: T.textMuted }}>
+                    <span
+                      className="inline-block w-1.5 h-1.5 rounded-full"
+                      style={{ background: activeCount > 0 ? T.accent : T.textFaint }}
+                    />
+                    {activeCount} active
                   </span>
-                  <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                    · {senderAcc.length} total
+                  <span style={{ color: T.border }}>|</span>
+                  <span className="text-[12px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                    {senderAcc.length} total
                   </span>
                 </div>
 
-                <h1 className="text-[26px] md:text-[30px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
+                <h1 className="text-[24px] md:text-[26px] font-medium leading-tight" style={{ color: T.text }}>
                   Sender accounts
                 </h1>
-                <p className="mt-1 text-[13.5px] max-w-lg" style={{ color: T.textMuted }}>
+                <p className="mt-1 text-[13px] max-w-lg" style={{ color: T.textMuted }}>
                   Manage the accounts used to send your campaigns.
                 </p>
               </div>
@@ -190,39 +187,39 @@ const SenderAccountsPage = () => {
 
             <button
               onClick={handleAddAccount}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium self-start md:self-auto transition-all hover:brightness-110"
-              style={{ background: T.brand, color: "#fff", boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium self-start md:self-auto transition-all hover:brightness-110"
+              style={{ background: T.accent, color: T.accentInk }}
             >
-              <Plus size={14} />
+              <Plus size={13} />
               Add sender account
             </button>
           </header>
 
           {/* Summary strip */}
           <div
-            className="mb-5 md:mb-6 rounded-xl overflow-hidden"
-            style={{ background: T.surface, boxShadow: RING }}
+            className="mb-6 rounded-xl overflow-hidden"
+            style={{ background: T.surface, border: HAIRLINE }}
           >
             <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x" style={{ borderColor: T.borderSoft }}>
               <SummaryTile icon={Layers}       label="Total accounts"  value={String(senderAcc.length)}       tone={T.textMuted} />
-              <SummaryTile icon={CheckCircle2} label="Active"          value={String(activeCount)}            tone={T.success} />
+              <SummaryTile icon={CheckCircle2} label="Active"          value={String(activeCount)}            tone={T.ok} />
               <SummaryTile icon={Mail}         label="Emails today"    value={emailsToday.toLocaleString()}   tone={T.info} />
               <SummaryTile icon={Gauge}        label="Daily capacity"  value={dailyCapacity.toLocaleString()} tone={T.purple} />
             </div>
           </div>
 
           {/* Accounts panel */}
-          <section className="rounded-xl overflow-hidden mb-6" style={{ background: T.surface, boxShadow: RING }}>
+          <section className="rounded-xl overflow-hidden mb-6" style={{ background: T.surface, border: HAIRLINE }}>
             <header
               className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 md:px-5 py-3"
-              style={{ borderBottom: `1px solid ${T.borderSoft}` }}
+              style={{ borderBottom: HAIRLINE_SOFT }}
             >
               <div>
-                <h2 className="text-[13px] font-semibold flex items-center gap-2" style={{ color: T.text }}>
-                  <Inbox size={14} style={{ color: T.brand }} />
+                <h2 className="text-[12.5px] font-medium flex items-center gap-2" style={{ color: T.text }}>
+                  <Inbox size={13} style={{ color: T.accent }} />
                   Your accounts
                 </h2>
-                <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
+                <p className="text-[11px] mt-0.5" style={{ color: T.textMuted }}>
                   Monitor health and sending capacity.
                 </p>
               </div>
@@ -238,15 +235,15 @@ const SenderAccountsPage = () => {
                   placeholder="Search accounts…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-md py-2 pl-8 pr-16 text-[12.5px] outline-none transition-shadow"
-                  style={{ background: T.surface2, color: T.text, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
-                  onFocus={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brand}, 0 0 0 3px ${T.brandSoft}`)}
-                  onBlur={(e)  => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.borderSoft}`)}
+                  className="sa-input w-full rounded-md py-2 pl-8 pr-16 text-[12.5px] outline-none transition-colors duration-[120ms]"
+                  style={{ background: T.surface2, color: T.text, border: HAIRLINE_SOFT }}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
+                  onBlur={(e)  => (e.currentTarget.style.borderColor = T.borderSoft)}
                 />
                 {search && (
                   <button
                     onClick={() => setSearch("")}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10.5px] px-1.5 py-0.5 rounded transition-colors hover:bg-white/5"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10.5px] px-1.5 py-0.5 rounded transition-colors duration-[120ms]"
                     style={{ color: T.textFaint }}
                   >
                     Clear
@@ -257,7 +254,7 @@ const SenderAccountsPage = () => {
 
             {loading && senderAcc.length === 0 && (
               <div className="flex items-center justify-center gap-2 py-16">
-                <Loader2 size={15} className="spin" style={{ color: T.brand }} />
+                <Loader2 size={15} className="spin" style={{ color: T.accent }} />
                 <span className="text-[12.5px]" style={{ color: T.textMuted }}>Loading sender accounts…</span>
               </div>
             )}
@@ -279,8 +276,8 @@ const SenderAccountsPage = () => {
             {!loading && senderAcc.length === 0 && (
               <div className="text-center py-16 px-6">
                 <div
-                  className="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center"
-                  style={{ background: T.surface2 }}
+                  className="w-11 h-11 mx-auto mb-4 rounded-lg flex items-center justify-center"
+                  style={{ background: T.surfaceHi, border: HAIRLINE }}
                 >
                   <Mail className="w-5 h-5" style={{ color: T.textFaint }} />
                 </div>
@@ -290,8 +287,8 @@ const SenderAccountsPage = () => {
                 </p>
                 <button
                   onClick={handleAddAccount}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium transition-all hover:brightness-110"
-                  style={{ background: T.brand, color: "#fff" }}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-all hover:brightness-110"
+                  style={{ background: T.accent, color: T.accentInk }}
                 >
                   <Plus size={13} />
                   Add sender account
@@ -303,7 +300,7 @@ const SenderAccountsPage = () => {
               <div className="text-center py-14 px-6">
                 <div
                   className="w-10 h-10 mx-auto mb-3 rounded-lg flex items-center justify-center"
-                  style={{ background: T.surface2 }}
+                  style={{ background: T.surfaceHi, border: HAIRLINE }}
                 >
                   <Search className="w-4 h-4" style={{ color: T.textFaint }} />
                 </div>
@@ -313,7 +310,7 @@ const SenderAccountsPage = () => {
                 <button
                   onClick={() => setSearch("")}
                   className="mt-2.5 text-[11.5px] font-medium"
-                  style={{ color: T.brand }}
+                  style={{ color: T.accent }}
                 >
                   Clear search
                 </button>
@@ -346,14 +343,14 @@ const SummaryTile: React.FC<{
         {label}
       </span>
     </div>
-    <p className="text-[24px] font-semibold leading-none tracking-tight"
+    <p className="text-[22px] font-medium leading-none tracking-tight"
       style={{ color: T.text, fontFamily: FONT.mono }}>
       {value}
     </p>
   </div>
 );
 
-/* ─────────────── usage bar (replaces ring) ─────────────── */
+/* ─────────────── usage bar ─────────────── */
 
 const UsageBar: React.FC<{
   label: string;
@@ -361,7 +358,7 @@ const UsageBar: React.FC<{
   limit: number;
   pct: number;
 }> = ({ label, current, limit, pct }) => {
-  const tone = pct >= 90 ? T.danger : pct >= 70 ? T.warn : T.brand;
+  const tone = pct >= 90 ? T.danger : pct >= 70 ? T.warn : T.accent;
   return (
     <div>
       <div className="flex items-baseline justify-between gap-2 mb-1.5">
@@ -412,22 +409,24 @@ const SenderAccountRow: React.FC<{
 
   return (
     <li
-      className={`px-4 md:px-5 py-4 transition-colors hover:bg-white/[0.02] ${disconnected ? "opacity-75" : ""}`}
-      style={{ borderTop: first ? "none" : `1px solid ${T.borderSoft}` }}
+      className={`px-4 md:px-5 py-4 transition-colors duration-[120ms] ${disconnected ? "opacity-75" : ""}`}
+      style={{ borderTop: first ? "none" : HAIRLINE_SOFT }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = T.surface2)}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
     >
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
 
         {/* Identity */}
         <div className="lg:col-span-5 flex items-center gap-3 min-w-0">
           <div
-            className="shrink-0 w-9 h-9 rounded-md flex items-center justify-center text-[12px] font-bold text-white"
+            className="shrink-0 w-9 h-9 rounded-md flex items-center justify-center text-[12px] font-medium text-white"
             style={{ background: p.grad, boxShadow: `0 0 0 2px ${T.surface}, 0 0 0 3px ${p.ring}` }}
           >
             {p.short}
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-[13px] font-semibold truncate" style={{ color: T.text }}>
+              <h3 className="text-[13px] font-medium truncate" style={{ color: T.text }}>
                 {account.email}
               </h3>
               <span
@@ -459,33 +458,30 @@ const SenderAccountRow: React.FC<{
           {disconnected ? (
             <button
               onClick={onReconnect}
-              className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium text-white transition-all hover:brightness-110"
-              style={{ background: T.brand }}
+              className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-all hover:brightness-110"
+              style={{ background: T.accent, color: T.accentInk }}
             >
               <Wifi size={12} /> Reconnect
             </button>
           ) : (
             <button
-              className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:bg-white/5"
-              style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+              className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors duration-[120ms]"
+              style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent" }}
             >
               <Zap size={12} /> Test
             </button>
           )}
 
           <button
-            className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:bg-white/5"
-            style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
-          >
-            <Settings2 size={12} /> Manage
-          </button>
-
-          <button
             onClick={onDelete}
             aria-label="Delete account"
-            className="inline-flex items-center justify-center rounded-md px-2 py-1.5 text-[11.5px] font-medium transition-colors hover:bg-white/5"
-            style={{ color: T.danger, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+            className="inline-flex items-center justify-center rounded-md px-2 py-1.5 text-[11.5px] font-medium transition-colors duration-[120ms]"
+            style={{ color: T.danger, border: HAIRLINE_SOFT }}
             title="Delete account"
+            onMouseEnter={(e) => { e.currentTarget.style.background = T.surfaceHi }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
           >
             <Trash2 size={12} />
           </button>

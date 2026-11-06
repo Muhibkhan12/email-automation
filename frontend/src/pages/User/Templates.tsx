@@ -2,41 +2,42 @@ import React, { useEffect, useMemo, useState } from "react";
 import Sidebar from "./Sidebar";
 import {
   Search, LayoutTemplate, CheckCircle2, XCircle, Menu,
-  Eye, X, Sparkles, Filter, AlertTriangle, Copy, Check,
-  Monitor, Tablet, Smartphone, ExternalLink, MoreHorizontal,
+  Eye, X, Filter, AlertTriangle, Copy, Check,
+  Monitor, Tablet, Smartphone, ExternalLink, Inbox, RefreshCw,
 } from "lucide-react";
 import { useHtmlTemplates } from "../../contexts/HtmlTemplatesContext";
 
-/* ─────────────── design tokens ─────────────── */
-
+/* ─────────────── tokens ───────────────
+   One graphite neutral ramp. One phosphor accent. Amber/red reserved for warn/error.
+*/
 const T = {
-  bg:          "#0A0B10",
-  surface:     "#111319",
-  surface2:    "#161922",
-  surfaceHi:   "#1B1F2A",
-  border:      "#232838",
-  borderSoft:  "#1B1F2A",
-  text:        "#E9EBF0",
-  textMuted:   "#9CA3B4",
-  textFaint:   "#6B7280",
-  brand:       "#6366F1",
-  brandSoft:   "rgba(99,102,241,0.12)",
-  brandBorder: "rgba(99,102,241,0.35)",
-  success:     "#22C55E",
-  successSoft: "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  danger:      "#EF4444",
-  dangerSoft:  "rgba(239,68,68,0.12)",
-  dangerBorder:"rgba(239,68,68,0.35)",
-}
+  bg:         "#0B0C0E",
+  surface:    "#111214",
+  surface2:   "#16181B",
+  surfaceHi:  "#1C1F23",
+  border:     "#24282E",
+  borderSoft: "#1B1E22",
+
+  text:       "#E8EAED",
+  textMuted:  "#9AA0A6",
+  textFaint:  "#6B7075",
+
+  accent:     "#6EE7A8",
+  accentInk:  "#0B0C0E",
+  accentLine: "#2E6B4D",
+
+  ok:         "#6EE7A8",
+  warn:       "#E0A64A",
+  danger:     "#E06A6A",
+};
 
 const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
-}
+  ui:   "'Inter', system-ui, -apple-system, sans-serif",
+  mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+};
 
-const RING = `inset 0 0 0 1px ${T.border}`
+const HAIRLINE = `1px solid ${T.border}`;
+const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`;
 
 type StatusFilter = "All" | "Active" | "Inactive";
 const STATUS_FILTERS: StatusFilter[] = ["All", "Active", "Inactive"];
@@ -44,14 +45,36 @@ const STATUS_FILTERS: StatusFilter[] = ["All", "Active", "Inactive"];
 const stripHtml = (html: string) =>
   String(html ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
-/* ─────────────── devices ─────────────── */
-
 type Device = "desktop" | "tablet" | "mobile";
 const DEVICES: { id: Device; label: string; width: number; icon: React.ComponentType<{ size?: number }> }[] = [
   { id: "desktop", label: "Desktop", width: 1200, icon: Monitor },
   { id: "tablet",  label: "Tablet",  width: 768,  icon: Tablet },
   { id: "mobile",  label: "Mobile",  width: 390,  icon: Smartphone },
 ];
+
+/* ─────────────── Mini browser chrome (monochrome) ─────────────── */
+
+const MiniChrome: React.FC<{ name: string }> = ({ name }) => (
+  <div
+    className="flex items-center gap-1.5 px-2.5 py-1.5"
+    style={{ background: T.surface2, borderBottom: HAIRLINE_SOFT }}
+  >
+    <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.border }} />
+    <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.border }} />
+    <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.border }} />
+    <div
+      className="ml-2 flex-1 h-4 rounded flex items-center px-2 overflow-hidden"
+      style={{ background: T.bg, border: HAIRLINE_SOFT }}
+    >
+      <span
+        className="truncate"
+        style={{ fontFamily: FONT.mono, color: T.textFaint, fontSize: 9 }}
+      >
+        templates/{name.toLowerCase().replace(/\s+/g, "-").slice(0, 22)}
+      </span>
+    </div>
+  </div>
+);
 
 /* ─────────────── Template card ─────────────── */
 
@@ -81,41 +104,21 @@ const TemplateCard: React.FC<{
 
   return (
     <div
-      className="group rounded-xl overflow-hidden transition-all hover:-translate-y-0.5"
-      style={{ background: T.surface, boxShadow: RING }}
+      className="rounded-xl overflow-hidden flex flex-col"
+      style={{ background: T.surface, border: HAIRLINE }}
     >
       {/* Preview */}
       <button
         type="button"
         onClick={onPreview}
-        className="relative w-full block text-left"
+        className="relative w-full block text-left group"
         style={{ aspectRatio: "16 / 10" }}
         aria-label={`Preview ${name}`}
       >
-        <div
-          className="absolute inset-0"
-          style={{ background: T.surface2 }}
-        >
-          {/* mini chrome bar */}
-          <div
-            className="absolute top-0 left-0 right-0 z-10 flex items-center gap-1.5 px-3 py-2"
-            style={{ background: "rgba(10,11,16,0.85)", backdropFilter: "blur(6px)", borderBottom: `1px solid ${T.borderSoft}` }}
-          >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(239,68,68,0.7)" }} />
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(245,158,11,0.7)" }} />
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(34,197,94,0.7)" }} />
-            <div
-              className="ml-2 flex-1 h-4 rounded flex items-center px-2 overflow-hidden"
-              style={{ background: T.bg, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
-            >
-              <span style={{ fontFamily: FONT.mono, color: T.textFaint, fontSize: 9 }}>
-                templates/{name.toLowerCase().replace(/\s+/g, "-").slice(0, 22)}
-              </span>
-            </div>
-          </div>
+        <div className="absolute inset-0 flex flex-col" style={{ background: T.surface2 }}>
+          <MiniChrome name={name} />
 
-          {/* scaled iframe */}
-          <div className="absolute inset-x-0 bottom-0 top-8 overflow-hidden">
+          <div className="relative flex-1 overflow-hidden">
             {html ? (
               <div
                 className="origin-top-left"
@@ -153,58 +156,59 @@ const TemplateCard: React.FC<{
                 </p>
               </div>
             )}
+
+            {/* Hover affordance — small hairline chip, no blur, no glow */}
+            <div
+              className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-[120ms]"
+              style={{ background: "rgba(11,12,14,0.55)" }}
+            >
+              <span
+                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium"
+                style={{ background: T.text, color: T.accentInk }}
+              >
+                <Eye size={11} /> Preview
+              </span>
+            </div>
           </div>
 
-          {/* hover overlay */}
-          <div
-            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ background: "rgba(10,11,16,0.72)", backdropFilter: "blur(2px)" }}
+          {/* Status chip */}
+          <span
+            className="absolute top-8 right-2 z-10 inline-flex items-center gap-1.5 rounded text-[10px] px-1.5 py-0.5"
+            style={{
+              background: T.bg,
+              color: active ? T.ok : T.textMuted,
+              border: HAIRLINE,
+            }}
           >
             <span
-              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium text-white"
-              style={{ background: T.brand, boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
-            >
-              <Eye size={12} />
-              Open preview
-            </span>
-          </div>
+              className="w-1 h-1 rounded-full"
+              style={{ background: active ? T.ok : T.textFaint }}
+            />
+            {active ? "Active" : "Inactive"}
+          </span>
         </div>
-
-        {/* status badge */}
-        <span
-          className="absolute top-8 right-2 z-20 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium"
-          style={{
-            background: active ? T.successSoft : "rgba(156,163,180,0.12)",
-            color: active ? T.success : T.textMuted,
-            boxShadow: `inset 0 0 0 1px ${active ? T.successBorder : "rgba(156,163,180,0.28)"}`,
-            backdropFilter: "blur(6px)",
-          }}
-        >
-          <span className="w-1 h-1 rounded-full" style={{ background: active ? T.success : T.textMuted }} />
-          {active ? "Active" : "Inactive"}
-        </span>
       </button>
 
       {/* Meta */}
-      <div className="p-3.5">
+      <div className="p-3.5 flex flex-col gap-3 flex-1">
         <div className="min-w-0">
-          <p className="text-[13px] font-semibold truncate" style={{ color: T.text }} title={name}>
+          <p className="text-[13px] font-medium truncate" style={{ color: T.text }} title={name}>
             {name}
           </p>
-          <p className="mt-0.5 text-[11px] truncate" style={{ fontFamily: FONT.mono, color: T.textFaint }} title={desc}>
+          <p className="mt-1 text-[11.5px] leading-4 truncate" style={{ color: T.textFaint }} title={desc}>
             {desc}
           </p>
         </div>
 
-        <div className="mt-3.5 flex items-center justify-between gap-2">
+        <div className="mt-auto flex items-center justify-between gap-2">
           <button
             onClick={handleCopyId}
-            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10.5px] transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10.5px] transition-colors duration-[120ms]"
             style={{
               fontFamily: FONT.mono,
-              color: copied ? T.success : T.textFaint,
-              background: copied ? T.successSoft : T.surface2,
-              boxShadow: `inset 0 0 0 1px ${copied ? T.successBorder : T.borderSoft}`,
+              color: copied ? T.accent : T.textFaint,
+              border: HAIRLINE,
+              background: "transparent",
             }}
             title="Copy template ID"
           >
@@ -214,8 +218,10 @@ const TemplateCard: React.FC<{
 
           <button
             onClick={onPreview}
-            className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:brightness-110"
-            style={{ background: T.brandSoft, color: T.brand, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
+            className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11.5px] font-medium transition-colors duration-[120ms]"
+            style={{ color: T.text, border: HAIRLINE, background: "transparent" }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = T.surface2; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
           >
             <Eye size={11} />
             Preview
@@ -229,7 +235,7 @@ const TemplateCard: React.FC<{
 /* ─────────────── Page ─────────────── */
 
 const Templates = () => {
-  const { templates, loading, error } = useHtmlTemplates();
+  const { templates, loading, error, refetch } = useHtmlTemplates();
 
   const [status, setStatus] = useState<StatusFilter>("All");
   const [query, setQuery] = useState("");
@@ -259,26 +265,36 @@ const Templates = () => {
   const totalCount = safeTemplates.length;
   const activeCount = safeTemplates.filter(isActive).length;
   const inactiveCount = totalCount - activeCount;
+  const hasActiveFilters = query.trim() !== "" || status !== "All";
 
   return (
-    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: T.bg }}>
+    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.ui, background: T.bg }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap');
 
         .tpl-main::-webkit-scrollbar { width: 8px; }
         .tpl-main::-webkit-scrollbar-track { background: transparent; }
-        .tpl-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
+        .tpl-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 8px; }
         .tpl-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
 
-        @keyframes modalPop { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
-        .modal-pop { animation: modalPop 0.15s ease; }
+        .tpl-input::placeholder { color: ${T.textFaint}; }
+        .tpl-input:focus { outline: none; }
+        .tpl-seg:focus-visible, .tpl-ctrl:focus-visible { outline: 2px solid ${T.accentLine}; outline-offset: 2px; border-radius: 6px; }
+
         select option { background: ${T.surface}; color: ${T.text}; }
-        @media (prefers-reduced-motion: reduce) { .modal-pop { animation: none !important; } }
+
+        @keyframes modal-fade { from { opacity: 0 } to { opacity: 1 } }
+        .modal-fade { animation: modal-fade 120ms ease-out; }
+
+        @media (prefers-reduced-motion: reduce) {
+          * { animation-duration: 0s !important; transition-duration: 0s !important; }
+        }
       `}</style>
 
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/70"
+          className="lg:hidden fixed inset-0 z-40"
+          style={{ background: "rgba(11,12,14,0.72)" }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -295,72 +311,86 @@ const Templates = () => {
         <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1320 }}>
 
           {/* Header */}
-          <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-lg transition-colors hover:bg-white/5"
-                style={{ background: T.surface, color: T.textMuted, boxShadow: RING }}
+                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-[120ms]"
+                style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
                 aria-label="Open menu"
               >
-                <Menu size={18} />
+                <Menu size={16} />
               </button>
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                    style={{ background: T.successSoft, color: T.success, boxShadow: `inset 0 0 0 1px ${T.successBorder}` }}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.success }} />
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="inline-flex items-center gap-2 text-[12px]" style={{ color: T.textMuted }}>
+                    <span
+                      className="inline-block w-1.5 h-1.5 rounded-full"
+                      style={{ background: activeCount > 0 ? T.accent : T.textFaint }}
+                    />
                     {activeCount} active
                   </span>
-                  <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                    · {totalCount} total
+                  <span style={{ color: T.border }}>|</span>
+                  <span className="text-[12px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                    {totalCount} total
                   </span>
                 </div>
-
-                <h1 className="text-[26px] md:text-[30px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
+                <h1 className="text-[24px] md:text-[26px] font-medium leading-tight" style={{ color: T.text }}>
                   HTML templates
                 </h1>
-                <p className="mt-1 text-[13.5px] max-w-lg" style={{ color: T.textMuted }}>
+                <p className="mt-1 text-[13px] max-w-lg" style={{ color: T.textMuted }}>
                   Reusable layouts for your campaigns and automations.
                 </p>
               </div>
             </div>
           </header>
 
-          {/* Summary */}
+          {/* Summary strip — three numbers, no tiles, no icons */}
           <div
-            className="mb-5 md:mb-6 rounded-xl overflow-hidden"
-            style={{ background: T.surface, boxShadow: RING }}
+            className="grid grid-cols-3 rounded-xl overflow-hidden mb-6"
+            style={{ background: T.surface, border: HAIRLINE }}
           >
-            <div className="grid grid-cols-3 divide-x" style={{ borderColor: T.borderSoft }}>
-              <SummaryTile icon={LayoutTemplate} label="Total"    value={totalCount}    tone={T.textMuted} />
-              <SummaryTile icon={CheckCircle2}   label="Active"   value={activeCount}   tone={T.success} />
-              <SummaryTile icon={XCircle}        label="Inactive" value={inactiveCount} tone={T.danger} />
-            </div>
+            {[
+              { label: "Total",    value: totalCount,    tone: T.text },
+              { label: "Active",   value: activeCount,   tone: T.ok },
+              { label: "Inactive", value: inactiveCount, tone: T.textMuted },
+            ].map((s, i, arr) => (
+              <div
+                key={s.label}
+                className="p-4 md:p-5"
+                style={{ borderRight: i < arr.length - 1 ? HAIRLINE_SOFT : "none" }}
+              >
+                <p className="text-[11px]" style={{ color: T.textFaint }}>{s.label}</p>
+                <p
+                  className="text-[22px] md:text-[24px] font-medium mt-1.5 leading-none tabular-nums"
+                  style={{ color: s.tone, fontFamily: FONT.mono }}
+                >
+                  {s.value.toLocaleString()}
+                </p>
+              </div>
+            ))}
           </div>
 
-          {/* Toolbar */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 mb-5 md:mb-6">
+          {/* Query bar */}
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3 mb-6">
             <div
-              className="flex items-center gap-2 rounded-lg px-3 py-2 flex-1 min-w-0 transition-shadow"
-              style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}` }}
-              onFocusCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brand}, 0 0 0 3px ${T.brandSoft}`)}
-              onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.border}`)}
+              className="flex items-center gap-2 rounded-md px-3 py-2 flex-1 min-w-0 transition-colors duration-[120ms]"
+              style={{ background: T.surface, border: HAIRLINE }}
+              onFocusCapture={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
+              onBlurCapture={(e) => (e.currentTarget.style.borderColor = T.border)}
             >
-              <Search size={14} style={{ color: T.textFaint }} className="shrink-0" />
+              <Search size={13} style={{ color: T.textFaint }} className="shrink-0" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search templates…"
-                className="w-full bg-transparent text-[13px] outline-none"
+                placeholder="Search templates"
+                className="tpl-input w-full bg-transparent text-[12.5px] outline-none"
                 style={{ color: T.text }}
               />
               {query && (
                 <button
                   onClick={() => setQuery("")}
-                  className="shrink-0 text-[10.5px] px-1.5 py-0.5 rounded transition-colors hover:bg-white/5"
+                  className="shrink-0 text-[11px] px-1.5 py-0.5 rounded transition-colors duration-[120ms]"
                   style={{ color: T.textFaint }}
                 >
                   Clear
@@ -369,22 +399,30 @@ const Templates = () => {
             </div>
 
             <div
-              className="inline-flex items-center gap-0.5 p-0.5 rounded-lg self-start sm:self-auto"
-              style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+              className="flex items-center rounded-md p-0.5 overflow-x-auto"
+              style={{ background: T.surface, border: HAIRLINE }}
             >
               {STATUS_FILTERS.map((s) => {
                 const active = s === status;
+                const count = s === "All" ? totalCount : s === "Active" ? activeCount : inactiveCount;
                 return (
                   <button
                     key={s}
                     onClick={() => setStatus(s)}
-                    className="rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors whitespace-nowrap"
+                    className="tpl-seg inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[12px] whitespace-nowrap transition-colors duration-[120ms]"
                     style={{
-                      background: active ? T.surfaceHi : "transparent",
+                      background: active ? T.surface2 : "transparent",
                       color: active ? T.text : T.textMuted,
+                      border: active ? HAIRLINE_SOFT : "1px solid transparent",
                     }}
                   >
                     {s}
+                    <span
+                      className="tabular-nums"
+                      style={{ color: T.textFaint, fontFamily: FONT.mono, fontSize: 10.5 }}
+                    >
+                      {count}
+                    </span>
                   </button>
                 );
               })}
@@ -396,83 +434,89 @@ const Templates = () => {
             <div className="text-center py-16">
               <div
                 className="w-5 h-5 border-2 rounded-full animate-spin mx-auto"
-                style={{ borderColor: T.brand, borderTopColor: "transparent" }}
+                style={{ borderColor: T.border, borderTopColor: T.accent }}
               />
-              <p className="text-[11.5px] mt-3" style={{ color: T.textFaint }}>Loading templates…</p>
+              <p className="text-[11.5px] mt-3" style={{ color: T.textFaint }}>Loading templates</p>
             </div>
           )}
 
           {/* Error */}
           {!loading && error && (
             <div
-              className="text-center py-16 rounded-xl"
-              style={{ background: T.dangerSoft, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
+              className="text-center py-12 rounded-xl"
+              style={{ background: T.surface, border: HAIRLINE }}
             >
               <div
                 className="w-10 h-10 mx-auto mb-3 rounded-lg flex items-center justify-center"
-                style={{ background: "rgba(239,68,68,0.18)" }}
+                style={{ background: T.surfaceHi, border: HAIRLINE }}
               >
-                <AlertTriangle className="w-4 h-4" style={{ color: T.danger }} />
+                <AlertTriangle size={16} style={{ color: T.danger }} />
               </div>
-              <p className="text-[13px]" style={{ color: T.danger }}>{error}</p>
+              <p className="text-[13px] mb-4" style={{ color: T.danger }}>{error}</p>
+              {refetch && (
+                <button
+                  onClick={() => refetch()}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms]"
+                  style={{ color: T.textMuted, border: HAIRLINE }}
+                >
+                  <RefreshCw size={12} /> Try again
+                </button>
+              )}
             </div>
           )}
 
-          {/* Grid */}
+          {/* Grid or empty */}
           {!loading && !error && (
-            <>
-              {filtered.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 lg:gap-4">
-                  {filtered.map((t) => (
-                    <TemplateCard
-                      key={(t as any)?.id ?? getName(t)}
-                      tpl={t}
-                      getName={getName}
-                      getDesc={getDesc}
-                      getHtml={getHtml}
-                      isActive={isActive}
-                      onPreview={() => setPreviewTemplate(t)}
-                    />
-                  ))}
-                </div>
-              ) : (
+            filtered.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {filtered.map((t) => (
+                  <TemplateCard
+                    key={(t as any)?.id ?? getName(t)}
+                    tpl={t}
+                    getName={getName}
+                    getDesc={getDesc}
+                    getHtml={getHtml}
+                    isActive={isActive}
+                    onPreview={() => setPreviewTemplate(t)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div
+                className="text-center py-16 rounded-xl"
+                style={{ background: T.surface, border: HAIRLINE }}
+              >
                 <div
-                  className="text-center py-20 rounded-xl"
-                  style={{ background: T.surface, boxShadow: RING }}
+                  className="w-11 h-11 mx-auto mb-4 rounded-lg flex items-center justify-center"
+                  style={{ background: T.surfaceHi, border: HAIRLINE }}
                 >
-                  <div
-                    className="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center"
-                    style={{ background: T.surface2 }}
-                  >
-                    {safeTemplates.length === 0
-                      ? <Sparkles className="w-5 h-5" style={{ color: T.brand }} />
-                      : <Filter className="w-5 h-5" style={{ color: T.textFaint }} />}
-                  </div>
-                  <p className="text-[14px] font-medium" style={{ color: T.text }}>
-                    {safeTemplates.length === 0 ? "No templates yet" : "No templates match"}
-                  </p>
-                  <p className="text-[12px] mt-1.5 mb-5 max-w-sm mx-auto" style={{ color: T.textMuted }}>
-                    {safeTemplates.length === 0
-                      ? "Create your first template to reuse across campaigns."
-                      : "Try a different search or clear filters."}
-                  </p>
-                  {safeTemplates.length > 0 && (
-                    <button
-                      onClick={() => { setQuery(""); setStatus("All"); }}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium transition-all hover:brightness-110"
-                      style={{ background: T.brand, color: "#fff" }}
-                    >
-                      Clear filters
-                    </button>
-                  )}
+                  {safeTemplates.length === 0
+                    ? <Inbox size={18} style={{ color: T.textFaint }} />
+                    : <Filter size={18} style={{ color: T.textFaint }} />}
                 </div>
-              )}
-            </>
+                <p className="text-[14px] font-medium" style={{ color: T.text }}>
+                  {safeTemplates.length === 0 ? "No templates yet" : "No templates match"}
+                </p>
+                <p className="text-[12.5px] mt-1.5 mb-5 max-w-sm mx-auto" style={{ color: T.textMuted }}>
+                  {safeTemplates.length === 0
+                    ? "Create your first template to reuse across campaigns."
+                    : "Try a different search or clear the filter."}
+                </p>
+                {hasActiveFilters && (
+                  <button
+                    onClick={() => { setQuery(""); setStatus("All"); }}
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-[120ms]"
+                    style={{ background: T.text, color: T.accentInk, border: `1px solid ${T.text}` }}
+                  >
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            )
           )}
         </div>
       </main>
 
-      {/* Preview Modal */}
       {previewTemplate && (
         <PreviewModal
           template={previewTemplate}
@@ -538,24 +582,29 @@ const PreviewModal: React.FC<{
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 md:p-6 lg:p-8 bg-black/70"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 md:p-6 lg:p-8"
+      style={{ background: "rgba(11,12,14,0.78)" }}
       onClick={onClose}
     >
       <div
-        className="modal-pop w-full max-w-6xl h-full max-h-[92vh] rounded-xl overflow-hidden flex flex-col"
-        style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}, 0 24px 64px -16px rgba(0,0,0,0.7)` }}
+        className="modal-fade w-full max-w-6xl h-full max-h-[92vh] rounded-xl overflow-hidden flex flex-col"
+        style={{
+          background: T.surface,
+          border: HAIRLINE,
+          boxShadow: "0 16px 48px -24px rgba(0,0,0,0.9)",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Chrome bar */}
-        <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: `1px solid ${T.borderSoft}` }}>
+        {/* Top bar */}
+        <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: HAIRLINE_SOFT }}>
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="w-2 h-2 rounded-full" style={{ background: "rgba(239,68,68,0.7)" }} />
-            <span className="w-2 h-2 rounded-full" style={{ background: "rgba(245,158,11,0.7)" }} />
-            <span className="w-2 h-2 rounded-full" style={{ background: "rgba(34,197,94,0.7)" }} />
+            <span className="w-2 h-2 rounded-full" style={{ background: T.border }} />
+            <span className="w-2 h-2 rounded-full" style={{ background: T.border }} />
+            <span className="w-2 h-2 rounded-full" style={{ background: T.border }} />
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="text-[13.5px] font-semibold truncate" style={{ color: T.text }}>
+            <p className="text-[13.5px] font-medium truncate" style={{ color: T.text }}>
               {name}
             </p>
             <p className="text-[11px] mt-0.5 truncate" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
@@ -564,35 +613,31 @@ const PreviewModal: React.FC<{
           </div>
 
           <span
-            className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium whitespace-nowrap"
-            style={{
-              background: active ? T.successSoft : "rgba(156,163,180,0.12)",
-              color: active ? T.success : T.textMuted,
-              boxShadow: `inset 0 0 0 1px ${active ? T.successBorder : "rgba(156,163,180,0.28)"}`,
-            }}
+            className="shrink-0 inline-flex items-center gap-1.5 rounded text-[10px] px-1.5 py-0.5 whitespace-nowrap"
+            style={{ color: active ? T.ok : T.textMuted, border: HAIRLINE }}
           >
-            <span className="w-1 h-1 rounded-full" style={{ background: active ? T.success : T.textMuted }} />
+            <span
+              className="w-1 h-1 rounded-full"
+              style={{ background: active ? T.ok : T.textFaint }}
+            />
             {active ? "Active" : "Inactive"}
           </span>
 
           <button
             onClick={onClose}
             aria-label="Close preview"
-            className="shrink-0 p-1.5 rounded-md transition-colors hover:bg-white/5"
-            style={{ color: T.textMuted, background: T.surface2 }}
+            className="shrink-0 p-1.5 rounded-md transition-colors duration-[120ms]"
+            style={{ color: T.textMuted }}
           >
             <X size={15} />
           </button>
         </div>
 
-        {/* Toolbar */}
-        <div
-          className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5"
-          style={{ borderBottom: `1px solid ${T.borderSoft}` }}
-        >
+        {/* Device + actions */}
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5" style={{ borderBottom: HAIRLINE_SOFT }}>
           <div
-            className="inline-flex items-center gap-0.5 p-0.5 rounded-lg"
-            style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+            className="inline-flex items-center rounded-md p-0.5"
+            style={{ background: T.surface2, border: HAIRLINE_SOFT }}
           >
             {DEVICES.map((d, i) => {
               const active = d.id === device;
@@ -601,17 +646,21 @@ const PreviewModal: React.FC<{
                 <button
                   key={d.id}
                   onClick={() => setDevice(d.id)}
-                  className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors"
+                  className="tpl-seg inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-[11.5px] font-medium transition-colors duration-[120ms]"
                   style={{
                     background: active ? T.surfaceHi : "transparent",
                     color: active ? T.text : T.textMuted,
+                    border: active ? HAIRLINE_SOFT : "1px solid transparent",
                   }}
                   title={`${d.label} (${i + 1})`}
                 >
                   <Icon size={12} />
                   <span className="hidden sm:inline">{d.label}</span>
-                  <span className="hidden md:inline text-[10px] opacity-60" style={{ fontFamily: FONT.mono }}>
-                    {d.width}px
+                  <span
+                    className="hidden md:inline tabular-nums"
+                    style={{ fontFamily: FONT.mono, fontSize: 10, color: T.textFaint }}
+                  >
+                    {d.width}
                   </span>
                 </button>
               );
@@ -621,12 +670,12 @@ const PreviewModal: React.FC<{
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopyId}
-              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] transition-colors duration-[120ms]"
               style={{
                 fontFamily: FONT.mono,
-                color: copied ? T.success : T.textFaint,
-                background: copied ? T.successSoft : T.surface2,
-                boxShadow: `inset 0 0 0 1px ${copied ? T.successBorder : T.borderSoft}`,
+                color: copied ? T.accent : T.textFaint,
+                border: HAIRLINE,
+                background: "transparent",
               }}
               title="Copy template ID (C)"
             >
@@ -637,8 +686,8 @@ const PreviewModal: React.FC<{
             <button
               onClick={openRaw}
               disabled={!html}
-              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:bg-white/5 disabled:opacity-50"
-              style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors duration-[120ms] disabled:opacity-50"
+              style={{ color: T.textMuted, border: HAIRLINE }}
             >
               <ExternalLink size={11} />
               Open raw
@@ -650,19 +699,21 @@ const PreviewModal: React.FC<{
         <div className="flex-1 overflow-hidden" style={{ background: T.bg }}>
           <div className="w-full h-full flex items-center justify-center p-3 md:p-6 overflow-auto">
             <div
-              className="rounded-lg overflow-hidden"
+              className="rounded-md overflow-hidden flex"
               style={{
                 width: "100%",
                 maxWidth: `${currentWidth}px`,
                 height: "100%",
                 background: "#fff",
-                boxShadow: "0 24px 48px -12px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.04)",
-                transition: "max-width 0.2s ease",
+                border: HAIRLINE,
               }}
             >
               <iframe
                 title="template-preview-full"
-                srcDoc={html || "<p style='font-family:sans-serif;color:#888;padding:24px;'>No preview content</p>"}
+                srcDoc={
+                  html ||
+                  "<p style='font-family:sans-serif;color:#888;padding:24px;'>No preview content</p>"
+                }
                 sandbox=""
                 className="w-full h-full border-0"
               />
@@ -670,47 +721,16 @@ const PreviewModal: React.FC<{
           </div>
         </div>
 
-        {/* Footer hint */}
+        {/* Footer shortcuts */}
         <div
           className="hidden md:flex items-center justify-between gap-3 px-4 py-2 text-[10.5px]"
-          style={{ borderTop: `1px solid ${T.borderSoft}`, fontFamily: FONT.mono, color: T.textFaint }}
+          style={{ borderTop: HAIRLINE_SOFT, color: T.textFaint, fontFamily: FONT.mono }}
         >
-          <span>Esc to close · 1 desktop · 2 tablet · 3 mobile · C copy id</span>
-          <span className="inline-flex items-center gap-2">
-            <MoreHorizontal size={12} />
-            sandboxed preview
-          </span>
+          <span>Esc close · 1 desktop · 2 tablet · 3 mobile · C copy id</span>
         </div>
       </div>
     </div>
   );
 };
-
-/* ─────────────── Summary tile ─────────────── */
-
-const SummaryTile: React.FC<{
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  label: string;
-  value: number;
-  tone: string;
-}> = ({ icon: Icon, label, value, tone }) => (
-  <div className="p-4 md:p-5">
-    <div className="flex items-center gap-2 mb-2.5">
-      <div
-        className="w-7 h-7 rounded-md flex items-center justify-center"
-        style={{ background: `${tone}14`, color: tone }}
-      >
-        <Icon size={13} />
-      </div>
-      <span className="text-[10.5px] uppercase tracking-wider font-medium" style={{ color: T.textFaint }}>
-        {label}
-      </span>
-    </div>
-    <p className="text-[24px] md:text-[28px] font-semibold leading-none tracking-tight"
-      style={{ color: T.text, fontFamily: FONT.mono }}>
-      {value}
-    </p>
-  </div>
-);
 
 export default Templates;

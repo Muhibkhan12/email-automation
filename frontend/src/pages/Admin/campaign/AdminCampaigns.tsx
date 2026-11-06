@@ -8,7 +8,7 @@ import AdminCampaignModal from './AdminCampaignModal';
 import {
   Menu, RefreshCw, Search, Plus, Megaphone, Rocket, PauseCircle,
   CheckCircle2, XCircle, FileEdit, ChevronRight, Inbox, AlertTriangle,
-  Filter, Sparkles, User as UserIcon,
+  Filter, Sparkles, User as UserIcon, Trash2,
 } from 'lucide-react';
 
 /* ─────────────── design tokens ─────────────── */
@@ -67,6 +67,10 @@ const STATUS_STYLES: Record<
 
 /* ─────────────── helpers ─────────────── */
 
+// Only paused or completed campaigns can be deleted.
+const DELETABLE: Array<Campaign['status']> = ['Paused', 'Completed'];
+const canDelete = (status: Campaign['status']) => DELETABLE.includes(status);
+
 const relativeTime = (iso: string) => {
   const d = new Date(iso).getTime();
   if (isNaN(d)) return "";
@@ -79,6 +83,15 @@ const relativeTime = (iso: string) => {
   const days = Math.round(hrs / 24);
   if (days < 30) return `${days}d ago`;
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+};
+
+const apiErrorMessage = (err: any, fallback: string) => {
+  const detail = err?.response?.data?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail) && detail.length) {
+    return detail.map((d: any) => d?.msg || JSON.stringify(d)).join(', ');
+  }
+  return err?.response?.data?.message || err?.message || fallback;
 };
 
 /** Resolve a friendly owner label from a campaign. Never shows a raw id. */
@@ -101,6 +114,7 @@ const AdminCampaigns: React.FC = () => {
     allLoading: loading,
     allError: error,
     fetchAll,
+    deleteMine: deleteCampaignById, // removes from both the user and admin slices
   } = useCampaigns();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -108,9 +122,41 @@ const AdminCampaigns: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
 
+  // Delete flow
+  const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  const closeDeleteDialog = () => {
+    if (deleting) return;
+    setCampaignToDelete(null);
+    setDeleteError(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!campaignToDelete) return;
+    // Re-check at confirm time in case the status changed since the list loaded
+    if (!canDelete(campaignToDelete.status)) {
+      setDeleteError('Only paused or completed campaigns can be deleted.');
+      return;
+    }
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteCampaignById(campaignToDelete.id);
+      // If the details modal is showing the deleted campaign, close it too
+      setSelectedCampaign((cur) => (cur?.id === campaignToDelete.id ? null : cur));
+      setCampaignToDelete(null);
+    } catch (err: any) {
+      setDeleteError(apiErrorMessage(err, 'Could not delete the campaign.'));
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const filteredCampaigns = useMemo(
     () =>
@@ -414,7 +460,7 @@ const AdminCampaigns: React.FC = () => {
                           {campaign.subject || "—"}
                         </p>
 
-                        {/* Owner strip — now shows NAME, not id */}
+                        {/* Owner strip — shows name, not id */}
                         <div className="flex items-center gap-1.5 mt-1 min-w-0">
                           <UserIcon size={10} style={{ color: T.textFaint }} className="shrink-0" />
                           <span className="text-[11px] font-medium truncate" style={{ color: T.textMuted }}>
@@ -437,6 +483,25 @@ const AdminCampaigns: React.FC = () => {
                         </span>
                       </div>
 
+                      {/* Delete (paused / completed only) */}
+                      {canDelete(campaign.status) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation(); // don't open the details modal
+                            setDeleteError(null);
+                            setCampaignToDelete(campaign);
+                          }}
+                          title="Delete campaign"
+                          aria-label={`Delete ${campaign.campaign_name}`}
+                          className="shrink-0 p-1.5 rounded-md transition-colors hover:bg-red-500/10"
+                          style={{ color: T.textFaint }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = T.danger)}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = T.textFaint)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+
                       <ChevronRight
                         size={14}
                         className="shrink-0 transition-transform group-hover:translate-x-0.5"
@@ -456,6 +521,73 @@ const AdminCampaigns: React.FC = () => {
           campaign={selectedCampaign}
           onClose={() => setSelectedCampaign(null)}
         />
+      )}
+
+      {/* Delete confirmation */}
+      {campaignToDelete && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70"
+          onClick={closeDeleteDialog}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            className="w-full max-w-md rounded-xl p-5"
+            style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+                style={{ background: T.dangerSoft, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
+              >
+                <Trash2 size={15} style={{ color: T.danger }} />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-[15px] font-semibold" style={{ color: T.text }}>Delete campaign?</h2>
+                <p className="text-[12.5px] mt-1" style={{ color: T.textMuted }}>
+                  <span style={{ color: T.text }}>{campaignToDelete.campaign_name}</span>, owned by{" "}
+                  <span style={{ color: T.text }}>{ownerLabelOf(campaignToDelete).name}</span>, will be
+                  permanently removed. This can't be undone.
+                </p>
+              </div>
+            </div>
+
+            {deleteError && (
+              <p
+                className="mt-4 text-[12px] rounded-md px-3 py-2"
+                style={{ background: T.dangerSoft, color: T.danger, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
+              >
+                {deleteError}
+              </p>
+            )}
+
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                onClick={closeDeleteDialog}
+                disabled={deleting}
+                className="px-3.5 py-2 rounded-lg text-[12.5px] font-medium hover:bg-white/5 disabled:opacity-50"
+                style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium hover:brightness-110 disabled:opacity-60"
+                style={{ background: T.danger, color: '#fff' }}
+              >
+                {deleting && (
+                  <span
+                    className="w-3 h-3 border-2 rounded-full animate-spin"
+                    style={{ borderColor: '#fff', borderTopColor: 'transparent' }}
+                  />
+                )}
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

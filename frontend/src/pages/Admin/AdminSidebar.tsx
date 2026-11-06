@@ -87,7 +87,6 @@ const navGroups = [
   {
     label: "System",
     items: [
-      { name: "Notifications", path: "/admin/notifications", icon: Bell },
       { name: "Settings",      path: "/admin/settings",      icon: SettingsIcon },
     ],
   },

@@ -8,45 +8,58 @@ import {
   ExternalLink,
 } from 'lucide-react';
 
-/* ─────────────── design tokens ─────────────── */
+/* ─────────────── design tokens (indigo + mint theme) ─────────────── */
 
 const T = {
-  bg:          "#0A0B10",
-  surface:     "#111319",
-  surface2:    "#161922",
-  surfaceHi:   "#1B1F2A",
-  border:      "#232838",
-  borderSoft:  "#1B1F2A",
-  text:        "#E9EBF0",
-  textMuted:   "#9CA3B4",
-  textFaint:   "#6B7280",
+  bg:          "#0B0C0E",
+  surface:     "#111214",
+  surface2:    "#16181B",
+  surfaceHi:   "#1C1F23",
+  border:      "#24282E",
+  borderSoft:  "#1B1E22",
+
+  text:        "#E8EAED",
+  textMuted:   "#9AA0A6",
+  textFaint:   "#6B7075",
+
+  accent:      "#6EE7A8",
+  accentInk:   "#0B0C0E",
+  accentSoft:  "rgba(110,231,168,0.10)",
+  accentBorder:"rgba(110,231,168,0.28)",
+  accentLine:  "#2E6B4D",
+
   brand:       "#6366F1",
   brandSoft:   "rgba(99,102,241,0.12)",
   brandBorder: "rgba(99,102,241,0.35)",
-  success:     "#22C55E",
-  successSoft: "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:        "#F59E0B",
-  warnSoft:    "rgba(245,158,11,0.12)",
-  warnBorder:  "rgba(245,158,11,0.35)",
-  danger:      "#EF4444",
-  dangerSoft:  "rgba(239,68,68,0.12)",
-  dangerBorder:"rgba(239,68,68,0.35)",
-  info:        "#38BDF8",
-  infoSoft:    "rgba(56,189,248,0.12)",
-  infoBorder:  "rgba(56,189,248,0.35)",
-  purple:      "#A78BFA",
-  purpleSoft:  "rgba(167,139,250,0.12)",
-  purpleBorder:"rgba(167,139,250,0.35)",
-}
+
+  success:     "#6EE7A8",
+  successSoft: "rgba(110,231,168,0.10)",
+  successBorder:"rgba(110,231,168,0.28)",
+
+  warn:        "#E0A64A",
+  warnSoft:    "rgba(224,166,74,0.10)",
+  warnBorder:  "rgba(224,166,74,0.28)",
+
+  danger:      "#E06A6A",
+  dangerSoft:  "rgba(224,106,106,0.10)",
+  dangerBorder:"rgba(224,106,106,0.28)",
+
+  info:        "#6EC1E7",
+  infoSoft:    "rgba(110,193,231,0.10)",
+  infoBorder:  "rgba(110,193,231,0.28)",
+
+  purple:      "#B39DE0",
+  purpleSoft:  "rgba(179,157,224,0.10)",
+  purpleBorder:"rgba(179,157,224,0.28)",
+};
 
 const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
-}
+  ui:   "'Inter', system-ui, -apple-system, sans-serif",
+  mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+};
 
-const RING = `inset 0 0 0 1px ${T.border}`
+const HAIRLINE = `1px solid ${T.border}`;
+const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`;
 
 /* ─────────────── status styles ─────────────── */
 
@@ -54,7 +67,7 @@ const CAMPAIGN_STATUS_STYLES: Record<
   Campaign['status'],
   { bg: string; fg: string; ring: string; label: string }
 > = {
-  Draft:     { bg: "rgba(156,163,180,0.12)", fg: T.textMuted, ring: "rgba(156,163,180,0.28)", label: "Draft" },
+  Draft:     { bg: "rgba(154,160,166,0.10)", fg: T.textMuted, ring: "rgba(154,160,166,0.28)", label: "Draft" },
   Ready:     { bg: T.infoSoft,               fg: T.info,      ring: T.infoBorder,             label: "Ready" },
   Running:   { bg: T.successSoft,            fg: T.success,   ring: T.successBorder,          label: "Running" },
   Paused:    { bg: T.warnSoft,               fg: T.warn,      ring: T.warnBorder,             label: "Paused" },
@@ -82,7 +95,7 @@ const MetaPill: React.FC<{ icon?: React.ReactNode; children: React.ReactNode; mo
 }) => (
   <span
     className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] ${mono ? 'font-mono' : ''}`}
-    style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+    style={{ background: T.surface2, color: T.textMuted, border: HAIRLINE_SOFT, fontFamily: mono ? FONT.mono : FONT.ui }}
   >
     {icon}
     {children}
@@ -96,7 +109,15 @@ const StatCard: React.FC<{
   accent: string;
   accentSoft: string;
 }> = ({ label, value, icon: Icon, accent, accentSoft }) => (
-  <div className="rounded-lg p-3" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+  <div
+    className="rounded-lg p-3 relative overflow-hidden"
+    style={{ background: T.surface2, border: HAIRLINE_SOFT }}
+  >
+    <span
+      aria-hidden
+      className="absolute left-0 top-0 bottom-0 w-[2px]"
+      style={{ background: accent, opacity: 0.6 }}
+    />
     <div
       className="w-7 h-7 rounded-md flex items-center justify-center mb-2"
       style={{ background: accentSoft, color: accent }}
@@ -145,9 +166,9 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-100 flex items-center justify-center p-3 md:p-4 bg-black/70"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 md:p-4"
       onClick={onClose}
-      style={{ fontFamily: FONT.body, animation: 'cm-fade 0.15s ease-out' }}
+      style={{ fontFamily: FONT.ui, background: "rgba(11,12,14,0.72)", animation: 'cm-fade 0.15s ease-out' }}
     >
       <style>{`
         @keyframes cm-fade { from { opacity: 0 } to { opacity: 1 } }
@@ -157,26 +178,32 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
         .cm-scroll::-webkit-scrollbar-track { background: transparent }
         .cm-scroll::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 8px }
         .cm-scroll::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi} }
+        :focus-visible { outline: 2px solid ${T.accentLine}; outline-offset: 2px; border-radius: 4px; }
         @media (prefers-reduced-motion: reduce) { .cm-shell { animation: none !important } }
       `}</style>
 
       <div
         onClick={(e) => e.stopPropagation()}
-        className="cm-shell w-full max-w-5xl max-h-[90vh] flex flex-col rounded-xl overflow-hidden"
+        className="cm-shell relative w-full max-w-5xl max-h-[90vh] flex flex-col rounded-xl overflow-hidden"
         style={{
           background: T.surface,
-          boxShadow: `inset 0 0 0 1px ${T.border}, 0 24px 64px -16px rgba(0,0,0,0.7)`,
+          border: HAIRLINE,
+          boxShadow: "0 24px 64px -16px rgba(0,0,0,0.7)",
         }}
       >
-        {/* Header */}
+        {/* top accent line */}
         <div
-          className="flex items-start justify-between gap-4 p-4 md:p-5"
-          style={{ borderBottom: `1px solid ${T.borderSoft}` }}
-        >
+          aria-hidden
+          className="absolute inset-x-0 top-0 h-px pointer-events-none"
+          style={{ background: `linear-gradient(90deg, transparent, ${T.accent}, transparent)`, opacity: 0.6 }}
+        />
+
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 p-4 md:p-5" style={{ borderBottom: HAIRLINE_SOFT }}>
           <div className="flex items-start gap-3 min-w-0">
             <div
-              className="shrink-0 w-9 h-9 rounded-md flex items-center justify-center"
-              style={{ background: T.brandSoft, color: T.brand }}
+              className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+              style={{ background: T.brandSoft, color: T.brand, border: `1px solid ${T.brandBorder}` }}
             >
               <Mail size={16} />
             </div>
@@ -192,8 +219,10 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
           <button
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 p-1.5 rounded-md transition-colors hover:bg-white/5"
-            style={{ color: T.textMuted, background: T.surface2 }}
+            className="shrink-0 p-1.5 rounded-md transition-colors duration-[120ms]"
+            style={{ color: T.textMuted, background: T.surface2, border: HAIRLINE_SOFT }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = T.surface2; }}
           >
             <X size={15} />
           </button>
@@ -203,7 +232,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
         <div className="flex flex-wrap items-center gap-1.5 px-4 md:px-5 pt-3">
           <span
             className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium"
-            style={{ backgroundColor: statusStyle.bg, color: statusStyle.fg, boxShadow: `inset 0 0 0 1px ${statusStyle.ring}` }}
+            style={{ backgroundColor: statusStyle.bg, color: statusStyle.fg, border: `1px solid ${statusStyle.ring}` }}
           >
             <span className="w-1 h-1 rounded-full" style={{ background: statusStyle.fg }} />
             {statusStyle.label}
@@ -224,7 +253,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
         <div className="px-4 md:px-5 mt-3">
           <div
             className="inline-flex items-center gap-0.5 p-0.5 rounded-md"
-            style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+            style={{ background: T.surface2, border: HAIRLINE_SOFT }}
           >
             {tabs.map((t) => {
               const Icon = t.icon;
@@ -233,7 +262,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11.5px] font-medium transition-colors"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11.5px] font-medium transition-colors duration-[120ms]"
                   style={{
                     background: active ? T.surfaceHi : 'transparent',
                     color: active ? T.text : T.textMuted,
@@ -249,8 +278,10 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
                 navigate(`/user/campaigns/${campaign.id}/recipients`);
                 onClose();
               }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11.5px] font-medium transition-colors hover:bg-white/5"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11.5px] font-medium transition-colors duration-[120ms]"
               style={{ color: T.textMuted }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
             >
               <Users size={12} />
               <span>Recipients ({campaign.recipients.length})</span>
@@ -265,18 +296,15 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
             <div className="space-y-4">
               {/* Stat grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <StatCard label="Recipients"    value={stats.recipientCount}          icon={Users}        accent={T.brand}   accentSoft={T.brandSoft} />
-                <StatCard label="Sent"          value={stats.sent}                    icon={Send}         accent={T.success} accentSoft={T.successSoft} />
-                <StatCard label="Failed"        value={stats.failed}                  icon={XCircle}      accent={T.danger}  accentSoft={T.dangerSoft} />
-                <StatCard label="Delivery rate" value={`${stats.deliveryRate}%`}      icon={CheckCircle2} accent={T.purple}  accentSoft={T.purpleSoft} />
+                <StatCard label="Recipients"    value={stats.recipientCount}     icon={Users}        accent={T.brand}   accentSoft={T.brandSoft} />
+                <StatCard label="Sent"          value={stats.sent}               icon={Send}         accent={T.success} accentSoft={T.successSoft} />
+                <StatCard label="Failed"        value={stats.failed}             icon={XCircle}      accent={T.danger}  accentSoft={T.dangerSoft} />
+                <StatCard label="Delivery rate" value={`${stats.deliveryRate}%`} icon={CheckCircle2} accent={T.purple}  accentSoft={T.purpleSoft} />
               </div>
 
               {/* Upload progress */}
               {upload && (
-                <div
-                  className="rounded-lg p-3.5"
-                  style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
-                >
+                <div className="rounded-lg p-3.5" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
                   <div className="flex items-center gap-3 mb-2.5">
                     <div
                       className="shrink-0 w-8 h-8 rounded-md flex items-center justify-center"
@@ -294,7 +322,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
                     </div>
                     <span
                       className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                      style={{ background: T.surfaceHi, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                      style={{ background: T.surfaceHi, color: T.textMuted, border: HAIRLINE_SOFT }}
                     >
                       {upload.status}
                     </span>
@@ -303,7 +331,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{
-                        background: T.brand,
+                        background: T.accent,
                         width: `${upload.total_records ? Math.min(100, (upload.processed_records / upload.total_records) * 100) : 0}%`,
                       }}
                     />
@@ -314,7 +342,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
               {/* Template row */}
               <div
                 className="rounded-lg p-3.5 flex items-center justify-between gap-3"
-                style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                style={{ background: T.surface2, border: HAIRLINE_SOFT }}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div
@@ -332,8 +360,8 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
                 </div>
                 <button
                   onClick={() => setTab('template')}
-                  className="shrink-0 inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors hover:brightness-110"
-                  style={{ background: T.brandSoft, color: T.brand, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
+                  className="shrink-0 inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-all hover:brightness-110"
+                  style={{ background: T.brandSoft, color: T.brand, border: `1px solid ${T.brandBorder}` }}
                 >
                   <Eye size={11} /> Preview
                 </button>
@@ -342,17 +370,11 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
           )}
 
           {tab === 'template' && (
-            <div
-              className="rounded-lg overflow-hidden"
-              style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.border}` }}
-            >
-              <div
-                className="flex items-center gap-2 px-3.5 py-2"
-                style={{ borderBottom: `1px solid ${T.borderSoft}` }}
-              >
-                <span className="w-2 h-2 rounded-full" style={{ background: "rgba(239,68,68,0.7)" }} />
-                <span className="w-2 h-2 rounded-full" style={{ background: "rgba(245,158,11,0.7)" }} />
-                <span className="w-2 h-2 rounded-full" style={{ background: "rgba(34,197,94,0.7)" }} />
+            <div className="rounded-lg overflow-hidden" style={{ background: T.surface2, border: HAIRLINE }}>
+              <div className="flex items-center gap-2 px-3.5 py-2" style={{ borderBottom: HAIRLINE_SOFT }}>
+                <span className="w-2 h-2 rounded-full" style={{ background: "rgba(224,106,106,0.7)" }} />
+                <span className="w-2 h-2 rounded-full" style={{ background: "rgba(224,166,74,0.7)" }} />
+                <span className="w-2 h-2 rounded-full" style={{ background: "rgba(110,231,168,0.7)" }} />
                 <span className="ml-2 text-[10.5px] truncate" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                   {campaign.template.name}
                 </span>
@@ -369,17 +391,16 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div
-          className="flex items-center justify-between gap-2 p-3.5 md:p-4"
-          style={{ borderTop: `1px solid ${T.borderSoft}` }}
-        >
+        <div className="flex items-center justify-between gap-2 p-3.5 md:p-4" style={{ borderTop: HAIRLINE_SOFT }}>
           <p className="text-[10.5px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
             Campaign #{campaign.id}
           </p>
           <button
             onClick={onClose}
-            className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors hover:bg-white/5"
-            style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+            className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms]"
+            style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
           >
             Close
           </button>

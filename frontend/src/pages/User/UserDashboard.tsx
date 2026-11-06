@@ -10,8 +10,7 @@ import { SenderAccContext } from '../../contexts/SenderAccountsContext'
 import {
   Mail, Send, Users, AlertCircle, ArrowUpRight, ArrowDownRight,
   Clock, CheckCircle2, XCircle, ShieldCheck, ShieldAlert,
-  ShieldX, Menu, ChevronRight, Activity, TrendingUp, ArrowRight,
-  RefreshCw, Inbox,
+  ShieldX, Menu, ChevronRight, Activity, RefreshCw, Inbox,
 } from 'lucide-react'
 
 import {
@@ -19,45 +18,38 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts'
 
-/* ─────────────── design tokens ─────────────── */
+/* ─────────────── design tokens ───────────────
+   One graphite neutral ramp, tinted slightly cool.
+   One accent (phosphor). Amber + red reserved for status semantics only.
+*/
 
 const T = {
-  bg:          '#0A0B10',
-  surface:     '#111319',
-  surface2:    '#161922',
-  surfaceHi:   '#1B1F2A',
-  border:      '#232838',
-  borderSoft:  '#1B1F2A',
-  text:        '#E9EBF0',
-  textMuted:   '#9CA3B4',
-  textFaint:   '#6B7280',
-  brand:       '#6366F1',
-  brandSoft:   'rgba(99,102,241,0.12)',
-  brandBorder: 'rgba(99,102,241,0.35)',
-  success:     '#22C55E',
-  successSoft: 'rgba(34,197,94,0.12)',
-  successBorder:'rgba(34,197,94,0.35)',
-  warn:        '#F59E0B',
-  warnSoft:    'rgba(245,158,11,0.12)',
-  warnBorder:  'rgba(245,158,11,0.35)',
-  danger:      '#EF4444',
-  dangerSoft:  'rgba(239,68,68,0.12)',
-  dangerBorder:'rgba(239,68,68,0.35)',
-  purple:      '#A78BFA',
-  purpleSoft:  'rgba(167,139,250,0.12)',
-  purpleBorder:'rgba(167,139,250,0.35)',
-  info:        '#38BDF8',
-  infoSoft:    'rgba(56,189,248,0.12)',
-  infoBorder:  'rgba(56,189,248,0.35)',
+  bg:         '#0B0C0E',
+  surface:    '#111214',
+  surface2:   '#16181B',
+  surfaceHi:  '#1C1F23',
+  border:     '#24282E',
+  borderSoft: '#1B1E22',
+
+  text:       '#E8EAED',
+  textMuted:  '#9AA0A6',
+  textFaint:  '#6B7075',
+
+  accent:     '#6EE7A8',      // phosphor — the one bright thing
+  accentInk:  '#0B0C0E',      // text on accent
+  accentLine: '#2E6B4D',      // phosphor at low energy, for fills/strokes
+
+  ok:         '#6EE7A8',
+  warn:       '#E0A64A',
+  danger:     '#E06A6A',
+
+  ring:       '1px solid #24282E',
 }
 
 const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
+  ui:   "'Inter', system-ui, -apple-system, sans-serif",
+  mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
 }
-
-const RING = `inset 0 0 0 1px ${T.border}`
 
 /* ─────────────── helpers ─────────────── */
 
@@ -86,25 +78,25 @@ const dayKey = (iso?: string | null) => {
   return d.toISOString().slice(0, 10)
 }
 
-/* ─────────────── status maps ─────────────── */
+/* ─────────────── status maps (quiet — no colored soft fills) ─────────────── */
 
-const CAMPAIGN_STATUS_STYLE: Record<string, { bg: string; fg: string; ring: string; label: string }> = {
-  Draft:     { bg: 'rgba(156,163,180,0.10)', fg: T.textMuted, ring: 'rgba(156,163,180,0.28)', label: 'Draft' },
-  Ready:     { bg: T.brandSoft,  fg: T.brand,  ring: T.brandBorder,  label: 'Ready' },
-  Running:   { bg: T.successSoft,fg: T.success,ring: T.successBorder,label: 'Running' },
-  Paused:    { bg: T.warnSoft,   fg: T.warn,   ring: T.warnBorder,   label: 'Paused' },
-  Completed: { bg: T.purpleSoft, fg: T.purple, ring: T.purpleBorder, label: 'Completed' },
-  Cancelled: { bg: T.dangerSoft, fg: T.danger, ring: T.dangerBorder, label: 'Cancelled' },
+const CAMPAIGN_STATUS_STYLE: Record<string, { fg: string; dot: string; label: string }> = {
+  Draft:     { fg: T.textMuted, dot: T.textFaint, label: 'Draft' },
+  Ready:     { fg: T.textMuted, dot: T.textFaint, label: 'Ready' },
+  Running:   { fg: T.ok,        dot: T.ok,        label: 'Running' },
+  Paused:    { fg: T.warn,      dot: T.warn,      label: 'Paused' },
+  Completed: { fg: T.textMuted, dot: T.textFaint, label: 'Completed' },
+  Cancelled: { fg: T.danger,    dot: T.danger,    label: 'Cancelled' },
 }
 
 const accountStatusMeta = {
-  Active:   { icon: ShieldCheck, fg: T.success, bg: T.successSoft, ring: T.successBorder },
-  Warning:  { icon: ShieldAlert, fg: T.warn,    bg: T.warnSoft,    ring: T.warnBorder },
-  Disabled: { icon: ShieldX,     fg: T.textMuted, bg: 'rgba(156,163,180,0.10)', ring: 'rgba(156,163,180,0.28)' },
+  Active:   { icon: ShieldCheck, fg: T.ok },
+  Warning:  { icon: ShieldAlert, fg: T.warn },
+  Disabled: { icon: ShieldX,     fg: T.textFaint },
 }
 
 const pulseDotColor = {
-  success: T.success,
+  success: T.ok,
   pending: T.warn,
   failed:  T.danger,
 }
@@ -114,15 +106,18 @@ const pulseDotColor = {
 const Card: React.FC<{ children: React.ReactNode; className?: string; style?: React.CSSProperties }> = ({
   children, className = '', style,
 }) => (
-  <div className={`rounded-xl ${className}`} style={{ background: T.surface, boxShadow: RING, ...style }}>
+  <div
+    className={`rounded-xl ${className}`}
+    style={{ background: T.surface, border: T.ring, ...style }}
+  >
     {children}
   </div>
 )
 
 const CardHeader: React.FC<{ title: string; hint?: string; right?: React.ReactNode }> = ({ title, hint, right }) => (
-  <div className="flex flex-wrap items-end justify-between gap-2 px-4 md:px-5 pt-4 pb-3">
+  <div className="flex flex-wrap items-center justify-between gap-3 px-5 md:px-6 pt-5 pb-3">
     <div>
-      <h2 className="text-[14px] font-semibold tracking-tight" style={{ color: T.text }}>{title}</h2>
+      <h2 className="text-[13.5px] font-medium" style={{ color: T.text }}>{title}</h2>
       {hint && <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>{hint}</p>}
     </div>
     {right}
@@ -210,7 +205,7 @@ const UserDashboard: React.FC = () => {
   const engagement = useMemo(() => {
     const total = stats.sent + stats.pending + stats.failed || 1
     return [
-      { name: 'Sent',    value: stats.sent,    color: T.success },
+      { name: 'Sent',    value: stats.sent,    color: T.ok },
       { name: 'Pending', value: stats.pending, color: T.warn },
       { name: 'Failed',  value: stats.failed,  color: T.danger },
     ].map((e) => ({ ...e, pct: Math.round((e.value / total) * 100) }))
@@ -242,9 +237,9 @@ const UserDashboard: React.FC = () => {
   }, [myLogs])
 
   const queueActivity = useMemo(() => ([
-    { label: 'Processed', value: formatNumber(stats.sent),  icon: CheckCircle2, tone: T.success, soft: T.successSoft },
-    { label: 'In queue',  value: formatNumber(stats.pending), icon: Clock,       tone: T.warn,    soft: T.warnSoft },
-    { label: 'Errors',    value: formatNumber(stats.failed),  icon: AlertCircle, tone: T.danger,  soft: T.dangerSoft },
+    { label: 'Processed', value: formatNumber(stats.sent),    icon: CheckCircle2, tone: T.ok },
+    { label: 'In queue',  value: formatNumber(stats.pending), icon: Clock,        tone: T.warn },
+    { label: 'Errors',    value: formatNumber(stats.failed),  icon: AlertCircle,  tone: T.danger },
   ]), [stats])
 
   const queueLoadPct = stats.total ? Math.min(100, Math.round((stats.pending / stats.total) * 100)) : 0
@@ -288,36 +283,37 @@ const UserDashboard: React.FC = () => {
     })
   }, [senderAcc, myLogs])
 
+  // Stat cards: label / figure / meta. No sparklines, no icon tiles, no colored deltas.
+  // Trend arrows only when the comparison is a real count ("vs total events") — quiet mono.
   const statCards = [
-    { label: 'Emails sent',      value: formatNumber(stats.sent), delta: `${formatNumber(stats.total)} total events`, trend: 'up' as const,   icon: Send,         accent: T.brand,   accentSoft: T.brandSoft },
-    { label: 'Delivery rate',    value: `${stats.deliveryRate}%`, delta: stats.deliveryRate >= 95 ? 'healthy' : 'check failed', trend: stats.deliveryRate >= 95 ? ('up' as const) : ('down' as const), icon: CheckCircle2, accent: T.success, accentSoft: T.successSoft },
-    { label: 'Recipients reached', value: formatNumber(stats.totalRecipients), delta: `${myCampaigns.length} campaigns`, trend: 'up' as const, icon: Users, accent: T.info, accentSoft: T.infoSoft },
-    { label: 'Bounced / failed', value: formatNumber(stats.failed), delta: `${formatNumber(stats.pending)} pending`, trend: stats.failed === 0 ? ('up' as const) : ('down' as const), icon: XCircle, accent: T.danger, accentSoft: T.dangerSoft },
+    { label: 'Emails sent',       value: formatNumber(stats.sent),                    meta: `of ${formatNumber(stats.total)} events`,  icon: Send },
+    { label: 'Delivery rate',     value: `${stats.deliveryRate}%`,                    meta: stats.deliveryRate >= 95 ? 'healthy' : 'check failures', icon: CheckCircle2 },
+    { label: 'Recipients reached', value: formatNumber(stats.totalRecipients),        meta: `${formatNumber(myCampaigns.length)} campaigns`,       icon: Users },
+    { label: 'Bounced / failed',  value: formatNumber(stats.failed),                  meta: `${formatNumber(stats.pending)} pending`,             icon: XCircle },
   ]
 
   const runningCount = myCampaigns.filter((c: any) => c.status === 'Running').length
 
   return (
-    <div className="h-screen w-full flex overflow-hidden" style={{ fontFamily: FONT.body, background: T.bg }}>
+    <div className="h-screen w-full flex overflow-hidden" style={{ fontFamily: FONT.ui, background: T.bg }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
-        @keyframes pulseFade { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-        .pulse-dot { animation: pulseFade 1.8s ease-in-out infinite; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap');
 
         .db-main::-webkit-scrollbar { width: 8px; }
         .db-main::-webkit-scrollbar-track { background: transparent; }
-        .db-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
+        .db-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 8px; }
         .db-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
+
+        :focus-visible { outline: 2px solid ${T.accentLine}; outline-offset: 2px; border-radius: 4px; }
 
         @media (max-width: 640px) { .stats-grid { grid-template-columns: 1fr 1fr; } }
         @media (max-width: 480px) { .stats-grid { grid-template-columns: 1fr; } }
-        @media (prefers-reduced-motion: reduce) { .pulse-dot { animation: none !important; } }
       `}</style>
 
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/70"
+          className="lg:hidden fixed inset-0 z-40"
+          style={{ background: 'rgba(11,12,14,0.72)' }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -330,37 +326,38 @@ const UserDashboard: React.FC = () => {
       </div>
 
       <main className="db-main flex-1 overflow-y-auto" style={{ background: T.bg }}>
-        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1280 }}>
+        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1320 }}>
 
-          {/* Header */}
-          <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-7">
+          {/* Context bar */}
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-lg transition-colors hover:bg-white/5"
-                style={{ background: T.surface, color: T.textMuted, boxShadow: RING }}
+                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-120"
+                style={{ background: T.surface, color: T.textMuted, border: T.ring }}
                 aria-label="Open menu"
               >
-                <Menu size={18} />
+                <Menu size={16} />
               </button>
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                    style={{ background: T.successSoft, color: T.success, boxShadow: `inset 0 0 0 1px ${T.successBorder}` }}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.success }} />
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="inline-flex items-center gap-2 text-[12px]" style={{ color: T.textMuted }}>
+                    <span
+                      className="inline-block w-1.5 h-1.5 rounded-full"
+                      style={{ background: runningCount > 0 ? T.ok : T.textFaint, boxShadow: `0 0 0 2px ${runningCount > 0 ? T.accentLine + '33' : 'transparent'}` }}
+                    />
                     {runningCount} running
                   </span>
-                  <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                    · {formatNumber(myCampaigns.length)} campaigns
+                  <span style={{ color: T.border }}>|</span>
+                  <span className="text-[12px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                    {formatNumber(myCampaigns.length)} campaigns
                   </span>
                 </div>
-                <h1 className="text-[26px] md:text-[30px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
+                <h1 className="text-[24px] md:text-[26px] font-medium leading-tight" style={{ color: T.text }}>
                   Dashboard
                 </h1>
-                <p className="mt-1 text-[13.5px] max-w-lg" style={{ color: T.textMuted }}>
-                  Delivery health, engagement, and queue status — at a glance.
+                <p className="mt-1 text-[13px] max-w-lg" style={{ color: T.textMuted }}>
+                  Delivery health, engagement and queue status.
                 </p>
               </div>
             </div>
@@ -369,74 +366,63 @@ const UserDashboard: React.FC = () => {
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-medium transition-colors hover:bg-white/5 disabled:opacity-60"
-                style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-120 disabled:opacity-60"
+                style={{ color: T.textMuted, border: T.ring }}
               >
-                <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+                <RefreshCw size={13} />
                 Refresh
               </button>
               <button
                 onClick={() => navigate('/user/campaign')}
-                className="group inline-flex items-center gap-2 px-3.5 py-2 rounded-lg font-medium text-[12.5px] transition-all hover:brightness-110"
-                style={{ background: T.brand, color: '#fff', boxShadow: '0 6px 18px -8px rgba(99,102,241,0.65)' }}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md font-medium text-[12.5px] transition-colors duration-120"
+                style={{ background: T.text, color: T.accentInk, border: '1px solid ' + T.text }}
               >
                 <Mail size={14} />
                 New campaign
-                <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
               </button>
             </div>
           </header>
 
           {error && (
-            <div className="mb-5 rounded-lg px-3.5 py-3 text-[12.5px]"
-              style={{ background: T.dangerSoft, color: T.danger, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}>
+            <div
+              className="mb-6 rounded-md px-3.5 py-3 text-[12.5px]"
+              style={{ color: T.danger, border: `1px solid ${T.border}` }}
+            >
               {error}
             </div>
           )}
 
-          {/* Stat cards */}
-          <div className="stats-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
-            {statCards.map(({ label, value, delta, trend, icon: Icon, accent, accentSoft }) => (
-              <Card key={label} className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div
-                    className="w-8 h-8 rounded-md flex items-center justify-center"
-                    style={{ background: accentSoft, color: accent }}
-                  >
-                    <Icon size={14} />
-                  </div>
-                  <span
-                    className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10.5px] font-medium"
-                    style={{
-                      background: trend === 'up' ? T.successSoft : T.dangerSoft,
-                      color: trend === 'up' ? T.success : T.danger,
-                      fontFamily: FONT.mono,
-                    }}
-                  >
-                    {trend === 'up' ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-                    {delta}
-                  </span>
+          {/* Stat row */}
+          <div className="stats-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {statCards.map(({ label, value, meta, icon: Icon }) => (
+              <Card key={label} className="p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Icon size={14} style={{ color: T.textFaint }} />
+                  <span className="text-[12px]" style={{ color: T.textMuted }}>{label}</span>
                 </div>
-                <p className="text-[24px] font-semibold tracking-tight leading-none" style={{ color: T.text, fontFamily: FONT.mono }}>
+                <p
+                  className="text-[26px] font-medium leading-none tabular-nums"
+                  style={{ color: T.text, fontFamily: FONT.mono }}
+                >
                   {value}
                 </p>
-                <p className="text-[11.5px] mt-2" style={{ color: T.textMuted }}>{label}</p>
+                <p className="text-[11.5px] mt-2.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                  {meta}
+                </p>
               </Card>
             ))}
           </div>
 
-          {/* Trend + engagement */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5 mb-6">
+          {/* Trend + log status */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
             <Card className="lg:col-span-2">
               <CardHeader
                 title="Delivery trend"
-                hint="Last 14 days · daily events"
+                hint="Last 14 days"
                 right={
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10.5px] font-medium"
-                    style={{ background: T.brandSoft, color: T.brand, fontFamily: FONT.mono }}
-                  >
-                    <TrendingUp size={10} /> {formatNumber(trendTotalToday)} today
+                  <span className="inline-flex items-center gap-2 text-[11.5px]" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+                    <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: T.accent }} />
+                    {formatNumber(trendTotalToday)} today
                   </span>
                 }
               />
@@ -444,36 +430,40 @@ const UserDashboard: React.FC = () => {
                 {loading && deliveryTrend.every((d) => d.sent === 0) ? (
                   <div className="h-full flex items-center justify-center">
                     <div className="w-5 h-5 border-2 rounded-full animate-spin"
-                      style={{ borderColor: T.brand, borderTopColor: 'transparent' }} />
+                      style={{ borderColor: T.border, borderTopColor: T.accent }} />
                   </div>
                 ) : deliveryTrend.some((d) => d.sent > 0) ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={deliveryTrend} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="fillSent" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={T.brand} stopOpacity={0.3} />
-                          <stop offset="100%" stopColor={T.brand} stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
                       <CartesianGrid stroke={T.borderSoft} vertical={false} />
-                      <XAxis dataKey="day" tick={{ fontSize: 10, fill: T.textFaint, fontFamily: FONT.mono }}
-                        axisLine={false} tickLine={false} interval={1} />
-                      <YAxis tick={{ fontSize: 10, fill: T.textFaint, fontFamily: FONT.mono }}
-                        axisLine={false} tickLine={false} allowDecimals={false} />
+                      <XAxis
+                        dataKey="day"
+                        tick={{ fontSize: 10, fill: T.textFaint, fontFamily: FONT.mono }}
+                        axisLine={false} tickLine={false} interval={1}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 10, fill: T.textFaint, fontFamily: FONT.mono }}
+                        axisLine={false} tickLine={false} allowDecimals={false}
+                      />
                       <Tooltip
-                        cursor={{ stroke: T.border, strokeDasharray: '3 3' }}
+                        cursor={{ stroke: T.border, strokeDasharray: '2 4' }}
                         contentStyle={{
                           borderRadius: 8, border: `1px solid ${T.border}`, background: T.surface2,
                           fontFamily: FONT.mono, fontSize: 11, color: T.text,
-                          boxShadow: '0 12px 30px -12px rgba(0,0,0,0.7)',
+                          boxShadow: '0 8px 24px -16px rgba(0,0,0,0.9)',
                         }}
                       />
-                      <Area type="monotone" dataKey="sent" stroke={T.brand} strokeWidth={2} fill="url(#fillSent)" />
+                      <Area
+                        type="monotone" dataKey="sent"
+                        stroke={T.accent} strokeWidth={1.5}
+                        fill={T.accentLine} fillOpacity={0.14}
+                        activeDot={{ r: 3, fill: T.accent, stroke: T.bg, strokeWidth: 2 }}
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center">
-                    <Activity size={20} className="mb-2" style={{ color: T.border }} />
+                    <Activity size={16} className="mb-2" style={{ color: T.border }} />
                     <p className="text-[12px]" style={{ color: T.textFaint }}>No email activity yet</p>
                   </div>
                 )}
@@ -482,30 +472,37 @@ const UserDashboard: React.FC = () => {
 
             <Card>
               <CardHeader title="Log status" hint="Share of send outcomes" />
-              <div className="px-4 md:px-5 pb-4">
+              <div className="px-5 md:px-6 pb-5">
                 {stats.total === 0 ? (
                   <div className="py-10 text-center">
-                    <Activity size={18} className="mx-auto mb-2" style={{ color: T.border }} />
+                    <Activity size={16} className="mx-auto mb-2" style={{ color: T.border }} />
                     <p className="text-[12px]" style={{ color: T.textFaint }}>No logs yet</p>
                   </div>
                 ) : (
-                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="flex flex-col sm:flex-row items-center gap-5">
                     <div className="relative shrink-0" style={{ width: 120, height: 120 }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={engagement} dataKey="value" innerRadius={40} outerRadius={56} paddingAngle={2}>
+                          <Pie
+                            data={engagement} dataKey="value"
+                            innerRadius={46} outerRadius={56}
+                            paddingAngle={0} stroke={T.bg} strokeWidth={2}
+                          >
                             {engagement.map((e) => (
-                              <Cell key={e.name} fill={e.color} stroke="none" />
+                              <Cell key={e.name} fill={e.color} />
                             ))}
                           </Pie>
                         </PieChart>
                       </ResponsiveContainer>
                       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span className="text-[20px] font-semibold leading-none" style={{ color: T.text, fontFamily: FONT.mono }}>
+                        <span
+                          className="text-[20px] font-medium leading-none tabular-nums"
+                          style={{ color: T.text, fontFamily: FONT.mono }}
+                        >
                           {deliveredPct}%
                         </span>
-                        <span className="text-[9px] uppercase tracking-widest mt-1" style={{ color: T.textFaint }}>
-                          Delivered
+                        <span className="text-[10px] mt-1.5" style={{ color: T.textFaint }}>
+                          delivered
                         </span>
                       </div>
                     </div>
@@ -516,8 +513,9 @@ const UserDashboard: React.FC = () => {
                             <span className="w-1.5 h-1.5 rounded-full" style={{ background: e.color }} />
                             {e.name}
                           </span>
-                          <span style={{ fontFamily: FONT.mono, color: T.text }} className="font-medium">
-                            {formatNumber(e.value)} <span style={{ color: T.textFaint }}>· {Math.round((e.value / engagementTotal) * 100)}%</span>
+                          <span className="tabular-nums" style={{ fontFamily: FONT.mono, color: T.text }}>
+                            {formatNumber(e.value)}
+                            <span style={{ color: T.textFaint }}> · {Math.round((e.value / engagementTotal) * 100)}%</span>
                           </span>
                         </div>
                       ))}
@@ -529,44 +527,48 @@ const UserDashboard: React.FC = () => {
           </div>
 
           {/* Recent campaigns + queue */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
             <Card className="lg:col-span-2 overflow-hidden">
-              <div className="flex flex-wrap items-center justify-between gap-2 px-4 md:px-5 py-3.5"
-                style={{ borderBottom: `1px solid ${T.borderSoft}` }}>
+              <div
+                className="flex flex-wrap items-center justify-between gap-2 px-5 md:px-6 py-4"
+                style={{ borderBottom: `1px solid ${T.borderSoft}` }}
+              >
                 <div>
-                  <h2 className="text-[14px] font-semibold tracking-tight" style={{ color: T.text }}>Recent campaigns</h2>
+                  <h2 className="text-[13.5px] font-medium" style={{ color: T.text }}>Recent campaigns</h2>
                   <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>Your latest {recentCampaigns.length}</p>
                 </div>
                 <button
                   onClick={() => navigate('/user/campaign')}
-                  className="inline-flex items-center gap-1 text-[11.5px] font-medium transition-colors hover:text-white"
-                  style={{ color: T.brand }}
+                  className="inline-flex items-center gap-1 text-[11.5px] font-medium transition-colors duration-120"
+                  style={{ color: T.textMuted }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = T.text)}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = T.textMuted)}
                 >
-                  View all <ChevronRight size={11} />
+                  View all <ChevronRight size={12} />
                 </button>
               </div>
 
               {campaignsLoading && recentCampaigns.length === 0 ? (
                 <div className="py-14 text-center">
                   <div className="w-5 h-5 border-2 rounded-full animate-spin mx-auto"
-                    style={{ borderColor: T.brand, borderTopColor: 'transparent' }} />
-                  <p className="text-[11px] mt-2" style={{ color: T.textFaint }}>Loading…</p>
+                    style={{ borderColor: T.border, borderTopColor: T.accent }} />
+                  <p className="text-[11px] mt-2" style={{ color: T.textFaint }}>Loading</p>
                 </div>
               ) : recentCampaigns.length === 0 ? (
                 <div className="py-14 text-center">
-                  <Inbox size={20} className="mx-auto mb-2" style={{ color: T.border }} />
+                  <Inbox size={16} className="mx-auto mb-2" style={{ color: T.border }} />
                   <p className="text-[12px]" style={{ color: T.textFaint }}>No campaigns yet</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left" style={{ minWidth: 620 }}>
                     <thead>
-                      <tr className="text-[10px] uppercase tracking-widest" style={{ color: T.textFaint }}>
-                        <th className="px-4 md:px-5 py-2.5 font-medium">Campaign</th>
-                        <th className="px-3 py-2.5 font-medium">Status</th>
-                        <th className="px-3 py-2.5 font-medium text-right">Recipients</th>
-                        <th className="px-3 py-2.5 font-medium text-right">Sent</th>
-                        <th className="px-4 md:px-5 py-2.5 font-medium text-right">Created</th>
+                      <tr className="text-[11px]" style={{ color: T.textFaint }}>
+                        <th className="px-5 md:px-6 py-2.5 font-normal">Campaign</th>
+                        <th className="px-3 py-2.5 font-normal">Status</th>
+                        <th className="px-3 py-2.5 font-normal text-right">Recipients</th>
+                        <th className="px-3 py-2.5 font-normal text-right">Sent</th>
+                        <th className="px-5 md:px-6 py-2.5 font-normal text-right">Created</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -577,34 +579,33 @@ const UserDashboard: React.FC = () => {
                         return (
                           <tr
                             key={c.id}
-                            className="cursor-pointer transition-colors hover:bg-white/[0.02]"
+                            className="cursor-pointer transition-colors duration-120"
                             style={{ borderTop: `1px solid ${T.borderSoft}` }}
                             onClick={() => navigate('/user/campaign')}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = T.surface2)}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                           >
-                            <td className="px-4 md:px-5 py-3">
-                              <p className="text-[12.5px] font-medium truncate max-w-55" style={{ color: T.text }}>
+                            <td className="px-5 md:px-6 py-3">
+                              <p className="text-[12.5px] font-medium truncate max-w-[14rem]" style={{ color: T.text }}>
                                 {c.campaign_name}
                               </p>
-                              <p className="text-[11px] truncate max-w-55 mt-0.5" style={{ color: T.textFaint }}>
+                              <p className="text-[11px] truncate max-w-[14rem] mt-0.5" style={{ color: T.textFaint }}>
                                 {c.subject || '—'}
                               </p>
                             </td>
                             <td className="px-3 py-3">
-                              <span
-                                className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-medium"
-                                style={{ background: s.bg, color: s.fg, boxShadow: `inset 0 0 0 1px ${s.ring}` }}
-                              >
-                                <span className="w-1 h-1 rounded-full" style={{ background: s.fg }} />
+                              <span className="inline-flex items-center gap-2 text-[11.5px]" style={{ color: s.fg }}>
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: s.dot }} />
                                 {s.label}
                               </span>
                             </td>
-                            <td className="px-3 py-3 text-right text-[11.5px] tabular-nums" style={{ fontFamily: FONT.mono, color: T.textMuted }}>
+                            <td className="px-3 py-3 text-right text-[12px] tabular-nums" style={{ fontFamily: FONT.mono, color: T.textMuted }}>
                               {formatNumber(rCount)}
                             </td>
-                            <td className="px-3 py-3 text-right text-[11.5px] tabular-nums" style={{ fontFamily: FONT.mono, color: T.textMuted }}>
+                            <td className="px-3 py-3 text-right text-[12px] tabular-nums" style={{ fontFamily: FONT.mono, color: T.textMuted }}>
                               {formatNumber(cStat.sent)}
                             </td>
-                            <td className="px-4 md:px-5 py-3 text-right text-[11px] whitespace-nowrap" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                            <td className="px-5 md:px-6 py-3 text-right text-[11.5px] whitespace-nowrap" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                               {formatRelative(c.created_at)}
                             </td>
                           </tr>
@@ -618,39 +619,34 @@ const UserDashboard: React.FC = () => {
 
             <Card>
               <CardHeader title="Queue monitor" hint="Your send throughput" />
-              <div className="px-4 md:px-5 pb-4">
-                <div className="space-y-1.5">
-                  {queueActivity.map(({ label, value, icon: Icon, tone, soft }) => (
+              <div className="px-5 md:px-6 pb-5">
+                <div className="space-y-1">
+                  {queueActivity.map(({ label, value, icon: Icon, tone }) => (
                     <div
                       key={label}
-                      className="flex items-center justify-between px-3 py-2.5 rounded-lg"
-                      style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                      className="flex items-center justify-between py-2.5"
+                      style={{ borderBottom: `1px solid ${T.borderSoft}` }}
                     >
                       <div className="flex items-center gap-2.5">
-                        <div
-                          className="w-7 h-7 rounded-md flex items-center justify-center"
-                          style={{ background: soft, color: tone }}
-                        >
-                          <Icon size={12} />
-                        </div>
+                        <Icon size={13} style={{ color: tone }} />
                         <span className="text-[12px]" style={{ color: T.textMuted }}>{label}</span>
                       </div>
-                      <span className="text-[12.5px] font-semibold" style={{ color: T.text, fontFamily: FONT.mono }}>
+                      <span className="text-[12.5px] font-medium tabular-nums" style={{ color: T.text, fontFamily: FONT.mono }}>
                         {value}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${T.borderSoft}` }}>
-                  <div className="flex items-center justify-between text-[11px] mb-2" style={{ color: T.textFaint }}>
-                    <span>Pending share</span>
-                    <span className="font-medium" style={{ color: T.textMuted, fontFamily: FONT.mono }}>{queueLoadPct}%</span>
+                <div className="mt-5">
+                  <div className="flex items-center justify-between text-[11.5px] mb-2">
+                    <span style={{ color: T.textFaint }}>Pending share</span>
+                    <span className="tabular-nums" style={{ color: T.textMuted, fontFamily: FONT.mono }}>{queueLoadPct}%</span>
                   </div>
                   <div className="h-1 w-full rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
                     <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${queueLoadPct}%`, background: T.brand }}
+                      className="h-full rounded-full transition-colors duration-200"
+                      style={{ width: `${queueLoadPct}%`, background: T.accent }}
                     />
                   </div>
                 </div>
@@ -659,78 +655,73 @@ const UserDashboard: React.FC = () => {
           </div>
 
           {/* Pulse + sender health */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card className="lg:col-span-2">
               <CardHeader
                 title="Mail pulse"
                 hint="Latest events from your campaigns"
                 right={
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10.5px] font-medium"
-                    style={{ background: T.brandSoft, color: T.brand, fontFamily: FONT.mono }}
-                  >
-                    <Activity size={10} /> live
+                  <span className="inline-flex items-center gap-2 text-[11.5px]" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+                    <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: T.accent }} />
+                    live
                   </span>
                 }
               />
-              <div className="px-4 md:px-5 pb-4 relative">
+              <div className="px-5 md:px-6 pb-5">
                 {pulseEvents.length === 0 ? (
                   <div className="py-8 text-center">
-                    <Activity size={18} className="mx-auto mb-2" style={{ color: T.border }} />
+                    <Activity size={16} className="mx-auto mb-2" style={{ color: T.border }} />
                     <p className="text-[12px]" style={{ color: T.textFaint }}>No events yet</p>
                   </div>
                 ) : (
-                  <>
-                    <span className="absolute left-6 md:left-7 top-2 bottom-6 w-px" style={{ background: T.borderSoft }} />
-                    <div className="space-y-3 relative">
-                      {pulseEvents.map((e, i) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <span
-                            className="mt-1.5 w-2 h-2 rounded-full shrink-0"
-                            style={{ background: pulseDotColor[e.tone], boxShadow: `0 0 0 3px ${pulseDotColor[e.tone]}20` }}
-                          />
-                          <span className="text-[11.5px] md:text-[12px] leading-relaxed" style={{ fontFamily: FONT.mono, color: T.textMuted }}>
-                            {e.text}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </>
+                  <div className="space-y-2.5">
+                    {pulseEvents.map((e, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <span
+                          className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
+                          style={{ background: pulseDotColor[e.tone] }}
+                        />
+                        <span
+                          className="text-[12px] leading-relaxed"
+                          style={{ fontFamily: FONT.mono, color: T.textMuted }}
+                        >
+                          {e.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </Card>
 
             <Card>
               <CardHeader title="Sender account health" hint="Today's volume per sender" />
-              <div className="px-4 md:px-5 pb-4 space-y-3">
+              <div className="px-5 md:px-6 pb-5 space-y-3.5">
                 {senderHealth.length === 0 ? (
                   <div className="py-8 text-center">
-                    <ShieldCheck size={18} className="mx-auto mb-2" style={{ color: T.border }} />
+                    <ShieldCheck size={16} className="mx-auto mb-2" style={{ color: T.border }} />
                     <p className="text-[12px]" style={{ color: T.textFaint }}>No sender accounts</p>
                   </div>
                 ) : (
                   senderHealth.map((a) => {
                     const meta = accountStatusMeta[a.status]
                     const Icon = meta.icon
-                    const barColor = a.load >= 80 ? T.danger : a.load >= 60 ? T.warn : T.success
                     return (
                       <div key={a.id} className="space-y-1.5">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
-                            <div
-                              className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
-                              style={{ background: meta.bg, color: meta.fg }}
-                            >
-                              <Icon size={12} />
-                            </div>
+                            <Icon size={13} className="shrink-0" style={{ color: meta.fg }} />
                             <span className="text-[12px] truncate" style={{ color: T.textMuted }}>{a.name}</span>
                           </div>
-                          <span className="text-[11px] font-semibold shrink-0" style={{ color: T.text, fontFamily: FONT.mono }}>
+                          <span className="text-[11.5px] font-medium shrink-0 tabular-nums" style={{ color: T.text, fontFamily: FONT.mono }}>
                             {a.load}%
                           </span>
                         </div>
                         <div className="h-1 w-full rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
-                          <div className="h-full rounded-full transition-all" style={{ width: `${a.load}%`, background: barColor }} />
+                          <div
+                            className="h-full rounded-full transition-colors duration-200"
+                            style={{ width: `${a.load}%`, background: a.load >= 80 ? T.danger : a.load >= 60 ? T.warn : T.ok }}
+                          />
                         </div>
                       </div>
                     )

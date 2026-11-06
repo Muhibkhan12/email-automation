@@ -1,43 +1,49 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
-  LayoutGrid, BarChart3, Mail, FileStack,
-  Settings as SettingsIcon, User as UserIcon, AtSign, ListOrdered,
+  LayoutGrid, Mail, FileStack,
+  Settings as SettingsIcon, User as UserIcon, AtSign,
   Megaphone, UploadCloud, Users, ChevronRight, Menu, X,
-  LogOut, Shield, UserCog, Loader2,
-  Send, HelpCircle,
+  LogOut, Shield, UserCog, Send, HelpCircle,
 } from 'lucide-react'
 import { getProfile, logoutUser } from '../../services/AuthServices'
 import type { User } from '../../types/UserTypes'
 
-/* ─────────────── design tokens (aligned with app) ─────────────── */
+/* ─────────────── tokens ───────────────
+   One graphite ramp. One phosphor accent. Amber/red reserved for warn/danger.
+*/
 const T = {
-  bg:          '#0A0B10',
-  panel:       '#0D0F15',
-  panelTop:    '#101219',
-  surface:     '#161922',
-  surfaceHi:   '#1B1F2A',
-  border:      '#232838',
-  borderSoft:  '#1B1F2A',
-  text:        '#E9EBF0',
-  textMuted:   '#9CA3B4',
-  textFaint:   '#6B7280',
-  brand:       '#6366F1',
-  brandSoft:   'rgba(99,102,241,0.12)',
-  brandBorder: 'rgba(99,102,241,0.35)',
-  success:     '#22C55E',
-  danger:      '#EF4444',
-  dangerSoft:  'rgba(239,68,68,0.12)',
-  dangerBorder:'rgba(239,68,68,0.32)',
+  bg:         '#0B0C0E',
+  panel:      '#0E0F12',
+  panelTop:   '#111214',
+  surface:    '#16181B',
+  surfaceHi:  '#1C1F23',
+  border:     '#24282E',
+  borderSoft: '#1B1E22',
+
+  text:       '#E8EAED',
+  textMuted:  '#9AA0A6',
+  textFaint:  '#6B7075',
+
+  accent:     '#6EE7A8',
+  accentInk:  '#0B0C0E',
+  accentLine: '#2E6B4D',
+
+  ok:         '#6EE7A8',
+  warn:       '#E0A64A',
+  danger:     '#E06A6A',
 }
 
 const FONT_MONO = "'JetBrains Mono', ui-monospace, monospace"
 
+const HAIRLINE = `1px solid ${T.border}`
+const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`
+
 /* ─────────────── helpers ─────────────── */
 const initialsOf = (name?: string) => {
-  if (!name) return '??'
+  if (!name) return '··'
   const parts = name.trim().split(/\s+/).slice(0, 2)
-  return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || '??'
+  return parts.map((p) => p[0]?.toUpperCase() ?? '').join('') || '··'
 }
 
 /* ─────────────── nav config ─────────────── */
@@ -46,14 +52,13 @@ const navGroups = [
     label: 'Overview',
     items: [
       { name: 'Dashboard', path: '/user/dashboard', icon: LayoutGrid },
-      { name: 'Analytics', path: '/user/analytics', icon: BarChart3 },
     ],
   },
   {
     label: 'Campaigns',
     items: [
-      { name: 'Start Campaign', path: '/user/start-campaign', icon: Send },
-      { name: 'Campaign',       path: '/user/campaign',       icon: Megaphone },
+      { name: 'Start campaign', path: '/user/start-campaign', icon: Send },
+      { name: 'Campaigns',      path: '/user/campaign',       icon: Megaphone },
       { name: 'Templates',      path: '/user/templates',      icon: FileStack },
       { name: 'Recipients',     path: '/user/recipients',     icon: Users },
       { name: 'Upload',         path: '/user/upload',         icon: UploadCloud },
@@ -62,8 +67,8 @@ const navGroups = [
   {
     label: 'Delivery',
     items: [
-      { name: 'Email Logs',     path: '/user/emaillogs',      icon: Mail },
-      { name: 'Sender Account', path: '/user/sender-account', icon: AtSign },
+      { name: 'Email logs',     path: '/user/emaillogs',      icon: Mail },
+      { name: 'Sender account', path: '/user/sender-account', icon: AtSign },
     ],
   },
   {
@@ -88,37 +93,40 @@ const NavItem = ({ path, name, icon: Icon, onClose }: NavItemProps) => (
     to={path}
     end
     onClick={onClose}
-    className="group relative flex items-center gap-2.5 pl-2.5 pr-2 py-1.75 rounded-md text-[13px] font-medium transition-colors"
+    className="relative flex items-center gap-2.5 pl-3 pr-2.5 h-9 rounded-md text-[13px] font-medium transition-colors duration-[120ms]"
     style={({ isActive }) => ({
-      background: isActive ? T.brandSoft : 'transparent',
+      background: isActive ? T.surfaceHi : 'transparent',
       color: isActive ? T.text : T.textMuted,
     })}
+    onMouseEnter={(e) => {
+      if (!e.currentTarget.getAttribute('aria-current')) {
+        e.currentTarget.style.background = T.surface
+      }
+    }}
+    onMouseLeave={(e) => {
+      if (!e.currentTarget.getAttribute('aria-current')) {
+        e.currentTarget.style.background = 'transparent'
+      }
+    }}
   >
     {({ isActive }: { isActive: boolean }) => (
       <>
         <span
           aria-hidden
-          className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-0.5 rounded-full transition-opacity"
-          style={{ background: T.brand, opacity: isActive ? 1 : 0 }}
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-full transition-opacity duration-[120ms]"
+          style={{ background: T.accent, opacity: isActive ? 1 : 0 }}
         />
         <span
-          className="relative shrink-0 w-6.5 h-6.5 rounded-md flex items-center justify-center transition-colors"
-          style={{
-            background: isActive ? 'rgba(99,102,241,0.18)' : T.surface,
-            boxShadow: `inset 0 0 0 1px ${isActive ? T.brandBorder : T.borderSoft}`,
-            color: isActive ? T.brand : T.textMuted,
-          }}
+          className="relative shrink-0 w-6 h-6 rounded-[6px] flex items-center justify-center"
+          style={{ color: isActive ? T.accent : T.textFaint }}
         >
-          <Icon size={13} strokeWidth={2} />
+          <Icon size={14} strokeWidth={1.5} />
         </span>
-        <span
-          className="relative flex-1 truncate transition-colors"
-          style={{ color: isActive ? T.text : undefined }}
-        >
+        <span className="relative flex-1 truncate" style={{ color: isActive ? T.text : undefined }}>
           {name}
         </span>
         {isActive && (
-          <ChevronRight size={12} style={{ color: T.brand }} className="shrink-0" />
+          <ChevronRight size={12} strokeWidth={1.5} style={{ color: T.textFaint }} className="shrink-0" />
         )}
       </>
     )}
@@ -129,16 +137,14 @@ const NavItem = ({ path, name, icon: Icon, onClose }: NavItemProps) => (
 const useEscape = (active: boolean, handler: () => void) => {
   useEffect(() => {
     if (!active) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handler()
-    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handler() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [active, handler])
 }
 
-const useClickOutside = <T extends HTMLElement>(active: boolean, handler: () => void) => {
-  const ref = useRef<T>(null)
+const useClickOutside = <E extends HTMLElement>(active: boolean, handler: () => void) => {
+  const ref = useRef<E>(null)
   useEffect(() => {
     if (!active) return
     const onDown = (e: MouseEvent) => {
@@ -195,38 +201,40 @@ const ProfileMenu = ({ onClose, user, loadingUser }: ProfileMenuProps) => {
     <div
       role="menu"
       aria-label="Profile menu"
-      className="absolute left-2 right-2 bottom-full mb-2 rounded-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+      className="absolute left-2 right-2 bottom-full mb-2 rounded-[10px] overflow-hidden"
       style={{
         background: T.surface,
-        boxShadow: `inset 0 0 0 1px ${T.border}, 0 24px 48px -16px rgba(0,0,0,0.7)`,
+        border: HAIRLINE,
+        boxShadow: '0 12px 32px -16px rgba(0,0,0,0.9)',
         zIndex: 50,
-        transformOrigin: 'bottom center',
       }}
     >
       {/* Header */}
-      <div className="p-3 border-b" style={{ borderColor: T.borderSoft }}>
+      <div className="p-3" style={{ borderBottom: HAIRLINE_SOFT }}>
         <div className="flex items-center gap-2.5">
           <div
-            className="relative shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
-            style={{ background: T.brandSoft, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
+            className="relative shrink-0 w-9 h-9 rounded-md flex items-center justify-center"
+            style={{ background: T.surfaceHi, border: HAIRLINE }}
           >
-            {loadingUser ? (
-              <Loader2 size={14} className="animate-spin" style={{ color: T.brand }} />
-            ) : (
-              <span className="text-[11.5px] font-semibold" style={{ color: T.brand, fontFamily: FONT_MONO }}>
-                {initials}
-              </span>
-            )}
             <span
-              className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
-              style={{ background: T.success, borderColor: T.surface }}
+              className="text-[11px] font-medium"
+              style={{ color: T.text, fontFamily: FONT_MONO }}
+            >
+              {loadingUser ? '··' : initials}
+            </span>
+            <span
+              className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full"
+              style={{ background: T.accent, border: `2px solid ${T.surface}` }}
             />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-semibold truncate" style={{ color: T.text }}>
-              {loadingUser ? 'Loading…' : displayName}
+            <p className="text-[13px] font-medium truncate" style={{ color: T.text }}>
+              {loadingUser ? 'Loading' : displayName}
             </p>
-            <p className="text-[11px] truncate mt-0.5" style={{ color: T.textFaint, fontFamily: FONT_MONO }}>
+            <p
+              className="text-[11px] truncate mt-0.5"
+              style={{ color: T.textFaint, fontFamily: FONT_MONO }}
+            >
               {loadingUser ? '—' : displayEmail}
             </p>
           </div>
@@ -234,8 +242,8 @@ const ProfileMenu = ({ onClose, user, loadingUser }: ProfileMenuProps) => {
 
         {user?.role && (
           <span
-            className="mt-2.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium"
-            style={{ background: T.brandSoft, color: T.brand, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
+            className="mt-2.5 inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[10.5px]"
+            style={{ border: HAIRLINE, color: T.textMuted, fontFamily: FONT_MONO }}
           >
             <Shield size={9} />
             {user.role}
@@ -250,58 +258,39 @@ const ProfileMenu = ({ onClose, user, loadingUser }: ProfileMenuProps) => {
             key={label}
             role="menuitem"
             onClick={onClick}
-            className="group w-full flex items-center gap-2.5 rounded-md px-2 py-1.75 text-left text-[12.5px] transition-colors hover:bg-white/5"
+            className="w-full flex items-center gap-2.5 rounded-md px-2 h-9 text-left text-[12.5px] transition-colors duration-[120ms]"
             style={{ color: T.textMuted }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = T.text }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = T.surfaceHi; e.currentTarget.style.color = T.text }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = T.textMuted }}
           >
-            <span
-              className="shrink-0 w-6.5 h-6.5 rounded-md flex items-center justify-center"
-              style={{ background: T.surfaceHi, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
-            >
-              <Icon size={12} style={{ color: T.textFaint }} />
-            </span>
+            <Icon size={13} strokeWidth={1.5} style={{ color: T.textFaint }} />
             <span className="flex-1 truncate">{label}</span>
-            <ChevronRight
-              size={12}
-              className="shrink-0 transition-transform group-hover:translate-x-0.5"
-              style={{ color: T.textFaint }}
-            />
           </button>
         ))}
       </div>
 
       {/* Logout */}
-      <div className="p-1.5 pt-0">
+      <div className="p-1.5 pt-0" style={{ borderTop: HAIRLINE_SOFT, marginTop: 4 }}>
         <button
           role="menuitem"
           onClick={handleLogout}
           disabled={loggingOut}
-          className="w-full flex items-center gap-2.5 rounded-md px-2 py-1.75 text-left text-[12.5px] font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full flex items-center gap-2.5 rounded-md px-2 h-9 text-left text-[12.5px] font-medium transition-colors duration-[120ms] disabled:opacity-60 disabled:cursor-not-allowed"
           style={{
-            background: confirmingLogout ? T.dangerSoft : 'transparent',
             color: T.danger,
-            boxShadow: confirmingLogout ? `inset 0 0 0 1px ${T.dangerBorder}` : 'none',
+            background: confirmingLogout ? T.surfaceHi : 'transparent',
+            border: confirmingLogout ? HAIRLINE : '1px solid transparent',
           }}
           onMouseEnter={(e) => {
-            if (!confirmingLogout) e.currentTarget.style.background = T.dangerSoft
+            if (!confirmingLogout) e.currentTarget.style.background = T.surfaceHi
           }}
           onMouseLeave={(e) => {
             if (!confirmingLogout) e.currentTarget.style.background = 'transparent'
           }}
         >
-          <span
-            className="shrink-0 w-6.5 h-6.5 rounded-md flex items-center justify-center"
-            style={{ background: T.dangerSoft, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
-          >
-            {loggingOut ? (
-              <Loader2 size={12} className="animate-spin" style={{ color: T.danger }} />
-            ) : (
-              <LogOut size={12} style={{ color: T.danger }} />
-            )}
-          </span>
+          <LogOut size={13} strokeWidth={1.5} style={{ color: T.danger }} />
           <span className="flex-1 truncate">
-            {loggingOut ? 'Signing out…' : confirmingLogout ? 'Click again to confirm' : 'Log out'}
+            {loggingOut ? 'Signing out' : confirmingLogout ? 'Confirm log out' : 'Log out'}
           </span>
         </button>
       </div>
@@ -339,22 +328,30 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
   return (
     <>
       {/* Brand row */}
-      <div className="flex items-center gap-2.5 px-3.5 h-14 shrink-0 border-b" style={{ borderColor: T.borderSoft }}>
+      <div
+        className="flex items-center gap-2.5 px-4 h-14 shrink-0"
+        style={{ borderBottom: HAIRLINE_SOFT }}
+      >
         <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-          style={{
-            background: `linear-gradient(135deg, ${T.brand}, #8B5CF6)`,
-            boxShadow: '0 4px 12px -4px rgba(99,102,241,0.6)',
-          }}
+          className="w-7 h-7 rounded-[6px] flex items-center justify-center shrink-0"
+          style={{ background: T.surfaceHi, border: HAIRLINE }}
         >
-          <span className="text-[13px] font-bold text-white">M</span>
+          <span
+            className="text-[12px] font-medium"
+            style={{ color: T.accent, fontFamily: FONT_MONO }}
+          >
+            M
+          </span>
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-semibold tracking-tight truncate" style={{ color: T.text }}>
+          <p className="text-[13px] font-medium truncate" style={{ color: T.text }}>
             Outwerk Solutions
           </p>
-          <p className="text-[10.5px] truncate" style={{ color: T.textFaint, fontFamily: FONT_MONO }}>
+          <p
+            className="text-[10.5px] truncate mt-0.5"
+            style={{ color: T.textFaint, fontFamily: FONT_MONO }}
+          >
             mailforge · v1.4
           </p>
         </div>
@@ -363,26 +360,21 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
           <button
             onClick={onClose}
             aria-label="Close menu"
-            className="lg:hidden shrink-0 p-1.5 rounded-md transition-colors hover:bg-white/5"
+            className="lg:hidden shrink-0 p-1.5 rounded-md transition-colors duration-[120ms]"
             style={{ color: T.textMuted }}
           >
-            <X size={16} />
+            <X size={15} />
           </button>
         )}
       </div>
 
-      {/* Nav */}
-      <nav className="sb-nav flex-1 overflow-y-auto px-2 py-4 space-y-5">
-        {navGroups.map((group) => (
+      {/* Nav — flat, divider-separated groups (no uppercase labels) */}
+      <nav className="sb-nav flex-1 overflow-y-auto px-2 py-3">
+        {navGroups.map((group, gi) => (
           <div key={group.label}>
-            <div className="flex items-center gap-2 px-2.5 mb-1.5">
-              <p
-                className="text-[10px] font-semibold uppercase"
-                style={{ color: T.textFaint, letterSpacing: '0.1em' }}
-              >
-                {group.label}
-              </p>
-            </div>
+            {gi > 0 && (
+              <div className="my-2 mx-2" style={{ borderTop: HAIRLINE_SOFT }} />
+            )}
             <div className="space-y-0.5">
               {group.items.map((item) => (
                 <NavItem key={item.path} {...item} onClose={onClose} />
@@ -392,27 +384,12 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
         ))}
       </nav>
 
-      {/* Help link */}
-      <div className="px-2 pb-1">
-        <a
-          href="https://docs.example.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group flex items-center gap-2.5 pl-2.5 pr-2 py-1.75 rounded-md text-[12.5px] font-medium transition-colors hover:bg-white/5"
-          style={{ color: T.textMuted }}
-        >
-          <span
-            className="shrink-0 w-6.5 h-6.5 rounded-md flex items-center justify-center"
-            style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
-          >
-            <HelpCircle size={13} style={{ color: T.textMuted }} />
-          </span>
-          <span className="flex-1 truncate">Help &amp; docs</span>
-        </a>
-      </div>
-
-      {/* Footer / profile */}
-      <div ref={containerRef} className="relative px-2 py-2.5 shrink-0 border-t" style={{ borderColor: T.borderSoft }}>
+      {/* Footer — help + profile, one row area */}
+      <div
+        ref={containerRef}
+        className="relative px-2 pt-2 pb-3 shrink-0"
+        style={{ borderTop: HAIRLINE_SOFT }}
+      >
         {profileOpen && (
           <ProfileMenu
             user={user}
@@ -421,43 +398,65 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
           />
         )}
 
+        <a
+          href="https://docs.example.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2.5 pl-3 pr-2.5 h-8 rounded-md text-[12px] transition-colors duration-[120ms]"
+          style={{ color: T.textFaint }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = T.surface; e.currentTarget.style.color = T.textMuted }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = T.textFaint }}
+        >
+          <HelpCircle size={13} strokeWidth={1.5} />
+          <span className="flex-1 truncate">Help and docs</span>
+        </a>
+
         <button
           type="button"
           onClick={() => setProfileOpen((o) => !o)}
           aria-haspopup="menu"
           aria-expanded={profileOpen}
-          className="group w-full flex items-center gap-2.5 px-2 py-1.75 rounded-md transition-colors text-left"
+          className="w-full flex items-center gap-2.5 px-2 h-11 mt-1 rounded-md transition-colors duration-[120ms] text-left"
           style={{
-            background: profileOpen ? T.surface : 'transparent',
-            boxShadow: profileOpen ? `inset 0 0 0 1px ${T.border}` : 'inset 0 0 0 1px transparent',
+            background: profileOpen ? T.surfaceHi : 'transparent',
+            border: profileOpen ? HAIRLINE : '1px solid transparent',
+          }}
+          onMouseEnter={(e) => {
+            if (!profileOpen) e.currentTarget.style.background = T.surface
+          }}
+          onMouseLeave={(e) => {
+            if (!profileOpen) e.currentTarget.style.background = 'transparent'
           }}
         >
           <div
-            className="relative shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: T.brandSoft, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
+            className="relative shrink-0 w-8 h-8 rounded-md flex items-center justify-center"
+            style={{ background: T.surfaceHi, border: HAIRLINE }}
           >
             {loadingUser ? (
-              <Loader2 size={13} className="animate-spin" style={{ color: T.brand }} />
+              <span className="text-[10.5px]" style={{ color: T.textFaint, fontFamily: FONT_MONO }}>··</span>
             ) : (
-              <span className="text-[10.5px] font-semibold" style={{ color: T.brand, fontFamily: FONT_MONO }}>
+              <span
+                className="text-[10.5px] font-medium"
+                style={{ color: T.text, fontFamily: FONT_MONO }}
+              >
                 {initials}
               </span>
             )}
             <span
-              className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
-              style={{ background: T.success, borderColor: T.panelTop }}
+              className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full"
+              style={{ background: T.accent, border: `2px solid ${T.panel}` }}
             />
           </div>
 
           <div className="flex-1 min-w-0">
             {loadingUser ? (
               <>
-                <div className="h-2.5 w-24 rounded animate-pulse" style={{ background: T.surfaceHi }} />
-                <div className="h-2 w-32 rounded animate-pulse mt-1.5" style={{ background: T.surfaceHi }} />
+                <div className="h-2.5 w-24 rounded" style={{ background: T.surfaceHi }} />
+                <div className="h-2 w-32 rounded mt-1.5" style={{ background: T.surfaceHi }} />
               </>
             ) : (
               <>
-                <p className="text-[12.5px] font-semibold truncate" style={{ color: T.text }}>
+                <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>
                   {displayName || 'Signed in'}
                 </p>
                 <p
@@ -472,8 +471,13 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
 
           <ChevronRight
             size={13}
-            className={`shrink-0 transition-transform ${profileOpen ? 'rotate-90' : 'group-hover:translate-x-0.5'}`}
-            style={{ color: profileOpen ? T.brand : T.textFaint }}
+            strokeWidth={1.5}
+            className="shrink-0"
+            style={{
+              color: T.textFaint,
+              transform: profileOpen ? 'rotate(90deg)' : 'none',
+              transition: 'transform .12s ease-out',
+            }}
           />
         </button>
       </div>
@@ -493,22 +497,21 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     <div
       className={`h-screen flex flex-col ${isMobile ? 'w-72' : 'w-64'}`}
       style={{
-        background: `linear-gradient(180deg, ${T.panelTop} 0%, ${T.panel} 100%)`,
-        borderRight: `1px solid ${T.borderSoft}`,
+        background: T.panel,
+        borderRight: HAIRLINE_SOFT,
       }}
     >
       <style>{`
         .sb-nav::-webkit-scrollbar { width: 5px; }
         .sb-nav::-webkit-scrollbar-track { background: transparent; }
-        .sb-nav::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
+        .sb-nav::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 8px; }
         .sb-nav::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
 
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes zoomIn { from { transform: scale(0.96); } to { transform: scale(1); } }
-        .animate-in { animation-fill-mode: both; }
-        .fade-in { animation: fadeIn 0.15s ease; }
-        .zoom-in-95 { animation: zoomIn 0.15s ease; }
-        @media (prefers-reduced-motion: reduce) { .fade-in, .zoom-in-95 { animation: none !important; } }
+        :focus-visible { outline: 2px solid ${T.accentLine}; outline-offset: 2px; border-radius: 6px; }
+
+        @media (prefers-reduced-motion: reduce) {
+          * { animation-duration: 0s !important; transition-duration: 0s !important; }
+        }
       `}</style>
 
       <SidebarContent onClose={onClose} />
@@ -520,19 +523,19 @@ const Sidebar = ({ onClose }: SidebarProps) => {
 export const MobileMenuButton = ({ onClick }: { onClick: () => void }) => (
   <button
     onClick={onClick}
-    className="lg:hidden p-2 rounded-md transition-colors hover:bg-white/5"
-    style={{ background: T.surface, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+    className="lg:hidden p-2 rounded-md transition-colors duration-[120ms]"
+    style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
     aria-label="Toggle menu"
   >
-    <Menu size={18} />
+    <Menu size={16} />
   </button>
 )
 
 export const MobileOverlay = ({ onClick }: { onClick: () => void }) => (
   <div
-    className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+    className="lg:hidden fixed inset-0 z-40"
+    style={{ background: 'rgba(11,12,14,0.72)' }}
     onClick={onClick}
-    style={{ animation: 'fadeIn 0.15s ease' }}
   />
 )
 
@@ -544,15 +547,14 @@ export const MobileSidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: (
       <MobileOverlay onClick={onClose} />
       <div
         className="fixed top-0 left-0 z-50 h-screen lg:hidden"
-        style={{ animation: 'slideIn 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)' }}
+        style={{ animation: 'sb-slide-in 0.2s ease-out' }}
       >
         <Sidebar onClose={onClose} />
       </div>
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+        @keyframes sb-slide-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
         @media (prefers-reduced-motion: reduce) {
-          .fade-in, .zoom-in-95 { animation: none !important; }
+          * { animation-duration: 0s !important; }
         }
       `}</style>
     </>
@@ -571,21 +573,22 @@ const SidebarWithMobile = () => {
 
       <div
         className="lg:hidden sticky top-0 z-30 flex items-center gap-3 px-3 py-2.5"
-        style={{
-          background: 'rgba(13,15,21,0.85)',
-          backdropFilter: 'blur(10px)',
-          borderBottom: `1px solid ${T.borderSoft}`,
-        }}
+        style={{ background: T.panelTop, borderBottom: HAIRLINE_SOFT }}
       >
         <MobileMenuButton onClick={() => setIsMobileOpen(true)} />
         <div className="flex items-center gap-2 min-w-0">
           <div
-            className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
-            style={{ background: `linear-gradient(135deg, ${T.brand}, #8B5CF6)` }}
+            className="w-6 h-6 rounded-[6px] flex items-center justify-center shrink-0"
+            style={{ background: T.surfaceHi, border: HAIRLINE }}
           >
-            <span className="text-[10px] font-bold text-white">M</span>
+            <span
+              className="text-[10px] font-medium"
+              style={{ color: T.accent, fontFamily: FONT_MONO }}
+            >
+              M
+            </span>
           </div>
-          <span className="text-[14px] font-semibold truncate" style={{ color: T.text }}>
+          <span className="text-[13px] font-medium truncate" style={{ color: T.text }}>
             Outwerk Solutions
           </span>
         </div>

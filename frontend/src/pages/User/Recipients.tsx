@@ -7,113 +7,72 @@ import type { RecipientStatus } from "../../types/RecipientTypes";
 import {
   Search, Users, MailCheck, MailX, MailWarning, Menu,
   ChevronLeft, ChevronRight, ArrowLeft, Inbox, Plus,
-  Copy, Check, Mail, X, CheckSquare, Square,
+  Copy, Check, X, CheckSquare, Square, RefreshCw,
 } from "lucide-react";
 
-/* ─────────────── design tokens ─────────────── */
-
+/* ─────────────── tokens ───────────────
+   One graphite neutral ramp. One phosphor accent. Amber/red for status.
+*/
 const T = {
-  bg:          "#0A0B10",
-  surface:     "#111319",
-  surface2:    "#161922",
-  surfaceHi:   "#1B1F2A",
-  border:      "#232838",
-  borderSoft:  "#1B1F2A",
-  text:        "#E9EBF0",
-  textMuted:   "#9CA3B4",
-  textFaint:   "#6B7280",
-  brand:       "#6366F1",
-  brandSoft:   "rgba(99,102,241,0.12)",
-  brandBorder: "rgba(99,102,241,0.35)",
-  success:     "#22C55E",
-  successSoft: "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:        "#F59E0B",
-  warnSoft:    "rgba(245,158,11,0.12)",
-  warnBorder:  "rgba(245,158,11,0.35)",
-  danger:      "#EF4444",
-  dangerSoft:  "rgba(239,68,68,0.12)",
-  dangerBorder:"rgba(239,68,68,0.35)",
-  info:        "#38BDF8",
-  infoSoft:    "rgba(56,189,248,0.12)",
-  infoBorder:  "rgba(56,189,248,0.35)",
-}
+  bg:         "#0B0C0E",
+  surface:    "#111214",
+  surface2:   "#16181B",
+  surfaceHi:  "#1C1F23",
+  border:     "#24282E",
+  borderSoft: "#1B1E22",
+
+  text:       "#E8EAED",
+  textMuted:  "#9AA0A6",
+  textFaint:  "#6B7075",
+
+  accent:     "#6EE7A8",
+  accentInk:  "#0B0C0E",
+  accentLine: "#2E6B4D",
+
+  ok:         "#6EE7A8",
+  warn:       "#E0A64A",
+  danger:     "#E06A6A",
+};
 
 const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
-}
+  ui:   "'Inter', system-ui, -apple-system, sans-serif",
+  mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+};
 
-const RING = `inset 0 0 0 1px ${T.border}`
+const HAIRLINE = `1px solid ${T.border}`;
+const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`;
 
-const STATUS_STYLES: Record<RecipientStatus, { bg: string; fg: string; ring: string }> = {
-  Pending: { bg: "rgba(156,163,180,0.12)", fg: T.textMuted, ring: "rgba(156,163,180,0.28)" },
-  Queued:  { bg: T.infoSoft,              fg: T.info,       ring: T.infoBorder },
-  Sending: { bg: T.warnSoft,              fg: T.warn,       ring: T.warnBorder },
-  Sent:    { bg: T.successSoft,           fg: T.success,    ring: T.successBorder },
-  Failed:  { bg: T.dangerSoft,            fg: T.danger,     ring: T.dangerBorder },
+const STATUS_META: Record<RecipientStatus, { fg: string; dot: string }> = {
+  Pending: { fg: T.textMuted, dot: T.textFaint },
+  Queued:  { fg: T.textMuted, dot: T.textFaint },
+  Sending: { fg: T.warn,      dot: T.warn },
+  Sent:    { fg: T.ok,        dot: T.ok },
+  Failed:  { fg: T.danger,    dot: T.danger },
 };
 
 const FILTERS: ("All" | RecipientStatus)[] = ["All", "Pending", "Queued", "Sending", "Sent", "Failed"];
 
-const AVATAR_HUES = ["#6366F1", "#38BDF8", "#22C55E", "#F59E0B", "#A78BFA", "#EC4899", "#06B6D4"];
-const hueFor = (key: string) => {
-  let h = 0;
-  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
-  return AVATAR_HUES[h % AVATAR_HUES.length];
-};
-
 /* ─────────────── primitives ─────────────── */
 
-const StatusPill: React.FC<{ status: RecipientStatus }> = ({ status }) => {
-  const s = STATUS_STYLES[status];
+const StatusTag: React.FC<{ status: RecipientStatus }> = ({ status }) => {
+  const s = STATUS_META[status];
   return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
-      style={{ backgroundColor: s.bg, color: s.fg, boxShadow: `inset 0 0 0 1px ${s.ring}` }}
-    >
-      <span className="w-1 h-1 rounded-full" style={{ background: s.fg }} />
+    <span className="inline-flex items-center gap-2 text-[11.5px] whitespace-nowrap" style={{ color: s.fg }}>
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: s.dot }} />
       {status}
     </span>
   );
 };
 
-const StatCard: React.FC<{
-  label: string;
-  value: number;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  accent?: string;
-  accentSoft?: string;
-}> = ({ label, value, icon: Icon, accent = T.brand, accentSoft = T.brandSoft }) => (
-  <div className="rounded-xl p-3.5 md:p-4" style={{ background: T.surface, boxShadow: RING }}>
-    <div
-      className="w-8 h-8 rounded-md flex items-center justify-center mb-2.5"
-      style={{ background: accentSoft, color: accent }}
-    >
-      <Icon size={14} />
-    </div>
-    <p className="text-[22px] md:text-[24px] font-semibold tracking-tight leading-none" style={{ color: T.text, fontFamily: FONT.mono }}>
-      {value.toLocaleString()}
-    </p>
-    <p className="text-[11px] mt-1.5" style={{ color: T.textMuted }}>{label}</p>
-  </div>
-);
-
-const Avatar: React.FC<{ label: string; seed: string }> = ({ label, seed }) => {
-  const hue = hueFor(seed);
+const Avatar: React.FC<{ label: string }> = ({ label }) => {
   const initial = label.trim()?.[0]?.toUpperCase() || "?";
   return (
-    <div
-      className="shrink-0 w-8 h-8 rounded-md flex items-center justify-center text-[12px] font-semibold"
-      style={{
-        background: `linear-gradient(135deg, ${hue}40, ${hue}10)`,
-        color: T.text,
-        boxShadow: `inset 0 0 0 1px ${hue}40`,
-      }}
+    <span
+      className="shrink-0 w-8 h-8 rounded-md flex items-center justify-center text-[12px] font-medium"
+      style={{ background: T.surfaceHi, color: T.textMuted, border: HAIRLINE }}
     >
       {initial}
-    </div>
+    </span>
   );
 };
 
@@ -128,15 +87,29 @@ const CopyChip: React.FC<{ value: string; label?: string }> = ({ value, label })
   return (
     <button
       onClick={onCopy}
-      className="inline-flex items-center gap-1 text-[11px] transition-colors"
-      style={{ fontFamily: FONT.mono, color: copied ? T.success : T.textFaint }}
+      className="inline-flex items-center gap-1 text-[11px] transition-colors duration-[120ms]"
+      style={{ fontFamily: FONT.mono, color: copied ? T.accent : T.textFaint }}
       title={`Copy ${label ?? "value"}`}
+      onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = T.textMuted; }}
+      onMouseLeave={(e) => { if (!copied) e.currentTarget.style.color = T.textFaint; }}
     >
       {copied ? <Check size={10} /> : <Copy size={10} />}
       <span className="truncate">{value}</span>
     </button>
   );
 };
+
+const Checkbox: React.FC<{ checked: boolean; onChange: () => void; label: string }> = ({ checked, onChange, label }) => (
+  <button
+    onClick={onChange}
+    aria-label={label}
+    aria-pressed={checked}
+    className="transition-colors duration-[120ms]"
+    style={{ color: checked ? T.accent : T.textFaint }}
+  >
+    {checked ? <CheckSquare size={14} /> : <Square size={14} />}
+  </button>
+);
 
 /* ─────────────── page ─────────────── */
 
@@ -221,26 +194,35 @@ const Recipients = () => {
   }, [filtered, selectedIds]);
 
   const clearSelection = () => setSelectedIds(new Set());
-
   const hasActiveFilters = query !== "" || filter !== "All";
+  const hasSelection = selectedIds.size > 0;
 
   return (
-    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: T.bg }}>
+    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.ui, background: T.bg }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap');
 
         .rc-main::-webkit-scrollbar { width: 8px; }
         .rc-main::-webkit-scrollbar-track { background: transparent; }
-        .rc-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
+        .rc-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 8px; }
         .rc-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
+
+        .rc-input::placeholder { color: ${T.textFaint}; }
+        .rc-input:focus { outline: none; }
+        .rc-seg:focus-visible, .rc-ctrl:focus-visible { outline: 2px solid ${T.accentLine}; outline-offset: 2px; border-radius: 6px; }
 
         @media (max-width: 767px) { .rc-table { display: none; } }
         @media (min-width: 768px) { .rc-list { display: none; } }
+
+        @media (prefers-reduced-motion: reduce) {
+          * { animation-duration: 0s !important; transition-duration: 0s !important; }
+        }
       `}</style>
 
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/70"
+          className="lg:hidden fixed inset-0 z-40"
+          style={{ background: "rgba(11,12,14,0.72)" }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -254,33 +236,38 @@ const Recipients = () => {
       </div>
 
       <main className="rc-main flex-1 overflow-y-auto" style={{ background: T.bg, height: "100vh", width: "100%" }}>
-        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1180 }}>
+        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1200 }}>
 
           {/* Header */}
-          <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-lg transition-colors hover:bg-white/5"
-                style={{ background: T.surface, color: T.textMuted, boxShadow: RING }}
+                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-[120ms]"
+                style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
                 aria-label="Open menu"
               >
-                <Menu size={18} />
+                <Menu size={16} />
               </button>
               <div>
-                <div className="inline-flex items-center gap-1.5 mb-2">
-                  <span className="text-[10px] font-medium tracking-widest uppercase" style={{ color: T.textFaint }}>Audience</span>
-                  <ChevronRight size={9} style={{ color: T.border }} />
-                  <span className="text-[10px] font-medium tracking-widest uppercase" style={{ color: T.brand }}>Recipients</span>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-[12px]" style={{ color: T.textMuted }}>Audience</span>
+                  {uploadId && (
+                    <>
+                      <span style={{ color: T.border }}>|</span>
+                      <span className="text-[12px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                        upload #{uploadId}
+                      </span>
+                    </>
+                  )}
                 </div>
-
-                <h1 className="text-[26px] md:text-[30px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
+                <h1 className="text-[24px] md:text-[26px] font-medium leading-tight" style={{ color: T.text }}>
                   Recipients
                 </h1>
-                <p className="mt-1 text-[13.5px] max-w-lg" style={{ color: T.textMuted }}>
+                <p className="mt-1 text-[13px] max-w-lg" style={{ color: T.textMuted }}>
                   {uploadId
-                    ? `Showing recipients from upload #${uploadId}.`
-                    : "Everyone who belongs to your account."}
+                    ? `Every valid address from upload #${uploadId}.`
+                    : "Recipients across your campaigns and uploads."}
                 </p>
               </div>
             </div>
@@ -289,8 +276,8 @@ const Recipients = () => {
               {uploadId && (
                 <button
                   onClick={clearUploadFilter}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-medium transition-colors hover:bg-white/5"
-                  style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-[120ms]"
+                  style={{ color: T.textMuted, border: HAIRLINE }}
                 >
                   <ArrowLeft size={13} /> Clear filter
                 </button>
@@ -303,48 +290,59 @@ const Recipients = () => {
             <div className="text-center py-16">
               <div
                 className="w-5 h-5 border-2 rounded-full animate-spin mx-auto"
-                style={{ borderColor: T.brand, borderTopColor: "transparent" }}
+                style={{ borderColor: T.border, borderTopColor: T.accent }}
               />
-              <p className="text-[11.5px] mt-3" style={{ color: T.textFaint }}>Loading recipients…</p>
+              <p className="text-[11.5px] mt-3" style={{ color: T.textFaint }}>Loading recipients</p>
             </div>
           )}
 
           {/* Error */}
           {!loading && error && (
-            <div className="text-center py-16 rounded-xl"
-              style={{ background: T.dangerSoft, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}>
+            <div
+              className="text-center py-12 rounded-xl"
+              style={{ border: HAIRLINE, background: T.surface }}
+            >
               <div
                 className="w-10 h-10 mx-auto mb-3 rounded-lg flex items-center justify-center"
-                style={{ background: "rgba(239,68,68,0.18)" }}
+                style={{ background: T.surfaceHi, border: HAIRLINE }}
               >
-                <MailX className="w-4 h-4" style={{ color: T.danger }} />
+                <MailX size={16} style={{ color: T.danger }} />
               </div>
-              <p className="text-[13px]" style={{ color: T.danger }}>{error}</p>
+              <p className="text-[13px] mb-4" style={{ color: T.danger }}>{error}</p>
+              <button
+                onClick={() => fetchPage(page)}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms]"
+                style={{ color: T.textMuted, border: HAIRLINE }}
+              >
+                <RefreshCw size={12} /> Try again
+              </button>
             </div>
           )}
 
-          {/* Empty */}
+          {/* Empty — no data at all */}
           {!loading && !error && recipients.length === 0 && !hasActiveFilters && (
-            <div className="text-center py-20 rounded-xl"
-              style={{ background: T.surface, boxShadow: RING }}>
+            <div
+              className="text-center py-16 rounded-xl"
+              style={{ background: T.surface, border: HAIRLINE }}
+            >
               <div
-                className="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center"
-                style={{ background: T.surface2 }}
+                className="w-11 h-11 mx-auto mb-4 rounded-lg flex items-center justify-center"
+                style={{ background: T.surfaceHi, border: HAIRLINE }}
               >
-                <Inbox className="w-5 h-5" style={{ color: T.textFaint }} />
+                <Inbox size={18} style={{ color: T.textFaint }} />
               </div>
               <p className="text-[14px] font-medium" style={{ color: T.text }}>
                 {uploadId ? "No recipients for this upload" : "No recipients yet"}
               </p>
-              <p className="text-[12px] mt-1.5 mb-5 max-w-sm mx-auto" style={{ color: T.textMuted }}>
+              <p className="text-[12.5px] mt-1.5 mb-5 max-w-sm mx-auto" style={{ color: T.textMuted }}>
                 {uploadId
                   ? "This file either hasn't been processed or has no valid rows."
                   : "Upload a CSV or Excel file to get started."}
               </p>
               <button
                 onClick={() => navigate("/user/upload")}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium transition-all hover:brightness-110"
-                style={{ background: T.brand, color: "#fff" }}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-[120ms]"
+                style={{ background: T.text, color: T.accentInk, border: `1px solid ${T.text}` }}
               >
                 <Plus size={13} /> Upload a file
               </button>
@@ -354,149 +352,157 @@ const Recipients = () => {
           {/* Content */}
           {!loading && !error && (recipients.length > 0 || hasActiveFilters) && (
             <>
-              {/* Stats */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-3 mb-5 md:mb-6">
-                <StatCard label="Total recipients"  value={summary.total}   icon={Users}       accent={T.brand}   accentSoft={T.brandSoft} />
-                <StatCard label="Sent"              value={summary.sent}    icon={MailCheck}   accent={T.success} accentSoft={T.successSoft} />
-                <StatCard label="Pending / queued"  value={summary.pending} icon={MailWarning} accent={T.warn}    accentSoft={T.warnSoft} />
-                <StatCard label="Failed"            value={summary.failed}  icon={MailX}       accent={T.danger}  accentSoft={T.dangerSoft} />
-              </div>
-
-              {/* Toolbar */}
-              <div className="md:sticky md:top-3 md:z-20 mb-4">
-                <div
-                  className="flex flex-col sm:flex-row sm:items-center gap-2.5 rounded-lg p-2"
-                  style={{ background: "rgba(17,19,25,0.9)", backdropFilter: "blur(10px)", boxShadow: RING }}
-                >
-                  <div
-                    className="flex items-center gap-2 rounded-md px-2.5 py-2 flex-1 min-w-0 transition-shadow"
-                    style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
-                    onFocusCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brand}, 0 0 0 3px ${T.brandSoft}`)}
-                    onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.borderSoft}`)}
-                  >
-                    <Search size={13} style={{ color: T.textFaint }} className="shrink-0" />
-                    <input
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Search by name, email, or ID…"
-                      className="w-full bg-transparent text-[12.5px] outline-none"
-                      style={{ color: T.text }}
-                    />
-                    {query && (
-                      <button
-                        onClick={() => setQuery("")}
-                        className="shrink-0 text-[10.5px] px-1.5 py-0.5 rounded transition-colors hover:bg-white/5"
-                        style={{ color: T.textFaint }}
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1 overflow-x-auto">
-                    {FILTERS.map((f) => {
-                      const active = filter === f;
-                      const count = statusCounts[f] ?? 0;
-                      return (
-                        <button
-                          key={f}
-                          onClick={() => setFilter(f)}
-                          className="shrink-0 inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors"
-                          style={{
-                            background: active ? T.brand : T.surface2,
-                            color: active ? "#fff" : T.textMuted,
-                            boxShadow: active ? "none" : `inset 0 0 0 1px ${T.borderSoft}`,
-                          }}
-                        >
-                          {f}
-                          {count > 0 && (
-                            <span
-                              className="text-[10px] px-1.5 rounded-full"
-                              style={{
-                                fontFamily: FONT.mono,
-                                background: active ? "rgba(255,255,255,0.20)" : T.surfaceHi,
-                                color: active ? "#fff" : T.textFaint,
-                              }}
-                            >
-                              {count}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                    {hasActiveFilters && (
-                      <button
-                        onClick={() => { setQuery(""); setFilter("All"); }}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:bg-white/5"
-                        style={{ color: T.brand, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
-                      >
-                        <X size={11} /> Clear
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Selection bar */}
-              {selectedIds.size > 0 && (
-                <div
-                  className="mb-4 flex flex-wrap items-center justify-between gap-2.5 rounded-lg px-3.5 py-2.5"
-                  style={{ background: T.brandSoft, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
-                >
-                  <span className="text-[12.5px]" style={{ color: T.text }}>
-                    <span style={{ fontFamily: FONT.mono, color: T.brand, fontWeight: 600 }}>{selectedIds.size}</span> selected
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={copySelectedEmails}
-                      className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:bg-white/5"
-                      style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+              {/* Stat row — numbers only, no icon tiles */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                {[
+                  { label: "Total recipients", value: summary.total,   tone: T.text },
+                  { label: "Sent",             value: summary.sent,    tone: T.ok },
+                  { label: "Pending / queued", value: summary.pending, tone: T.warn },
+                  { label: "Failed",           value: summary.failed,  tone: summary.failed ? T.danger : T.text },
+                ].map((s) => (
+                  <div key={s.label} className="rounded-lg p-4" style={{ background: T.surface, border: HAIRLINE }}>
+                    <p className="text-[11px]" style={{ color: T.textFaint }}>{s.label}</p>
+                    <p
+                      className="text-[22px] font-medium mt-1.5 leading-none tabular-nums"
+                      style={{ color: s.tone, fontFamily: FONT.mono }}
                     >
-                      <Copy size={11} /> Copy emails
-                    </button>
+                      {s.value.toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Query bar */}
+              <div className="flex flex-col lg:flex-row lg:items-center gap-3 mb-4">
+                <div
+                  className="flex items-center gap-2 rounded-md px-3 py-2 flex-1 min-w-0 transition-colors duration-[120ms]"
+                  style={{ background: T.surface, border: HAIRLINE }}
+                  onFocusCapture={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
+                  onBlurCapture={(e) => (e.currentTarget.style.borderColor = T.border)}
+                >
+                  <Search size={13} style={{ color: T.textFaint }} className="shrink-0" />
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search by name, email, or ID"
+                    className="rc-input w-full bg-transparent text-[12.5px] outline-none"
+                    style={{ color: T.text }}
+                  />
+                  {query && (
                     <button
-                      onClick={clearSelection}
-                      className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:bg-white/5"
-                      style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                      onClick={() => setQuery("")}
+                      className="shrink-0 text-[11px] px-1.5 py-0.5 rounded transition-colors duration-[120ms]"
+                      style={{ color: T.textFaint }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                <div
+                  className="flex items-center rounded-md p-0.5 overflow-x-auto"
+                  style={{ background: T.surface, border: HAIRLINE }}
+                >
+                  {FILTERS.map((f) => {
+                    const active = filter === f;
+                    const count = statusCounts[f] ?? 0;
+                    return (
+                      <button
+                        key={f}
+                        onClick={() => setFilter(f)}
+                        className="rc-seg inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[12px] whitespace-nowrap transition-colors duration-[120ms]"
+                        style={{
+                          background: active ? T.surface2 : "transparent",
+                          color: active ? T.text : T.textMuted,
+                          border: active ? HAIRLINE_SOFT : "1px solid transparent",
+                        }}
+                      >
+                        {f}
+                        <span
+                          className="tabular-nums"
+                          style={{ color: T.textFaint, fontFamily: FONT.mono, fontSize: 10.5 }}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                  {hasActiveFilters && (
+                    <button
+                      onClick={() => { setQuery(""); setFilter("All"); }}
+                      className="rc-seg inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-[12px] whitespace-nowrap transition-colors duration-[120ms]"
+                      style={{ color: T.textMuted }}
                     >
                       <X size={11} /> Clear
                     </button>
-                  </div>
+                  )}
                 </div>
-              )}
+              </div>
 
-              {/* Table / list */}
-              <div className="rounded-xl overflow-hidden" style={{ background: T.surface, boxShadow: RING }}>
+              {/* Ledger */}
+              <div className="rounded-xl overflow-hidden" style={{ background: T.surface, border: HAIRLINE }}>
+
+                {/* Ledger header strip — selection info sits here, inline */}
                 <div
-                  className="flex flex-wrap items-center justify-between px-4 md:px-5 py-3 gap-2"
-                  style={{ borderBottom: `1px solid ${T.borderSoft}` }}
+                  className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"
+                  style={{ borderBottom: HAIRLINE_SOFT }}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <button
-                      onClick={toggleAllVisible}
-                      aria-label={allVisibleSelected ? "Deselect all" : "Select all"}
-                      className="transition-colors hover:text-white"
-                      style={{ color: allVisibleSelected ? T.brand : T.textMuted }}
-                    >
-                      {allVisibleSelected ? <CheckSquare size={14} /> : <Square size={14} />}
-                    </button>
-                    <h2 className="text-[12.5px] font-semibold" style={{ color: T.text }}>
-                      Recipients
-                    </h2>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Checkbox
+                      checked={allVisibleSelected}
+                      onChange={toggleAllVisible}
+                      label={allVisibleSelected ? "Deselect all visible" : "Select all visible"}
+                    />
+                    <span className="text-[11.5px]" style={{ color: T.textMuted }}>
+                      {hasSelection ? (
+                        <>
+                          <span className="tabular-nums" style={{ color: T.text, fontFamily: FONT.mono }}>
+                            {selectedIds.size}
+                          </span>{" "}
+                          selected
+                        </>
+                      ) : (
+                        "Recipients"
+                      )}
+                    </span>
                   </div>
-                  <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                    {pageCount.toLocaleString()} on this page
-                  </span>
+
+                  {hasSelection ? (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={copySelectedEmails}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11.5px] font-medium transition-colors duration-[120ms]"
+                        style={{ color: T.textMuted, border: HAIRLINE }}
+                      >
+                        <Copy size={11} /> Copy emails
+                      </button>
+                      <button
+                        onClick={clearSelection}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11.5px] font-medium transition-colors duration-[120ms]"
+                        style={{ color: T.textMuted, border: HAIRLINE }}
+                      >
+                        <X size={11} /> Clear
+                      </button>
+                    </div>
+                  ) : (
+                    <span
+                      className="text-[11px] tabular-nums"
+                      style={{ color: T.textFaint, fontFamily: FONT.mono }}
+                    >
+                      {pageCount.toLocaleString()} on this page
+                    </span>
+                  )}
                 </div>
 
+                {/* Desktop table */}
                 <div className="rc-table overflow-x-auto">
                   <table className="w-full text-left">
                     <thead>
-                      <tr className="text-[10px] uppercase tracking-widest" style={{ color: T.textFaint }}>
-                        <th className="px-5 py-2.5 font-medium w-[40px]"></th>
-                        <th className="px-3 py-2.5 font-medium w-[80px]">ID</th>
-                        <th className="px-3 py-2.5 font-medium">Recipient</th>
-                        <th className="px-5 py-2.5 font-medium text-right">Status</th>
+                      <tr className="text-[11px]" style={{ color: T.textFaint }}>
+                        <th className="px-5 py-2.5 font-normal w-[40px]"></th>
+                        <th className="px-3 py-2.5 font-normal w-[90px]">Id</th>
+                        <th className="px-3 py-2.5 font-normal">Recipient</th>
+                        <th className="px-5 py-2.5 font-normal text-right w-[110px]">Status</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -505,15 +511,15 @@ const Recipients = () => {
                           <td colSpan={4} className="px-5 py-16 text-center">
                             <div
                               className="w-10 h-10 mx-auto mb-3 rounded-lg flex items-center justify-center"
-                              style={{ background: T.surface2 }}
+                              style={{ background: T.surfaceHi, border: HAIRLINE }}
                             >
-                              <Search className="w-4 h-4" style={{ color: T.textFaint }} />
+                              <Search size={16} style={{ color: T.textFaint }} />
                             </div>
                             <p className="text-[12.5px]" style={{ color: T.textMuted }}>No recipients match your search.</p>
                             <button
                               onClick={() => { setQuery(""); setFilter("All"); }}
-                              className="mt-2.5 text-[11.5px] font-medium"
-                              style={{ color: T.brand }}
+                              className="mt-3 text-[11.5px] font-medium transition-colors duration-[120ms]"
+                              style={{ color: T.textMuted, border: HAIRLINE, padding: "6px 12px", borderRadius: 6 }}
                             >
                               Clear filters
                             </button>
@@ -525,42 +531,42 @@ const Recipients = () => {
                           return (
                             <tr
                               key={r.id}
-                              className="transition-colors hover:bg-white/[0.02]"
+                              className="transition-colors duration-[120ms]"
                               style={{
-                                borderTop: `1px solid ${T.borderSoft}`,
-                                background: selected ? T.brandSoft : "transparent",
+                                borderTop: HAIRLINE_SOFT,
+                                background: selected ? T.surface2 : "transparent",
                               }}
+                              onMouseEnter={(e) => { if (!selected) e.currentTarget.style.background = T.surface2; }}
+                              onMouseLeave={(e) => { if (!selected) e.currentTarget.style.background = "transparent"; }}
                             >
                               <td className="px-5 py-3">
-                                <button
-                                  onClick={() => toggleOne(r.id)}
-                                  className="transition-colors"
-                                  style={{ color: selected ? T.brand : T.textMuted }}
-                                >
-                                  {selected ? <CheckSquare size={14} /> : <Square size={14} />}
-                                </button>
+                                <Checkbox
+                                  checked={selected}
+                                  onChange={() => toggleOne(r.id)}
+                                  label={selected ? "Deselect recipient" : "Select recipient"}
+                                />
                               </td>
                               <td className="px-3 py-3">
                                 <CopyChip value={`#${r.id}`} label="ID" />
                               </td>
                               <td className="px-3 py-3">
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <Avatar label={r.name || r.email || "?"} seed={String(r.id)} />
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <Avatar label={r.name || r.email || "?"} />
                                   <div className="min-w-0">
                                     <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>
                                       {r.name || "—"}
                                     </p>
-                                    <div className="flex items-center gap-1.5">
-                                      <Mail size={10} style={{ color: T.textFaint }} className="shrink-0" />
-                                      <p className="text-[11px] truncate" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                                        {r.email}
-                                      </p>
-                                    </div>
+                                    <p
+                                      className="text-[11px] truncate mt-0.5"
+                                      style={{ color: T.textFaint, fontFamily: FONT.mono }}
+                                    >
+                                      {r.email}
+                                    </p>
                                   </div>
                                 </div>
                               </td>
                               <td className="px-5 py-3 text-right">
-                                <StatusPill status={r.status} />
+                                <StatusTag status={r.status} />
                               </td>
                             </tr>
                           );
@@ -570,20 +576,21 @@ const Recipients = () => {
                   </table>
                 </div>
 
+                {/* Mobile list */}
                 <ul className="rc-list">
                   {filtered.length === 0 ? (
                     <li className="px-4 py-16 text-center">
                       <div
                         className="w-10 h-10 mx-auto mb-3 rounded-lg flex items-center justify-center"
-                        style={{ background: T.surface2 }}
+                        style={{ background: T.surfaceHi, border: HAIRLINE }}
                       >
-                        <Search className="w-4 h-4" style={{ color: T.textFaint }} />
+                        <Search size={16} style={{ color: T.textFaint }} />
                       </div>
                       <p className="text-[12.5px]" style={{ color: T.textMuted }}>No recipients match.</p>
                       <button
                         onClick={() => { setQuery(""); setFilter("All"); }}
-                        className="mt-2.5 text-[11.5px] font-medium"
-                        style={{ color: T.brand }}
+                        className="mt-3 text-[11.5px] font-medium"
+                        style={{ color: T.textMuted, border: HAIRLINE, padding: "6px 12px", borderRadius: 6 }}
                       >
                         Clear filters
                       </button>
@@ -594,48 +601,45 @@ const Recipients = () => {
                       return (
                         <li
                           key={r.id}
-                          className="flex items-center gap-2.5 px-4 py-3 transition-colors"
+                          className="flex items-center gap-3 px-4 py-3"
                           style={{
-                            borderTop: i === 0 ? "none" : `1px solid ${T.borderSoft}`,
-                            background: selected ? T.brandSoft : "transparent",
+                            borderTop: i === 0 ? "none" : HAIRLINE_SOFT,
+                            background: selected ? T.surface2 : "transparent",
                           }}
                         >
-                          <button
-                            onClick={() => toggleOne(r.id)}
-                            className="shrink-0"
-                            style={{ color: selected ? T.brand : T.textMuted }}
-                          >
-                            {selected ? <CheckSquare size={14} /> : <Square size={14} />}
-                          </button>
-
-                          <Avatar label={r.name || r.email || "?"} seed={String(r.id)} />
-
+                          <Checkbox
+                            checked={selected}
+                            onChange={() => toggleOne(r.id)}
+                            label={selected ? "Deselect recipient" : "Select recipient"}
+                          />
+                          <Avatar label={r.name || r.email || "?"} />
                           <div className="flex-1 min-w-0">
                             <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>
                               {r.name || "—"}
                             </p>
-                            <p className="text-[11px] truncate" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                            <p className="text-[11px] truncate mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                               {r.email}
                             </p>
                           </div>
-
-                          <StatusPill status={r.status} />
+                          <StatusTag status={r.status} />
                         </li>
                       );
                     })
                   )}
                 </ul>
 
+                {/* Footer strip — pagination */}
                 <div
-                  className="flex flex-wrap items-center justify-between gap-3 px-4 md:px-5 py-3"
-                  style={{ borderTop: `1px solid ${T.borderSoft}` }}
+                  className="flex flex-wrap items-center justify-between gap-3 px-5 py-3"
+                  style={{ borderTop: HAIRLINE_SOFT }}
                 >
-                  <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                  <span className="text-[11.5px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                     Page <span style={{ color: T.text }}>{page}</span> of {totalPages}
                     {total > 0 && (
                       <>
                         {" · "}
-                        {(page - 1) * limit + 1}–{Math.min(page * limit, total)} of {total}
+                        <span className="tabular-nums">{(page - 1) * limit + 1}–{Math.min(page * limit, total)}</span> of{" "}
+                        <span className="tabular-nums">{total.toLocaleString()}</span>
                       </>
                     )}
                   </span>
@@ -644,32 +648,32 @@ const Recipients = () => {
                     <button
                       onClick={() => goToPage(1)}
                       disabled={page <= 1 || loading}
-                      className="hidden md:inline-flex items-center rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                      style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                      className="rc-ctrl hidden md:inline-flex items-center rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors duration-[120ms] disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{ color: T.textMuted, border: HAIRLINE }}
                     >
                       First
                     </button>
                     <button
                       onClick={() => goToPage(page - 1)}
                       disabled={page <= 1 || loading}
-                      className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                      style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                      className="rc-ctrl inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-[120ms] disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{ color: T.textMuted, border: HAIRLINE }}
                     >
                       <ChevronLeft size={12} /> Prev
                     </button>
                     <button
                       onClick={() => goToPage(page + 1)}
                       disabled={page >= totalPages || loading}
-                      className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                      style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                      className="rc-ctrl inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-[120ms] disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{ color: T.textMuted, border: HAIRLINE }}
                     >
                       Next <ChevronRight size={12} />
                     </button>
                     <button
                       onClick={() => goToPage(totalPages)}
                       disabled={page >= totalPages || loading}
-                      className="hidden md:inline-flex items-center rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                      style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                      className="rc-ctrl hidden md:inline-flex items-center rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors duration-[120ms] disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{ color: T.textMuted, border: HAIRLINE }}
                     >
                       Last
                     </button>

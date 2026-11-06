@@ -10,7 +10,6 @@ import SenderAccount from "../pages/User/SenderAccount";
 import Campaign from "../pages/User/Campaign/Campaign";
 import Upload from "../pages/User/Upload";
 import Recipients from "../pages/User/Recipients";
-import Analytics from "../pages/User/Analytics";
 import CampaignRecipients from "../pages/User/Campaign/CampaignRecipients";
 import CampaignCreatePage from "../pages/User/StartCamapign";
 
@@ -100,8 +99,6 @@ const AppRouter = () => {
           {/* Full path: /user/upload */}
           <Route path="upload" element={<Upload />} />
 
-          {/* Full path: /user/analytics */}
-          <Route path="analytics" element={<Analytics />} />
 
           {/* Full path: /user/recipients
               Usage example: /user/recipients?campaignId=2 */}

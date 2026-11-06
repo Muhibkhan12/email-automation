@@ -1,48 +1,41 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Sidebar from "./Sidebar";
 import {
-  FileSpreadsheet, CheckCircle2, XCircle, Loader2, X, Menu, Users,
+  FileSpreadsheet, CheckCircle2, XCircle, Loader2, X, Menu,
   Pencil, Lock, Trash2, Upload as UploadIcon, PlayCircle, AlertTriangle,
-  Search, MoreHorizontal, ArrowUpDown, FileText, ChevronDown,
+  Search, ChevronUp, ChevronDown, Inbox, RefreshCw, ArrowUpDown,
 } from "lucide-react";
 import { useUpload } from "../../contexts/UploadContext";
 
-/* ─────────────── design tokens ─────────────── */
-
+/* ─────────────── tokens ─────────────── */
 const T = {
-  bg:          "#0A0B10",
-  surface:     "#111319",
-  surface2:    "#161922",
-  surfaceHi:   "#1B1F2A",
-  border:      "#232838",
-  borderSoft:  "#1B1F2A",
-  text:        "#E9EBF0",
-  textMuted:   "#9CA3B4",
-  textFaint:   "#6B7280",
-  brand:       "#6366F1",
-  brandSoft:   "rgba(99,102,241,0.12)",
-  brandBorder: "rgba(99,102,241,0.35)",
-  success:     "#22C55E",
-  successSoft: "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:        "#F59E0B",
-  warnSoft:    "rgba(245,158,11,0.12)",
-  warnBorder:  "rgba(245,158,11,0.35)",
-  danger:      "#EF4444",
-  dangerSoft:  "rgba(239,68,68,0.12)",
-  dangerBorder:"rgba(239,68,68,0.35)",
-  info:        "#38BDF8",
-  infoSoft:    "rgba(56,189,248,0.12)",
-  infoBorder:  "rgba(56,189,248,0.35)",
-}
+  bg:         "#0B0C0E",
+  surface:    "#111214",
+  surface2:   "#16181B",
+  surfaceHi:  "#1C1F23",
+  border:     "#24282E",
+  borderSoft: "#1B1E22",
+
+  text:       "#E8EAED",
+  textMuted:  "#9AA0A6",
+  textFaint:  "#6B7075",
+
+  accent:     "#6EE7A8",
+  accentInk:  "#0B0C0E",
+  accentLine: "#2E6B4D",
+
+  ok:         "#6EE7A8",
+  warn:       "#E0A64A",
+  danger:     "#E06A6A",
+};
 
 const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
-}
+  ui:   "'Inter', system-ui, -apple-system, sans-serif",
+  mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+};
 
-const RING = `inset 0 0 0 1px ${T.border}`
+const HAIRLINE = `1px solid ${T.border}`;
+const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`;
 
 type Status = "Uploaded" | "Running" | "Completed" | "Failed";
 
@@ -83,29 +76,24 @@ const getErrorMessage = (err: any): string =>
   err?.message ||
   "Something went wrong.";
 
-/* ─────────────── status meta ─────────────── */
-
-const STATUS_META: Record<Status, { bg: string; fg: string; ring: string; icon: React.ReactNode }> = {
-  Uploaded:  { bg: T.infoSoft,    fg: T.info,    ring: T.infoBorder,    icon: <UploadIcon size={9} /> },
-  Running:   { bg: T.warnSoft,    fg: T.warn,    ring: T.warnBorder,    icon: <PlayCircle size={9} /> },
-  Completed: { bg: T.successSoft, fg: T.success, ring: T.successBorder, icon: <CheckCircle2 size={9} /> },
-  Failed:    { bg: T.dangerSoft,  fg: T.danger,  ring: T.dangerBorder,  icon: <XCircle size={9} /> },
+const STATUS_META: Record<Status, { fg: string; dot: string }> = {
+  Uploaded:  { fg: T.textMuted, dot: T.textFaint },
+  Running:   { fg: T.warn,      dot: T.warn },
+  Completed: { fg: T.ok,        dot: T.ok },
+  Failed:    { fg: T.danger,    dot: T.danger },
 };
 
-const StatusPill: React.FC<{ status: Status }> = ({ status }) => {
+const StatusTag: React.FC<{ status: Status }> = ({ status }) => {
   const t = STATUS_META[status];
   return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
-      style={{ backgroundColor: t.bg, color: t.fg, boxShadow: `inset 0 0 0 1px ${t.ring}` }}
-    >
-      {t.icon}
+    <span className="inline-flex items-center gap-2 text-[11.5px] whitespace-nowrap" style={{ color: t.fg }}>
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: t.dot }} />
       {status}
     </span>
   );
 };
 
-/* ─────────────── escape hook ─────────────── */
+/* ─────────────── hooks ─────────────── */
 
 const useEscape = (onEscape: () => void, enabled = true) => {
   useEffect(() => {
@@ -133,18 +121,19 @@ const Toast: React.FC<{ toast: ToastData; onClose: () => void }> = ({ toast, onC
       className="fixed bottom-4 right-4 left-4 sm:left-auto z-[70] sm:w-[360px] flex items-start gap-3 rounded-lg px-3.5 py-3"
       style={{
         background: T.surface,
-        boxShadow: `0 20px 40px -12px rgba(0,0,0,0.6), inset 0 0 0 1px ${ok ? T.successBorder : T.dangerBorder}`,
-        animation: "toastIn 0.2s ease-out",
+        border: HAIRLINE,
+        boxShadow: "0 12px 32px -16px rgba(0,0,0,0.9)",
+        animation: "unslop-toast-in 120ms ease-out",
       }}
     >
       {ok
-        ? <CheckCircle2 size={15} style={{ color: T.success }} className="mt-0.5 shrink-0" />
-        : <XCircle size={15} style={{ color: T.danger }} className="mt-0.5 shrink-0" />}
+        ? <CheckCircle2 size={14} style={{ color: T.ok }} className="mt-0.5 shrink-0" />
+        : <XCircle size={14} style={{ color: T.danger }} className="mt-0.5 shrink-0" />}
       <p className="flex-1 text-[12.5px]" style={{ color: T.text }}>{toast.message}</p>
       <button
         onClick={onClose}
         style={{ color: T.textFaint }}
-        className="hover:text-white transition-colors"
+        className="transition-colors duration-[120ms]"
         aria-label="Dismiss"
       >
         <X size={14} />
@@ -164,7 +153,8 @@ const ModalShell: React.FC<{
   useEscape(close);
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-3 md:p-6 bg-black/70"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-3 md:p-6"
+      style={{ background: "rgba(11,12,14,0.78)" }}
       onClick={close}
     >
       <div
@@ -173,8 +163,9 @@ const ModalShell: React.FC<{
         className="w-full max-w-md flex flex-col rounded-xl overflow-hidden"
         style={{
           background: T.surface,
-          boxShadow: `inset 0 0 0 1px ${T.border}, 0 24px 64px -16px rgba(0,0,0,0.7)`,
-          animation: "modalPop 0.15s ease",
+          border: HAIRLINE,
+          boxShadow: "0 16px 48px -24px rgba(0,0,0,0.9)",
+          animation: "unslop-modal-fade 120ms ease-out",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -214,21 +205,13 @@ const RenameModal: React.FC<{
 
   return (
     <ModalShell onClose={onClose} busy={saving}>
-      <div
-        className="flex items-center gap-3 px-4 py-3.5"
-        style={{ borderBottom: `1px solid ${T.borderSoft}` }}
-      >
-        <div
-          className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
-          style={{ background: T.brandSoft, color: T.brand }}
-        >
-          <Pencil size={13} />
-        </div>
-        <p className="flex-1 text-[14px] font-semibold" style={{ color: T.text }}>Rename file</p>
+      <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: HAIRLINE_SOFT }}>
+        <Pencil size={14} style={{ color: T.textMuted }} />
+        <p className="flex-1 text-[14px] font-medium" style={{ color: T.text }}>Rename file</p>
         <button
           onClick={onClose}
           disabled={saving}
-          className="p-1.5 rounded-md transition-colors hover:bg-white/5"
+          className="p-1.5 rounded-md transition-colors duration-[120ms]"
           style={{ color: T.textFaint }}
           aria-label="Close"
         >
@@ -236,8 +219,8 @@ const RenameModal: React.FC<{
         </button>
       </div>
 
-      <div className="px-4 py-4">
-        <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: T.textMuted }}>
+      <div className="px-5 py-5">
+        <label className="block text-[12px] mb-2" style={{ color: T.textMuted }}>
           File name
         </label>
         <input
@@ -245,31 +228,28 @@ const RenameModal: React.FC<{
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSave()}
-          className="w-full rounded-md px-3 py-2 text-[13px] outline-none transition-shadow"
-          style={{ background: T.surface2, color: T.text, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
-          onFocus={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brand}, 0 0 0 3px ${T.brandSoft}`)}
-          onBlur={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.borderSoft}`)}
+          className="w-full rounded-md px-3 py-2 text-[13px] outline-none transition-colors duration-[120ms]"
+          style={{ background: T.surface2, color: T.text, border: HAIRLINE }}
+          onFocus={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
+          onBlur={(e) => (e.currentTarget.style.borderColor = T.border)}
         />
-        {error && <p className="mt-2 text-[11.5px]" style={{ color: T.danger }}>{error}</p>}
+        {error && <p className="mt-2.5 text-[11.5px]" style={{ color: T.danger }}>{error}</p>}
       </div>
 
-      <div
-        className="flex items-center justify-end gap-2 px-4 py-3"
-        style={{ borderTop: `1px solid ${T.borderSoft}` }}
-      >
+      <div className="flex items-center justify-end gap-2 px-5 py-3" style={{ borderTop: HAIRLINE_SOFT }}>
         <button
           onClick={onClose}
           disabled={saving}
-          className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors hover:bg-white/5"
-          style={{ color: T.textMuted }}
+          className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms]"
+          style={{ color: T.textMuted, border: HAIRLINE }}
         >
           Cancel
         </button>
         <button
           onClick={handleSave}
           disabled={saving || !trimmed || unchanged}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium text-white transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100"
-          style={{ background: T.brand }}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms] disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ background: T.text, color: T.accentInk, border: `1px solid ${T.text}` }}
         >
           {saving && <Loader2 size={12} className="animate-spin" />}
           Save
@@ -307,36 +287,34 @@ const DeleteModal: React.FC<{
     <ModalShell onClose={onClose} busy={deleting}>
       <div className="px-5 pt-6 pb-4 text-center">
         <div
-          className="w-11 h-11 mx-auto mb-3 rounded-lg flex items-center justify-center"
-          style={{ background: T.dangerSoft, color: T.danger }}
+          className="w-10 h-10 mx-auto mb-3 rounded-lg flex items-center justify-center"
+          style={{ background: T.surfaceHi, border: HAIRLINE }}
         >
-          <AlertTriangle size={18} />
+          <AlertTriangle size={16} style={{ color: T.danger }} />
         </div>
-        <p className="text-[14px] font-semibold" style={{ color: T.text }}>Delete this file?</p>
+        <p className="text-[14px] font-medium" style={{ color: T.text }}>Delete this file</p>
         <p className="mt-1.5 text-[12.5px] leading-5" style={{ color: T.textMuted }}>
-          <span style={{ color: T.text }} className="font-medium break-all">{upload.name}</span> and its{" "}
-          {upload.rows.toLocaleString()} rows will be permanently removed. This can't be undone.
+          <span style={{ color: T.text }} className="break-all">{upload.name}</span> and its{" "}
+          <span style={{ fontFamily: FONT.mono, color: T.text }}>{upload.rows.toLocaleString()}</span> rows
+          will be permanently removed. This cannot be undone.
         </p>
         {error && <p className="mt-3 text-[11.5px]" style={{ color: T.danger }}>{error}</p>}
       </div>
 
-      <div
-        className="flex items-center justify-end gap-2 px-4 py-3"
-        style={{ borderTop: `1px solid ${T.borderSoft}` }}
-      >
+      <div className="flex items-center justify-end gap-2 px-5 py-3" style={{ borderTop: HAIRLINE_SOFT }}>
         <button
           onClick={onClose}
           disabled={deleting}
-          className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors hover:bg-white/5"
-          style={{ color: T.textMuted }}
+          className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms]"
+          style={{ color: T.textMuted, border: HAIRLINE }}
         >
           Cancel
         </button>
         <button
           onClick={handleDelete}
           disabled={deleting}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium text-white transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed"
-          style={{ background: T.danger }}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms] disabled:opacity-60 disabled:cursor-not-allowed"
+          style={{ background: "transparent", color: T.danger, border: `1px solid ${T.border}` }}
         >
           {deleting && <Loader2 size={12} className="animate-spin" />}
           Delete
@@ -346,9 +324,78 @@ const DeleteModal: React.FC<{
   );
 };
 
-/* ─────────────── row ─────────────── */
+/* ─────────────── capacity bar (added vs skipped, stacked) ─────────────── */
 
-const UploadRow: React.FC<{
+const CapacityBar: React.FC<{ added: number; skipped: number; failed?: boolean }> = ({ added, skipped, failed }) => {
+  const total = added + skipped;
+  const addedPct = total > 0 ? (added / total) * 100 : 0;
+  const addedColor = failed ? T.danger : T.ok;
+  return (
+    <div className="w-full flex items-center gap-2">
+      <div
+        className="relative h-1.5 flex-1 rounded-full overflow-hidden"
+        style={{ background: T.surfaceHi }}
+        role="presentation"
+      >
+        <div
+          className="absolute inset-y-0 left-0"
+          style={{ width: `${addedPct}%`, background: addedColor }}
+        />
+      </div>
+      <span
+        className="text-[10.5px] tabular-nums shrink-0"
+        style={{ color: T.textFaint, fontFamily: FONT.mono }}
+      >
+        {Math.round(addedPct)}%
+      </span>
+    </div>
+  );
+};
+
+/* ─────────────── live row (running files) ─────────────── */
+
+const LiveRow: React.FC<{ u: UploadCardData }> = ({ u }) => {
+  const total = u.rows;
+  const added = u.addedCount;
+  const pct = total > 0 ? Math.round((added / total) * 100) : 0;
+
+  return (
+    <div
+      className="relative rounded-lg p-4"
+      style={{ background: T.surface2, border: HAIRLINE }}
+    >
+      <span
+        aria-hidden
+        className="absolute left-0 top-3 bottom-3 w-[2px] rounded-full"
+        style={{ background: T.accent }}
+      />
+      <div className="flex items-start gap-3">
+        <FileSpreadsheet size={14} strokeWidth={1.5} style={{ color: T.textFaint }} className="mt-1 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="text-[13px] font-medium truncate" style={{ color: T.text }}>{u.name}</p>
+            <span
+              className="text-[12px] tabular-nums shrink-0"
+              style={{ color: T.accent, fontFamily: FONT.mono }}
+            >
+              {pct}%
+            </span>
+          </div>
+          <div className="mt-2">
+            <CapacityBar added={added} skipped={u.skippedCount} />
+          </div>
+          <p className="text-[11px] mt-2" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+            {added.toLocaleString()} / {total.toLocaleString()} processed · #{u.id} · campaign #{u.campaignId}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─────────────── library row ─────────────── */
+
+const LibraryRow: React.FC<{
   u: UploadCardData;
   onRename: () => void;
   onDelete: () => void;
@@ -356,198 +403,85 @@ const UploadRow: React.FC<{
   const editable = canEdit(u.status);
   const deletable = canDelete(u.status);
   const lockedReason =
-    u.status === "Running" ? "Locked while running"
-    : u.status === "Completed" ? "Already used"
-    : "Can't be renamed";
-
-  const processedPct = u.rows > 0 ? Math.round((u.addedCount / u.rows) * 100) : 0;
+    u.status === "Completed" ? "Already used"
+    : "Cannot be renamed";
 
   return (
-    <tr
-      className="transition-colors hover:bg-white/[0.02] group"
-      style={{ borderTop: `1px solid ${T.borderSoft}` }}
+    <div
+      className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 px-4 md:px-5 py-3 transition-colors duration-[120ms]"
+      onMouseEnter={(e) => (e.currentTarget.style.background = T.surface2)}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
     >
-      {/* File */}
-      <td className="px-4 md:px-5 py-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div
-            className="shrink-0 w-8 h-8 rounded-md flex items-center justify-center"
-            style={{ background: T.brandSoft, color: T.brand }}
-          >
-            <FileSpreadsheet size={14} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }} title={u.name}>
-              {u.name}
-            </p>
-            <p className="text-[11px] mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-              #{u.id} · Campaign #{u.campaignId}
-            </p>
-          </div>
+      {/* Identity */}
+      <div className="flex items-start gap-3 min-w-0 flex-1">
+        <FileSpreadsheet size={14} strokeWidth={1.5} style={{ color: T.textFaint }} className="mt-0.5 shrink-0" />
+        <div className="min-w-0">
+          <p className="text-[13px] font-medium truncate" style={{ color: T.text }} title={u.name}>
+            {u.name}
+          </p>
+          <p className="text-[11px] mt-0.5 truncate" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+            #{u.id} · campaign #{u.campaignId}
+          </p>
         </div>
-      </td>
+      </div>
 
-      {/* Rows */}
-      <td className="px-3 py-3 text-right">
-        <p className="text-[12px] tabular-nums" style={{ color: T.text, fontFamily: FONT.mono }}>
-          {u.rows.toLocaleString()}
-        </p>
-      </td>
-
-      {/* Added / Skipped */}
-      <td className="px-3 py-3 text-right hidden lg:table-cell">
-        <div className="inline-flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.success }} />
-            <span className="text-[11.5px] tabular-nums" style={{ color: T.success, fontFamily: FONT.mono }}>
-              {u.addedCount.toLocaleString()}
-            </span>
-          </div>
-          <span className="text-[10px]" style={{ color: T.textFaint }}>·</span>
-          <div className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.textMuted }} />
-            <span className="text-[11.5px] tabular-nums" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
-              {u.skippedCount.toLocaleString()}
-            </span>
-          </div>
-        </div>
-      </td>
-
-      {/* Progress (subtle bar) */}
-      <td className="px-3 py-3 hidden xl:table-cell">
-        <div className="flex items-center gap-2">
-          <div className="h-1 w-20 rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
-            <div
-              className="h-full rounded-full transition-all"
-              style={{
-                width: `${processedPct}%`,
-                background: u.status === "Failed" ? T.danger : u.status === "Completed" ? T.success : T.brand,
-              }}
-            />
-          </div>
-          <span className="text-[10.5px] tabular-nums" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-            {processedPct}%
+      {/* Capacity */}
+      <div className="w-full md:w-[200px] shrink-0">
+        <CapacityBar added={u.addedCount} skipped={u.skippedCount} failed={u.status === "Failed"} />
+        <div className="flex items-center gap-3 mt-1.5">
+          <span className="text-[10.5px] tabular-nums" style={{ color: T.ok, fontFamily: FONT.mono }}>
+            {u.addedCount.toLocaleString()} added
+          </span>
+          <span className="text-[10.5px] tabular-nums" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+            {u.skippedCount.toLocaleString()} skipped
           </span>
         </div>
-      </td>
+      </div>
 
-      {/* Status */}
-      <td className="px-3 py-3">
-        <StatusPill status={u.status} />
-      </td>
-
-      {/* Uploaded at */}
-      <td className="px-3 py-3 text-right hidden md:table-cell">
-        <p className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-          {u.uploadedAt}
-        </p>
-      </td>
+      {/* Status + meta */}
+      <div className="w-full md:w-[220px] shrink-0 flex items-center justify-between md:justify-end gap-4">
+        <div className="flex flex-col items-start md:items-end gap-1">
+          <StatusTag status={u.status} />
+          <span className="text-[10.5px] tabular-nums" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+            {u.rows.toLocaleString()} rows · {u.uploadedAt}
+          </span>
+        </div>
+      </div>
 
       {/* Actions */}
-      <td className="px-4 md:px-5 py-3 text-right">
-        <div className="inline-flex items-center gap-1">
-          {editable ? (
-            <button
-              onClick={onRename}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors hover:bg-white/5"
-              style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
-              title="Rename file"
-            >
-              <Pencil size={11} />
-              <span className="hidden md:inline">Rename</span>
-            </button>
-          ) : (
-            <span
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px]"
-              style={{ color: T.textFaint }}
-              title={lockedReason}
-            >
-              <Lock size={11} />
-              <span className="hidden md:inline">{lockedReason}</span>
-            </span>
-          )}
-          {deletable && (
-            <button
-              onClick={onDelete}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors hover:bg-white/5"
-              style={{ color: T.danger }}
-              title="Delete file"
-            >
-              <Trash2 size={11} />
-            </button>
-          )}
-        </div>
-      </td>
-    </tr>
-  );
-};
-
-/* ─────────────── mobile card (kept for small screens) ─────────────── */
-
-const UploadMobileCard: React.FC<{
-  u: UploadCardData;
-  onRename: () => void;
-  onDelete: () => void;
-}> = ({ u, onRename, onDelete }) => {
-  const editable = canEdit(u.status);
-  const deletable = canDelete(u.status);
-
-  return (
-    <div className="rounded-xl p-3.5" style={{ background: T.surface, boxShadow: RING }}>
-      <div className="flex items-start gap-3">
-        <div
-          className="shrink-0 w-8 h-8 rounded-md flex items-center justify-center"
-          style={{ background: T.brandSoft, color: T.brand }}
-        >
-          <FileSpreadsheet size={14} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>{u.name}</p>
-          <p className="text-[10.5px] mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-            #{u.id} · {u.uploadedAt}
-          </p>
-        </div>
-        <StatusPill status={u.status} />
-      </div>
-
-      <div className="grid grid-cols-3 gap-3 mt-3 pt-3" style={{ borderTop: `1px solid ${T.borderSoft}` }}>
-        <div>
-          <p className="text-[9.5px] uppercase tracking-wider" style={{ color: T.textFaint }}>Rows</p>
-          <p className="text-[12px] mt-0.5 tabular-nums" style={{ color: T.text, fontFamily: FONT.mono }}>
-            {u.rows.toLocaleString()}
-          </p>
-        </div>
-        <div>
-          <p className="text-[9.5px] uppercase tracking-wider" style={{ color: T.textFaint }}>Added</p>
-          <p className="text-[12px] mt-0.5 tabular-nums" style={{ color: T.success, fontFamily: FONT.mono }}>
-            {u.addedCount.toLocaleString()}
-          </p>
-        </div>
-        <div>
-          <p className="text-[9.5px] uppercase tracking-wider" style={{ color: T.textFaint }}>Skipped</p>
-          <p className="text-[12px] mt-0.5 tabular-nums" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
-            {u.skippedCount.toLocaleString()}
-          </p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-end gap-1.5 mt-3">
-        {editable && (
+      <div className="flex items-center justify-end gap-1 shrink-0">
+        {editable ? (
           <button
             onClick={onRename}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium"
-            style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+            className="p-1.5 rounded-md transition-colors duration-[120ms]"
+            style={{ color: T.textFaint }}
+            title="Rename file"
+            aria-label="Rename file"
+            onMouseEnter={(e) => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = T.textFaint; e.currentTarget.style.background = "transparent" }}
           >
-            <Pencil size={11} /> Rename
+            <Pencil size={13} strokeWidth={1.5} />
           </button>
+        ) : (
+          <span
+            className="p-1.5"
+            style={{ color: T.textFaint }}
+            title={lockedReason}
+          >
+            <Lock size={13} strokeWidth={1.5} />
+          </span>
         )}
         {deletable && (
           <button
             onClick={onDelete}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium"
-            style={{ color: T.danger, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+            className="p-1.5 rounded-md transition-colors duration-[120ms]"
+            style={{ color: T.textFaint }}
+            title="Delete file"
+            aria-label="Delete file"
+            onMouseEnter={(e) => { e.currentTarget.style.color = T.danger; e.currentTarget.style.background = T.surfaceHi }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = T.textFaint; e.currentTarget.style.background = "transparent" }}
           >
-            <Trash2 size={11} /> Delete
+            <Trash2 size={13} strokeWidth={1.5} />
           </button>
         )}
       </div>
@@ -591,17 +525,20 @@ const Upload = () => {
     };
   }), [uploadedFiles]);
 
-  const filtered = useMemo(() => {
+  const running = useMemo(() => uploads.filter((u) => u.status === "Running"), [uploads]);
+  const library = useMemo(() => uploads.filter((u) => u.status !== "Running"), [uploads]);
+
+  const filteredLibrary = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let list = uploads;
+    let list = library;
     if (q) {
-      list = uploads.filter((u) =>
+      list = library.filter((u) =>
         u.name.toLowerCase().includes(q) ||
         String(u.id).includes(q) ||
         String(u.campaignId).includes(q)
       );
     }
-    const sorted = [...list].sort((a, b) => {
+    return [...list].sort((a, b) => {
       const sign = sortDir === "asc" ? 1 : -1;
       switch (sortKey) {
         case "name":       return sign * a.name.localeCompare(b.name);
@@ -612,8 +549,7 @@ const Upload = () => {
         default:           return sign * (new Date(a.uploadedAtRaw ?? 0).getTime() - new Date(b.uploadedAtRaw ?? 0).getTime());
       }
     });
-    return sorted;
-  }, [uploads, query, sortKey, sortDir]);
+  }, [library, query, sortKey, sortDir]);
 
   const totals = useMemo(() => {
     const t = { rows: 0, added: 0, skipped: 0, completed: 0, running: 0 };
@@ -632,45 +568,55 @@ const Upload = () => {
     else { setSortKey(key); setSortDir("desc"); }
   };
 
-  const SortHead: React.FC<{ k: SortKey; label: string; align?: "left" | "right"; className?: string }> =
-    ({ k, label, align = "left", className = "" }) => {
-      const active = sortKey === k;
-      return (
-        <th className={`px-3 py-2.5 font-medium ${align === "right" ? "text-right" : ""} ${className}`}>
-          <button
-            onClick={() => toggleSort(k)}
-            className={`inline-flex items-center gap-1 transition-colors hover:text-white ${align === "right" ? "flex-row-reverse" : ""}`}
-            style={{ color: active ? T.text : T.textFaint }}
-          >
-            {label}
-            <ArrowUpDown size={10} style={{ color: active ? T.brand : T.textFaint, opacity: active ? 1 : 0.5 }} />
-          </button>
-        </th>
-      );
-    };
+  const SortChip: React.FC<{ k: SortKey; label: string }> = ({ k, label }) => {
+    const active = sortKey === k;
+    return (
+      <button
+        onClick={() => toggleSort(k)}
+        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[12px] transition-colors duration-[120ms]"
+        style={{
+          background: active ? T.surface2 : "transparent",
+          color: active ? T.text : T.textMuted,
+          border: active ? HAIRLINE_SOFT : "1px solid transparent",
+        }}
+      >
+        {label}
+        {active && (sortDir === "asc"
+          ? <ChevronUp size={11} strokeWidth={1.5} style={{ color: T.accentLine }} />
+          : <ChevronDown size={11} strokeWidth={1.5} style={{ color: T.accentLine }} />
+        )}
+      </button>
+    );
+  };
+
+  const hasAny = uploads.length > 0;
 
   return (
-    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: T.bg }}>
+    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.ui, background: T.bg }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .spin { animation: spin 1s linear infinite; }
-        @keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-        @keyframes modalPop { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap');
+
         .uf-main::-webkit-scrollbar { width: 8px; height: 8px; }
         .uf-main::-webkit-scrollbar-track { background: transparent; }
         .uf-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 8px; }
         .uf-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
-        @media (max-width: 767px) { .uf-table { display: none; } }
-        @media (min-width: 768px) { .uf-mobile { display: none; } }
+
+        .uf-input::placeholder { color: ${T.textFaint}; }
+        .uf-input:focus { outline: none; }
+        :focus-visible { outline: 2px solid ${T.accentLine}; outline-offset: 2px; border-radius: 6px; }
+
+        @keyframes unslop-toast-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+        @keyframes unslop-modal-fade { from { opacity: 0; } to { opacity: 1; } }
+
         @media (prefers-reduced-motion: reduce) {
-          .spin, [style*="toastIn"], [style*="modalPop"] { animation: none !important; }
+          * { animation-duration: 0s !important; transition-duration: 0s !important; }
         }
       `}</style>
 
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/70"
+          className="lg:hidden fixed inset-0 z-40"
+          style={{ background: "rgba(11,12,14,0.72)" }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -680,185 +626,192 @@ const Upload = () => {
       </div>
 
       <main className="uf-main flex-1 overflow-y-auto" style={{ background: T.bg, height: "100vh", width: "100%" }}>
-        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1180 }}>
+        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1200 }}>
 
           {/* Header */}
-          <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-lg transition-colors hover:bg-white/5"
-                style={{ background: T.surface, color: T.textMuted, boxShadow: RING }}
+                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-[120ms]"
+                style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
                 aria-label="Open menu"
               >
-                <Menu size={18} />
+                <Menu size={16} />
               </button>
               <div>
-                <div className="inline-flex items-center gap-2 mb-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                    style={{ background: T.successSoft, color: T.success, boxShadow: `inset 0 0 0 1px ${T.successBorder}` }}>
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.success }} />
-                    {totals.completed} completed
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="inline-flex items-center gap-2 text-[12px]" style={{ color: T.textMuted }}>
+                    <span
+                      className="inline-block w-1.5 h-1.5 rounded-full"
+                      style={{ background: totals.running > 0 ? T.accent : T.textFaint }}
+                    />
+                    {totals.running} running
                   </span>
-                  <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                    · {uploads.length} files
+                  <span style={{ color: T.border }}>|</span>
+                  <span className="text-[12px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                    {uploads.length} files
                   </span>
                 </div>
-
-                <h1 className="text-[26px] md:text-[30px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
-                  Your uploads
+                <h1 className="text-[24px] md:text-[26px] font-medium leading-tight" style={{ color: T.text }}>
+                  Uploads
                 </h1>
-                <p className="mt-1 text-[13.5px] max-w-lg" style={{ color: T.textMuted }}>
-                  Files you've uploaded. Running or completed files are locked.
+                <p className="mt-1 text-[13px] max-w-lg" style={{ color: T.textMuted }}>
+                  Imports in flight, and everything they produced.
                 </p>
               </div>
             </div>
+
+            {/* Compact totals */}
+            {hasAny && (
+              <div className="flex items-center gap-6">
+                {[
+                  { label: "Rows",    value: totals.rows,    tone: T.text },
+                  { label: "Added",   value: totals.added,   tone: T.ok },
+                  { label: "Skipped", value: totals.skipped, tone: T.textMuted },
+                ].map((s) => (
+                  <div key={s.label}>
+                    <p className="text-[10.5px]" style={{ color: T.textFaint }}>{s.label}</p>
+                    <p
+                      className="text-[16px] font-medium mt-1 leading-none tabular-nums"
+                      style={{ color: s.tone, fontFamily: FONT.mono }}
+                    >
+                      {s.value.toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </header>
 
-          {/* Summary strip */}
-          {uploads.length > 0 && (
-            <div
-              className="grid grid-cols-2 md:grid-cols-4 mb-5 md:mb-6 rounded-xl overflow-hidden"
-              style={{ background: T.surface, boxShadow: RING }}
-            >
-              <SummaryTile label="Files" value={uploads.length} />
-              <SummaryTile label="Rows" value={totals.rows} tone={T.text} />
-              <SummaryTile label="Added" value={totals.added} tone={T.success} />
-              <SummaryTile label="Skipped" value={totals.skipped} tone={T.textMuted} />
-            </div>
+          {/* Live band */}
+          {running.length > 0 && (
+            <section className="mb-8">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: T.accent }} />
+                <p className="text-[12px]" style={{ color: T.textMuted }}>In flight</p>
+                <span className="text-[12px] tabular-nums" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                  · {running.length}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {running.map((u) => (
+                  <LiveRow key={u.id} u={u} />
+                ))}
+              </div>
+            </section>
           )}
 
-          {/* Toolbar */}
-          {uploads.length > 0 && (
-            <div className="mb-4 flex items-center gap-2.5">
-              <div
-                className="flex items-center gap-2 rounded-lg px-2.5 py-2 flex-1 min-w-0 transition-shadow"
-                style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}` }}
-                onFocusCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brand}, 0 0 0 3px ${T.brandSoft}`)}
-                onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.border}`)}
-              >
-                <Search size={13} style={{ color: T.textFaint }} className="shrink-0" />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search by file name, ID, or campaign…"
-                  className="w-full bg-transparent text-[12.5px] outline-none"
-                  style={{ color: T.text }}
-                />
-                {query && (
-                  <button
-                    onClick={() => setQuery("")}
-                    className="shrink-0 text-[10.5px] px-1.5 py-0.5 rounded transition-colors hover:bg-white/5"
-                    style={{ color: T.textFaint }}
-                  >
-                    Clear
-                  </button>
-                )}
+          {/* Library */}
+          <section>
+            <div className="flex items-center justify-between gap-4 mb-3">
+              <div className="flex items-center gap-2">
+                <p className="text-[12px]" style={{ color: T.textMuted }}>Library</p>
+                <span className="text-[12px] tabular-nums" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                  · {library.length}
+                </span>
               </div>
             </div>
-          )}
 
-          {/* Content */}
-          {loading ? (
-            <div className="text-center py-20">
-              <Loader2 className="w-5 h-5 spin mx-auto" style={{ color: T.brand }} />
-              <p className="text-[11.5px] mt-2.5" style={{ color: T.textFaint }}>Loading your uploads…</p>
-            </div>
-          ) : error ? (
-            <div className="text-center py-16 rounded-xl"
-              style={{ background: T.dangerSoft, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}>
+            <div className="rounded-xl overflow-hidden" style={{ background: T.surface, border: HAIRLINE }}>
+              {/* Library header strip */}
               <div
-                className="w-10 h-10 mx-auto mb-3 rounded-lg flex items-center justify-center"
-                style={{ background: "rgba(239,68,68,0.18)" }}
+                className="flex flex-col lg:flex-row lg:items-center gap-3 px-4 md:px-5 py-3"
+                style={{ borderBottom: HAIRLINE_SOFT }}
               >
-                <XCircle className="w-4 h-4" style={{ color: T.danger }} />
-              </div>
-              <p className="text-[12.5px]" style={{ color: T.danger }}>{error}</p>
-            </div>
-          ) : uploads.length === 0 ? (
-            <div className="text-center py-20 rounded-xl"
-              style={{ background: T.surface, boxShadow: RING }}>
-              <div
-                className="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center"
-                style={{ background: T.surface2 }}
-              >
-                <Users className="w-5 h-5" style={{ color: T.textFaint }} />
-              </div>
-              <p className="text-[14px] font-medium" style={{ color: T.text }}>No uploads yet</p>
-              <p className="text-[12px] mt-1.5" style={{ color: T.textMuted }}>
-                Files you import will show up here.
-              </p>
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-16 rounded-xl"
-              style={{ background: T.surface, boxShadow: RING }}>
-              <div
-                className="w-10 h-10 mx-auto mb-3 rounded-lg flex items-center justify-center"
-                style={{ background: T.surface2 }}
-              >
-                <Search className="w-4 h-4" style={{ color: T.textFaint }} />
-              </div>
-              <p className="text-[12.5px]" style={{ color: T.textMuted }}>
-                No files match your search.
-              </p>
-              <button
-                onClick={() => setQuery("")}
-                className="mt-2.5 text-[11.5px] font-medium"
-                style={{ color: T.brand }}
-              >
-                Clear search
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* Desktop table */}
-              <div className="uf-table rounded-xl overflow-hidden" style={{ background: T.surface, boxShadow: RING }}>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left" style={{ minWidth: 800 }}>
-                    <thead>
-                      <tr className="text-[10px] uppercase tracking-widest">
-                        <SortHead k="name" label="File" />
-                        <SortHead k="rows" label="Rows" align="right" />
-                        <th className="px-3 py-2.5 font-medium text-right hidden lg:table-cell" style={{ color: T.textFaint }}>
-                          Added / Skipped
-                        </th>
-                        <th className="px-3 py-2.5 font-medium hidden xl:table-cell" style={{ color: T.textFaint }}>
-                          Progress
-                        </th>
-                        <SortHead k="status" label="Status" />
-                        <SortHead k="uploadedAt" label="Uploaded" align="right" className="hidden md:table-cell" />
-                        <th className="px-4 md:px-5 py-2.5 font-medium text-right w-[120px]" style={{ color: T.textFaint }}>
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filtered.map((u) => (
-                        <UploadRow
-                          key={u.id}
-                          u={u}
-                          onRename={() => setRenaming(u)}
-                          onDelete={() => setDeleting(u)}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
+                <div
+                  className="flex items-center gap-2 rounded-md px-3 py-1.5 flex-1 min-w-0 transition-colors duration-[120ms]"
+                  style={{ background: T.surface2, border: HAIRLINE_SOFT }}
+                  onFocusCapture={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
+                  onBlurCapture={(e) => (e.currentTarget.style.borderColor = T.borderSoft)}
+                >
+                  <Search size={13} style={{ color: T.textFaint }} className="shrink-0" />
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search by file name, id or campaign"
+                    className="uf-input w-full bg-transparent text-[12.5px] outline-none"
+                    style={{ color: T.text }}
+                  />
+                  {query && (
+                    <button
+                      onClick={() => setQuery("")}
+                      className="shrink-0 text-[11px] px-1.5 py-0.5 rounded transition-colors duration-[120ms]"
+                      style={{ color: T.textFaint }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 overflow-x-auto shrink-0">
+                  <SortChip k="name"       label="File"     />
+                  <SortChip k="rows"       label="Rows"     />
+                  <SortChip k="uploadedAt" label="Uploaded" />
                 </div>
               </div>
 
-              {/* Mobile cards */}
-              <div className="uf-mobile space-y-2.5">
-                {filtered.map((u) => (
-                  <UploadMobileCard
-                    key={u.id}
-                    u={u}
-                    onRename={() => setRenaming(u)}
-                    onDelete={() => setDeleting(u)}
+              {/* Body */}
+              {loading ? (
+                <div className="text-center py-16">
+                  <div
+                    className="w-5 h-5 border-2 rounded-full animate-spin mx-auto"
+                    style={{ borderColor: T.border, borderTopColor: T.accent }}
                   />
-                ))}
-              </div>
-            </>
-          )}
+                  <p className="text-[11.5px] mt-3" style={{ color: T.textFaint }}>Loading uploads</p>
+                </div>
+              ) : error ? (
+                <div className="text-center py-12">
+                  <XCircle size={18} className="mx-auto mb-3" style={{ color: T.danger }} />
+                  <p className="text-[13px] mb-4" style={{ color: T.danger }}>{error}</p>
+                  <button
+                    onClick={() => fetchAllFiles()}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms]"
+                    style={{ color: T.textMuted, border: HAIRLINE }}
+                  >
+                    <RefreshCw size={12} /> Try again
+                  </button>
+                </div>
+              ) : !hasAny ? (
+                <div className="text-center py-16 px-4">
+                  <div
+                    className="w-11 h-11 mx-auto mb-4 rounded-lg flex items-center justify-center"
+                    style={{ background: T.surfaceHi, border: HAIRLINE }}
+                  >
+                    <Inbox size={18} style={{ color: T.textFaint }} />
+                  </div>
+                  <p className="text-[14px] font-medium" style={{ color: T.text }}>No uploads yet</p>
+                  <p className="text-[12.5px] mt-1.5" style={{ color: T.textMuted }}>
+                    Files you import will appear here.
+                  </p>
+                </div>
+              ) : filteredLibrary.length === 0 ? (
+                <div className="text-center py-16 px-4">
+                  <Search size={18} className="mx-auto mb-3" style={{ color: T.textFaint }} />
+                  <p className="text-[12.5px]" style={{ color: T.textMuted }}>No files match your search.</p>
+                  <button
+                    onClick={() => setQuery("")}
+                    className="mt-3 text-[11.5px] font-medium px-3 py-1.5 rounded-md transition-colors duration-[120ms]"
+                    style={{ color: T.textMuted, border: HAIRLINE }}
+                  >
+                    Clear search
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  {filteredLibrary.map((u, i) => (
+                    <div key={u.id} style={{ borderTop: i === 0 ? "none" : HAIRLINE_SOFT }}>
+                      <LibraryRow
+                        u={u}
+                        onRename={() => setRenaming(u)}
+                        onDelete={() => setDeleting(u)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
         </div>
       </main>
 
@@ -882,16 +835,5 @@ const Upload = () => {
     </div>
   );
 };
-
-/* ─────────────── summary tile ─────────────── */
-
-const SummaryTile: React.FC<{ label: string; value: number; tone?: string }> = ({ label, value, tone = T.text }) => (
-  <div className="px-4 py-3.5" style={{ borderRight: `1px solid ${T.borderSoft}` }}>
-    <p className="text-[10px] uppercase tracking-widest" style={{ color: T.textFaint }}>{label}</p>
-    <p className="text-[20px] font-semibold mt-1 leading-none tabular-nums" style={{ color: tone, fontFamily: FONT.mono }}>
-      {value.toLocaleString()}
-    </p>
-  </div>
-);
 
 export default Upload;

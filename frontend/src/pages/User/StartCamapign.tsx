@@ -28,69 +28,69 @@ import {
   type CampaignProgressDTO,
 } from "../../services/WorkerService";
 
-/* ───────── tokens (unchanged) ───────── */
+/* ───────── tokens — aligned with rest of app ───────── */
 const T = {
-  bg: "#0A0B10", surface: "#111319", surface2: "#161922", surfaceHi: "#1B1F2A",
-  border: "#232838", borderSoft: "#1B1F2A", text: "#E9EBF0",
-  textMuted: "#9CA3B4", textFaint: "#6B7280",
-  brand: "#6366F1", brandSoft: "rgba(99,102,241,0.12)", brandBorder: "rgba(99,102,241,0.35)",
-  success: "#22C55E", successSoft: "rgba(34,197,94,0.12)",
-  warn: "#F59E0B", warnSoft: "rgba(245,158,11,0.12)",
-  danger: "#EF4444", dangerSoft: "rgba(239,68,68,0.12)",
-  info: "#38BDF8", purple: "#A78BFA",
-};
-const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body: "'Inter', system-ui, -apple-system, sans-serif",
-  mono: "'JetBrains Mono', ui-monospace, monospace",
-};
-const RING = `inset 0 0 0 1px ${T.border}`;
-const CARD: React.CSSProperties = { background: T.surface, boxShadow: RING };
+  bg:         "#0B0C0E",
+  surface:    "#111214",
+  surface2:   "#16181B",
+  surfaceHi:  "#1C1F23",
+  border:     "#24282E",
+  borderSoft: "#1B1E22",
 
-/* Backend only emits these; "Scheduled" never comes from the server. */
+  text:       "#E8EAED",
+  textMuted:  "#9AA0A6",
+  textFaint:  "#6B7075",
+
+  accent:     "#6EE7A8",
+  accentInk:  "#0B0C0E",
+  accentLine: "#2E6B4D",
+
+  ok:         "#6EE7A8",
+  warn:       "#E0A64A",
+  danger:     "#E06A6A",
+  info:       "#6EC1E7",
+  purple:     "#B39DE0",
+};
+
+const FONT = {
+  ui:   "'Inter', system-ui, -apple-system, sans-serif",
+  mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+};
+
+const HAIRLINE = `1px solid ${T.border}`;
+const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`;
+
 type Status = "Draft" | "Ready" | "Running" | "Paused" | "Completed" | "Failed" | "Cancelled";
 
 const STATUS_TONE: Record<Status, { color: string; soft: string }> = {
-  Draft: { color: T.textMuted, soft: "rgba(156,163,180,0.10)" },
-  Ready: { color: T.brand, soft: T.brandSoft },
-  Running: { color: T.info, soft: "rgba(56,189,248,0.12)" },
-  Paused: { color: T.warn, soft: T.warnSoft },
-  Completed: { color: T.success, soft: T.successSoft },
-  Failed: { color: T.danger, soft: T.dangerSoft },
-  Cancelled: { color: T.danger, soft: T.dangerSoft },
+  Draft:     { color: T.textMuted, soft: "rgba(154,160,166,0.10)" },
+  Ready:     { color: T.accent,    soft: "rgba(110,231,168,0.10)" },
+  Running:   { color: T.info,      soft: "rgba(110,193,231,0.10)" },
+  Paused:    { color: T.warn,      soft: "rgba(224,166,74,0.10)" },
+  Completed: { color: T.ok,        soft: "rgba(110,231,168,0.10)" },
+  Failed:    { color: T.danger,    soft: "rgba(224,106,106,0.10)" },
+  Cancelled: { color: T.danger,    soft: "rgba(224,106,106,0.10)" },
 };
 
 const STEPS = [
-  { label: "Details", sub: "Name & subject", icon: FileText },
-  { label: "Sender", sub: "Pick account", icon: Mail },
-  { label: "Template", sub: "Choose design", icon: LayoutTemplate },
-  { label: "Recipients", sub: "Upload list", icon: Users },
-  { label: "Review", sub: "Check & send", icon: ClipboardCheck },
+  { label: "Details",    sub: "Name & subject",  icon: FileText },
+  { label: "Sender",     sub: "Pick account",    icon: Mail },
+  { label: "Template",   sub: "Choose design",   icon: LayoutTemplate },
+  { label: "Recipients", sub: "Upload list",     icon: Users },
+  { label: "Review",     sub: "Check & send",    icon: ClipboardCheck },
 ];
 
 /* ───────── helpers ───────── */
-const tplId = (t: any): string => String(t?.id ?? t?._id ?? "");
+const tplId   = (t: any): string => String(t?.id ?? t?._id ?? "");
 const tplName = (t: any): string => t?.name ?? t?.title ?? t?.template_name ?? "Untitled template";
 const tplDesc = (t: any): string => t?.description ?? t?.desc ?? t?.subject ?? "";
 const tplHtml = (t: any): string => t?.html ?? t?.html_content ?? t?.content ?? t?.body ?? "";
 
-/**
- * Robust error extractor:
- *  - handles FastAPI JSON `detail` (string or validation array)
- *  - handles plain-text bodies (e.g. a Starlette traceback returned as text)
- *  - falls back to axios's message
- */
 const errMsg = (e: any, fallback: string) => {
   const data = e?.response?.data;
-  if (typeof data === "string" && data.trim().length) {
-    return data.split("\n")[0].slice(0, 300);
-  }
+  if (typeof data === "string" && data.trim().length) return data.split("\n")[0].slice(0, 300);
   const d = data?.detail;
-  if (Array.isArray(d)) {
-    return d
-      .map((x: any) => `${(x.loc ?? []).slice(1).join(".")}: ${x.msg}`)
-      .join(" | ");
-  }
+  if (Array.isArray(d)) return d.map((x: any) => `${(x.loc ?? []).slice(1).join(".")}: ${x.msg}`).join(" | ");
   return d?.toString?.() ?? data?.message ?? e?.message ?? fallback;
 };
 
@@ -111,7 +111,7 @@ const fmt = (iso: string | null | undefined) => {
   return d ? d.toLocaleString() : "—";
 };
 
-/* ───────── primitives (unchanged) ───────── */
+/* ───────── primitives ───────── */
 const Btn: React.FC<{
   variant?: "primary" | "ghost" | "danger" | "subtle";
   size?: "sm" | "md";
@@ -120,23 +120,32 @@ const Btn: React.FC<{
   children: React.ReactNode;
 }> = ({ variant = "ghost", size = "md", onClick, disabled, children }) => {
   const styles: Record<string, React.CSSProperties> = {
-    primary: { background: T.brand, color: "#fff", boxShadow: "0 1px 0 rgba(255,255,255,0.06) inset, 0 6px 18px -8px rgba(99,102,241,0.6)" },
-    ghost: { background: T.surface2, color: T.text, boxShadow: `inset 0 0 0 1px ${T.border}` },
-    subtle: { background: "transparent", color: T.textMuted },
-    danger: { background: T.dangerSoft, color: "#FCA5A5", boxShadow: `inset 0 0 0 1px rgba(239,68,68,0.35)` },
+    primary: { background: T.accent, color: T.accentInk, border: `1px solid ${T.accent}` },
+    ghost:   { background: T.surface2, color: T.text, border: HAIRLINE },
+    subtle:  { background: "transparent", color: T.textMuted, border: "1px solid transparent" },
+    danger:  { background: "rgba(224,106,106,0.10)", color: T.danger, border: "1px solid rgba(224,106,106,0.28)" },
   };
   return (
-    <button onClick={onClick} disabled={disabled}
+    <button
+      onClick={onClick}
+      disabled={disabled}
       className={`inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all
         ${size === "sm" ? "px-3 py-1.5 text-[12px]" : "px-4 py-2 text-[13px]"}
         hover:brightness-110 active:brightness-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100`}
-      style={styles[variant]}>{children}</button>
+      style={styles[variant]}
+    >
+      {children}
+    </button>
   );
 };
+
 const Card: React.FC<{ children: React.ReactNode; className?: string; style?: React.CSSProperties }> =
   ({ children, className = "", style }) => (
-    <div className={`rounded-xl ${className}`} style={{ ...CARD, ...style }}>{children}</div>
+    <div className={`rounded-xl ${className}`} style={{ background: T.surface, border: HAIRLINE, ...style }}>
+      {children}
+    </div>
   );
+
 const Field: React.FC<{ label: string; hint?: string; right?: React.ReactNode; children: React.ReactNode }> =
   ({ label, hint, right, children }) => (
     <div>
@@ -148,52 +157,57 @@ const Field: React.FC<{ label: string; hint?: string; right?: React.ReactNode; c
       {hint && <p className="text-[11.5px] mt-1.5" style={{ color: T.textFaint }}>{hint}</p>}
     </div>
   );
+
 const Stat: React.FC<{ label: string; value: string | number; tone?: string }> = ({ label, value, tone = T.text }) => (
-  <div className="rounded-lg p-3.5" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+  <div className="rounded-lg p-3.5" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
     <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: T.textFaint }}>{label}</p>
     <p className="text-[20px] font-semibold mt-1.5 leading-none" style={{ color: tone, fontFamily: FONT.mono }}>{value}</p>
   </div>
 );
+
 const Loading = ({ label }: { label: string }) => (
-  <Card className="p-4">
-    <div className="flex items-center gap-2.5 text-[12.5px] py-1" style={{ color: T.textMuted }}>
-      <Loader2 size={14} className="animate-spin" /> {label}
-    </div>
-  </Card>
+  <div className="rounded-lg p-4 flex items-center gap-2.5 text-[12.5px]" style={{ background: T.surface2, color: T.textMuted, border: HAIRLINE_SOFT }}>
+    <Loader2 size={14} className="animate-spin" /> {label}
+  </div>
 );
+
 const Head = ({ title, sub }: { title: string; sub: string }) => (
   <div>
     <h2 className="text-[17px] font-semibold" style={{ color: T.text }}>{title}</h2>
     <p className="text-[13px] mt-1" style={{ color: T.textMuted }}>{sub}</p>
   </div>
 );
+
 const Notice = ({ tone, children }: { tone: "error" | "warn" | "info" | "success"; children: React.ReactNode }) => {
   const map = {
-    error: { c: T.danger, soft: T.dangerSoft, border: "rgba(239,68,68,0.28)" },
-    warn: { c: T.warn, soft: T.warnSoft, border: "rgba(245,158,11,0.28)" },
-    info: { c: T.info, soft: "rgba(56,189,248,0.10)", border: "rgba(56,189,248,0.28)" },
-    success: { c: T.success, soft: T.successSoft, border: "rgba(34,197,94,0.28)" },
+    error:   { c: T.danger, soft: "rgba(224,106,106,0.06)", border: "rgba(224,106,106,0.28)", icon: XCircle },
+    warn:    { c: T.warn,   soft: "rgba(224,166,74,0.06)",  border: "rgba(224,166,74,0.28)",  icon: AlertTriangle },
+    info:    { c: T.info,   soft: "rgba(110,193,231,0.06)", border: "rgba(110,193,231,0.28)", icon: Info },
+    success: { c: T.ok,     soft: "rgba(110,231,168,0.06)", border: "rgba(110,231,168,0.28)", icon: CheckCircle2 },
   }[tone];
+  const Icon = map.icon;
   return (
     <div className="flex items-start gap-2.5 rounded-lg px-3.5 py-3"
-      style={{ background: map.soft, boxShadow: `inset 0 0 0 1px ${map.border}` }}>
-      <AlertTriangle size={14} style={{ color: map.c }} className="mt-0.5 shrink-0" />
+      style={{ background: map.soft, border: `1px solid ${map.border}` }}>
+      <Icon size={14} style={{ color: map.c }} className="mt-0.5 shrink-0" />
       <p className="text-[12.5px] leading-5" style={{ color: map.c }}>{children}</p>
     </div>
   );
 };
+
 const Modal = ({ onClose, children }: { onClose: () => void; children: React.ReactNode }) => (
-  <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: "rgba(11,12,14,0.72)" }} onClick={onClose}>
     <div onClick={(e) => e.stopPropagation()}
-      className="relative w-full max-w-md rounded-2xl p-6 animate-in fade-in zoom-in-95 duration-150"
-      style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}, 0 24px 64px -16px rgba(0,0,0,0.7)` }}>
+      className="relative w-full max-w-md rounded-2xl p-6"
+      style={{ background: T.surface, border: HAIRLINE, boxShadow: "0 24px 64px -16px rgba(0,0,0,0.7)" }}>
       <button onClick={onClose} aria-label="Close"
-        className="absolute top-4 right-4 p-1.5 rounded-md transition-colors hover:bg-white/5"
+        className="absolute top-4 right-4 p-1.5 rounded-md transition-colors"
         style={{ color: T.textFaint }}><X size={15} /></button>
       {children}
     </div>
   </div>
 );
+
 const Ring = ({ pct, color }: { pct: number; color: string }) => {
   const r = 54, c = 2 * Math.PI * r;
   return (
@@ -211,6 +225,43 @@ const Ring = ({ pct, color }: { pct: number; color: string }) => {
     </div>
   );
 };
+
+/* ───────── top-level stepper ───────── */
+const Stepper: React.FC<{ step: number; maxReached: number; onStepClick: (i: number) => void }> = ({
+  step, maxReached, onStepClick,
+}) => (
+  <div className="hidden md:flex items-center gap-2 mb-6">
+    {STEPS.map((s, i) => {
+      const isDone = i < step;
+      const isCur = i === step;
+      const canGo = i <= maxReached;
+      const Icon = s.icon;
+      return (
+        <div key={s.label} className="flex items-center gap-2 flex-1 min-w-0">
+          <button onClick={() => canGo && onStepClick(i)} disabled={!canGo}
+            className="flex items-center gap-2.5 min-w-0 transition-opacity"
+            style={{ cursor: canGo ? "pointer" : "default", opacity: canGo ? 1 : 0.5 }}>
+            <span className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors"
+              style={{
+                background: isCur ? T.accent : isDone ? "rgba(110,231,168,0.10)" : T.surface2,
+                color: isCur ? T.accentInk : isDone ? T.accent : T.textFaint,
+                border: isCur ? `1px solid ${T.accent}` : isDone ? "1px solid rgba(110,231,168,0.28)" : HAIRLINE,
+              }}>
+              {isDone ? <Check size={13} strokeWidth={2.5} /> : <Icon size={13} />}
+            </span>
+            <span className="hidden lg:block min-w-0">
+              <span className="block text-[12px] font-medium leading-tight truncate"
+                style={{ color: isCur || isDone ? T.text : T.textMuted }}>{s.label}</span>
+            </span>
+          </button>
+          {i < STEPS.length - 1 && (
+            <span className="flex-1 h-px min-w-[12px]" style={{ background: isDone ? T.accentLine : T.border }} />
+          )}
+        </div>
+      );
+    })}
+  </div>
+);
 
 /* ───────── page ───────── */
 const CampaignCreatePage = () => {
@@ -233,6 +284,7 @@ const CampaignCreatePage = () => {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const [maxStep, setMaxStep] = useState(0);
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [fileName, setFileName] = useState("");
@@ -254,7 +306,6 @@ const CampaignCreatePage = () => {
   const [submitError, setSubmitError] = useState("");
   const [actionError, setActionError] = useState("");
   const [run, setRun] = useState({ sent: 0, failed: 0, total: 0 });
-  /** Live server-side scheduling info from /worker/progress */
   const [live, setLive] = useState<CampaignProgressDTO | null>(null);
 
   const fileRef = useRef<HTMLInputElement>(null);
@@ -262,11 +313,6 @@ const CampaignCreatePage = () => {
   const runRef = useRef(run);
   runRef.current = run;
 
-  /**
-   * Tracks whether the current draft (campaignId) was created for the
-   * current sender/template/name/subject combo. If the user changes any of
-   * those *after* the draft exists, we drop the draft so it doesn't drift.
-   */
   const draftKeyRef = useRef<string | null>(null);
   const draftKey = `${senderId ?? ""}|${templateId ?? ""}|${name.trim()}|${subject.trim()}`;
 
@@ -304,19 +350,13 @@ const CampaignCreatePage = () => {
     if (status === "Draft" || status === "Ready") setStatus(ready ? "Ready" : "Draft");
   }, [ready, status]);
 
-  /** Merge a progress payload into local state. */
   const applyProgress = (p: CampaignProgressDTO) => {
     setLive(p);
-    setRun({
-      sent: p.sent ?? 0,
-      failed: p.failed ?? 0,
-      total: p.total ?? runRef.current.total,
-    });
+    setRun({ sent: p.sent ?? 0, failed: p.failed ?? 0, total: p.total ?? runRef.current.total });
     const next = toStatus(p.status);
     if (next) setStatus(next);
   };
 
-  /** Poll /worker/progress while running/paused. */
   useEffect(() => {
     if (!campaignId || !["Running", "Paused"].includes(status)) return;
     let stop = false;
@@ -332,26 +372,11 @@ const CampaignCreatePage = () => {
     // eslint-disable-next-line
   }, [campaignId, status]);
 
-  /**
-   * If the user changes the draft's identity inputs (sender / template /
-   * name / subject) after we already created a draft (and possibly uploaded
-   * recipients against it), reset the draft so we don't send from the wrong
-   * configuration. Cheap, safe, and prevents the next silent-inconsistency bug.
-   */
   useEffect(() => {
-    if (draftKeyRef.current === null) {
-      draftKeyRef.current = draftKey;
-      return;
-    }
+    if (draftKeyRef.current === null) { draftKeyRef.current = draftKey; return; }
     if (draftKeyRef.current !== draftKey && campaignId !== null) {
-      // Identity changed under an existing draft → drop it.
-      setCampaignId(null);
-      setUploadId(null);
-      setUploaded(false);
-      setRecipients(null);
-      setUploadError(
-        "Sender, template, name or subject changed — please re-upload the recipients."
-      );
+      setCampaignId(null); setUploadId(null); setUploaded(false); setRecipients(null);
+      setUploadError("Sender, template, name or subject changed — please re-upload the recipients.");
       draftKeyRef.current = draftKey;
     } else {
       draftKeyRef.current = draftKey;
@@ -359,18 +384,12 @@ const CampaignCreatePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftKey, campaignId]);
 
-  /**
-   * Create (once) the Draft campaign that will own the upload.
-   * Backend contract: POST /campaigns returns `{ id: number, ... }` or `{ campaign: { id } }`.
-   */
   const ensureDraftCampaign = async (): Promise<number> => {
     if (campaignId !== null) return campaignId;
-
     const userId = auth?.user?.user_id ?? currentUserId;
     if (!userId) throw new Error("User not loaded. Please log in again.");
     if (!sender) throw new Error("Pick a sender account before uploading recipients.");
     if (!template) throw new Error("Pick a template before uploading recipients.");
-
     const templateIdNum = Number((template as any).id ?? (template as any)._id);
     if (!templateIdNum) throw new Error("Missing template id.");
 
@@ -385,26 +404,18 @@ const CampaignCreatePage = () => {
     });
     const campaign = res?.campaign ?? res;
     const newId: number | undefined = campaign?.id;
-    if (typeof newId !== "number") {
-      throw new Error(`Campaign created but no valid id in response: ${JSON.stringify(res)}`);
-    }
+    if (typeof newId !== "number") throw new Error(`Campaign created but no valid id in response: ${JSON.stringify(res)}`);
     setCampaignId(newId);
     setRun({ sent: 0, failed: 0, total });
     return newId;
   };
 
-  /* ─── file load: create draft → upload against its real id ─── */
   const loadFile = async (file?: File) => {
     if (!file) return;
-
-    // Upload requires a draft, which requires a sender + template.
     if (!sender || !template) {
-      setUploadError(
-        "Pick a sender account and a template before uploading recipients."
-      );
+      setUploadError("Pick a sender account and a template before uploading recipients.");
       return;
     }
-
     const token = ++loadTokenRef.current;
     const stale = () => token !== loadTokenRef.current;
 
@@ -412,28 +423,18 @@ const CampaignCreatePage = () => {
     setFileName(file.name); setUploading(true); setExtracting(false); setProgress(0);
 
     try {
-      // 1) Ensure a real campaign row exists, get its id.
       const owningCampaignId = await ensureDraftCampaign();
       if (stale()) return;
-
-      // 2) Upload the file against that id — the previous "/campaigns/2/upload"
-      //    came from a stale internal id in UploadContext. Now the caller owns it.
       const saved: any = await uploadRecipients(file, setProgress, owningCampaignId);
       if (stale()) return;
-
       const id: number | null = saved?.id ?? null;
-      if (!id) {
-        throw new Error("File upload succeeded but the response had no file id.");
-      }
+      if (!id) throw new Error("File upload succeeded but the response had no file id.");
       setUploadId(id);
       setUploading(false);
       setExtracting(true);
-
-      // 3) Kick off extraction, wait for analytics.
       await ExtractData(id);
       const finished = await waitForAnalytics(id);
       if (stale()) return;
-
       const summary = summaryFromAnalytics(finished);
       setRecipients(summary);
       setUploaded(summary.valid > 0);
@@ -460,27 +461,25 @@ const CampaignCreatePage = () => {
     ready,
   ][step];
 
-  /* ─── launch: campaign already exists, just start it ─── */
-  const launch = async () => {
-    if (campaignId === null) {
-      setSubmitError("Campaign was not created yet. Please re-upload the recipients.");
-      return;
-    }
-    if (uploadId === null) {
-      setSubmitError("No uploaded file is attached to this campaign.");
-      return;
-    }
+  const goNext = () => {
+    if (!canNext) return;
+    setStep((s) => {
+      const n = Math.min(STEPS.length - 1, s + 1);
+      setMaxStep((m) => Math.max(m, n));
+      return n;
+    });
+  };
+  const goBack = () => setStep((s) => Math.max(0, s - 1));
+  const goTo = (i: number) => { if (i <= maxStep) setStep(i); };
 
+  const launch = async () => {
+    if (campaignId === null) { setSubmitError("Campaign was not created yet. Please re-upload the recipients."); return; }
+    if (uploadId === null) { setSubmitError("No uploaded file is attached to this campaign."); return; }
     setSubmitting(true); setSubmitError("");
     try {
       await startCampaign(campaignId, uploadId);
-      setStatus("Running");
-      setConfirmOpen(false);
-      fetchSenders?.();
-      try {
-        const p = await getCampaignProgress(campaignId);
-        applyProgress(p);
-      } catch { /* ignore */ }
+      setStatus("Running"); setConfirmOpen(false); fetchSenders?.();
+      try { const p = await getCampaignProgress(campaignId); applyProgress(p); } catch { /* ignore */ }
     } catch (e) {
       setSubmitError(errMsg(e, "Could not start the campaign."));
     } finally {
@@ -488,17 +487,13 @@ const CampaignCreatePage = () => {
     }
   };
 
-  /* ─── actions ─── */
   const act = async (fn: (id: number) => Promise<CampaignDTO>, fallback: Status) => {
     if (!campaignId) return;
     setActionError("");
     try {
       await fn(campaignId);
       setStatus(fallback);
-      try {
-        const p = await getCampaignProgress(campaignId);
-        applyProgress(p);
-      } catch { /* ignore */ }
+      try { const p = await getCampaignProgress(campaignId); applyProgress(p); } catch { /* ignore */ }
     } catch (e) {
       setActionError(errMsg(e, "Action failed. Please try again."));
     }
@@ -507,7 +502,7 @@ const CampaignCreatePage = () => {
   const reset = () => {
     loadTokenRef.current++;
     draftKeyRef.current = null;
-    setStep(0); setName(""); setSubject(""); clearFile();
+    setStep(0); setMaxStep(0); setName(""); setSubject(""); clearFile();
     setSenderId(null); setTemplateId(null);
     setCampaignId(null); setSubmitError(""); setActionError("");
     setRun({ sent: 0, failed: 0, total: 0 }); setStatus("Draft"); setLive(null);
@@ -520,502 +515,498 @@ const CampaignCreatePage = () => {
   const tone = STATUS_TONE[status];
 
   const summaryItems = [
-    { label: "Details", icon: FileText, done: !!name.trim() && !!subject.trim(), value: name.trim() || "Not set yet" },
-    { label: "Sender", icon: Mail, done: !!sender, value: sender?.email ?? "Not selected" },
-    { label: "Template", icon: LayoutTemplate, done: !!template, value: template ? tplName(template) : "Not selected" },
-    { label: "Recipients", icon: Users, done: total > 0 && uploaded, value: total ? `${total.toLocaleString()} valid emails` : "No file uploaded" },
+    { label: "Details",    icon: FileText,       done: !!name.trim() && !!subject.trim(), value: name.trim() || "Not set yet" },
+    { label: "Sender",     icon: Mail,           done: !!sender,                          value: sender?.email ?? "Not selected" },
+    { label: "Template",   icon: LayoutTemplate, done: !!template,                        value: template ? tplName(template) : "Not selected" },
+    { label: "Recipients", icon: Users,          done: total > 0 && uploaded,             value: total ? `${total.toLocaleString()} valid emails` : "No file uploaded" },
   ];
-  const completion = Math.round((summaryItems.filter((s) => s.done).length / summaryItems.length) * 100);
 
-  /* ───────── render ───────── */
+  /* Completion: count of passed checks / total checks (errors + warns both count) */
+  const completion = checks.length === 0
+    ? 0
+    : Math.round((checks.filter((c) => c.ok).length / checks.length) * 100);
+
   return (
-    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: T.bg }}>
+    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.ui, background: T.bg }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
         .cm-input { width:100%; border-radius:8px; padding:10px 14px; font-size:13.5px; outline:none;
-          background:${T.surface2}; color:${T.text}; box-shadow: inset 0 0 0 1px ${T.border};
-          transition: box-shadow .15s, background .15s; }
-        .cm-input:focus { box-shadow: inset 0 0 0 1px ${T.brand}, 0 0 0 3px ${T.brandSoft}; background:${T.surfaceHi}; }
+          background:${T.surface2}; color:${T.text}; border:1px solid ${T.border};
+          transition: border-color .15s, background .15s; }
+        .cm-input:focus { border-color:${T.accentLine}; background:${T.surfaceHi}; }
         .cm-input::placeholder { color:${T.textFaint}; }
-        .cm-scroll::-webkit-scrollbar { width:6px; }
+        .cm-scroll::-webkit-scrollbar { width:6px; height:6px; }
         .cm-scroll::-webkit-scrollbar-thumb { background:${T.border}; border-radius:99px; }
         .cm-scroll::-webkit-scrollbar-track { background:transparent; }
+        :focus-visible { outline:2px solid ${T.accentLine}; outline-offset:2px; border-radius:4px; }
         @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-        @keyframes zoomIn { from{transform:scale(0.96)} to{transform:scale(1)} }
         .fade-in{animation:fadeIn .15s ease}
-        .zoom-in-95{animation:zoomIn .15s ease}
-        @media (prefers-reduced-motion: reduce){ .fade-in,.zoom-in-95{animation:none!important} }
+        @media (prefers-reduced-motion: reduce){ .fade-in{animation:none!important} }
       `}</style>
 
-      {sidebarOpen && <div className="lg:hidden fixed inset-0 z-40 bg-black/70" onClick={() => setSidebarOpen(false)} />}
+      {sidebarOpen && <div className="lg:hidden fixed inset-0 z-40" style={{ background: "rgba(11,12,14,0.72)" }} onClick={() => setSidebarOpen(false)} />}
       <div className={`fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-200 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      <main className="flex-1 overflow-y-auto" style={{ height: "100vh", background: T.bg }}>
+      <main className="flex-1 overflow-y-auto cm-scroll" style={{ height: "100vh", background: T.bg }}>
         <div className="mx-auto px-4 md:px-8 lg:px-10 py-6 md:py-10" style={{ maxWidth: 1160 }}>
 
-          <header className="flex items-center gap-3 mb-7">
+          {/* Header */}
+          <header className="flex items-center gap-3 mb-6">
             <button onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg transition-colors hover:bg-white/5"
-              style={{ color: T.textMuted, boxShadow: RING }} aria-label="Open menu">
-              <Menu size={18} />
+              className="lg:hidden p-2 rounded-md transition-colors"
+              style={{ color: T.textMuted, border: HAIRLINE }} aria-label="Open menu">
+              <Menu size={16} />
             </button>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-medium"
-                  style={{ background: tone.soft, color: tone.color, boxShadow: `inset 0 0 0 1px ${tone.color}33` }}>
+                  style={{ background: tone.soft, color: tone.color, border: `1px solid ${tone.color}33` }}>
                   <span className="w-1.5 h-1.5 rounded-full" style={{ background: tone.color }} />
                   {status}
                 </span>
-                {editing && <span className="text-[11.5px]" style={{ color: T.textFaint }}>Step {step + 1} of {STEPS.length}</span>}
+                {editing && <span className="text-[11.5px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>Step {step + 1} of {STEPS.length}</span>}
               </div>
-              <h1 className="text-[26px] md:text-[30px] font-semibold leading-tight truncate" style={{ color: T.text }}>
+              <h1 className="text-[24px] md:text-[26px] font-medium leading-tight truncate" style={{ color: T.text }}>
                 {editing ? "New campaign" : name}
               </h1>
-              <p className="mt-1 text-[13.5px] truncate" style={{ color: T.textMuted }}>
+              <p className="mt-1 text-[13px] truncate" style={{ color: T.textMuted }}>
                 {editing ? "Set up your campaign in five steps." : subject}
               </p>
             </div>
           </header>
 
           {editing && (
-            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-6 items-start">
-              <div className="min-w-0 space-y-5">
+            <>
+              <Stepper step={step} maxReached={maxStep} onStepClick={goTo} />
 
-                {/* Step rail */}
-                <div className="rounded-xl px-1.5 py-1.5 overflow-x-auto cm-scroll" style={{ background: T.surface, boxShadow: RING }}>
-                  <div className="flex items-center gap-1 min-w-max sm:min-w-0">
-                    {STEPS.map((s, i) => {
-                      const isDone = i < step, isCur = i === step, Icon = s.icon;
-                      return (
-                        <div key={s.label} className="flex items-center gap-1 flex-1 last:flex-none">
-                          <button onClick={() => i < step && setStep(i)}
-                            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-left transition-all flex-1"
-                            style={{ cursor: i < step ? "pointer" : "default", background: isCur ? T.brandSoft : "transparent" }}>
-                            <span className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 transition-colors"
-                              style={{
-                                background: isDone ? T.successSoft : isCur ? T.brand : T.surface2,
-                                color: isDone ? T.success : isCur ? "#fff" : T.textFaint,
-                                boxShadow: isDone || isCur ? "none" : `inset 0 0 0 1px ${T.border}`,
-                              }}>
-                              {isDone ? <Check size={12} strokeWidth={3} /> : <Icon size={12} />}
-                            </span>
-                            <span className="hidden sm:block min-w-0">
-                              <span className="block text-[12px] font-medium leading-tight truncate"
-                                style={{ color: isCur || isDone ? T.text : T.textFaint }}>{s.label}</span>
-                            </span>
-                          </button>
-                          {i < STEPS.length - 1 && (
-                            <span className="h-px w-2 shrink-0" style={{ background: isDone ? T.success : T.border }} />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <Card className="p-5 md:p-7 animate-in fade-in duration-200" key={step}>
-                  {/* Step 0: details */}
-                  {step === 0 && (
-                    <div className="space-y-6">
-                      <Head title="Campaign details" sub="Start by naming your campaign and writing a subject." />
-                      <Field label="Campaign name" hint="Only you see this — it helps you find the campaign later.">
-                        <input className="cm-input" placeholder="e.g. October product launch"
-                          value={name} onChange={(e) => setName(e.target.value)} />
-                      </Field>
-                      <Field label="Email subject" hint="This is what recipients see in their inbox."
-                        right={<span className="text-[11px]" style={{ color: subject.length > 70 ? T.warn : T.textFaint, fontFamily: FONT.mono }}>{subject.length}/70</span>}>
-                        <input className="cm-input" placeholder="e.g. Something new is here"
-                          value={subject} onChange={(e) => setSubject(e.target.value)} />
-                      </Field>
-                      <div>
-                        <p className="text-[12px] font-medium mb-2" style={{ color: T.textMuted }}>Inbox preview</p>
-                        <div className="rounded-lg p-3.5 flex items-center gap-3"
-                          style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
-                          <span className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                            style={{ background: T.brandSoft, color: T.brand }}><Inbox size={15} /></span>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center justify-between gap-3">
-                              <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>
-                                {sender?.display_name || "Your sender"}
-                              </p>
-                              <p className="text-[11px] shrink-0" style={{ color: T.textFaint }}>Just now</p>
-                            </div>
-                            <p className="text-[12.5px] truncate mt-0.5" style={{ color: subject.trim() ? T.textMuted : T.textFaint }}>
-                              {subject.trim() || "Your subject line will appear here"}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Step 1: sender */}
-                  {step === 1 && (
-                    <div className="space-y-5">
-                      <Head title="Sender account" sub="Only connected accounts with capacity left today are shown." />
-                      {sendersLoading && accounts.length === 0 ? (
-                        <Loading label="Loading sender accounts…" />
-                      ) : sendersError && accounts.length === 0 ? (
-                        <div className="space-y-3">
-                          <Notice tone="error">{sendersError}</Notice>
-                          <Btn onClick={() => fetchSenders?.()}>Retry</Btn>
-                        </div>
-                      ) : available.length === 0 ? (
-                        <Notice tone="warn">No sender accounts are available right now. Connect or reconnect one on the Sender accounts page.</Notice>
-                      ) : (
-                        <div className="space-y-2.5">
-                          {available.map((a) => {
-                            const sel = a.id === senderId;
-                            const limit = a.daily_limit ?? 0;
-                            const used = a.emails_sent_today ?? 0;
-                            const left = limit - used;
-                            const usedPct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
-                            return (
-                              <button key={a.id} onClick={() => setSenderId(a.id)}
-                                className="w-full text-left rounded-lg p-3.5 transition-all hover:brightness-110"
-                                style={{
-                                  background: sel ? T.brandSoft : T.surface2,
-                                  boxShadow: sel ? `inset 0 0 0 1.5px ${T.brandBorder}` : `inset 0 0 0 1px ${T.borderSoft}`,
-                                }}>
-                                <div className="flex items-center gap-3.5">
-                                  <span className="w-9 h-9 rounded-lg flex items-center justify-center text-[12px] font-semibold text-white shrink-0"
-                                    style={{ background: "linear-gradient(135deg, #0A66C2, #053C74)" }}>
-                                    {(a.provider ?? "?").slice(0, 1).toUpperCase()}
-                                  </span>
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-[13.5px] font-medium truncate" style={{ color: T.text }}>{a.email}</p>
-                                    <p className="text-[11.5px] truncate mt-0.5" style={{ color: T.textFaint }}>{a.display_name} · {a.provider}</p>
-                                  </div>
-                                  <div className="text-right shrink-0 hidden sm:block">
-                                    <p className="text-[13.5px] font-semibold" style={{ color: T.success, fontFamily: FONT.mono }}>{left.toLocaleString()}</p>
-                                    <p className="text-[10.5px]" style={{ color: T.textFaint }}>sends left</p>
-                                  </div>
-                                  <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-                                    style={{ background: sel ? T.brand : "transparent", boxShadow: sel ? "none" : `inset 0 0 0 1.5px ${T.border}` }}>
-                                    {sel && <Check size={11} strokeWidth={3} className="text-white" />}
-                                  </span>
-                                </div>
-                                <div className="mt-3 flex items-center gap-3">
-                                  <div className="h-1 flex-1 rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
-                                    <div className="h-full rounded-full transition-all"
-                                      style={{ width: `${usedPct}%`, background: usedPct > 80 ? T.warn : T.success }} />
-                                  </div>
-                                  <span className="text-[10.5px] shrink-0" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                                    {used.toLocaleString()} / {limit.toLocaleString()}
-                                  </span>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Step 2: template */}
-                  {step === 2 && (
-                    <div className="space-y-5">
-                      <Head title="HTML template" sub="Pick the design for your email." />
-                      {templatesLoading && templates.length === 0 ? (
-                        <Loading label="Loading templates…" />
-                      ) : templatesError && templates.length === 0 ? (
-                        <div className="space-y-3">
-                          <Notice tone="error">{templatesError}</Notice>
-                          <Btn onClick={refetchTemplates}>Retry</Btn>
-                        </div>
-                      ) : templates.length === 0 ? (
-                        <Notice tone="warn">No templates found. Create one on the Templates page first.</Notice>
-                      ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                          <div className="cm-scroll md:col-span-2 space-y-2 overflow-y-auto pr-1" style={{ maxHeight: 380 }}>
-                            {templates.map((t) => {
-                              const id = tplId(t), sel = id === templateId;
-                              return (
-                                <button key={id} onClick={() => setTemplateId(id)}
-                                  className="w-full text-left rounded-lg p-3 flex items-center gap-3 transition-all hover:brightness-110"
-                                  style={{
-                                    background: sel ? T.brandSoft : T.surface2,
-                                    boxShadow: sel ? `inset 0 0 0 1.5px ${T.brandBorder}` : `inset 0 0 0 1px ${T.borderSoft}`,
-                                  }}>
-                                  <span className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 text-[12px] font-semibold"
-                                    style={{ background: sel ? "rgba(99,102,241,0.2)" : T.surfaceHi, color: sel ? T.brand : T.textMuted }}>
-                                    {tplName(t).slice(0, 1).toUpperCase()}
-                                  </span>
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>{tplName(t)}</p>
-                                    {tplDesc(t) && <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: T.textFaint }}>{tplDesc(t)}</p>}
-                                  </div>
-                                  {sel && <Check size={14} strokeWidth={3} style={{ color: T.brand }} className="shrink-0" />}
-                                </button>
-                              );
-                            })}
-                          </div>
-                          <div className="md:col-span-3 rounded-lg overflow-hidden flex flex-col"
-                            style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.border}`, minHeight: 300 }}>
-                            <div className="flex items-center gap-2 px-3.5 py-2 border-b" style={{ borderColor: T.borderSoft }}>
-                              <span className="w-2 h-2 rounded-full" style={{ background: "#EF4444", opacity: 0.6 }} />
-                              <span className="w-2 h-2 rounded-full" style={{ background: "#F59E0B", opacity: 0.6 }} />
-                              <span className="w-2 h-2 rounded-full" style={{ background: "#22C55E", opacity: 0.6 }} />
-                              <span className="ml-2 text-[11px] truncate" style={{ color: T.textFaint }}>{template ? tplName(template) : "Preview"}</span>
-                            </div>
-                            {template ? (
-                              tplHtml(template) ? (
-                                <iframe title="Template preview" sandbox="" srcDoc={tplHtml(template)}
-                                  className="w-full bg-white" style={{ height: 360, border: 0 }} />
-                              ) : (
-                                <div className="flex-1 flex items-center justify-center text-[12px]" style={{ color: T.textFaint, minHeight: 260 }}>
-                                  This template has no HTML content
-                                </div>
-                              )
-                            ) : (
-                              <div className="flex-1 flex flex-col items-center justify-center gap-2 text-[12px]" style={{ color: T.textFaint, minHeight: 260 }}>
-                                <LayoutTemplate size={22} style={{ color: T.border }} />
-                                Select a template to preview it
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Step 3: recipients */}
-                  {step === 3 && (
-                    <div className="space-y-6">
-                      <Head title="Recipients" sub="Upload a CSV or Excel file with an “email” column." />
-
-                      {(!sender || !template) && (
-                        <Notice tone="warn">
-                          Select a sender account (step 2) and a template (step 3) before uploading.
-                          A Draft campaign is created automatically when you upload.
-                        </Notice>
-                      )}
-
-                      {!fileName ? (
-                        <div
-                          role="button" tabIndex={0}
-                          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && fileRef.current?.click()}
-                          onClick={() => fileRef.current?.click()}
-                          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-                          onDragLeave={() => setDragging(false)}
-                          onDrop={(e) => { e.preventDefault(); setDragging(false); loadFile(e.dataTransfer.files?.[0]); }}
-                          className="cursor-pointer rounded-xl py-14 px-6 text-center transition-colors"
-                          style={{ background: dragging ? T.brandSoft : T.surface2, border: `1.5px dashed ${dragging ? T.brand : T.border}` }}>
-                          <div className="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center"
-                            style={{ background: T.brandSoft, color: T.brand }}><UploadCloud size={20} /></div>
-                          <p className="text-[14px] font-medium" style={{ color: T.text }}>Drop your file here, or click to browse</p>
-                          <p className="text-[12px] mt-1" style={{ color: T.textMuted }}>Make sure it has an “email” column.</p>
-                          <div className="flex items-center justify-center gap-2 mt-4">
-                            {[".csv", ".xlsx"].map((f) => (
-                              <span key={f} className="rounded px-2 py-0.5 text-[11px]"
-                                style={{ background: T.surfaceHi, color: T.textFaint, fontFamily: FONT.mono }}>{f}</span>
-                            ))}
-                          </div>
-                          <input ref={fileRef} type="file" accept=".csv,.xlsx" className="hidden"
-                            onChange={(e) => loadFile(e.target.files?.[0])} />
-                        </div>
-                      ) : (
-                        <>
-                          <div className="rounded-lg p-3.5 space-y-3" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-3 min-w-0">
-                                <span className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                                  style={{ background: T.successSoft, color: T.success }}><FileText size={15} /></span>
-                                <div className="min-w-0">
-                                  <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>{fileName}</p>
-                                  <p className="text-[11px] mt-0.5 flex items-center gap-1.5"
-                                    style={{ color: uploadError ? T.danger : uploaded ? T.success : T.textFaint }}>
-                                    {uploaded && <CheckCircle2 size={11} />}
-                                    {uploading ? `Uploading… ${progress}%`
-                                      : extracting ? "Extracting emails…"
-                                      : uploadError ? "Upload failed"
-                                      : uploaded ? "Uploaded & extracted"
-                                      : recipients ? "No usable emails"
-                                      : "Waiting…"}
-                                  </p>
-                                </div>
-                              </div>
-                              <Btn variant="danger" size="sm" onClick={clearFile} disabled={uploading}>
-                                <Trash2 size={12} /> Remove
-                              </Btn>
-                            </div>
-                            {uploading && (
-                              <div className="h-1 rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
-                                <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: T.brand }} />
-                              </div>
-                            )}
-                            {extracting && (
-                              <div className="flex items-center gap-2 text-[11.5px]" style={{ color: T.textMuted }}>
-                                <Loader2 size={12} className="animate-spin" /> Server is reading your file…
-                              </div>
-                            )}
-                          </div>
-
-                          {uploadError && <Notice tone="error">{uploadError} Remove the file and try again.</Notice>}
-
-                          {recipients && (
-                            <>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-                                <Stat label="Rows" value={recipients.total.toLocaleString()} />
-                                <Stat label="Valid" value={recipients.valid.toLocaleString()} tone={T.success} />
-                                <Stat label="Invalid" value={recipients.invalid.toLocaleString()} tone={recipients.invalid ? T.danger : T.text} />
-                                <Stat label="Duplicates" value={recipients.dupes.toLocaleString()} tone={recipients.dupes ? T.warn : T.text} />
-                              </div>
-                              {recipients.valid === 0 ? (
-                                <Notice tone="error">No valid email addresses found in this file.</Notice>
-                              ) : (
-                                recipients.preview.length > 0 && (
-                                  <div className="rounded-lg overflow-hidden" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
-                                    <p className="px-3.5 py-2 text-[11px] font-medium uppercase tracking-wide border-b"
-                                      style={{ color: T.textFaint, borderColor: T.borderSoft }}>Preview</p>
-                                    {recipients.preview.map((e) => (
-                                      <p key={e} className="px-3.5 py-2 text-[12px] border-b last:border-0"
-                                        style={{ color: T.textMuted, fontFamily: FONT.mono, borderColor: T.borderSoft }}>{e}</p>
-                                    ))}
-                                  </div>
-                                )
-                              )}
-                            </>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Step 4: review */}
-                  {step === 4 && (
-                    <div className="space-y-6">
-                      <Head title="Review & start" sub="Check everything before sending." />
-
-                      <div className="rounded-lg divide-y" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}`, borderColor: T.borderSoft }}>
-                        {([
-                          ["Campaign", name || "—", FileText, 0],
-                          ["Subject", subject || "—", Type, 0],
-                          ["Sender", sender ? `${sender.display_name} <${sender.email}>` : "—", Mail, 1],
-                          ["Template", template ? tplName(template) : "—", LayoutTemplate, 2],
-                          ["Recipients", total ? `${total.toLocaleString()} valid (${fileName})` : "—", Users, 3],
-                        ] as const).map(([k, v, Icon, goto]) => (
-                          <div key={k} className="flex items-center gap-3 px-3.5 py-3" style={{ borderColor: T.borderSoft }}>
-                            <span className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
-                              style={{ background: T.surfaceHi, color: T.textFaint }}><Icon size={13} /></span>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[11px]" style={{ color: T.textFaint }}>{k}</p>
-                              <p className="text-[12.5px] font-medium truncate mt-0.5" style={{ color: T.text }}>{v}</p>
-                            </div>
-                            <button onClick={() => setStep(goto)}
-                              className="rounded-md p-1.5 transition-colors hover:bg-white/5"
-                              style={{ color: T.textFaint }} aria-label={`Edit ${k}`}><Pencil size={12} /></button>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="rounded-lg p-3.5 space-y-2" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
-                        <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: T.textFaint }}>Checklist</p>
-                        {checks.map((c) => (
-                          <div key={c.label + (c.detail ?? "")} className="flex items-start gap-2 text-[12px]">
-                            {c.ok ? <CheckCircle2 size={14} style={{ color: T.success }} className="mt-0.5 shrink-0" />
-                              : c.level === "warn" ? <AlertTriangle size={14} style={{ color: T.warn }} className="mt-0.5 shrink-0" />
-                              : <XCircle size={14} style={{ color: T.danger }} className="mt-0.5 shrink-0" />}
-                            <span className="leading-5" style={{ color: c.ok ? T.textMuted : c.level === "warn" ? T.warn : T.danger }}>
-                              <b className="font-medium">{c.label}</b>{!c.ok && c.detail ? ` — ${c.detail}` : ""}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="rounded-lg p-3.5" style={{ background: T.brandSoft, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}>
-                        <div className="flex items-start gap-2.5">
-                          <Timer size={15} style={{ color: T.brand }} className="mt-0.5 shrink-0" />
-                          <div>
-                            <p className="text-[12.5px] font-medium" style={{ color: T.text }}>Sending starts immediately</p>
-                            <p className="text-[11.5px] mt-1 leading-5" style={{ color: T.textMuted }}>
-                              Emails are scheduled one-by-one with random human-like gaps
-                              (15 seconds to 15 minutes), respecting {sender?.daily_limit?.toLocaleString() ?? "your"} daily
-                              and {sender?.hourly_limit?.toLocaleString() ?? "hourly"} limits. You can pause or resume anytime —
-                              remaining recipients get a fresh schedule on resume.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2.5 rounded-lg px-3.5 py-3"
-                        style={{
-                          background: ready ? T.successSoft : T.dangerSoft,
-                          boxShadow: `inset 0 0 0 1px ${ready ? "rgba(34,197,94,0.28)" : "rgba(239,68,68,0.28)"}`,
-                        }}>
-                        {ready ? <CheckCircle2 size={15} style={{ color: T.success }} /> : <XCircle size={15} style={{ color: T.danger }} />}
-                        <p className="text-[12.5px] font-medium" style={{ color: ready ? T.success : T.danger }}>
-                          {ready ? "Campaign is ready to start" : "Fix the issues above to continue"}
-                        </p>
-                      </div>
-
-                      {actionError && <Notice tone="error">{actionError}</Notice>}
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between mt-7 pt-5 border-t" style={{ borderColor: T.borderSoft }}>
-                    <Btn onClick={() => setStep((s) => s - 1)} disabled={step === 0}>
-                      <ChevronLeft size={14} /> Back
-                    </Btn>
-                    {step < 4 ? (
-                      <Btn variant="primary" onClick={() => setStep((s) => s + 1)} disabled={!canNext}>
-                        Continue <ChevronRight size={14} />
-                      </Btn>
-                    ) : (
-                      <Btn variant="primary" onClick={() => { setSubmitError(""); setConfirmOpen(true); }} disabled={!ready}>
-                        <Rocket size={14} /> Start campaign
-                      </Btn>
-                    )}
-                  </div>
-                </Card>
-              </div>
-
-              {/* Sidebar summary */}
-              <aside className="hidden lg:block sticky top-6 rounded-xl p-5" style={CARD}>
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[13px] font-semibold" style={{ color: T.text }}>Summary</p>
-                  <span className="text-[12px] font-medium"
-                    style={{ color: completion === 100 ? T.success : T.textMuted, fontFamily: FONT.mono }}>{completion}%</span>
-                </div>
-                <div className="h-1 rounded-full overflow-hidden mb-4" style={{ background: T.surfaceHi }}>
-                  <div className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${completion}%`, background: T.brand }} />
-                </div>
-                <div className="space-y-0.5">
-                  {summaryItems.map((s, i) => {
-                    const Icon = s.icon;
+              {/* Mobile step pills */}
+              <div className="md:hidden mb-6 overflow-x-auto cm-scroll">
+                <div className="flex items-center gap-2 min-w-max pb-1">
+                  {STEPS.map((s, i) => {
+                    const isDone = i < step;
+                    const isCur = i === step;
                     return (
-                      <button key={s.label} onClick={() => i < step && setStep(i)}
-                        className="w-full flex items-center gap-2.5 rounded-md p-2 text-left transition-colors"
-                        style={{ cursor: i < step ? "pointer" : "default", background: i === step ? T.surface2 : "transparent" }}>
-                        <span className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
-                          style={{ background: s.done ? T.successSoft : T.surface2, color: s.done ? T.success : T.textFaint }}>
-                          {s.done ? <Check size={12} strokeWidth={3} /> : <Icon size={12} />}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[10.5px] uppercase tracking-wide" style={{ color: T.textFaint }}>{s.label}</span>
-                          <span className="block text-[12px] font-medium truncate mt-0.5"
-                            style={{ color: s.done ? T.text : T.textFaint }}>{s.value}</span>
-                        </span>
+                      <button key={s.label} onClick={() => i <= maxStep && goTo(i)}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] transition-colors"
+                        style={{
+                          background: isCur ? T.accent : T.surface2,
+                          color: isCur ? T.accentInk : isDone ? T.text : T.textFaint,
+                          border: isCur ? "none" : HAIRLINE,
+                        }}>
+                        {isDone ? <Check size={11} strokeWidth={2.5} /> : <span style={{ fontFamily: FONT.mono }}>{i + 1}</span>}
+                        {s.label}
                       </button>
                     );
                   })}
                 </div>
-                <div className="mt-4 pt-3.5 border-t flex items-center gap-2 text-[11px]" style={{ borderColor: T.borderSoft, color: T.textFaint }}>
-                  <Clock size={11} /> Sends right after you start
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-6 items-start">
+                <div className="min-w-0">
+                  <Card className="p-5 md:p-7 fade-in" key={step}>
+                    {/* Step 0: details */}
+                    {step === 0 && (
+                      <div className="space-y-6">
+                        <Head title="Campaign details" sub="Start by naming your campaign and writing a subject." />
+                        <Field label="Campaign name" hint="Only you see this — it helps you find the campaign later.">
+                          <input className="cm-input" placeholder="e.g. October product launch"
+                            value={name} onChange={(e) => setName(e.target.value)} />
+                        </Field>
+                        <Field label="Email subject" hint="This is what recipients see in their inbox."
+                          right={<span className="text-[11px]" style={{ color: subject.length > 70 ? T.warn : T.textFaint, fontFamily: FONT.mono }}>{subject.length}/70</span>}>
+                          <input className="cm-input" placeholder="e.g. Something new is here"
+                            value={subject} onChange={(e) => setSubject(e.target.value)} />
+                        </Field>
+                        <div>
+                          <p className="text-[12px] font-medium mb-2" style={{ color: T.textMuted }}>Inbox preview</p>
+                          <div className="rounded-lg p-3.5 flex items-center gap-3"
+                            style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
+                            <span className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                              style={{ background: "rgba(110,231,168,0.10)", color: T.accent }}><Inbox size={15} /></span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>
+                                  {sender?.display_name || "Your sender"}
+                                </p>
+                                <p className="text-[11px] shrink-0" style={{ color: T.textFaint }}>Just now</p>
+                              </div>
+                              <p className="text-[12.5px] truncate mt-0.5" style={{ color: subject.trim() ? T.textMuted : T.textFaint }}>
+                                {subject.trim() || "Your subject line will appear here"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 1: sender */}
+                    {step === 1 && (
+                      <div className="space-y-5">
+                        <Head title="Sender account" sub="Only connected accounts with capacity left today are shown." />
+                        {sendersLoading && accounts.length === 0 ? (
+                          <Loading label="Loading sender accounts…" />
+                        ) : sendersError && accounts.length === 0 ? (
+                          <div className="space-y-3">
+                            <Notice tone="error">{sendersError}</Notice>
+                            <Btn onClick={() => fetchSenders?.()}>Retry</Btn>
+                          </div>
+                        ) : available.length === 0 ? (
+                          <Notice tone="warn">No sender accounts are available right now. Connect or reconnect one on the Sender accounts page.</Notice>
+                        ) : (
+                          <div className="space-y-2.5">
+                            {available.map((a) => {
+                              const sel = a.id === senderId;
+                              const limit = a.daily_limit ?? 0;
+                              const used = a.emails_sent_today ?? 0;
+                              const left = limit - used;
+                              const usedPct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+                              return (
+                                <button key={a.id} onClick={() => setSenderId(a.id)}
+                                  className="w-full text-left rounded-lg p-3.5 transition-colors"
+                                  style={{
+                                    background: sel ? "rgba(110,231,168,0.05)" : T.surface2,
+                                    border: sel ? `1px solid ${T.accentLine}` : HAIRLINE_SOFT,
+                                  }}>
+                                  <div className="flex items-center gap-3.5">
+                                    <span className="w-9 h-9 rounded-lg flex items-center justify-center text-[12px] font-semibold text-white shrink-0"
+                                      style={{ background: "linear-gradient(135deg, #0A66C2, #053C74)" }}>
+                                      {(a.provider ?? "?").slice(0, 1).toUpperCase()}
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-[13.5px] font-medium truncate" style={{ color: T.text }}>{a.email}</p>
+                                      <p className="text-[11.5px] truncate mt-0.5" style={{ color: T.textFaint }}>{a.display_name} · {a.provider}</p>
+                                    </div>
+                                    <div className="text-right shrink-0 hidden sm:block">
+                                      <p className="text-[13.5px] font-semibold" style={{ color: T.accent, fontFamily: FONT.mono }}>{left.toLocaleString()}</p>
+                                      <p className="text-[10.5px]" style={{ color: T.textFaint }}>sends left</p>
+                                    </div>
+                                    <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                                      style={{ background: sel ? T.accent : "transparent", border: sel ? "none" : HAIRLINE }}>
+                                      {sel && <Check size={11} strokeWidth={3} style={{ color: T.accentInk }} />}
+                                    </span>
+                                  </div>
+                                  <div className="mt-3 flex items-center gap-3">
+                                    <div className="h-1 flex-1 rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
+                                      <div className="h-full rounded-full transition-all"
+                                        style={{ width: `${usedPct}%`, background: usedPct > 80 ? T.warn : T.accent }} />
+                                    </div>
+                                    <span className="text-[10.5px] shrink-0" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                                      {used.toLocaleString()} / {limit.toLocaleString()}
+                                    </span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Step 2: template */}
+                    {step === 2 && (
+                      <div className="space-y-5">
+                        <Head title="HTML template" sub="Pick the design for your email." />
+                        {templatesLoading && templates.length === 0 ? (
+                          <Loading label="Loading templates…" />
+                        ) : templatesError && templates.length === 0 ? (
+                          <div className="space-y-3">
+                            <Notice tone="error">{templatesError}</Notice>
+                            <Btn onClick={refetchTemplates}>Retry</Btn>
+                          </div>
+                        ) : templates.length === 0 ? (
+                          <Notice tone="warn">No templates found. Create one on the Templates page first.</Notice>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                            <div className="cm-scroll md:col-span-2 space-y-2 overflow-y-auto pr-1" style={{ maxHeight: 380 }}>
+                              {templates.map((t) => {
+                                const id = tplId(t), sel = id === templateId;
+                                return (
+                                  <button key={id} onClick={() => setTemplateId(id)}
+                                    className="w-full text-left rounded-lg p-3 flex items-center gap-3 transition-colors"
+                                    style={{
+                                      background: sel ? "rgba(110,231,168,0.05)" : T.surface2,
+                                      border: sel ? `1px solid ${T.accentLine}` : HAIRLINE_SOFT,
+                                    }}>
+                                    <span className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 text-[12px] font-semibold"
+                                      style={{ background: sel ? "rgba(110,231,168,0.10)" : T.surfaceHi, color: sel ? T.accent : T.textMuted }}>
+                                      {tplName(t).slice(0, 1).toUpperCase()}
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>{tplName(t)}</p>
+                                      {tplDesc(t) && <p className="text-[11px] mt-0.5 line-clamp-2" style={{ color: T.textFaint }}>{tplDesc(t)}</p>}
+                                    </div>
+                                    {sel && <Check size={14} strokeWidth={3} style={{ color: T.accent }} className="shrink-0" />}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <div className="md:col-span-3 rounded-lg overflow-hidden flex flex-col"
+                              style={{ background: T.surface2, border: HAIRLINE, minHeight: 300 }}>
+                              <div className="flex items-center gap-2 px-3.5 py-2" style={{ borderBottom: HAIRLINE_SOFT }}>
+                                <span className="w-2 h-2 rounded-full" style={{ background: "#EF4444", opacity: 0.6 }} />
+                                <span className="w-2 h-2 rounded-full" style={{ background: "#F59E0B", opacity: 0.6 }} />
+                                <span className="w-2 h-2 rounded-full" style={{ background: "#22C55E", opacity: 0.6 }} />
+                                <span className="ml-2 text-[11px] truncate" style={{ color: T.textFaint }}>{template ? tplName(template) : "Preview"}</span>
+                              </div>
+                              {template ? (
+                                tplHtml(template) ? (
+                                  <iframe title="Template preview" sandbox="" srcDoc={tplHtml(template)}
+                                    className="w-full bg-white" style={{ height: 360, border: 0 }} />
+                                ) : (
+                                  <div className="flex-1 flex items-center justify-center text-[12px]" style={{ color: T.textFaint, minHeight: 260 }}>
+                                    This template has no HTML content
+                                  </div>
+                                )
+                              ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center gap-2 text-[12px]" style={{ color: T.textFaint, minHeight: 260 }}>
+                                  <LayoutTemplate size={22} style={{ color: T.border }} />
+                                  Select a template to preview it
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Step 3: recipients */}
+                    {step === 3 && (
+                      <div className="space-y-6">
+                        <Head title="Recipients" sub='Upload a CSV or Excel file with an "email" column.' />
+
+                        {(!sender || !template) && (
+                          <Notice tone="warn">
+                            Select a sender account (step 2) and a template (step 3) before uploading.
+                            A Draft campaign is created automatically when you upload.
+                          </Notice>
+                        )}
+
+                        {!fileName ? (
+                          <div
+                            role="button" tabIndex={0}
+                            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && fileRef.current?.click()}
+                            onClick={() => fileRef.current?.click()}
+                            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                            onDragLeave={() => setDragging(false)}
+                            onDrop={(e) => { e.preventDefault(); setDragging(false); loadFile(e.dataTransfer.files?.[0]); }}
+                            className="cursor-pointer rounded-xl py-14 px-6 text-center transition-colors"
+                            style={{ background: dragging ? "rgba(110,231,168,0.05)" : T.surface2, border: `1.5px dashed ${dragging ? T.accentLine : T.border}` }}>
+                            <div className="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center"
+                              style={{ background: "rgba(110,231,168,0.10)", color: T.accent }}><UploadCloud size={20} /></div>
+                            <p className="text-[14px] font-medium" style={{ color: T.text }}>Drop your file here, or click to browse</p>
+                            <p className="text-[12px] mt-1" style={{ color: T.textMuted }}>Make sure it has an "email" column.</p>
+                            <div className="flex items-center justify-center gap-2 mt-4">
+                              {[".csv", ".xlsx"].map((f) => (
+                                <span key={f} className="rounded px-2 py-0.5 text-[11px]"
+                                  style={{ background: T.surfaceHi, color: T.textFaint, fontFamily: FONT.mono, border: HAIRLINE }}>{f}</span>
+                              ))}
+                            </div>
+                            <input ref={fileRef} type="file" accept=".csv,.xlsx" className="hidden"
+                              onChange={(e) => loadFile(e.target.files?.[0])} />
+                          </div>
+                        ) : (
+                          <>
+                            <div className="rounded-lg p-3.5 space-y-3" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <span className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                                    style={{ background: "rgba(110,231,168,0.10)", color: T.accent }}><FileText size={15} /></span>
+                                  <div className="min-w-0">
+                                    <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>{fileName}</p>
+                                    <p className="text-[11px] mt-0.5 flex items-center gap-1.5"
+                                      style={{ color: uploadError ? T.danger : uploaded ? T.ok : T.textFaint }}>
+                                      {uploaded && <CheckCircle2 size={11} />}
+                                      {uploading ? `Uploading… ${progress}%`
+                                        : extracting ? "Extracting emails…"
+                                        : uploadError ? "Upload failed"
+                                        : uploaded ? "Uploaded & extracted"
+                                        : recipients ? "No usable emails"
+                                        : "Waiting…"}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Btn variant="danger" size="sm" onClick={clearFile} disabled={uploading}>
+                                  <Trash2 size={12} /> Remove
+                                </Btn>
+                              </div>
+                              {uploading && (
+                                <div className="h-1 rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
+                                  <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: T.accent }} />
+                                </div>
+                              )}
+                              {extracting && (
+                                <div className="flex items-center gap-2 text-[11.5px]" style={{ color: T.textMuted }}>
+                                  <Loader2 size={12} className="animate-spin" /> Server is reading your file…
+                                </div>
+                              )}
+                            </div>
+
+                            {uploadError && <Notice tone="error">{uploadError} Remove the file and try again.</Notice>}
+
+                            {recipients && (
+                              <>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                                  <Stat label="Rows" value={recipients.total.toLocaleString()} />
+                                  <Stat label="Valid" value={recipients.valid.toLocaleString()} tone={T.accent} />
+                                  <Stat label="Invalid" value={recipients.invalid.toLocaleString()} tone={recipients.invalid ? T.danger : T.text} />
+                                  <Stat label="Duplicates" value={recipients.dupes.toLocaleString()} tone={recipients.dupes ? T.warn : T.text} />
+                                </div>
+                                {recipients.valid === 0 ? (
+                                  <Notice tone="error">No valid email addresses found in this file.</Notice>
+                                ) : (
+                                  recipients.preview.length > 0 && (
+                                    <div className="rounded-lg overflow-hidden" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
+                                      <p className="px-3.5 py-2 text-[11px] font-medium uppercase tracking-wide"
+                                        style={{ color: T.textFaint, borderBottom: HAIRLINE_SOFT }}>Preview</p>
+                                      {recipients.preview.map((e) => (
+                                        <p key={e} className="px-3.5 py-2 text-[12px]"
+                                          style={{ color: T.textMuted, fontFamily: FONT.mono, borderBottom: HAIRLINE_SOFT }}>{e}</p>
+                                      ))}
+                                    </div>
+                                  )
+                                )}
+                              </>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Step 4: review */}
+                    {step === 4 && (
+                      <div className="space-y-6">
+                        <Head title="Review & start" sub="Check everything before sending." />
+
+                        <div className="rounded-lg divide-y" style={{ background: T.surface2, border: HAIRLINE_SOFT, borderColor: T.borderSoft }}>
+                          {([
+                            ["Campaign",   name || "—",                                                    FileText, 0],
+                            ["Subject",    subject || "—",                                                 Type, 0],
+                            ["Sender",     sender ? `${sender.display_name} <${sender.email}>` : "—",      Mail, 1],
+                            ["Template",   template ? tplName(template) : "—",                             LayoutTemplate, 2],
+                            ["Recipients", total ? `${total.toLocaleString()} valid (${fileName})` : "—",  Users, 3],
+                          ] as const).map(([k, v, Icon, goto]) => (
+                            <div key={k} className="flex items-center gap-3 px-3.5 py-3" style={{ borderColor: T.borderSoft }}>
+                              <span className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
+                                style={{ background: T.surfaceHi, color: T.textFaint }}><Icon size={13} /></span>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[11px]" style={{ color: T.textFaint }}>{k}</p>
+                                <p className="text-[12.5px] font-medium truncate mt-0.5" style={{ color: T.text }}>{v}</p>
+                              </div>
+                              <button onClick={() => goTo(goto)}
+                                className="rounded-md p-1.5 transition-colors"
+                                style={{ color: T.textFaint }} aria-label={`Edit ${k}`}><Pencil size={12} /></button>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="rounded-lg p-3.5 space-y-2" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
+                          <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: T.textFaint }}>Checklist</p>
+                          {checks.map((c) => (
+                            <div key={c.label + (c.detail ?? "")} className="flex items-start gap-2 text-[12px]">
+                              {c.ok ? <CheckCircle2 size={14} style={{ color: T.accent }} className="mt-0.5 shrink-0" />
+                                : c.level === "warn" ? <AlertTriangle size={14} style={{ color: T.warn }} className="mt-0.5 shrink-0" />
+                                : <XCircle size={14} style={{ color: T.danger }} className="mt-0.5 shrink-0" />}
+                              <span className="leading-5" style={{ color: c.ok ? T.textMuted : c.level === "warn" ? T.warn : T.danger }}>
+                                <b className="font-medium" style={{ color: c.ok ? T.text : "inherit" }}>{c.label}</b>{!c.ok && c.detail ? ` — ${c.detail}` : ""}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="rounded-lg p-3.5" style={{ background: "rgba(110,231,168,0.04)", border: "1px solid rgba(110,231,168,0.22)" }}>
+                          <div className="flex items-start gap-2.5">
+                            <Timer size={15} style={{ color: T.accent }} className="mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-[12.5px] font-medium" style={{ color: T.text }}>Sending starts immediately</p>
+                              <p className="text-[11.5px] mt-1 leading-5" style={{ color: T.textMuted }}>
+                                Emails are scheduled one-by-one with random human-like gaps
+                                (15 seconds to 15 minutes), respecting {sender?.daily_limit?.toLocaleString() ?? "your"} daily
+                                and {sender?.hourly_limit?.toLocaleString() ?? "hourly"} limits. You can pause or resume anytime —
+                                remaining recipients get a fresh schedule on resume.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 rounded-lg px-3.5 py-3"
+                          style={{
+                            background: ready ? "rgba(110,231,168,0.06)" : "rgba(224,106,106,0.06)",
+                            border: `1px solid ${ready ? "rgba(110,231,168,0.28)" : "rgba(224,106,106,0.28)"}`,
+                          }}>
+                          {ready ? <CheckCircle2 size={15} style={{ color: T.accent }} /> : <XCircle size={15} style={{ color: T.danger }} />}
+                          <p className="text-[12.5px] font-medium" style={{ color: ready ? T.accent : T.danger }}>
+                            {ready ? "Campaign is ready to start" : "Fix the issues above to continue"}
+                          </p>
+                        </div>
+
+                        {actionError && <Notice tone="error">{actionError}</Notice>}
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between mt-7 pt-5" style={{ borderTop: HAIRLINE_SOFT }}>
+                      <Btn onClick={goBack} disabled={step === 0}>
+                        <ChevronLeft size={14} /> Back
+                      </Btn>
+                      {step < 4 ? (
+                        <Btn variant="primary" onClick={goNext} disabled={!canNext}>
+                          Continue <ChevronRight size={14} />
+                        </Btn>
+                      ) : (
+                        <Btn variant="primary" onClick={() => { setSubmitError(""); setConfirmOpen(true); }} disabled={!ready}>
+                          <Rocket size={14} /> Start campaign
+                        </Btn>
+                      )}
+                    </div>
+                  </Card>
                 </div>
-              </aside>
-            </div>
+
+                {/* Sidebar summary */}
+                <aside className="hidden lg:block sticky top-6 rounded-xl p-5" style={{ background: T.surface, border: HAIRLINE }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-[13px] font-semibold" style={{ color: T.text }}>Summary</p>
+                    <span className="text-[12px] font-medium"
+                      style={{ color: completion === 100 ? T.accent : T.textMuted, fontFamily: FONT.mono }}>{completion}%</span>
+                  </div>
+                  <div className="h-1 rounded-full overflow-hidden mb-4" style={{ background: T.surfaceHi }}>
+                    <div className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${completion}%`, background: T.accent }} />
+                  </div>
+                  <div className="space-y-0.5">
+                    {summaryItems.map((s, i) => {
+                      const Icon = s.icon;
+                      return (
+                        <button key={s.label} onClick={() => i <= maxStep && goTo(i)}
+                          className="w-full flex items-center gap-2.5 rounded-md p-2 text-left transition-colors"
+                          style={{ cursor: i <= maxStep ? "pointer" : "default", background: i === step ? T.surface2 : "transparent" }}>
+                          <span className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
+                            style={{ background: s.done ? "rgba(110,231,168,0.10)" : T.surface2, color: s.done ? T.accent : T.textFaint }}>
+                            {s.done ? <Check size={12} strokeWidth={3} /> : <Icon size={12} />}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[10.5px] uppercase tracking-wide" style={{ color: T.textFaint }}>{s.label}</span>
+                            <span className="block text-[12px] font-medium truncate mt-0.5"
+                              style={{ color: s.done ? T.text : T.textFaint }}>{s.value}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-4 pt-3.5 flex items-center gap-2 text-[11px]" style={{ borderTop: HAIRLINE_SOFT, color: T.textFaint }}>
+                    <Clock size={11} /> Sends right after you start
+                  </div>
+                </aside>
+              </div>
+            </>
           )}
 
           {/* Non-editing status view */}
           {!editing && (
-            <Card className="p-5 md:p-7 space-y-6 animate-in fade-in">
+            <Card className="p-5 md:p-7 space-y-6 fade-in">
               <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8">
                 <div className="mx-auto md:mx-0">
-                  <Ring pct={pct} color={status === "Cancelled" || status === "Failed" ? T.danger : T.brand} />
+                  <Ring pct={pct} color={status === "Cancelled" || status === "Failed" ? T.danger : T.accent} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[16px] font-semibold" style={{ color: T.text }}>
@@ -1030,25 +1021,24 @@ const CampaignCreatePage = () => {
                   </p>
                   <div className="h-1.5 rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
                     <div className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${pct}%`, background: status === "Cancelled" || status === "Failed" ? T.danger : T.brand }} />
+                      style={{ width: `${pct}%`, background: status === "Cancelled" || status === "Failed" ? T.danger : T.accent }} />
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
-                <Stat label="Total" value={shownTotal.toLocaleString()} />
-                <Stat label="Sent" value={run.sent.toLocaleString()} tone={T.success} />
-                <Stat label="Failed" value={run.failed.toLocaleString()} tone={run.failed ? T.danger : T.text} />
+                <Stat label="Total"   value={shownTotal.toLocaleString()} />
+                <Stat label="Sent"    value={run.sent.toLocaleString()}   tone={T.accent} />
+                <Stat label="Failed"  value={run.failed.toLocaleString()} tone={run.failed ? T.danger : T.text} />
                 <Stat label="Pending" value={(live?.pending ?? Math.max(0, shownTotal - done - (live?.queued ?? 0))).toLocaleString()} tone={T.info} />
-                <Stat label="Queued" value={(live?.queued ?? 0).toLocaleString()} tone={T.purple} />
+                <Stat label="Queued"  value={(live?.queued ?? 0).toLocaleString()} tone={T.purple} />
               </div>
 
               {(status === "Running" || status === "Paused") && live && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                  <div className="rounded-lg p-3.5 flex items-center gap-3"
-                    style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+                  <div className="rounded-lg p-3.5 flex items-center gap-3" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
                     <span className="w-9 h-9 rounded-md flex items-center justify-center shrink-0"
-                      style={{ background: "rgba(56,189,248,0.12)", color: T.info }}><Timer size={15} /></span>
+                      style={{ background: "rgba(110,193,231,0.10)", color: T.info }}><Timer size={15} /></span>
                     <div className="min-w-0">
                       <p className="text-[10.5px] uppercase tracking-wide" style={{ color: T.textFaint }}>Next send</p>
                       <p className="text-[13px] font-medium truncate mt-0.5" style={{ color: T.text }}>
@@ -1056,10 +1046,9 @@ const CampaignCreatePage = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="rounded-lg p-3.5 flex items-center gap-3"
-                    style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+                  <div className="rounded-lg p-3.5 flex items-center gap-3" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
                     <span className="w-9 h-9 rounded-md flex items-center justify-center shrink-0"
-                      style={{ background: "rgba(167,139,250,0.12)", color: T.purple }}><Hourglass size={15} /></span>
+                      style={{ background: "rgba(179,157,224,0.10)", color: T.purple }}><Hourglass size={15} /></span>
                     <div className="min-w-0">
                       <p className="text-[10.5px] uppercase tracking-wide" style={{ color: T.textFaint }}>Estimated finish</p>
                       <p className="text-[13px] font-medium truncate mt-0.5" style={{ color: T.text }}>
@@ -1072,7 +1061,7 @@ const CampaignCreatePage = () => {
 
               {status === "Completed" && (
                 <div className="grid grid-cols-2 gap-2.5">
-                  <Stat label="Success rate" value={`${shownTotal ? ((run.sent / shownTotal) * 100).toFixed(1) : 0}%`} tone={T.success} />
+                  <Stat label="Success rate" value={`${shownTotal ? ((run.sent / shownTotal) * 100).toFixed(1) : 0}%`} tone={T.accent} />
                   <Stat label="Completed at" value={new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} />
                 </div>
               )}
@@ -1081,7 +1070,7 @@ const CampaignCreatePage = () => {
 
               <div className="flex gap-2.5 flex-wrap">
                 {status === "Running" && <Btn onClick={() => act(pauseCampaign, "Paused")}><Pause size={13} /> Pause</Btn>}
-                {status === "Paused" && <Btn variant="primary" onClick={() => act(resumeCampaign, "Running")}><Play size={13} /> Resume</Btn>}
+                {status === "Paused"  && <Btn variant="primary" onClick={() => act(resumeCampaign, "Running")}><Play size={13} /> Resume</Btn>}
                 {(status === "Running" || status === "Paused") && (
                   <Btn variant="danger" onClick={() => setCancelOpen(true)}><Ban size={13} /> Cancel campaign</Btn>
                 )}
@@ -1097,7 +1086,7 @@ const CampaignCreatePage = () => {
       {confirmOpen && (
         <Modal onClose={() => !submitting && setConfirmOpen(false)}>
           <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4"
-            style={{ background: T.brandSoft, color: T.brand }}><Rocket size={18} /></div>
+            style={{ background: "rgba(110,231,168,0.10)", color: T.accent, border: "1px solid rgba(110,231,168,0.28)" }}><Rocket size={18} /></div>
           <h2 className="text-[17px] font-semibold" style={{ color: T.text }}>Start this campaign?</h2>
           <p className="text-[13px] mt-2 leading-6" style={{ color: T.textMuted }}>
             <b style={{ color: T.text }}>{total.toLocaleString()}</b> emails will be sent from{" "}
@@ -1119,7 +1108,7 @@ const CampaignCreatePage = () => {
       {cancelOpen && (
         <Modal onClose={() => setCancelOpen(false)}>
           <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4"
-            style={{ background: T.dangerSoft, color: T.danger }}><Ban size={18} /></div>
+            style={{ background: "rgba(224,106,106,0.10)", color: T.danger, border: "1px solid rgba(224,106,106,0.28)" }}><Ban size={18} /></div>
           <h2 className="text-[17px] font-semibold" style={{ color: T.text }}>Cancel this campaign?</h2>
           <p className="text-[13px] mt-2 leading-6" style={{ color: T.textMuted }}>
             Sending will stop. Emails already sent can't be recalled.

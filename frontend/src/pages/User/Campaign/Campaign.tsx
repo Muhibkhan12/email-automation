@@ -5,7 +5,6 @@ import {
   createCampaign,
   startCampaign,
   type Campaign,
-  type CampaignStatus,
   type CreateCampaignData,
 } from '../../../services/CampaignService';
 import Sidebar from '../Sidebar';
@@ -14,73 +13,73 @@ import StartCampaignModal from './UserCampaignModal';
 import {
   Menu, RefreshCw, Search, Plus, Megaphone, Rocket, PauseCircle,
   CheckCircle2, XCircle, FileEdit, ChevronRight, Inbox, AlertTriangle,
-  Filter, Sparkles,
+  Trash2,
 } from 'lucide-react';
 
-/* ─────────────── design tokens ─────────────── */
-
+/* ─────────────── tokens ───────────────
+   One graphite neutral ramp. One phosphor accent. Amber/red only for status.
+*/
 const T = {
-  bg:          "#0A0B10",
-  surface:     "#111319",
-  surface2:    "#161922",
-  surfaceHi:   "#1B1F2A",
-  border:      "#232838",
-  borderSoft:  "#1B1F2A",
-  text:        "#E9EBF0",
-  textMuted:   "#9CA3B4",
-  textFaint:   "#6B7280",
-  brand:       "#6366F1",
-  brandSoft:   "rgba(99,102,241,0.12)",
-  brandBorder: "rgba(99,102,241,0.35)",
-  success:     "#22C55E",
-  successSoft: "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:        "#F59E0B",
-  warnSoft:    "rgba(245,158,11,0.12)",
-  warnBorder:  "rgba(245,158,11,0.35)",
-  danger:      "#EF4444",
-  dangerSoft:  "rgba(239,68,68,0.12)",
-  dangerBorder:"rgba(239,68,68,0.35)",
-  info:        "#38BDF8",
-  infoSoft:    "rgba(56,189,248,0.12)",
-  infoBorder:  "rgba(56,189,248,0.35)",
-  purple:      "#A78BFA",
-  purpleSoft:  "rgba(167,139,250,0.12)",
-  purpleBorder:"rgba(167,139,250,0.35)",
-}
+  bg:         '#0B0C0E',
+  surface:    '#111214',
+  surface2:   '#16181B',
+  surfaceHi:  '#1C1F23',
+  border:     '#24282E',
+  borderSoft: '#1B1E22',
 
-const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
-}
+  text:       '#E8EAED',
+  textMuted:  '#9AA0A6',
+  textFaint:  '#6B7075',
 
-const RING = `inset 0 0 0 1px ${T.border}`
+  accent:     '#6EE7A8',
+  accentInk:  '#0B0C0E',
+  accentLine: '#2E6B4D',
 
-/* ─────────────── status styles ─────────────── */
-
-type StatusStyle = {
-  bg: string; fg: string; ring: string; label: string;
-  Icon: React.ComponentType<{ size?: number }>;
+  ok:         '#6EE7A8',
+  warn:       '#E0A64A',
+  danger:     '#E06A6A',
 };
 
-const STATUS_STYLES: Record<CampaignStatus, StatusStyle> = {
-  DRAFT:     { bg: "rgba(156,163,180,0.12)", fg: T.textMuted, ring: "rgba(156,163,180,0.28)", label: "Draft",     Icon: FileEdit },
-  READY:     { bg: T.infoSoft,               fg: T.info,      ring: T.infoBorder,             label: "Ready",     Icon: Rocket },
-  RUNNING:   { bg: T.successSoft,            fg: T.success,   ring: T.successBorder,          label: "Running",   Icon: Megaphone },
-  PAUSED:    { bg: T.warnSoft,               fg: T.warn,      ring: T.warnBorder,             label: "Paused",    Icon: PauseCircle },
-  COMPLETED: { bg: T.purpleSoft,             fg: T.purple,    ring: T.purpleBorder,           label: "Completed", Icon: CheckCircle2 },
-  CANCELLED: { bg: T.dangerSoft,             fg: T.danger,    ring: T.dangerBorder,           label: "Cancelled", Icon: XCircle },
+const FONT = {
+  ui:   "'Inter', system-ui, -apple-system, sans-serif",
+  mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+};
+
+const HAIRLINE = `1px solid ${T.border}`;
+const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`;
+
+/* ─────────────── status ─────────────── */
+
+type UiStatus = 'DRAFT' | 'READY' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
+
+type StatusMeta = {
+  fg: string;
+  dot: string;
+  label: string;
+  Icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+};
+
+const STATUS_META: Record<UiStatus, StatusMeta> = {
+  DRAFT:     { fg: T.textMuted, dot: T.textFaint, label: "Draft",     Icon: FileEdit },
+  READY:     { fg: T.textMuted, dot: T.textFaint, label: "Ready",     Icon: Rocket },
+  RUNNING:   { fg: T.accent,    dot: T.accent,    label: "Running",   Icon: Megaphone },
+  PAUSED:    { fg: T.warn,      dot: T.warn,      label: "Paused",    Icon: PauseCircle },
+  COMPLETED: { fg: T.textMuted, dot: T.textFaint, label: "Completed", Icon: CheckCircle2 },
+  CANCELLED: { fg: T.danger,    dot: T.danger,    label: "Cancelled", Icon: XCircle },
 };
 
 /* ─────────────── helpers ─────────────── */
 
-const normalizeStatus = (s?: string): CampaignStatus => {
-  const up = (s || '').toUpperCase() as CampaignStatus;
-  return up in STATUS_STYLES ? up : 'DRAFT';
+const normalizeStatus = (s?: string): UiStatus => {
+  const up = (s || '').toUpperCase() as UiStatus;
+  return up in STATUS_META ? up : 'DRAFT';
 };
 
-const relativeTime = (iso: string) => {
+const DELETABLE: UiStatus[] = ['PAUSED', 'COMPLETED'];
+const canDelete = (s?: string) => DELETABLE.includes(normalizeStatus(s));
+
+const relativeTime = (iso?: string) => {
+  if (!iso) return "";
   const d = new Date(iso).getTime();
   if (isNaN(d)) return "";
   const diff = Date.now() - d;
@@ -112,13 +111,18 @@ const UserCampaigns: React.FC = () => {
     myError: error,
     fetchMine,
     refetch,
+    deleteMine,
   } = useCampaigns();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'all' | CampaignStatus>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | UiStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [showStartModal, setShowStartModal] = useState(false);
+
+  const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMine();
@@ -133,7 +137,7 @@ const UserCampaigns: React.FC = () => {
 
     let created: Campaign;
     try {
-      created = await createCampaign(payload as CreateCampaignData);
+      created = await createCampaign(payload as unknown as CreateCampaignData);
     } catch (err: any) {
       throw new Error(apiErrorMessage(err, 'Could not create the campaign.'));
     }
@@ -152,6 +156,31 @@ const UserCampaigns: React.FC = () => {
     await fetchMine();
   };
 
+  const closeDeleteDialog = () => {
+    if (deleting) return;
+    setCampaignToDelete(null);
+    setDeleteError(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!campaignToDelete) return;
+    if (!canDelete(campaignToDelete.status)) {
+      setDeleteError('Only paused or completed campaigns can be deleted.');
+      return;
+    }
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteMine(campaignToDelete.id);
+      setSelectedCampaign((cur) => (cur?.id === campaignToDelete.id ? null : cur));
+      setCampaignToDelete(null);
+    } catch (err: any) {
+      setDeleteError(apiErrorMessage(err, 'Could not delete the campaign.'));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const filteredCampaigns = useMemo(
     () =>
       campaigns.filter((c) => {
@@ -165,28 +194,45 @@ const UserCampaigns: React.FC = () => {
     [campaigns, statusFilter, searchQuery]
   );
 
-  const statusOptions: Array<'all' | CampaignStatus> = [
+  const statusOptions: Array<'all' | UiStatus> = [
     'all', 'DRAFT', 'READY', 'RUNNING', 'PAUSED', 'COMPLETED', 'CANCELLED',
   ];
 
-  const activeCampaigns = campaigns.filter(c => normalizeStatus(c.status) === "RUNNING").length;
+  const counts = useMemo(() => {
+    const m: Record<'all' | UiStatus, number> = {
+      all: campaigns.length, DRAFT: 0, READY: 0, RUNNING: 0, PAUSED: 0, COMPLETED: 0, CANCELLED: 0,
+    };
+    campaigns.forEach((c) => { m[normalizeStatus(c.status)] += 1; });
+    return m;
+  }, [campaigns]);
+
+  const runningCount = counts.RUNNING;
 
   return (
-    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.body, background: T.bg }}>
+    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.ui, background: T.bg }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap');
 
         .uc-main::-webkit-scrollbar { width: 8px; }
         .uc-main::-webkit-scrollbar-track { background: transparent; }
-        .uc-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
+        .uc-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 8px; }
         .uc-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
 
+        .uc-input::placeholder { color: ${T.textFaint}; }
+        .uc-input:focus { outline: none; }
+        .uc-seg:focus-visible { outline: 2px solid ${T.accentLine}; outline-offset: 2px; border-radius: 6px; }
+
         select option { background: ${T.surface}; color: ${T.text}; }
+
+        @media (prefers-reduced-motion: reduce) {
+          * { animation-duration: 0s !important; transition-duration: 0s !important; }
+        }
       `}</style>
 
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/70"
+          className="lg:hidden fixed inset-0 z-40"
+          style={{ background: 'rgba(11,12,14,0.72)' }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -200,38 +246,38 @@ const UserCampaigns: React.FC = () => {
       </div>
 
       <main className="uc-main flex-1 overflow-y-auto" style={{ background: T.bg, height: '100vh', width: '100%' }}>
-        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1180 }}>
+        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1200 }}>
 
           {/* Header */}
-          <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-6 md:mb-8">
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-lg transition-colors hover:bg-white/5"
-                style={{ background: T.surface, color: T.textMuted, boxShadow: RING }}
+                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-[120ms]"
+                style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
                 aria-label="Open menu"
               >
-                <Menu size={18} />
+                <Menu size={16} />
               </button>
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                    style={{ background: T.successSoft, color: T.success, boxShadow: `inset 0 0 0 1px ${T.successBorder}` }}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.success }} />
-                    {activeCampaigns} running
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="inline-flex items-center gap-2 text-[12px]" style={{ color: T.textMuted }}>
+                    <span
+                      className="inline-block w-1.5 h-1.5 rounded-full"
+                      style={{ background: runningCount > 0 ? T.accent : T.textFaint }}
+                    />
+                    {runningCount} running
                   </span>
-                  <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                    · {campaigns.length} total
+                  <span style={{ color: T.border }}>|</span>
+                  <span className="text-[12px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                    {campaigns.length} total
                   </span>
                 </div>
-
-                <h1 className="text-[26px] md:text-[30px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
-                  Your campaigns
+                <h1 className="text-[24px] md:text-[26px] font-medium leading-tight" style={{ color: T.text }}>
+                  Campaigns
                 </h1>
-                <p className="mt-1 text-[13.5px] max-w-lg" style={{ color: T.textMuted }}>
-                  Every campaign you've built, with live status.
+                <p className="mt-1 text-[13px] max-w-lg" style={{ color: T.textMuted }}>
+                  Everything you've sent, and everything in flight.
                 </p>
               </div>
             </div>
@@ -240,16 +286,16 @@ const UserCampaigns: React.FC = () => {
               <button
                 onClick={() => refetch()}
                 title="Refresh"
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-medium transition-colors hover:bg-white/5"
-                style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-[120ms]"
+                style={{ color: T.textMuted, border: HAIRLINE }}
               >
-                <RefreshCw size={13} />
+                <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
                 <span className="hidden sm:inline">Refresh</span>
               </button>
               <button
                 onClick={() => setShowStartModal(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium transition-all hover:brightness-110"
-                style={{ background: T.brand, color: "#fff", boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-[120ms]"
+                style={{ background: T.text, color: T.accentInk, border: `1px solid ${T.text}` }}
               >
                 <Plus size={14} />
                 New campaign
@@ -257,26 +303,24 @@ const UserCampaigns: React.FC = () => {
             </div>
           </header>
 
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 mb-5 md:mb-6">
+          {/* Query bar — search + segmented status filter */}
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3 mb-5">
             <div
-              className="flex items-center gap-2 rounded-lg px-2.5 py-2 flex-1 min-w-0 transition-shadow"
-              style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}` }}
-              onFocusCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brand}, 0 0 0 3px ${T.brandSoft}`)}
-              onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.border}`)}
+              className="flex items-center gap-2 rounded-md px-3 py-2 flex-1 min-w-0"
+              style={{ background: T.surface, border: HAIRLINE }}
             >
               <Search size={13} style={{ color: T.textFaint }} className="shrink-0" />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name or subject…"
-                className="w-full bg-transparent text-[12.5px] outline-none"
+                placeholder="Search by name or subject"
+                className="uc-input w-full bg-transparent text-[12.5px] outline-none"
                 style={{ color: T.text }}
               />
               {searchQuery && (
                 <button
-                  onClick={() => setSearchQuery("")}
-                  className="shrink-0 text-[10.5px] px-1.5 py-0.5 rounded transition-colors hover:bg-white/5"
+                  onClick={() => setSearchQuery('')}
+                  className="shrink-0 text-[11px] px-1.5 py-0.5 rounded transition-colors duration-[120ms]"
                   style={{ color: T.textFaint }}
                 >
                   Clear
@@ -284,22 +328,35 @@ const UserCampaigns: React.FC = () => {
               )}
             </div>
 
-            <div className="relative">
-              <Filter size={12} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: T.textFaint }} />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-                className="pl-7 pr-3 py-2 rounded-lg text-[12.5px] cursor-pointer outline-none transition-shadow"
-                style={{ background: T.surface, color: T.text, boxShadow: `inset 0 0 0 1px ${T.border}` }}
-                onFocus={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brand}`)}
-                onBlur={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.border}`)}
-              >
-                {statusOptions.map((s) => (
-                  <option key={s} value={s}>
-                    {s === 'all' ? 'All statuses' : STATUS_STYLES[s].label}
-                  </option>
-                ))}
-              </select>
+            <div
+              className="flex items-center rounded-md p-0.5 overflow-x-auto"
+              style={{ background: T.surface, border: HAIRLINE }}
+            >
+              {statusOptions.map((s) => {
+                const active = statusFilter === s;
+                const label = s === 'all' ? 'All' : STATUS_META[s].label;
+                const count = counts[s];
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setStatusFilter(s)}
+                    className="uc-seg inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[12px] whitespace-nowrap transition-colors duration-[120ms]"
+                    style={{
+                      background: active ? T.surface2 : 'transparent',
+                      color: active ? T.text : T.textMuted,
+                      border: active ? HAIRLINE_SOFT : '1px solid transparent',
+                    }}
+                  >
+                    {label}
+                    <span
+                      className="tabular-nums"
+                      style={{ color: active ? T.textFaint : T.textFaint, fontFamily: FONT.mono, fontSize: 10.5 }}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -308,31 +365,31 @@ const UserCampaigns: React.FC = () => {
             <div className="text-center py-16">
               <div
                 className="w-5 h-5 border-2 rounded-full animate-spin mx-auto"
-                style={{ borderColor: T.brand, borderTopColor: "transparent" }}
+                style={{ borderColor: T.border, borderTopColor: T.accent }}
               />
-              <p className="text-[11.5px] mt-3" style={{ color: T.textFaint }}>Loading campaigns…</p>
+              <p className="text-[11.5px] mt-3" style={{ color: T.textFaint }}>Loading campaigns</p>
             </div>
           )}
 
           {/* Error */}
           {!loading && error && (
             <div
-              className="text-center py-16 rounded-xl"
-              style={{ background: T.dangerSoft, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
+              className="text-center py-12 rounded-xl"
+              style={{ border: HAIRLINE, background: T.surface }}
             >
               <div
                 className="w-10 h-10 mx-auto mb-3 rounded-lg flex items-center justify-center"
-                style={{ background: "rgba(239,68,68,0.18)" }}
+                style={{ background: T.surfaceHi, border: HAIRLINE }}
               >
-                <AlertTriangle className="w-4 h-4" style={{ color: T.danger }} />
+                <AlertTriangle size={16} style={{ color: T.danger }} />
               </div>
-              <p className="text-[12.5px] mb-3" style={{ color: T.danger }}>{error}</p>
+              <p className="text-[13px] mb-4" style={{ color: T.danger }}>{error}</p>
               <button
                 onClick={() => refetch()}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11.5px] font-medium transition-colors hover:bg-white/5"
-                style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms]"
+                style={{ color: T.textMuted, border: HAIRLINE }}
               >
-                <RefreshCw size={11} /> Try again
+                <RefreshCw size={12} /> Try again
               </button>
             </div>
           )}
@@ -340,24 +397,22 @@ const UserCampaigns: React.FC = () => {
           {/* Empty */}
           {!loading && !error && filteredCampaigns.length === 0 && (
             <div
-              className="text-center py-20 rounded-xl"
-              style={{ background: T.surface, boxShadow: RING }}
+              className="text-center py-16 rounded-xl"
+              style={{ background: T.surface, border: HAIRLINE }}
             >
               <div
-                className="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center"
-                style={{ background: T.surface2 }}
+                className="w-11 h-11 mx-auto mb-4 rounded-lg flex items-center justify-center"
+                style={{ background: T.surfaceHi, border: HAIRLINE }}
               >
-                {campaigns.length === 0
-                  ? <Sparkles className="w-5 h-5" style={{ color: T.brand }} />
-                  : <Inbox className="w-5 h-5" style={{ color: T.textFaint }} />}
+                <Inbox size={18} style={{ color: T.textFaint }} />
               </div>
               <p className="text-[14px] font-medium" style={{ color: T.text }}>
-                {campaigns.length === 0 ? "No campaigns yet" : "No campaigns match"}
+                {campaigns.length === 0 ? 'No campaigns yet' : 'No campaigns match'}
               </p>
-              <p className="text-[12px] mt-1.5 mb-5 max-w-sm mx-auto" style={{ color: T.textMuted }}>
+              <p className="text-[12.5px] mt-1.5 mb-5 max-w-sm mx-auto" style={{ color: T.textMuted }}>
                 {campaigns.length === 0
-                  ? "Start your first campaign to see it here."
-                  : "Try a different search or status filter."}
+                  ? 'Start your first campaign to see it here.'
+                  : 'Try a different search or status filter.'}
               </p>
               <button
                 onClick={() =>
@@ -365,91 +420,133 @@ const UserCampaigns: React.FC = () => {
                     ? setShowStartModal(true)
                     : (setSearchQuery(''), setStatusFilter('all'))
                 }
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium transition-all hover:brightness-110"
-                style={{ background: T.brand, color: "#fff" }}
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-[120ms]"
+                style={{ background: T.text, color: T.accentInk, border: `1px solid ${T.text}` }}
               >
-                {campaigns.length === 0 ? (<><Plus size={13} /> Start campaign</>) : "Clear filters"}
+                {campaigns.length === 0 ? (<><Plus size={13} /> New campaign</>) : 'Clear filters'}
               </button>
             </div>
           )}
 
-          {/* List */}
+          {/* Ledger */}
           {!loading && !error && filteredCampaigns.length > 0 && (
-            <>
-              <div className="flex items-center justify-between mb-2.5">
+            <div className="rounded-xl overflow-hidden" style={{ background: T.surface, border: HAIRLINE }}>
+              {/* Table header strip */}
+              <div
+                className="hidden md:grid grid-cols-[minmax(0,1fr)_140px_120px_140px_40px] items-center gap-4 px-5 py-2.5"
+                style={{ borderBottom: HAIRLINE_SOFT }}
+              >
+                <span className="text-[11px]" style={{ color: T.textFaint }}>Campaign</span>
+                <span className="text-[11px]" style={{ color: T.textFaint }}>Status</span>
+                <span className="text-[11px] text-right" style={{ color: T.textFaint }}>Updated</span>
+                <span className="text-[11px] text-right" style={{ color: T.textFaint }}>Id</span>
+                <span />
+              </div>
+
+              {filteredCampaigns.map((campaign, idx) => {
+                const meta = STATUS_META[normalizeStatus(campaign.status)];
+                const isRunning = normalizeStatus(campaign.status) === 'RUNNING';
+                const showDelete = canDelete(campaign.status);
+                return (
+                  <div
+                    key={campaign.id}
+                    onClick={() => setSelectedCampaign(campaign)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSelectedCampaign(campaign)}
+                    className="grid grid-cols-[minmax(0,1fr)_40px] md:grid-cols-[minmax(0,1fr)_140px_120px_140px_40px] items-center gap-4 px-5 py-3 cursor-pointer transition-colors duration-[120ms]"
+                    style={{ borderTop: idx === 0 ? 'none' : HAIRLINE_SOFT }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = T.surface2)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    {/* Campaign cell — with phosphor left strip on running only */}
+                    <div className="min-w-0 relative pl-3">
+                      {isRunning && (
+                        <span
+                          aria-hidden
+                          className="absolute left-0 top-1 bottom-1 w-0.5 rounded-full"
+                          style={{ background: T.accent }}
+                        />
+                      )}
+                      <p className="text-[13px] font-medium truncate" style={{ color: T.text }}>
+                        {campaign.campaign_name}
+                      </p>
+                      <p className="text-[11.5px] truncate mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                        {campaign.subject || '—'}
+                      </p>
+                    </div>
+
+                    {/* Status */}
+                    <span className="hidden md:inline-flex items-center gap-2 text-[12px]" style={{ color: meta.fg }}>
+                      <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: meta.dot }} />
+                      {meta.label}
+                    </span>
+
+                    {/* Updated */}
+                    <span
+                      className="hidden md:block text-[11.5px] text-right tabular-nums"
+                      style={{ color: T.textFaint, fontFamily: FONT.mono }}
+                    >
+                      {relativeTime(campaign.updated_at)}
+                    </span>
+
+                    {/* Id + delete */}
+                    <div className="hidden md:flex items-center justify-end gap-2">
+                      <span
+                        className="text-[11px] tabular-nums"
+                        style={{ color: T.textFaint, fontFamily: FONT.mono }}
+                      >
+                        #{campaign.id}
+                      </span>
+                      {showDelete && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteError(null);
+                            setCampaignToDelete(campaign);
+                          }}
+                          title="Delete campaign"
+                          aria-label={`Delete ${campaign.campaign_name}`}
+                          className="p-1.5 rounded-md transition-colors duration-[120ms]"
+                          style={{ color: T.textFaint }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = T.danger; e.currentTarget.style.background = T.surfaceHi; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = T.textFaint; e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Chevron */}
+                    <div className="flex justify-end">
+                      <ChevronRight size={14} style={{ color: T.textFaint }} />
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Footer strip */}
+              <div
+                className="flex items-center justify-between px-5 py-3"
+                style={{ borderTop: HAIRLINE_SOFT }}
+              >
                 <p className="text-[11.5px]" style={{ color: T.textFaint }}>
-                  <span style={{ color: T.text, fontFamily: FONT.mono }}>{filteredCampaigns.length}</span>{" "}
-                  {filteredCampaigns.length === 1 ? "campaign" : "campaigns"}
+                  Showing{' '}
+                  <span className="tabular-nums" style={{ color: T.text, fontFamily: FONT.mono }}>
+                    {filteredCampaigns.length}
+                  </span>{' '}
+                  of{' '}
+                  <span className="tabular-nums" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+                    {campaigns.length}
+                  </span>
                   {statusFilter !== 'all' && (
-                    <> · filtered by <span style={{ color: T.brand }}>{STATUS_STYLES[statusFilter].label}</span></>
+                    <>
+                      {' '}· {STATUS_META[statusFilter].label}
+                    </>
                   )}
                 </p>
               </div>
-
-              <div className="space-y-2">
-                {filteredCampaigns.map((campaign) => {
-                  const s = STATUS_STYLES[normalizeStatus(campaign.status)];
-                  const StatusIcon = s.Icon;
-                  return (
-                    <div
-                      key={campaign.id}
-                      onClick={() => setSelectedCampaign(campaign)}
-                      className="group relative flex items-center gap-3 p-3.5 rounded-lg cursor-pointer transition-all hover:bg-white/[0.02]"
-                      style={{ background: T.surface, boxShadow: RING }}
-                    >
-                      {/* Accent strip */}
-                      <span
-                        className="absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full"
-                        style={{ background: s.fg, opacity: 0.7 }}
-                      />
-
-                      {/* Icon */}
-                      <div
-                        className="shrink-0 w-9 h-9 rounded-md flex items-center justify-center ml-2"
-                        style={{ background: s.bg, color: s.fg, boxShadow: `inset 0 0 0 1px ${s.ring}` }}
-                      >
-                        <StatusIcon size={14} />
-                      </div>
-
-                      {/* Title + subject */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <h3 className="font-medium text-[13px] truncate" style={{ color: T.text }}>
-                            {campaign.campaign_name}
-                          </h3>
-                          <span
-                            className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium"
-                            style={{ background: s.bg, color: s.fg, boxShadow: `inset 0 0 0 1px ${s.ring}` }}
-                          >
-                            <span className="w-1 h-1 rounded-full" style={{ background: s.fg }} />
-                            {s.label}
-                          </span>
-                        </div>
-                        <p className="text-[11px] truncate mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                          {campaign.subject || "—"}
-                        </p>
-                      </div>
-
-                      {/* Meta */}
-                      <div className="shrink-0 hidden md:flex flex-col items-end gap-0.5">
-                        <span className="text-[10.5px] whitespace-nowrap" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                          {relativeTime(campaign.updated_at)}
-                        </span>
-                        <span className="text-[10px]" style={{ color: T.textFaint, fontFamily: FONT.mono, opacity: 0.6 }}>
-                          #{campaign.id}
-                        </span>
-                      </div>
-
-                      <ChevronRight
-                        size={14}
-                        className="shrink-0 transition-all group-hover:translate-x-0.5"
-                        style={{ color: T.textFaint }}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </>
+            </div>
           )}
         </div>
       </main>
@@ -466,6 +563,73 @@ const UserCampaigns: React.FC = () => {
           onClose={() => setShowStartModal(false)}
           onSubmit={handleStartCampaign}
         />
+      )}
+
+      {/* Delete dialog */}
+      {campaignToDelete && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          style={{ background: 'rgba(11,12,14,0.72)' }}
+          onClick={closeDeleteDialog}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            className="w-full max-w-md rounded-xl p-5"
+            style={{ background: T.surface, border: HAIRLINE }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+                style={{ background: T.surfaceHi, border: HAIRLINE }}
+              >
+                <Trash2 size={15} style={{ color: T.danger }} />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-[15px] font-medium" style={{ color: T.text }}>Delete campaign</h2>
+                <p className="text-[12.5px] mt-1 leading-5" style={{ color: T.textMuted }}>
+                  <span style={{ color: T.text }}>{campaignToDelete.campaign_name}</span> will be permanently
+                  removed. This cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            {deleteError && (
+              <p
+                className="mt-4 text-[12px] rounded-md px-3 py-2"
+                style={{ border: HAIRLINE, color: T.danger }}
+              >
+                {deleteError}
+              </p>
+            )}
+
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                onClick={closeDeleteDialog}
+                disabled={deleting}
+                className="px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-[120ms] disabled:opacity-50"
+                style={{ color: T.textMuted, border: HAIRLINE }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-[120ms] disabled:opacity-60"
+                style={{ background: 'transparent', color: T.danger, border: `1px solid ${T.border}` }}
+              >
+                {deleting && (
+                  <span
+                    className="w-3 h-3 border-2 rounded-full animate-spin"
+                    style={{ borderColor: T.danger, borderTopColor: 'transparent' }}
+                  />
+                )}
+                {deleting ? 'Deleting' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
