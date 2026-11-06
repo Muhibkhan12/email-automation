@@ -10,44 +10,38 @@ import {
 import { getProfile, logoutUser } from "../../services/AuthServices";
 import type { User } from "../../types/UserTypes";
 
-/* ─────────────── design tokens ─────────────── */
+/* ─────────────── design tokens (matches AdminDashboard) ─────────────── */
 
 const T = {
-  bg:           "#0A0B10",
-  surface:      "#111319",
-  surface2:     "#161922",
-  surfaceHi:    "#1B1F2A",
-  border:       "#232838",
-  borderSoft:   "#1B1F2A",
-  text:         "#E9EBF0",
-  textMuted:    "#9CA3B4",
-  textFaint:    "#6B7280",
-  brand:        "#6366F1",
-  brandSoft:    "rgba(99,102,241,0.12)",
-  brandBorder:  "rgba(99,102,241,0.35)",
-  success:      "#22C55E",
-  successSoft:  "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:         "#F59E0B",
-  warnSoft:     "rgba(245,158,11,0.12)",
-  warnBorder:   "rgba(245,158,11,0.35)",
-  danger:       "#EF4444",
-  dangerSoft:   "rgba(239,68,68,0.12)",
-  dangerBorder: "rgba(239,68,68,0.35)",
-  info:         "#38BDF8",
-  infoSoft:     "rgba(56,189,248,0.12)",
-  infoBorder:   "rgba(56,189,248,0.35)",
-  purple:       "#A78BFA",
-  purpleSoft:   "rgba(167,139,250,0.12)",
-  purpleBorder: "rgba(167,139,250,0.35)",
+  bg:          "#0E0F11",
+  surface:     "#151618",
+  surface2:    "#1B1C1F",
+  surfaceHi:   "#232427",
+  line:        "rgba(236,237,239,0.08)",
+  lineStrong:  "rgba(236,237,239,0.14)",
+  text:        "#ECEDEF",
+  textMuted:   "#A1A4AB",
+  textFaint:   "#6C7078",
+  accent:      "#F0884D",
+  accentSoft:  "rgba(240,136,77,0.12)",
+  accentBorder:"rgba(240,136,77,0.35)",
+  success:     "#5FB07A",
+  successSoft: "rgba(95,176,122,0.12)",
+  successBorder:"rgba(95,176,122,0.30)",
+  danger:      "#D8665D",
+  dangerSoft:  "rgba(216,102,93,0.12)",
+  dangerBorder:"rgba(216,102,93,0.30)",
+  neutral1:    "#C9CBD0",
+  neutral2:    "#8E9199",
 };
 
 const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
+  body: "'Geist', system-ui, -apple-system, sans-serif",
+  mono: "'Geist Mono', ui-monospace, monospace",
 };
 
+const RING = `inset 0 0 0 1px ${T.line}`;
+const ICON = { size: 16, strokeWidth: 1.5 };
 
 /* ─────────────── helpers ─────────────── */
 
@@ -107,7 +101,7 @@ const NavItem = ({ path, name, icon: Icon, badge, onClose }: NavItemProps) => (
     to={path}
     end={path === "/admin"}
     onClick={onClose}
-    className="group relative flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12.5px] font-medium transition-colors"
+    className="group relative flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12px] font-medium transition-colors"
   >
     {({ isActive }: { isActive: boolean }) => (
       <>
@@ -115,22 +109,22 @@ const NavItem = ({ path, name, icon: Icon, badge, onClose }: NavItemProps) => (
           aria-hidden
           className="absolute inset-0 rounded-md transition-colors"
           style={{
-            background: isActive ? T.brandSoft : "transparent",
-            boxShadow: isActive ? `inset 0 0 0 1px ${T.brandBorder}` : "inset 0 0 0 1px transparent",
+            background: isActive ? T.accentSoft : "transparent",
+            boxShadow: isActive ? `inset 0 0 0 1px ${T.accentBorder}` : `inset 0 0 0 1px transparent`,
           }}
         />
 
         <span
           className="relative shrink-0 w-7 h-7 rounded-md flex items-center justify-center transition-colors"
           style={{
-            background: isActive ? "rgba(99,102,241,0.18)" : T.surface2,
-            boxShadow: `inset 0 0 0 1px ${isActive ? T.brandBorder : T.borderSoft}`,
+            background: isActive ? "rgba(240,136,77,0.18)" : T.surface2,
+            boxShadow: `inset 0 0 0 1px ${isActive ? T.accentBorder : T.line}`,
           }}
         >
           <Icon
             size={13}
-            strokeWidth={2}
-            style={{ color: isActive ? T.brand : T.textMuted }}
+            strokeWidth={1.5}
+            style={{ color: isActive ? T.accent : T.textMuted }}
           />
         </span>
 
@@ -143,11 +137,12 @@ const NavItem = ({ path, name, icon: Icon, badge, onClose }: NavItemProps) => (
 
         {badge && (
           <span
-            className="relative shrink-0 text-[10.5px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap"
+            className="relative shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-md whitespace-nowrap"
             style={{
               background: T.successSoft,
               color: T.success,
               boxShadow: `inset 0 0 0 1px ${T.successBorder}`,
+              fontFamily: FONT.mono,
             }}
           >
             {badge}
@@ -157,8 +152,9 @@ const NavItem = ({ path, name, icon: Icon, badge, onClose }: NavItemProps) => (
         {isActive && (
           <ChevronRight
             size={13}
+            strokeWidth={1.5}
             className="relative shrink-0"
-            style={{ color: T.brand }}
+            style={{ color: T.accent }}
           />
         )}
       </>
@@ -241,21 +237,21 @@ const ProfileMenu = ({ onClose, user, loadingUser }: ProfileMenuProps) => {
       className="absolute left-2 right-2 bottom-full mb-2 rounded-xl overflow-hidden"
       style={{
         background: T.surface,
-        boxShadow: `inset 0 0 0 1px ${T.border}, 0 24px 48px -16px rgba(0,0,0,0.8)`,
+        boxShadow: `inset 0 0 0 1px ${T.line}, 0 24px 48px -16px rgba(0,0,0,0.8)`,
         zIndex: 50,
       }}
     >
       {/* Header */}
-      <div className="p-3 border-b" style={{ borderColor: T.borderSoft }}>
+      <div className="p-3 border-b" style={{ borderColor: T.line }}>
         <div className="flex items-center gap-2.5">
           <div
-            className="relative shrink-0 w-9 h-9 rounded-md flex items-center justify-center"
-            style={{ background: T.brandSoft, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
+            className="relative shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+            style={{ background: T.accentSoft, boxShadow: `inset 0 0 0 1px ${T.accentBorder}` }}
           >
             {loadingUser ? (
-              <Loader2 size={14} className="animate-spin" style={{ color: T.brand }} />
+              <Loader2 size={14} className="animate-spin" style={{ color: T.accent }} />
             ) : (
-              <span className="text-[11.5px] font-bold" style={{ color: T.brand, fontFamily: FONT.mono }}>
+              <span className="text-[11px] font-medium" style={{ color: T.accent, fontFamily: FONT.mono }}>
                 {initials}
               </span>
             )}
@@ -265,7 +261,7 @@ const ProfileMenu = ({ onClose, user, loadingUser }: ProfileMenuProps) => {
             />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[12.5px] font-semibold truncate" style={{ color: T.text }}>
+            <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>
               {loadingUser ? "Loading…" : displayName}
             </p>
             <p className="text-[11px] truncate mt-0.5" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
@@ -276,10 +272,10 @@ const ProfileMenu = ({ onClose, user, loadingUser }: ProfileMenuProps) => {
 
         {user?.role && (
           <span
-            className="mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium"
-            style={{ background: T.brandSoft, color: T.brand, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
+            className="mt-2 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+            style={{ background: T.accentSoft, color: T.accent, boxShadow: `inset 0 0 0 1px ${T.accentBorder}`, fontFamily: FONT.mono }}
           >
-            <Shield size={10} />
+            <Shield size={10} strokeWidth={1.5} />
             {user.role}
           </span>
         )}
@@ -292,20 +288,21 @@ const ProfileMenu = ({ onClose, user, loadingUser }: ProfileMenuProps) => {
             key={label}
             role="menuitem"
             onClick={onClick}
-            className="group w-full flex items-center gap-2.5 rounded-md px-2 py-2 text-left text-[12.5px] transition-colors hover:bg-white/3"
+            className="group w-full flex items-center gap-2.5 rounded-md px-2 py-2 text-left text-[12px] transition-colors hover:bg-white/3"
             style={{ color: T.textMuted }}
             onMouseEnter={(e) => (e.currentTarget.style.color = T.text)}
             onMouseLeave={(e) => (e.currentTarget.style.color = T.textMuted)}
           >
             <span
               className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center"
-              style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+              style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.line}` }}
             >
-              <Icon size={12} style={{ color: T.textMuted }} />
+              <Icon size={12} strokeWidth={1.5} style={{ color: T.textMuted }} />
             </span>
             <span className="flex-1 truncate">{label}</span>
             <ChevronRight
               size={12}
+              strokeWidth={1.5}
               className="shrink-0 transition-transform group-hover:translate-x-0.5"
               style={{ color: T.textFaint }}
             />
@@ -319,7 +316,7 @@ const ProfileMenu = ({ onClose, user, loadingUser }: ProfileMenuProps) => {
           role="menuitem"
           onClick={handleLogout}
           disabled={loggingOut}
-          className="w-full flex items-center gap-2.5 rounded-md px-2 py-2 text-left text-[12.5px] font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full flex items-center gap-2.5 rounded-md px-2 py-2 text-left text-[12px] font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           style={{
             background: confirmingLogout ? T.dangerSoft : "transparent",
             color: T.danger,
@@ -339,7 +336,7 @@ const ProfileMenu = ({ onClose, user, loadingUser }: ProfileMenuProps) => {
             {loggingOut ? (
               <Loader2 size={12} className="animate-spin" style={{ color: T.danger }} />
             ) : (
-              <LogOut size={12} style={{ color: T.danger }} />
+              <LogOut size={12} strokeWidth={1.5} style={{ color: T.danger }} />
             )}
           </span>
           <span className="flex-1 truncate">
@@ -390,43 +387,44 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
       className="w-64 h-screen flex flex-col"
       style={{
         background: T.surface,
-        borderRight: `1px solid ${T.border}`,
+        borderRight: `1px solid ${T.line}`,
       }}
     >
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap');
         .asb-nav::-webkit-scrollbar { width: 6px; }
         .asb-nav::-webkit-scrollbar-track { background: transparent; }
-        .asb-nav::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
-        .asb-nav::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
+        .asb-nav::-webkit-scrollbar-thumb { background: ${T.surfaceHi}; border-radius: 8px; }
       `}</style>
 
       {/* ── Brand row ── */}
-      <div className="flex items-center gap-2.5 px-4 h-16 shrink-0 border-b" style={{ borderColor: T.border }}>
+      <div className="flex items-center gap-2.5 px-4 h-16 shrink-0 border-b" style={{ borderColor: T.line }}>
         <div
-          className="w-9 h-9 rounded-md flex items-center justify-center shrink-0"
+          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
           style={{
-            background: `linear-gradient(135deg, ${T.brand}, #818CF8)`,
-            boxShadow: "0 6px 18px -8px rgba(99,102,241,0.6)",
+            background: `linear-gradient(135deg, ${T.accent}, #F5A574)`,
+            boxShadow: "0 6px 18px -8px rgba(240,136,77,0.6)",
           }}
         >
-          <span className="text-[13px] font-bold text-white">A</span>
+          <span className="text-[13px] font-medium text-white">A</span>
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="text-[13.5px] font-semibold tracking-tight truncate" style={{ color: T.text }}>
+          <p className="text-[13px] font-medium tracking-tight truncate" style={{ color: T.text }}>
             MailForge Admin
           </p>
-          <p className="text-[10.5px] truncate mt-0.5" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+          <p className="text-[11px] truncate mt-0.5" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
             console · v1.4
           </p>
         </div>
 
         <span
-          className="shrink-0 text-[10.5px] font-medium px-2 py-0.5 rounded-full"
+          className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-md"
           style={{
-            background: T.brandSoft,
-            color: T.brand,
-            boxShadow: `inset 0 0 0 1px ${T.brandBorder}`,
+            background: T.accentSoft,
+            color: T.accent,
+            boxShadow: `inset 0 0 0 1px ${T.accentBorder}`,
+            fontFamily: FONT.mono,
           }}
         >
           Admin
@@ -439,7 +437,7 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
             className="lg:hidden shrink-0 p-1.5 rounded-md transition-colors hover:bg-white/5"
             style={{ color: T.textMuted }}
           >
-            <X size={16} />
+            <X size={16} strokeWidth={1.5} />
           </button>
         )}
       </div>
@@ -450,12 +448,12 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
           <div key={group.label}>
             <div className="flex items-center gap-2 px-2.5 mb-2">
               <p
-                className="text-[9.5px] font-semibold uppercase tracking-[0.12em]"
-                style={{ color: T.textFaint }}
+                className="text-[11px] font-medium uppercase tracking-wide"
+                style={{ color: T.textFaint, fontFamily: FONT.mono }}
               >
                 {group.label}
               </p>
-              <span className="flex-1 h-px" style={{ background: T.borderSoft }} />
+              <span className="flex-1 h-px" style={{ background: T.line }} />
             </div>
 
             <div className="space-y-0.5">
@@ -471,7 +469,7 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
       <div
         ref={containerRef}
         className="relative px-2 py-3 shrink-0 border-t"
-        style={{ borderColor: T.border }}
+        style={{ borderColor: T.line }}
       >
         {profileOpen && (
           <ProfileMenu
@@ -489,20 +487,20 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
           className="group w-full flex items-center gap-2.5 px-2 py-2 rounded-md text-left transition-colors"
           style={{
             background: profileOpen ? T.surface2 : "transparent",
-            boxShadow: profileOpen ? `inset 0 0 0 1px ${T.border}` : "inset 0 0 0 1px transparent",
+            boxShadow: profileOpen ? `inset 0 0 0 1px ${T.line}` : "inset 0 0 0 1px transparent",
           }}
         >
           <div
-            className="relative shrink-0 w-8 h-8 rounded-md flex items-center justify-center"
+            className="relative shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
             style={{
-              background: T.brandSoft,
-              boxShadow: `inset 0 0 0 1px ${T.brandBorder}`,
+              background: T.accentSoft,
+              boxShadow: `inset 0 0 0 1px ${T.accentBorder}`,
             }}
           >
             {loadingUser ? (
-              <Loader2 size={14} className="animate-spin" style={{ color: T.brand }} />
+              <Loader2 size={14} className="animate-spin" style={{ color: T.accent }} />
             ) : (
-              <span className="text-[11px] font-bold" style={{ color: T.brand, fontFamily: FONT.mono }}>
+              <span className="text-[11px] font-medium" style={{ color: T.accent, fontFamily: FONT.mono }}>
                 {initials}
               </span>
             )}
@@ -516,11 +514,11 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
             {loadingUser ? (
               <>
                 <div className="h-2.5 w-24 rounded animate-pulse" style={{ background: T.surfaceHi }} />
-                <div className="h-2.25 w-32 rounded animate-pulse mt-1.5" style={{ background: T.surfaceHi }} />
+                <div className="h-2.5 w-32 rounded animate-pulse mt-1.5" style={{ background: T.surfaceHi }} />
               </>
             ) : (
               <>
-                <p className="text-[12.5px] font-semibold truncate" style={{ color: T.text }}>
+                <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>
                   {displayName || "Signed in"}
                 </p>
                 <p className="text-[11px] truncate mt-0.5" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
@@ -532,8 +530,9 @@ const AdminSidebar = ({ onClose }: AdminSidebarProps) => {
 
           <ChevronRight
             size={14}
+            strokeWidth={1.5}
             className={`shrink-0 transition-all ${profileOpen ? "rotate-90" : "group-hover:translate-x-0.5"}`}
-            style={{ color: profileOpen ? T.brand : T.textFaint }}
+            style={{ color: profileOpen ? T.accent : T.textFaint }}
           />
         </button>
       </div>

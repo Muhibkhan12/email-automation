@@ -15,7 +15,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
-/* ─────────────── types & config ─────────────── */
+/* ─────────────── types & config (unchanged) ─────────────── */
 
 interface ApiUser {
   id: number;
@@ -37,57 +37,51 @@ const DENSITY: Record<Density, { row: string; cell: string }> = {
   dense:       { row: "h-[42px]", cell: "py-2" },
 };
 
-/* ─────────────── design tokens ─────────────── */
+/* ─────────────── design tokens (matches AdminDashboard) ─────────────── */
 
 const T = {
-  bg:           "#0A0B10",
-  surface:      "#111319",
-  surface2:     "#161922",
-  surfaceHi:    "#1B1F2A",
-  border:       "#232838",
-  borderSoft:   "#1B1F2A",
-  text:         "#E9EBF0",
-  textMuted:    "#9CA3B4",
-  textFaint:    "#6B7280",
-  brand:        "#6366F1",
-  brandSoft:    "rgba(99,102,241,0.12)",
-  brandBorder:  "rgba(99,102,241,0.35)",
-  success:      "#22C55E",
-  successSoft:  "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:         "#F59E0B",
-  warnSoft:     "rgba(245,158,11,0.12)",
-  warnBorder:   "rgba(245,158,11,0.35)",
-  danger:       "#EF4444",
-  dangerSoft:   "rgba(239,68,68,0.12)",
-  dangerBorder: "rgba(239,68,68,0.35)",
-  info:         "#38BDF8",
-  infoSoft:     "rgba(56,189,248,0.12)",
-  infoBorder:   "rgba(56,189,248,0.35)",
-  purple:       "#A78BFA",
-  purpleSoft:   "rgba(167,139,250,0.12)",
-  purpleBorder: "rgba(167,139,250,0.35)",
+  bg:          "#0E0F11",
+  surface:     "#151618",
+  surface2:    "#1B1C1F",
+  surfaceHi:   "#232427",
+  line:        "rgba(236,237,239,0.08)",
+  lineStrong:  "rgba(236,237,239,0.14)",
+  text:        "#ECEDEF",
+  textMuted:   "#A1A4AB",
+  textFaint:   "#6C7078",
+  accent:      "#F0884D",
+  accentSoft:  "rgba(240,136,77,0.12)",
+  accentBorder:"rgba(240,136,77,0.35)",
+  success:     "#5FB07A",
+  warn:        "#D4A24C",
+  danger:      "#D8665D",
+  dangerSoft:  "rgba(216,102,93,0.12)",
+  dangerBorder:"rgba(216,102,93,0.30)",
+  neutral1:    "#C9CBD0",
+  neutral2:    "#8E9199",
+  neutral3:    "#5E6169",
+  neutral4:    "#44464C",
 };
 
 const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
+  body: "'Geist', system-ui, -apple-system, sans-serif",
+  mono: "'Geist Mono', ui-monospace, monospace",
 };
 
-const RING = `inset 0 0 0 1px ${T.border}`;
+const RING = `inset 0 0 0 1px ${T.line}`;
+const ICON = { size: 16, strokeWidth: 1.5 };
 
 const ROLE_META: Record<
   ApiUser["role"],
   { fg: string; bg: string; ring: string; icon: React.ElementType; label: string }
 > = {
-  ADMIN:    { fg: T.purple, bg: T.purpleSoft, ring: T.purpleBorder, icon: Shield,    label: "Admin" },
-  EMPLOYEE: { fg: T.info,   bg: T.infoSoft,   ring: T.infoBorder,   icon: UserCheck, label: "Employee" },
+  ADMIN:    { fg: T.neutral1, bg: "rgba(201,203,208,0.10)", ring: "rgba(201,203,208,0.28)", icon: Shield,    label: "Admin" },
+  EMPLOYEE: { fg: T.neutral2, bg: "rgba(142,145,153,0.12)", ring: "rgba(142,145,153,0.30)", icon: UserCheck, label: "Employee" },
 };
 
-/* ─────────────── helpers ─────────────── */
+/* ─────────────── helpers (unchanged) ─────────────── */
 
-const AVATAR_HUES = ["#6366F1", "#A78BFA", "#38BDF8", "#22C55E", "#F59E0B", "#F472B6"];
+const AVATAR_HUES = ["#F0884D", "#C9CBD0", "#8E9199", "#5FB07A", "#D4A24C", "#D8665D"];
 const hueFor = (seed: string) => {
   let hash = 0;
   for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
@@ -101,7 +95,7 @@ const formatDate = (iso?: string) => {
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 };
 
-/* ─────────────── hooks ─────────────── */
+/* ─────────────── hooks (unchanged) ─────────────── */
 
 const useEscape = (active: boolean, handler: () => void) => {
   useEffect(() => {
@@ -129,7 +123,7 @@ const Avatar: React.FC<{ seed: string; name: string; size?: number }> = ({ seed,
   const initial = (name || "U").trim()[0]?.toUpperCase() ?? "U";
   return (
     <div
-      className="shrink-0 rounded-md flex items-center justify-center font-semibold text-white select-none"
+      className="shrink-0 rounded-lg flex items-center justify-center font-medium text-white select-none"
       style={{
         width: size, height: size,
         fontSize: size * 0.42,
@@ -148,10 +142,10 @@ const RolePill: React.FC<{ role: ApiUser["role"] }> = ({ role }) => {
   const Icon = meta.icon;
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
-      style={{ background: meta.bg, color: meta.fg, boxShadow: `inset 0 0 0 1px ${meta.ring}` }}
+      className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium whitespace-nowrap"
+      style={{ background: meta.bg, color: meta.fg, boxShadow: `inset 0 0 0 1px ${meta.ring}`, fontFamily: FONT.mono }}
     >
-      <Icon size={10} />
+      <Icon size={11} strokeWidth={1.5} />
       {meta.label}
     </span>
   );
@@ -170,25 +164,25 @@ const StatPill: React.FC<{
   <button
     type="button"
     onClick={onClick}
-    className="group text-left rounded-lg p-4 transition-colors hover:bg-white/2"
+    className="group text-left rounded-xl p-5 btn-press transition-colors"
     style={{
       background: T.surface,
-      boxShadow: active ? `inset 0 0 0 1.5px ${accentBorder}` : `inset 0 0 0 1px ${T.border}`,
+      boxShadow: active ? `inset 0 0 0 1px ${accentBorder}` : RING,
     }}
     aria-pressed={active}
   >
     <div className="flex items-start justify-between mb-3">
       <div
-        className="w-8 h-8 rounded-md flex items-center justify-center"
+        className="w-8 h-8 rounded-lg flex items-center justify-center"
         style={{ background: accentSoft, color: accent }}
       >
-        <Icon size={14} />
+        <Icon size={14} strokeWidth={1.5} />
       </div>
     </div>
-    <p className="text-[24px] font-semibold tracking-tight leading-none" style={{ color: T.text, fontFamily: FONT.mono }}>
+    <p className="text-[24px] font-medium tracking-tight leading-none tabular-nums" style={{ color: T.text, fontFamily: FONT.mono }}>
       {value.toLocaleString()}
     </p>
-    <p className="text-[11.5px] mt-2" style={{ color: active ? accent : T.textMuted }}>{label}</p>
+    <p className="text-[12px] mt-2" style={{ color: active ? accent : T.textMuted }}>{label}</p>
   </button>
 );
 
@@ -216,7 +210,7 @@ const AdminUsers = () => {
 
   const searchRef = useRef<HTMLInputElement>(null);
 
-  /* ── fetch ── */
+  /* ── fetch (unchanged) ── */
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
@@ -242,7 +236,7 @@ const AdminUsers = () => {
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
-  /* ── filter + sort ── */
+  /* ── filter + sort (unchanged) ── */
   const filteredUsers = useMemo(() => {
     let result = [...users];
     if (search.trim()) {
@@ -283,7 +277,7 @@ const AdminUsers = () => {
   const adminCount = users.filter((u) => u.role === "ADMIN").length;
   const employeeCount = users.filter((u) => u.role === "EMPLOYEE").length;
 
-  /* ── selection ── */
+  /* ── selection (unchanged) ── */
   const allVisibleSelected =
     paginatedUsers.length > 0 && paginatedUsers.every((u) => selected.has(u.id));
 
@@ -305,7 +299,7 @@ const AdminUsers = () => {
 
   const clearSelection = () => setSelected(new Set());
 
-  /* ── update / delete ── */
+  /* ── update / delete (unchanged) ── */
   const handleUpdate = async (id: number, data: Partial<ApiUser>) => {
     try {
       setActionLoading(true);
@@ -384,7 +378,7 @@ const AdminUsers = () => {
   const hasActiveFilters = !!search || roleFilter !== "All";
   const openUser = openUserId != null ? users.find((u) => u.id === openUserId) ?? null : null;
 
-  /* ── keyboard ── */
+  /* ── keyboard (unchanged) ── */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -400,40 +394,60 @@ const AdminUsers = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  const stagger = (i: number) => ({ "--i": i } as React.CSSProperties);
+
   return (
     <div
-      className="flex w-full overflow-hidden"
+      className="au-root flex w-full overflow-hidden"
       style={{ fontFamily: FONT.body, background: T.bg, height: "100dvh" }}
     >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap');
 
-        /* Kill outer body scroll so only <main> scrolls */
         html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; }
 
-        @keyframes floatIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-        .float-in { animation: floatIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .au-root { --ease: cubic-bezier(0.2, 0, 0, 1); }
+
+        @keyframes enter {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .enter { animation: enter 240ms var(--ease) both; animation-delay: calc(var(--i, 0) * 40ms); }
+
         @keyframes modalPop { from { opacity: 0; transform: scale(0.98) translateY(6px); } to { opacity: 1; transform: none; } }
-        .modal-pop { animation: modalPop 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .modal-pop { animation: modalPop 200ms var(--ease); }
         @keyframes drawerIn { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .drawer-in { animation: drawerIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .drawer-in { animation: drawerIn 250ms var(--ease); }
         @keyframes barUp { from { transform: translate(-50%, 100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
-        .bar-up { animation: barUp 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .bar-up { animation: barUp 250ms var(--ease); }
+
+        .au-root button, .au-root a { transition-property: color, background-color, box-shadow, opacity; transition-duration: 120ms; transition-timing-function: var(--ease); }
+        .au-root button:focus-visible { outline: 2px solid ${T.accent}; outline-offset: 2px; }
 
         .au-main::-webkit-scrollbar { width: 8px; }
         .au-main::-webkit-scrollbar-track { background: transparent; }
-        .au-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
-        .au-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
+        .au-main::-webkit-scrollbar-thumb { background: ${T.surfaceHi}; border-radius: 8px; }
 
-        .au-row:hover { background: rgba(255,255,255,0.02); }
-        .au-row .au-actions { opacity: 0; transition: opacity 0.15s ease; }
+        .btn-primary:hover { background: #FFFFFF; }
+        .btn-quiet:hover { background: rgba(236,237,239,0.05); color: ${T.text}; }
+        .btn-press:active { transform: scale(0.98); }
+
+        .au-row { transition: background-color 120ms var(--ease); }
+        .au-row:hover { background: rgba(236,237,239,0.03); }
+        .au-row .au-actions { opacity: 0; transition: opacity 0.15s var(--ease); }
         .au-row:hover .au-actions, .au-row:focus-within .au-actions { opacity: 1; }
+
         select option { background: ${T.surface2}; color: ${T.text}; }
         .kbd {
           display: inline-flex; align-items: center; justify-content: center;
           min-width: 18px; height: 18px; padding: 0 4px;
           border-radius: 4px; font-size: 10px; font-family: ${FONT.mono};
-          color: ${T.textMuted}; background: ${T.surface2}; box-shadow: inset 0 0 0 1px ${T.border};
+          color: ${T.textMuted}; background: ${T.surface2}; box-shadow: inset 0 0 0 1px ${T.line};
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .enter, .modal-pop, .drawer-in, .bar-up { animation: none !important; }
+          .btn-press:active { transform: none; }
         }
       `}</style>
 
@@ -452,35 +466,35 @@ const AdminUsers = () => {
       </div>
 
       <main className="au-main flex-1 min-w-0 overflow-y-auto overflow-x-hidden" style={{ background: T.bg }}>
-        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1280 }}>
+        <div className="mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8 flex flex-col gap-6" style={{ maxWidth: 1440 }}>
 
-          {/* Header */}
-          <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-7">
+          {/* Header — dashboard style */}
+          <header className="enter flex flex-col md:flex-row md:items-end justify-between gap-4" style={stagger(0)}>
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-lg transition-colors hover:bg-white/5"
+                className="lg:hidden mt-1 p-2 rounded-lg btn-quiet"
                 style={{ background: T.surface, color: T.textMuted, boxShadow: RING }}
                 aria-label="Open menu"
               >
-                <Menu size={18} />
+                <Menu {...ICON} />
               </button>
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span
-                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                    style={{ background: T.brandSoft, color: T.brand, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
+                    className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium"
+                    style={{ background: T.accentSoft, color: T.accent, fontFamily: FONT.mono }}
                   >
-                    <Sparkles size={10} /> Admin view
+                    <Sparkles size={11} strokeWidth={1.5} /> Admin view
                   </span>
-                  <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                  <span className="text-[12px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                     · {users.length} total
                   </span>
                 </div>
-                <h1 className="text-[26px] md:text-[30px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
+                <h1 className="text-[28px] leading-8 font-medium tracking-tight" style={{ color: T.text }}>
                   Users
                 </h1>
-                <p className="mt-1 text-[13.5px] max-w-lg" style={{ color: T.textMuted }}>
+                <p className="mt-2 text-[12px]" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
                   Every account in the system, with role and join date.
                 </p>
               </div>
@@ -489,23 +503,23 @@ const AdminUsers = () => {
             <button
               onClick={fetchUsers}
               disabled={loading}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-medium transition-colors hover:bg-white/5 disabled:opacity-60 self-start md:self-auto"
-              style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+              className="btn-quiet btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] font-medium disabled:opacity-60 self-start md:self-auto"
+              style={{ color: T.textMuted, background: T.surface, boxShadow: RING }}
             >
-              <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+              <RefreshCw {...ICON} size={14} className={loading ? "animate-spin" : ""} />
               Refresh
             </button>
           </header>
 
           {/* Stat pills */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mb-6">
+          <div className="enter grid grid-cols-1 sm:grid-cols-3 gap-4" style={stagger(1)}>
             <StatPill
               icon={UsersIcon}
               label="Total users"
               value={users.length}
-              accent={T.brand}
-              accentSoft={T.brandSoft}
-              accentBorder={T.brandBorder}
+              accent={T.accent}
+              accentSoft={T.accentSoft}
+              accentBorder={T.accentBorder}
               active={roleFilter === "All"}
               onClick={() => setRoleFilter("All")}
             />
@@ -513,9 +527,9 @@ const AdminUsers = () => {
               icon={Shield}
               label="Admins"
               value={adminCount}
-              accent={T.purple}
-              accentSoft={T.purpleSoft}
-              accentBorder={T.purpleBorder}
+              accent={T.neutral1}
+              accentSoft={"rgba(201,203,208,0.10)"}
+              accentBorder={"rgba(201,203,208,0.28)"}
               active={roleFilter === "ADMIN"}
               onClick={() => setRoleFilter((prev) => (prev === "ADMIN" ? "All" : "ADMIN"))}
             />
@@ -523,9 +537,9 @@ const AdminUsers = () => {
               icon={UserCheck}
               label="Employees"
               value={employeeCount}
-              accent={T.info}
-              accentSoft={T.infoSoft}
-              accentBorder={T.infoBorder}
+              accent={T.neutral2}
+              accentSoft={"rgba(142,145,153,0.12)"}
+              accentBorder={"rgba(142,145,153,0.30)"}
               active={roleFilter === "EMPLOYEE"}
               onClick={() => setRoleFilter((prev) => (prev === "EMPLOYEE" ? "All" : "EMPLOYEE"))}
             />
@@ -533,31 +547,31 @@ const AdminUsers = () => {
 
           {/* Command bar */}
           <div
-            className="rounded-xl p-3 mb-5 sticky top-3 z-20"
-            style={{ background: T.surface, boxShadow: RING }}
+            className="enter rounded-xl p-3 sticky top-3 z-20"
+            style={{ background: T.surface, boxShadow: RING, ...stagger(2) }}
           >
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <div
                 className="flex items-center gap-2 rounded-lg px-3 py-2 flex-1 min-w-0 transition-all"
-                style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
-                onFocusCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brandBorder}, 0 0 0 3px ${T.brandSoft}`)}
-                onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.borderSoft}`)}
+                style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.line}` }}
+                onFocusCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.accentBorder}, 0 0 0 3px ${T.accentSoft}`)}
+                onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.line}`)}
               >
-                <Search size={13} style={{ color: T.textFaint }} className="shrink-0" />
+                <Search size={14} style={{ color: T.textFaint }} strokeWidth={1.5} className="shrink-0" />
                 <input
                   ref={searchRef}
                   placeholder="Search by username or email…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-transparent text-[13px] outline-none"
+                  className="w-full bg-transparent text-[12px] outline-none"
                   style={{ color: T.text }}
                   aria-label="Search users"
                 />
                 {search ? (
                   <button
                     onClick={() => setSearch("")}
-                    className="shrink-0 text-[10px] px-1.5 py-0.5 rounded transition-colors hover:bg-white/5"
-                    style={{ color: T.textMuted }}
+                    className="shrink-0 text-[11px] px-1.5 py-0.5 rounded btn-quiet"
+                    style={{ color: T.textMuted, fontFamily: FONT.mono }}
                   >
                     Clear
                   </button>
@@ -571,12 +585,12 @@ const AdminUsers = () => {
 
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="relative">
-                  <SlidersHorizontal size={11} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: T.textFaint }} />
+                  <SlidersHorizontal size={12} strokeWidth={1.5} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: T.textFaint }} />
                   <select
                     value={roleFilter}
                     onChange={(e) => setRoleFilter(e.target.value as Role)}
-                    className="pl-7 pr-2.5 py-2 rounded-lg text-[12px] cursor-pointer outline-none"
-                    style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                    className="pl-8 pr-3 py-2 rounded-lg text-[12px] cursor-pointer outline-none"
+                    style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.line}`, fontFamily: FONT.mono }}
                     aria-label="Filter by role"
                   >
                     {ROLES.map((r) => <option key={r} value={r}>{r === "All" ? "All roles" : r}</option>)}
@@ -584,7 +598,7 @@ const AdminUsers = () => {
                 </div>
 
                 <div className="relative">
-                  <ChevronDown size={11} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: T.textFaint }} />
+                  <ChevronDown size={12} strokeWidth={1.5} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: T.textFaint }} />
                   <select
                     value={`${String(sortField)}-${sortDirection}`}
                     onChange={(e) => {
@@ -592,8 +606,8 @@ const AdminUsers = () => {
                       setSortField(f as keyof ApiUser);
                       setSortDirection(d as "asc" | "desc");
                     }}
-                    className="pl-7 pr-2.5 py-2 rounded-lg text-[12px] cursor-pointer outline-none"
-                    style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                    className="pl-8 pr-3 py-2 rounded-lg text-[12px] cursor-pointer outline-none"
+                    style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.line}`, fontFamily: FONT.mono }}
                     aria-label="Sort users"
                   >
                     <option value="username-asc">Name · A→Z</option>
@@ -608,7 +622,7 @@ const AdminUsers = () => {
                 {/* Density */}
                 <div
                   className="inline-flex items-center gap-0.5 rounded-lg p-0.5"
-                  style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                  style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.line}` }}
                   role="group"
                   aria-label="Density"
                 >
@@ -638,50 +652,50 @@ const AdminUsers = () => {
                 {hasActiveFilters && (
                   <button
                     onClick={() => { setSearch(""); setRoleFilter("All"); }}
-                    className="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-[12px] font-medium transition-colors"
-                    style={{ background: T.surface2, color: T.brand, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[12px] font-medium btn-quiet"
+                    style={{ background: T.surface2, color: T.accent, boxShadow: `inset 0 0 0 1px ${T.line}`, fontFamily: FONT.mono }}
                   >
-                    <X size={11} /> Clear
+                    <X size={12} strokeWidth={1.5} /> Clear
                   </button>
                 )}
               </div>
             </div>
 
-            <div className="mt-2.5 flex items-center justify-between text-[11px]" style={{ color: T.textFaint }}>
+            <div className="mt-2.5 flex items-center justify-between text-[12px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
               <span>
                 Showing{" "}
-                <span style={{ color: T.text, fontFamily: FONT.mono }}>
+                <span style={{ color: T.text }}>
                   {filteredUsers.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredUsers.length)}
                 </span>{" "}
-                of <span style={{ color: T.text, fontFamily: FONT.mono }}>{filteredUsers.length}</span>
+                of <span style={{ color: T.text }}>{filteredUsers.length}</span>
               </span>
-              <span className="hidden sm:inline" style={{ fontFamily: FONT.mono }}>
+              <span className="hidden sm:inline">
                 Page {page} / {totalPages}
               </span>
             </div>
           </div>
 
           {/* Table */}
-          <div className="rounded-xl overflow-hidden" style={{ background: T.surface, boxShadow: RING }}>
+          <div className="enter rounded-xl overflow-hidden" style={{ background: T.surface, boxShadow: RING, ...stagger(3) }}>
             <div className="overflow-x-auto">
               <table className="w-full text-left" style={{ minWidth: 720 }}>
                 <thead>
-                  <tr className="text-[10px] uppercase tracking-widest" style={{ color: T.textFaint, borderBottom: `1px solid ${T.borderSoft}` }}>
-                    <th className="w-11.5 px-4 md:px-5 py-2.5" scope="col">
+                  <tr className="text-[12px]" style={{ color: T.textFaint, borderBottom: `1px solid ${T.line}` }}>
+                    <th className="w-11.5 px-4 md:px-5 py-3 font-normal" scope="col">
                       <button
                         onClick={toggleAllVisible}
                         aria-label={allVisibleSelected ? "Deselect all visible" : "Select all visible"}
                         style={{ color: T.textFaint }}
-                        className="transition-colors hover:text-[#E9EBF0]"
+                        className="transition-colors hover:text-[#ECEDEF]"
                       >
                         {allVisibleSelected ? <CheckSquare size={13} /> : <Square size={13} />}
                       </button>
                     </th>
                     <SortHeader field="username"   label="User"   sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
                     <SortHeader field="email"      label="Email"  sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} />
-                    <th className="px-3 py-2.5 font-medium w-32.5" scope="col">Role</th>
+                    <th className="px-3 py-3 font-normal w-32.5" scope="col">Role</th>
                     <SortHeader field="created_at" label="Joined" sortField={sortField} sortDirection={sortDirection} onSort={toggleSort} align="right" />
-                    <th className="w-22.5 px-4 md:px-5 py-2.5" scope="col"><span className="sr-only">Actions</span></th>
+                    <th className="w-22.5 px-4 md:px-5 py-3 font-normal" scope="col"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
 
@@ -691,8 +705,8 @@ const AdminUsers = () => {
                     <tr>
                       <td colSpan={6}>
                         <div className="py-20 flex flex-col items-center justify-center">
-                          <Loader2 size={24} className="animate-spin" style={{ color: T.brand }} />
-                          <p className="mt-3 text-[12.5px]" style={{ color: T.textMuted }}>Loading users…</p>
+                          <Loader2 size={22} className="animate-spin" style={{ color: T.neutral2 }} />
+                          <p className="mt-3 text-[12px]" style={{ color: T.textMuted, fontFamily: FONT.mono }}>Loading users…</p>
                         </div>
                       </td>
                     </tr>
@@ -705,18 +719,18 @@ const AdminUsers = () => {
                         <div className="py-16 flex flex-col items-center justify-center text-center px-6">
                           <div className="w-12 h-12 mb-4 rounded-lg flex items-center justify-center"
                             style={{ background: T.dangerSoft, color: T.danger }}>
-                            <AlertTriangle size={22} />
+                            <AlertTriangle size={22} strokeWidth={1.5} />
                           </div>
-                          <h3 className="text-[15px] font-semibold" style={{ color: T.text }}>
+                          <h3 className="text-[14px] font-medium" style={{ color: T.text }}>
                             Couldn't load users
                           </h3>
-                          <p className="mt-2 text-[12.5px] max-w-md" style={{ color: T.textMuted }}>{error}</p>
+                          <p className="mt-2 text-[12px] max-w-md" style={{ color: T.textMuted }}>{error}</p>
                           <button
                             onClick={fetchUsers}
-                            className="mt-4 inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-[12px] font-medium text-white transition-all hover:brightness-110"
-                            style={{ background: T.brand, boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+                            className="btn-primary btn-press mt-4 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium"
+                            style={{ background: T.text, color: T.bg }}
                           >
-                            <RefreshCw size={12} /> Try again
+                            <RefreshCw {...ICON} size={14} /> Try again
                           </button>
                         </div>
                       </td>
@@ -729,13 +743,13 @@ const AdminUsers = () => {
                       <td colSpan={6}>
                         <div className="py-16 flex flex-col items-center justify-center text-center px-6">
                           <div className="w-12 h-12 mb-4 rounded-lg flex items-center justify-center"
-                            style={{ background: T.surface2, color: T.brand }}>
-                            <UserIcon size={22} />
+                            style={{ background: T.surface2, color: T.accent }}>
+                            <UserIcon size={22} strokeWidth={1.5} />
                           </div>
-                          <h3 className="text-[15px] font-semibold" style={{ color: T.text }}>
+                          <h3 className="text-[14px] font-medium" style={{ color: T.text }}>
                             {users.length === 0 ? "No users yet" : "No users match"}
                           </h3>
-                          <p className="mt-2 text-[12.5px] max-w-md" style={{ color: T.textMuted }}>
+                          <p className="mt-2 text-[12px] max-w-md" style={{ color: T.textMuted }}>
                             {users.length === 0
                               ? "There are no users in the system yet."
                               : "Try a different search or clear the filters."}
@@ -744,7 +758,7 @@ const AdminUsers = () => {
                             <button
                               onClick={() => { setSearch(""); setRoleFilter("All"); }}
                               className="mt-4 text-[12px] font-medium transition-colors"
-                              style={{ color: T.brand }}
+                              style={{ color: T.accent }}
                             >
                               Clear filters
                             </button>
@@ -755,17 +769,18 @@ const AdminUsers = () => {
                   )}
 
                   {/* Rows */}
-                  {!loading && !error && paginatedUsers.map((u) => {
+                  {!loading && !error && paginatedUsers.map((u, i) => {
                     const isSelected = selected.has(u.id);
                     const isOpen = openUserId === u.id;
                     const d = DENSITY[density];
                     return (
                       <tr
                         key={u.id}
-                        className={`au-row float-in transition-colors cursor-pointer ${d.row}`}
+                        className={`au-row enter transition-colors cursor-pointer ${d.row}`}
                         style={{
-                          borderTop: `1px solid ${T.borderSoft}`,
-                          background: isSelected ? "rgba(99,102,241,0.06)" : isOpen ? "rgba(255,255,255,0.02)" : "transparent",
+                          borderTop: `1px solid ${T.line}`,
+                          background: isSelected ? "rgba(240,136,77,0.06)" : isOpen ? "rgba(236,237,239,0.03)" : "transparent",
+                          ...stagger(i + 4),
                         }}
                         onClick={() => setOpenUserId(u.id)}
                         aria-selected={isSelected}
@@ -775,20 +790,20 @@ const AdminUsers = () => {
                             onClick={() => toggleOne(u.id)}
                             aria-label={isSelected ? "Deselect user" : "Select user"}
                             style={{ color: T.textFaint }}
-                            className="transition-colors hover:text-[#E9EBF0]"
+                            className="transition-colors hover:text-[#ECEDEF]"
                           >
                             {isSelected ? <CheckSquare size={13} /> : <Square size={13} />}
                           </button>
                         </td>
 
                         <td className={`px-3 ${d.cell}`}>
-                          <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="flex items-center gap-3 min-w-0">
                             <Avatar seed={u.username || String(u.id)} name={u.username} size={density === "dense" ? 26 : 30} />
                             <div className="min-w-0">
-                              <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>
+                              <p className="text-[13px] font-medium truncate" style={{ color: T.text }}>
                                 {u.username || "Unknown user"}
                               </p>
-                              <p className="text-[10.5px] truncate mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                              <p className="text-[11px] truncate mt-1 tabular-nums" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                                 #{u.id}
                               </p>
                             </div>
@@ -797,8 +812,8 @@ const AdminUsers = () => {
 
                         <td className={`px-3 ${d.cell}`}>
                           <div className="flex items-center gap-2 min-w-0">
-                            <Mail size={11} className="shrink-0" style={{ color: T.textFaint }} />
-                            <span className="text-[11.5px] truncate max-w-60" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+                            <Mail size={12} strokeWidth={1.5} className="shrink-0" style={{ color: T.textFaint }} />
+                            <span className="text-[12px] truncate max-w-60" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
                               {u.email || "—"}
                             </span>
                           </div>
@@ -807,8 +822,8 @@ const AdminUsers = () => {
                         <td className={`px-3 ${d.cell}`}><RolePill role={u.role} /></td>
 
                         <td className={`px-3 ${d.cell} text-right`}>
-                          <span className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                            <Calendar size={10} /> {formatDate(u.created_at)}
+                          <span className="inline-flex items-center gap-1.5 text-[12px] tabular-nums" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                            <Calendar size={11} strokeWidth={1.5} /> {formatDate(u.created_at)}
                           </span>
                         </td>
 
@@ -817,10 +832,10 @@ const AdminUsers = () => {
                             <button
                               onClick={() => { setActionError(null); setEditingUser(u); }}
                               aria-label={`Edit ${u.username || "user"}`}
-                              className="p-1.5 rounded-md transition-colors hover:bg-white/5"
+                              className="p-1.5 rounded-md btn-quiet"
                               style={{ color: T.textMuted }}
                             >
-                              <Pencil size={12} />
+                              <Pencil size={13} strokeWidth={1.5} />
                             </button>
                             <button
                               onClick={() => { setActionError(null); setDeletingUser(u); }}
@@ -830,7 +845,7 @@ const AdminUsers = () => {
                               onMouseEnter={(e) => (e.currentTarget.style.background = T.dangerSoft)}
                               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                             >
-                              <Trash2 size={12} />
+                              <Trash2 size={13} strokeWidth={1.5} />
                             </button>
                           </div>
                         </td>
@@ -843,15 +858,15 @@ const AdminUsers = () => {
 
             {/* Pagination */}
             {filteredUsers.length > 0 && (
-              <div className="flex items-center justify-between gap-3 px-4 md:px-5 py-3 border-t" style={{ borderColor: T.borderSoft }}>
-                <span className="text-[11px]" style={{ color: T.textFaint }}>
-                  Page <span style={{ color: T.text, fontFamily: FONT.mono }}>{page}</span> of{" "}
-                  <span style={{ color: T.text, fontFamily: FONT.mono }}>{totalPages}</span>
+              <div className="flex items-center justify-between gap-3 px-4 md:px-5 py-3 border-t" style={{ borderColor: T.line }}>
+                <span className="text-[12px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                  Page <span style={{ color: T.text }}>{page}</span> of{" "}
+                  <span style={{ color: T.text }}>{totalPages}</span>
                 </span>
 
                 <div className="flex items-center gap-1">
                   <PageBtn disabled={page === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-                    <ChevronLeft size={11} /> Prev
+                    <ChevronLeft size={12} strokeWidth={1.5} /> Prev
                   </PageBtn>
 
                   {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((p) => (
@@ -860,13 +875,13 @@ const AdminUsers = () => {
 
                   {totalPages > 5 && (
                     <>
-                      <span className="text-[11px] px-1" style={{ color: T.textFaint }}>…</span>
+                      <span className="text-[12px] px-1" style={{ color: T.textFaint }}>…</span>
                       <PageNum active={page === totalPages} onClick={() => setPage(totalPages)}>{totalPages}</PageNum>
                     </>
                   )}
 
                   <PageBtn disabled={page === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
-                    Next <ChevronRight size={11} />
+                    Next <ChevronRight size={12} strokeWidth={1.5} />
                   </PageBtn>
                 </div>
               </div>
@@ -880,39 +895,39 @@ const AdminUsers = () => {
             className="bar-up fixed left-1/2 bottom-5 z-40 flex items-center gap-2.5 rounded-xl px-3 py-2"
             style={{
               background: T.surface,
-              boxShadow: `inset 0 0 0 1px ${T.border}, 0 24px 48px -16px rgba(0,0,0,0.7)`,
+              boxShadow: `inset 0 0 0 1px ${T.lineStrong}, 0 24px 48px -16px rgba(0,0,0,0.7)`,
             }}
             role="toolbar"
             aria-label="Bulk actions"
           >
-            <span className="text-[12px] pl-1" style={{ color: T.textMuted }}>
-              <span style={{ fontFamily: FONT.mono, color: T.brand }}>{selected.size}</span> selected
+            <span className="text-[12px] pl-1" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+              <span style={{ color: T.accent }}>{selected.size}</span> selected
             </span>
-            <span className="w-px h-4" style={{ background: T.border }} />
+            <span className="w-px h-4" style={{ background: T.line }} />
             <button
               onClick={() => {
                 const emails = users.filter((u) => selected.has(u.id)).map((u) => u.email).filter(Boolean);
                 navigator.clipboard?.writeText(emails.join(", "));
               }}
-              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors"
-              style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium btn-quiet"
+              style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.line}`, fontFamily: FONT.mono }}
             >
-              <Mail size={11} /> Copy emails
+              <Mail size={12} strokeWidth={1.5} /> Copy emails
             </button>
             <button
               onClick={() => { setActionError(null); setBulkDeleting(true); }}
-              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors"
-              style={{ background: T.dangerSoft, color: T.danger, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
+              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium btn-quiet"
+              style={{ background: T.dangerSoft, color: T.danger, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}`, fontFamily: FONT.mono }}
             >
-              <Trash2 size={11} /> Delete
+              <Trash2 size={12} strokeWidth={1.5} /> Delete
             </button>
             <button
               onClick={clearSelection}
               aria-label="Clear selection"
-              className="inline-flex items-center justify-center rounded-md p-1.5 transition-colors hover:bg-white/5"
+              className="inline-flex items-center justify-center rounded-md p-1.5 btn-quiet"
               style={{ color: T.textFaint }}
             >
-              <X size={13} />
+              <X size={14} strokeWidth={1.5} />
             </button>
           </div>
         )}
@@ -987,7 +1002,7 @@ const SortHeader: React.FC<{
   const active = sortField === field;
   return (
     <th
-      className={`px-3 py-2.5 font-medium ${align === "right" ? "text-right" : "text-left"}`}
+      className={`px-3 py-3 font-normal ${align === "right" ? "text-right" : "text-left"}`}
       scope="col"
       aria-sort={active ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}
     >
@@ -998,7 +1013,8 @@ const SortHeader: React.FC<{
       >
         {label}
         <ChevronDown
-          size={10}
+          size={11}
+          strokeWidth={1.5}
           className={`transition-transform ${active && sortDirection === "asc" ? "rotate-180" : ""} ${active ? "" : "opacity-0"}`}
         />
       </button>
@@ -1029,21 +1045,21 @@ const UserDrawer: React.FC<{
                    lg:inset-y-4 lg:right-4 lg:left-auto lg:bottom-4 lg:top-4 lg:w-100 lg:max-h-none"
         style={{
           background: T.surface,
-          boxShadow: `inset 0 0 0 1px ${T.border}, 0 30px 60px -20px rgba(0,0,0,0.8)`,
+          boxShadow: `inset 0 0 0 1px ${T.line}, 0 30px 60px -20px rgba(0,0,0,0.8)`,
         }}
         role="dialog"
         aria-modal="true"
         aria-label={`Details for ${user.username || "user"}`}
       >
         <div className="flex flex-col h-full">
-          <div className="flex items-start justify-between gap-3 p-4 border-b" style={{ borderColor: T.borderSoft }}>
+          <div className="flex items-start justify-between gap-3 p-4 border-b" style={{ borderColor: T.line }}>
             <div className="flex items-start gap-3 min-w-0">
               <Avatar seed={user.username || String(user.id)} name={user.username} size={44} />
               <div className="min-w-0">
-                <h3 className="text-[15px] font-semibold truncate" style={{ color: T.text }}>
+                <h3 className="text-[14px] font-medium truncate" style={{ color: T.text }}>
                   {user.username || "Unknown user"}
                 </h3>
-                <p className="text-[11.5px] mt-0.5 truncate" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+                <p className="text-[12px] mt-1 truncate" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
                   {user.email || "No email"}
                 </p>
                 <div className="mt-2"><RolePill role={user.role} /></div>
@@ -1053,10 +1069,10 @@ const UserDrawer: React.FC<{
               ref={closeBtnRef}
               onClick={onClose}
               aria-label="Close details"
-              className="shrink-0 p-2 rounded-md transition-colors hover:bg-white/5"
-              style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+              className="shrink-0 p-2 rounded-md btn-quiet"
+              style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.line}` }}
             >
-              <X size={14} />
+              <X size={14} strokeWidth={1.5} />
             </button>
           </div>
 
@@ -1066,32 +1082,32 @@ const UserDrawer: React.FC<{
             <DrawerField icon={Calendar} label="Joined" value={formatDate(user.created_at)} mono />
             <DrawerField icon={UserIcon} label="User ID" value={`#${user.id}`} mono />
 
-            <div className="rounded-lg p-3.5 mt-2" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
-              <p className="text-[10.5px] uppercase tracking-widest mb-2" style={{ color: T.textFaint }}>Quick actions</p>
+            <div className="rounded-lg p-3.5 mt-2" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.line}` }}>
+              <p className="text-[11px] uppercase tracking-wide mb-2" style={{ color: T.textFaint, fontFamily: FONT.mono }}>Quick actions</p>
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={onEdit}
-                  className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:bg-white/5"
-                  style={{ background: T.brandSoft, color: T.brand, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
+                  className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium btn-quiet"
+                  style={{ background: T.accentSoft, color: T.accent, boxShadow: `inset 0 0 0 1px ${T.accentBorder}`, fontFamily: FONT.mono }}
                 >
-                  <Pencil size={11} /> Edit user
+                  <Pencil size={12} strokeWidth={1.5} /> Edit user
                 </button>
                 <button
                   onClick={onDelete}
-                  className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:bg-white/5"
-                  style={{ background: T.dangerSoft, color: T.danger, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
+                  className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium btn-quiet"
+                  style={{ background: T.dangerSoft, color: T.danger, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}`, fontFamily: FONT.mono }}
                 >
-                  <Trash2 size={11} /> Delete
+                  <Trash2 size={12} strokeWidth={1.5} /> Delete
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="p-4 border-t" style={{ borderColor: T.borderSoft }}>
+          <div className="p-4 border-t" style={{ borderColor: T.line }}>
             <button
               onClick={onClose}
-              className="w-full rounded-md px-3.5 py-2 text-[12px] font-medium transition-colors hover:bg-white/5"
-              style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+              className="btn-quiet w-full rounded-md px-3.5 py-2 text-[12px] font-medium"
+              style={{ color: T.textMuted, boxShadow: RING }}
             >
               Close
             </button>
@@ -1110,15 +1126,15 @@ const DrawerField: React.FC<{
 }> = ({ icon: Icon, label, value, mono }) => (
   <div className="flex items-start gap-2.5">
     <div
-      className="shrink-0 w-8 h-8 rounded-md flex items-center justify-center"
-      style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+      className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+      style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.line}` }}
     >
-      <Icon size={12} style={{ color: T.textMuted }} />
+      <Icon size={13} strokeWidth={1.5} style={{ color: T.textMuted }} />
     </div>
     <div className="min-w-0">
-      <p className="text-[10px] uppercase tracking-widest" style={{ color: T.textFaint }}>{label}</p>
+      <p className="text-[11px] uppercase tracking-wide" style={{ color: T.textFaint, fontFamily: FONT.mono }}>{label}</p>
       <p
-        className="text-[12.5px] mt-0.5 truncate"
+        className="text-[12px] mt-1 truncate"
         style={{ color: T.textMuted, fontFamily: mono ? FONT.mono : undefined }}
       >
         {value}
@@ -1167,12 +1183,12 @@ const EditUserModal: React.FC<{
   const inputStyle: React.CSSProperties = {
     background: T.surface2,
     color: T.text,
-    boxShadow: `inset 0 0 0 1px ${T.borderSoft}`,
+    boxShadow: `inset 0 0 0 1px ${T.line}`,
   };
   const onFocusIn = (e: React.FocusEvent<HTMLInputElement>) =>
-    (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brandBorder}, 0 0 0 3px ${T.brandSoft}`);
+    (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.accentBorder}, 0 0 0 3px ${T.accentSoft}`);
   const onFocusOut = (e: React.FocusEvent<HTMLInputElement>) =>
-    (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.borderSoft}`);
+    (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.line}`);
 
   useEscape(!loading, onClose);
 
@@ -1185,24 +1201,24 @@ const EditUserModal: React.FC<{
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md rounded-2xl overflow-hidden modal-pop"
-        style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
+        style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.line}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
         role="dialog"
         aria-modal="true"
         aria-label="Edit user"
       >
-        <div className="flex items-start justify-between gap-3 p-5 border-b" style={{ borderColor: T.borderSoft }}>
+        <div className="flex items-start justify-between gap-3 p-5 border-b" style={{ borderColor: T.line }}>
           <div className="flex items-start gap-3 min-w-0">
             <div
               className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
-              style={{ background: T.brandSoft, color: T.brand }}
+              style={{ background: T.accentSoft, color: T.accent }}
             >
-              <Pencil size={15} />
+              <Pencil size={15} strokeWidth={1.5} />
             </div>
             <div className="min-w-0">
-              <h2 className="text-[15px] font-semibold truncate" style={{ color: T.text }}>
+              <h2 className="text-[14px] font-medium truncate" style={{ color: T.text }}>
                 Edit user
               </h2>
-              <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
+              <p className="text-[12px] mt-1" style={{ color: T.textMuted }}>
                 Update profile details and role.
               </p>
             </div>
@@ -1211,10 +1227,10 @@ const EditUserModal: React.FC<{
             onClick={onClose}
             disabled={loading}
             aria-label="Close"
-            className="shrink-0 p-1.5 rounded-md transition-colors hover:bg-white/5 disabled:opacity-50"
-            style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+            className="shrink-0 p-1.5 rounded-md btn-quiet disabled:opacity-50"
+            style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.line}` }}
           >
-            <X size={14} />
+            <X size={14} strokeWidth={1.5} />
           </button>
         </div>
 
@@ -1225,19 +1241,19 @@ const EditUserModal: React.FC<{
               className="flex items-start gap-2.5 rounded-lg px-3.5 py-2.5"
               style={{ background: T.dangerSoft, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
             >
-              <AlertTriangle size={13} style={{ color: T.danger }} className="shrink-0 mt-0.5" />
+              <AlertTriangle size={13} strokeWidth={1.5} style={{ color: T.danger }} className="shrink-0 mt-0.5" />
               <p className="text-[12px]" style={{ color: T.danger }}>{displayedError}</p>
             </div>
           )}
 
           <div>
-            <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: T.textMuted }}>Username</label>
+            <label className="block text-[12px] font-medium mb-1.5" style={{ color: T.textMuted }}>Username</label>
             <input
               ref={firstRef}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               disabled={loading}
-              className="w-full rounded-lg px-3 py-2 text-[13px] outline-none transition-all disabled:opacity-50"
+              className="w-full rounded-lg px-3 py-2 text-[12px] outline-none transition-all disabled:opacity-50"
               style={inputStyle}
               onFocus={onFocusIn}
               onBlur={onFocusOut}
@@ -1245,13 +1261,13 @@ const EditUserModal: React.FC<{
           </div>
 
           <div>
-            <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: T.textMuted }}>Email</label>
+            <label className="block text-[12px] font-medium mb-1.5" style={{ color: T.textMuted }}>Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
-              className="w-full rounded-lg px-3 py-2 text-[13px] outline-none transition-all disabled:opacity-50"
+              className="w-full rounded-lg px-3 py-2 text-[12px] outline-none transition-all disabled:opacity-50"
               style={inputStyle}
               onFocus={onFocusIn}
               onBlur={onFocusOut}
@@ -1259,7 +1275,7 @@ const EditUserModal: React.FC<{
           </div>
 
           <div>
-            <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: T.textMuted }}>Role</label>
+            <label className="block text-[12px] font-medium mb-1.5" style={{ color: T.textMuted }}>Role</label>
             <div className="grid grid-cols-2 gap-2">
               {(["EMPLOYEE", "ADMIN"] as const).map((r) => {
                 const active = role === r;
@@ -1275,11 +1291,12 @@ const EditUserModal: React.FC<{
                     style={{
                       background: active ? meta.bg : T.surface2,
                       color: active ? meta.fg : T.textMuted,
-                      boxShadow: `inset 0 0 0 1px ${active ? meta.ring : T.borderSoft}`,
+                      boxShadow: `inset 0 0 0 1px ${active ? meta.ring : T.line}`,
+                      fontFamily: FONT.mono,
                     }}
                     aria-pressed={active}
                   >
-                    <Icon size={12} />
+                    <Icon size={12} strokeWidth={1.5} />
                     {meta.label}
                   </button>
                 );
@@ -1288,22 +1305,22 @@ const EditUserModal: React.FC<{
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 p-5 border-t" style={{ borderColor: T.borderSoft }}>
+        <div className="flex items-center justify-end gap-2 p-5 border-t" style={{ borderColor: T.line }}>
           <button
             onClick={onClose}
             disabled={loading}
-            className="rounded-md px-3.5 py-2 text-[12px] font-medium transition-colors hover:bg-white/5 disabled:opacity-50"
-            style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+            className="btn-quiet btn-press rounded-md px-3.5 py-2 text-[12px] font-medium disabled:opacity-50"
+            style={{ color: T.textMuted, boxShadow: RING }}
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading || !isDirty}
-            className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-medium text-white transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100"
-            style={{ background: T.brand, boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+            className="btn-primary btn-press inline-flex items-center gap-2 rounded-md px-3.5 py-2 text-[12px] font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#ECEDEF]"
+            style={{ background: T.text, color: T.bg }}
           >
-            {loading ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+            {loading ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} strokeWidth={1.5} />}
             {loading ? "Saving…" : "Save changes"}
           </button>
         </div>
@@ -1332,24 +1349,24 @@ const DeleteUserModal: React.FC<{
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md rounded-2xl overflow-hidden modal-pop"
-        style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
+        style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.line}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
         role="dialog"
         aria-modal="true"
         aria-label="Delete user"
       >
-        <div className="p-5 border-b" style={{ borderColor: T.borderSoft }}>
+        <div className="p-5 border-b" style={{ borderColor: T.line }}>
           <div className="flex items-start gap-3">
             <div
               className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
               style={{ background: T.dangerSoft, color: T.danger }}
             >
-              <Trash2 size={16} />
+              <Trash2 size={16} strokeWidth={1.5} />
             </div>
             <div className="min-w-0">
-              <h3 className="text-[15px] font-semibold" style={{ color: T.text }}>
+              <h3 className="text-[14px] font-medium" style={{ color: T.text }}>
                 Delete user?
               </h3>
-              <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
+              <p className="text-[12px] mt-1" style={{ color: T.textMuted }}>
                 This action cannot be undone.
               </p>
             </div>
@@ -1357,12 +1374,12 @@ const DeleteUserModal: React.FC<{
 
           <div
             className="mt-4 flex items-center gap-2.5 rounded-lg p-2.5"
-            style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+            style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.line}` }}
           >
             <Avatar seed={user.username || String(user.id)} name={user.username} size={32} />
             <div className="min-w-0">
-              <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>{user.username || "Unknown user"}</p>
-              <p className="text-[11px] truncate mt-0.5" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+              <p className="text-[13px] font-medium truncate" style={{ color: T.text }}>{user.username || "Unknown user"}</p>
+              <p className="text-[12px] truncate mt-1" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
                 {user.email || "No email"}
               </p>
             </div>
@@ -1374,7 +1391,7 @@ const DeleteUserModal: React.FC<{
               className="mt-3 flex items-start gap-2.5 rounded-lg px-3.5 py-2.5"
               style={{ background: T.dangerSoft, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
             >
-              <AlertTriangle size={13} style={{ color: T.danger }} className="shrink-0 mt-0.5" />
+              <AlertTriangle size={13} strokeWidth={1.5} style={{ color: T.danger }} className="shrink-0 mt-0.5" />
               <p className="text-[12px]" style={{ color: T.danger }}>{error}</p>
             </div>
           )}
@@ -1384,18 +1401,18 @@ const DeleteUserModal: React.FC<{
           <button
             onClick={onClose}
             disabled={loading}
-            className="rounded-md px-3.5 py-2 text-[12px] font-medium transition-colors hover:bg-white/5 disabled:opacity-50"
-            style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+            className="btn-quiet btn-press rounded-md px-3.5 py-2 text-[12px] font-medium disabled:opacity-50"
+            style={{ color: T.textMuted, boxShadow: RING }}
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-medium text-white transition-all hover:brightness-110 disabled:opacity-50"
-            style={{ background: T.danger, boxShadow: "0 6px 18px -8px rgba(239,68,68,0.65)" }}
+            className="btn-press inline-flex items-center gap-2 rounded-md px-3.5 py-2 text-[12px] font-medium disabled:opacity-50"
+            style={{ background: T.danger, color: "#fff" }}
           >
-            {loading ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+            {loading ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} strokeWidth={1.5} />}
             {loading ? "Deleting…" : "Delete user"}
           </button>
         </div>
@@ -1424,24 +1441,24 @@ const BulkDeleteModal: React.FC<{
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md rounded-2xl overflow-hidden modal-pop"
-        style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
+        style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.line}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
         role="dialog"
         aria-modal="true"
         aria-label="Delete users"
       >
-        <div className="p-5 border-b" style={{ borderColor: T.borderSoft }}>
+        <div className="p-5 border-b" style={{ borderColor: T.line }}>
           <div className="flex items-start gap-3">
             <div
               className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
               style={{ background: T.dangerSoft, color: T.danger }}
             >
-              <Trash2 size={16} />
+              <Trash2 size={16} strokeWidth={1.5} />
             </div>
             <div className="min-w-0">
-              <h3 className="text-[15px] font-semibold" style={{ color: T.text }}>
+              <h3 className="text-[14px] font-medium" style={{ color: T.text }}>
                 Delete {count} user{count === 1 ? "" : "s"}?
               </h3>
-              <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
+              <p className="text-[12px] mt-1" style={{ color: T.textMuted }}>
                 This action cannot be undone.
               </p>
             </div>
@@ -1453,7 +1470,7 @@ const BulkDeleteModal: React.FC<{
               className="mt-4 flex items-start gap-2.5 rounded-lg px-3.5 py-2.5"
               style={{ background: T.dangerSoft, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
             >
-              <AlertTriangle size={13} style={{ color: T.danger }} className="shrink-0 mt-0.5" />
+              <AlertTriangle size={13} strokeWidth={1.5} style={{ color: T.danger }} className="shrink-0 mt-0.5" />
               <p className="text-[12px]" style={{ color: T.danger }}>{error}</p>
             </div>
           )}
@@ -1463,18 +1480,18 @@ const BulkDeleteModal: React.FC<{
           <button
             onClick={onClose}
             disabled={loading}
-            className="rounded-md px-3.5 py-2 text-[12px] font-medium transition-colors hover:bg-white/5 disabled:opacity-50"
-            style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+            className="btn-quiet btn-press rounded-md px-3.5 py-2 text-[12px] font-medium disabled:opacity-50"
+            style={{ color: T.textMuted, boxShadow: RING }}
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-medium text-white transition-all hover:brightness-110 disabled:opacity-50"
-            style={{ background: T.danger, boxShadow: "0 6px 18px -8px rgba(239,68,68,0.65)" }}
+            className="btn-press inline-flex items-center gap-2 rounded-md px-3.5 py-2 text-[12px] font-medium disabled:opacity-50"
+            style={{ background: T.danger, color: "#fff" }}
           >
-            {loading ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+            {loading ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} strokeWidth={1.5} />}
             {loading ? "Deleting…" : `Delete ${count}`}
           </button>
         </div>
@@ -1491,8 +1508,8 @@ const PageBtn: React.FC<{ children: React.ReactNode; disabled?: boolean; onClick
   <button
     onClick={onClick}
     disabled={disabled}
-    className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/5 disabled:hover:bg-transparent"
-    style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+    className="btn-quiet inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[12px] font-medium disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+    style={{ color: T.textMuted, boxShadow: RING, fontFamily: FONT.mono }}
   >
     {children}
   </button>
@@ -1504,11 +1521,11 @@ const PageNum: React.FC<{ children: React.ReactNode; active?: boolean; onClick: 
   <button
     onClick={onClick}
     aria-current={active ? "page" : undefined}
-    className="min-w-7.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors"
+    className="min-w-7.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors"
     style={{
-      background: active ? T.brand : "transparent",
-      color: active ? "#fff" : T.textMuted,
-      boxShadow: active ? "none" : `inset 0 0 0 1px ${T.borderSoft}`,
+      background: active ? T.text : "transparent",
+      color: active ? T.bg : T.textMuted,
+      boxShadow: active ? "none" : `inset 0 0 0 1px ${T.line}`,
       fontFamily: FONT.mono,
     }}
   >

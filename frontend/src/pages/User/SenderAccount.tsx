@@ -1,13 +1,14 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import {
   Mail, CheckCircle2, AlertTriangle, XCircle, Gauge, Layers,
   Plus, Search, Zap, Settings2, Trash2, Wifi, Menu, Loader2, Inbox,
+  X, ShieldAlert,
 } from "lucide-react";
 import { SenderAccContext } from "../../contexts/SenderAccountsContext";
 import type { SenderAccount } from "../../types/SenderAccount";
 
-/* ─────────────── design tokens (matching Upload page) ─────────────── */
+/* ─────────────── design tokens ─────────────── */
 
 const T = {
   bg:         "#0B0C0E",
@@ -79,6 +80,7 @@ const SenderAccountsPage = () => {
   const ctx = useContext(SenderAccContext);
   const [search, setSearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState<SenderAccount | null>(null);
 
   if (!ctx) {
     throw new Error("SenderAccountsPage must be used inside a <SenderAccountsContext> provider.");
@@ -106,14 +108,8 @@ const SenderAccountsPage = () => {
     window.location.href = `/api/oauth/outlook/connect?token=${encodeURIComponent(token)}`;
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Delete this sender account?")) return;
-    try {
-      await deleteSenderAccount(id);
-    } catch (err) {
-      console.error("Failed to delete sender account:", err);
-      window.alert("Could not delete the account. Please try again.");
-    }
+  const confirmDelete = async (id: number) => {
+    await deleteSenderAccount(id);
   };
 
   return (
@@ -196,10 +192,7 @@ const SenderAccountsPage = () => {
           </header>
 
           {/* Summary strip */}
-          <div
-            className="mb-6 rounded-xl overflow-hidden"
-            style={{ background: T.surface, border: HAIRLINE }}
-          >
+          <div className="mb-6 rounded-xl overflow-hidden" style={{ background: T.surface, border: HAIRLINE }}>
             <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x" style={{ borderColor: T.borderSoft }}>
               <SummaryTile icon={Layers}       label="Total accounts"  value={String(senderAcc.length)}       tone={T.textMuted} />
               <SummaryTile icon={CheckCircle2} label="Active"          value={String(activeCount)}            tone={T.ok} />
@@ -266,7 +259,7 @@ const SenderAccountsPage = () => {
                     key={account.id}
                     account={account as any}
                     first={i === 0}
-                    onDelete={() => handleDelete(account.id)}
+                    onDelete={() => setAccountToDelete(account)}
                     onReconnect={handleAddAccount}
                   />
                 ))}
@@ -319,6 +312,17 @@ const SenderAccountsPage = () => {
           </section>
         </div>
       </main>
+
+      {accountToDelete && (
+        <ConfirmDisconnectModal
+          account={accountToDelete}
+          onClose={() => setAccountToDelete(null)}
+          onConfirm={async () => {
+            await confirmDelete(accountToDelete.id);
+            setAccountToDelete(null);
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -455,22 +459,13 @@ const SenderAccountRow: React.FC<{
 
         {/* Actions */}
         <div className="lg:col-span-3 flex items-center lg:justify-end gap-1.5 flex-wrap">
-          {disconnected ? (
+          {disconnected && (
             <button
               onClick={onReconnect}
               className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-all hover:brightness-110"
               style={{ background: T.accent, color: T.accentInk }}
             >
               <Wifi size={12} /> Reconnect
-            </button>
-          ) : (
-            <button
-              className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors duration-[120ms]"
-              style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent" }}
-            >
-              <Zap size={12} /> Test
             </button>
           )}
 
@@ -488,6 +483,220 @@ const SenderAccountRow: React.FC<{
         </div>
       </div>
     </li>
+  );
+};
+
+/* ─────────────── confirm disconnect modal ─────────────── */
+
+const ConfirmDisconnectModal: React.FC<{
+  account: SenderAccount;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+}> = ({ account, onClose, onConfirm }) => {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const provider = normalizeProvider(account.provider);
+  const p = providerMeta[provider];
+  const status = normalizeStatus(account.status);
+  const s = statusMeta[status];
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !busy) onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose, busy]);
+
+  const handleConfirm = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await onConfirm();
+    } catch (e: any) {
+      setError(e?.message || "Could not disconnect this account. Please try again.");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      style={{ background: "rgba(11,12,14,0.72)" }}
+      onClick={() => !busy && onClose()}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="disconnect-title"
+    >
+      <style>{`
+        @keyframes dc-rise { from { opacity: 0; transform: scale(0.97) } to { opacity: 1; transform: none } }
+        .dc-shell { animation: dc-rise 0.15s ease-out }
+        @media (prefers-reduced-motion: reduce) { .dc-shell { animation: none !important } }
+      `}</style>
+
+      <div
+        className="dc-shell relative w-full max-w-md rounded-xl overflow-hidden"
+        style={{
+          background: T.surface,
+          border: HAIRLINE,
+          boxShadow: "0 24px 64px -16px rgba(0,0,0,0.7)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* top danger accent */}
+        <div
+          aria-hidden
+          className="absolute inset-x-0 top-0 h-px pointer-events-none"
+          style={{ background: `linear-gradient(90deg, transparent, ${T.danger}, transparent)`, opacity: 0.5 }}
+        />
+
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 px-5 pt-5 pb-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+              style={{ background: "rgba(224,106,106,0.10)", color: T.danger, border: "1px solid rgba(224,106,106,0.28)" }}
+            >
+              <ShieldAlert size={16} />
+            </div>
+            <div className="min-w-0">
+              <h2
+                id="disconnect-title"
+                className="text-[15px] font-semibold leading-tight"
+                style={{ color: T.text }}
+              >
+                Disconnect this sender account?
+              </h2>
+              <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
+                Sending from this account will stop immediately.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={busy}
+            aria-label="Close"
+            className="shrink-0 p-1.5 rounded-md transition-colors duration-[120ms] disabled:opacity-40"
+            style={{ color: T.textMuted, background: T.surface2, border: HAIRLINE_SOFT }}
+            onMouseEnter={(e) => { if (!busy) { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi; } }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = T.surface2; }}
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* Account preview card */}
+        <div className="px-5 pt-2 pb-3">
+          <div
+            className="rounded-lg p-3 flex items-center gap-3"
+            style={{ background: T.surface2, border: HAIRLINE_SOFT }}
+          >
+            <div
+              className="shrink-0 w-9 h-9 rounded-md flex items-center justify-center text-[12px] font-semibold text-white"
+              style={{ background: p.grad, boxShadow: `0 0 0 2px ${T.surface}, 0 0 0 3px ${p.ring}` }}
+            >
+              {p.short}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>
+                  {account.email}
+                </p>
+                <span
+                  className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap"
+                  style={{ background: s.bg, color: s.fg, boxShadow: `inset 0 0 0 1px ${s.ring}` }}
+                >
+                  {status}
+                </span>
+              </div>
+              <p className="text-[10.5px] mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                {account.provider} · <span style={{ color: T.textMuted }}>{account.display_name}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Body copy */}
+        <div className="px-5 pb-4">
+          <ul className="space-y-1.5 text-[11.5px]" style={{ color: T.textMuted }}>
+            <li className="flex items-start gap-2">
+              <span
+                className="mt-1.5 w-1 h-1 rounded-full shrink-0"
+                style={{ background: T.danger }}
+              />
+              Any campaigns queued on this account will pause immediately.
+            </li>
+            <li className="flex items-start gap-2">
+              <span
+                className="mt-1.5 w-1 h-1 rounded-full shrink-0"
+                style={{ background: T.danger }}
+              />
+              Historical logs and reports are kept.
+            </li>
+            <li className="flex items-start gap-2">
+              <span
+                className="mt-1.5 w-1 h-1 rounded-full shrink-0"
+                style={{ background: T.textFaint }}
+              />
+              You can reconnect it later from this page.
+            </li>
+          </ul>
+
+          {error && (
+            <div
+              className="mt-3 flex items-start gap-2 rounded-md px-3 py-2 text-[11.5px]"
+              style={{ background: "rgba(224,106,106,0.08)", color: T.danger, border: "1px solid rgba(224,106,106,0.28)" }}
+              role="alert"
+            >
+              <AlertTriangle size={12} className="mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div
+          className="flex items-center justify-end gap-2 px-5 py-3.5"
+          style={{ borderTop: HAIRLINE_SOFT }}
+        >
+          <button
+            onClick={onClose}
+            disabled={busy}
+            className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-120 disabled:opacity-40"
+            style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
+            onMouseEnter={(e) => { if (!busy) { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi; } }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-[12px] font-semibold transition-all hover:brightness-110 disabled:opacity-60 disabled:hover:brightness-100"
+            style={{ background: T.danger, color: "#0B0C0E", border: `1px solid ${T.danger}` }}
+          >
+            {busy ? (
+              <>
+                <Loader2 size={12} className="spin" />
+                Disconnecting…
+              </>
+            ) : (
+              <>
+                <Trash2 size={12} />
+                Disconnect account
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

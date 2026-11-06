@@ -16,45 +16,43 @@ import type { HtmlTemplates } from "../../types/HtmlTemplatesTypes";
 import type { TemplatePayload } from "../../services/TemplateService";
 import { getHTMLTemplatesById } from "../../services/TemplateService";
 
-/* ─────────────── design tokens ─────────────── */
+/* ─────────────── design tokens (matches AdminDashboard) ─────────────── */
 
 const T = {
-  bg:           "#0A0B10",
-  surface:      "#111319",
-  surface2:     "#161922",
-  surfaceHi:    "#1B1F2A",
-  border:       "#232838",
-  borderSoft:   "#1B1F2A",
-  text:         "#E9EBF0",
-  textMuted:    "#9CA3B4",
-  textFaint:    "#6B7280",
-  brand:        "#6366F1",
-  brandSoft:    "rgba(99,102,241,0.12)",
-  brandBorder:  "rgba(99,102,241,0.35)",
-  success:      "#22C55E",
-  successSoft:  "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:         "#F59E0B",
-  warnSoft:     "rgba(245,158,11,0.12)",
-  warnBorder:   "rgba(245,158,11,0.35)",
-  danger:       "#EF4444",
-  dangerSoft:   "rgba(239,68,68,0.12)",
-  dangerBorder: "rgba(239,68,68,0.35)",
-  info:         "#38BDF8",
-  infoSoft:     "rgba(56,189,248,0.12)",
-  infoBorder:   "rgba(56,189,248,0.35)",
-  purple:       "#A78BFA",
-  purpleSoft:   "rgba(167,139,250,0.12)",
-  purpleBorder: "rgba(167,139,250,0.35)",
+  bg:          "#0E0F11",
+  surface:     "#151618",
+  surface2:    "#1B1C1F",
+  surfaceHi:   "#232427",
+  line:        "rgba(236,237,239,0.08)",
+  lineStrong:  "rgba(236,237,239,0.14)",
+  text:        "#ECEDEF",
+  textMuted:   "#A1A4AB",
+  textFaint:   "#6C7078",
+  accent:      "#F0884D",
+  accentSoft:  "rgba(240,136,77,0.12)",
+  accentBorder:"rgba(240,136,77,0.35)",
+  success:     "#5FB07A",
+  successSoft: "rgba(95,176,122,0.12)",
+  successBorder:"rgba(95,176,122,0.30)",
+  warn:        "#D4A24C",
+  warnSoft:    "rgba(212,162,76,0.12)",
+  warnBorder:  "rgba(212,162,76,0.30)",
+  danger:      "#D8665D",
+  dangerSoft:  "rgba(216,102,93,0.12)",
+  dangerBorder:"rgba(216,102,93,0.30)",
+  neutral1:    "#C9CBD0",
+  neutral2:    "#8E9199",
+  neutral3:    "#5E6169",
+  neutral4:    "#44464C",
 };
 
 const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
+  body: "'Geist', system-ui, -apple-system, sans-serif",
+  mono: "'Geist Mono', ui-monospace, monospace",
 };
 
-const RING = `inset 0 0 0 1px ${T.border}`;
+const RING = `inset 0 0 0 1px ${T.line}`;
+const ICON = { size: 16, strokeWidth: 1.5 };
 
 type Id = number | string;
 type Category = "Welcome" | "Promotional" | "Newsletter" | "Transactional";
@@ -88,7 +86,7 @@ const variableDescriptions: Record<string, string> = {
   "{{unsubscribe_link}}": "Unsubscribe link",
 };
 
-/* ─────────────── helpers ─────────────── */
+/* ─────────────── helpers (unchanged) ─────────────── */
 
 const formatUpdated = (v?: string) => {
   if (!v) return "—";
@@ -148,7 +146,7 @@ const mapApiTemplate = (raw: HtmlTemplates, index: number): Template => {
   };
 };
 
-/* ─────────────── starter HTML ─────────────── */
+/* ─────────────── starter HTML (unchanged) ─────────────── */
 
 const starterHtml = (category: Category) => {
   const base = (body: string, bgColor: string = "#f4f4f5") => `<!DOCTYPE html>
@@ -398,21 +396,21 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col"
+      className="etm-root fixed inset-0 z-50 flex flex-col"
       style={{ background: T.bg, fontFamily: FONT.body }}
     >
       {/* Top bar */}
       <div
         className="shrink-0 px-3 md:px-5 py-3"
-        style={{ background: T.surface, borderBottom: `1px solid ${T.borderSoft}` }}
+        style={{ background: T.surface, borderBottom: `1px solid ${T.line}` }}
       >
         <div className="flex flex-wrap items-center gap-2.5 md:gap-3">
           <button
             onClick={onClose}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium transition-colors hover:bg-white/5"
-            style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+            className="btn-quiet inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium"
+            style={{ color: T.textMuted, boxShadow: RING }}
           >
-            <ArrowLeft size={12} />
+            <ArrowLeft {...ICON} size={14} />
             <span className="hidden sm:inline">Back</span>
           </button>
 
@@ -421,17 +419,17 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
               value={template.name}
               onChange={(e) => updateTemplate({ name: e.target.value })}
               placeholder="Template name"
-              className="w-full bg-transparent outline-none truncate text-[14px] md:text-[15px] font-semibold tracking-tight"
+              className="w-full bg-transparent outline-none truncate text-[14px] md:text-[15px] font-medium tracking-tight"
               style={{ color: T.text }}
             />
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-[10.5px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                 {template.updatedAt}
               </span>
               {isDirty && (
                 <>
                   <span style={{ color: T.textFaint }}>·</span>
-                  <span className="text-[10.5px] font-medium" style={{ color: T.warn }}>
+                  <span className="text-[11px] font-medium" style={{ color: T.warn, fontFamily: FONT.mono }}>
                     ● Unsaved
                   </span>
                 </>
@@ -439,7 +437,7 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
               {saveError && (
                 <>
                   <span style={{ color: T.textFaint }}>·</span>
-                  <span className="text-[10.5px] font-medium" style={{ color: T.danger }}>
+                  <span className="text-[11px] font-medium" style={{ color: T.danger, fontFamily: FONT.mono }}>
                     {saveError}
                   </span>
                 </>
@@ -451,8 +449,8 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
             <select
               value={template.category}
               onChange={(e) => updateTemplate({ category: e.target.value as Category })}
-              className="rounded-md px-2.5 py-1.5 text-[11.5px] outline-none cursor-pointer"
-              style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+              className="rounded-md px-2.5 py-1.5 text-[12px] outline-none cursor-pointer"
+              style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.line}`, fontFamily: FONT.mono }}
             >
               {categories.map((c) => <option key={c}>{c}</option>)}
             </select>
@@ -461,14 +459,15 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
               onClick={() =>
                 updateTemplate({ status: template.status === "Published" ? "Draft" : "Published" })
               }
-              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium transition-colors whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium whitespace-nowrap"
               style={{
                 background: statusMeta.bg,
                 color: statusMeta.fg,
                 boxShadow: `inset 0 0 0 1px ${statusMeta.ring}`,
+                fontFamily: FONT.mono,
               }}
             >
-              <span className="w-1 h-1 rounded-full" style={{ background: statusMeta.fg }} />
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: statusMeta.fg }} />
               {template.status}
             </button>
 
@@ -476,29 +475,29 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
               <button
                 onClick={() => setShowDeleteConfirm(true)}
                 aria-label="Delete template"
-                className="inline-flex items-center justify-center rounded-md p-1.5 transition-colors hover:bg-white/5"
+                className="btn-quiet inline-flex items-center justify-center rounded-md p-1.5"
                 style={{ color: T.danger, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
               >
-                <Trash2 size={12} />
+                <Trash2 {...ICON} size={13} />
               </button>
             )}
 
             <button
               onClick={handleSave}
               disabled={!isDirty || saving}
-              className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-press inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               style={
                 isDirty
-                  ? { background: T.brand, color: "#fff", boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }
-                  : { color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }
+                  ? { background: T.text, color: T.bg }
+                  : { color: T.textMuted, boxShadow: RING }
               }
             >
               {saving ? (
                 <Loader2 size={12} className="animate-spin" />
               ) : savedFlash ? (
-                <Check size={12} />
+                <Check size={12} strokeWidth={1.5} />
               ) : (
-                <Save size={12} />
+                <Save size={12} strokeWidth={1.5} />
               )}
               {saving ? "Saving" : savedFlash ? "Saved" : "Save"}
             </button>
@@ -509,29 +508,31 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
         <div className="mt-2.5 flex flex-col md:flex-row md:items-center gap-2 md:gap-2.5">
           <div
             className="flex items-center gap-2 rounded-lg px-3 py-2 flex-1 min-w-0 transition-all"
-            style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+            style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.line}` }}
+            onFocusCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.accentBorder}, 0 0 0 3px ${T.accentSoft}`)}
+            onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.line}`)}
           >
-            <Tag size={11} style={{ color: T.textFaint }} className="shrink-0" />
+            <Tag size={12} strokeWidth={1.5} style={{ color: T.textFaint }} className="shrink-0" />
             <input
               value={template.subject}
               onChange={(e) => updateTemplate({ subject: e.target.value })}
               placeholder="Subject line"
-              className="w-full bg-transparent outline-none text-[12.5px]"
+              className="w-full bg-transparent outline-none text-[12px]"
               style={{ color: T.text }}
             />
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 text-[10.5px] mr-1" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-              <Braces size={10} /> insert
+            <span className="inline-flex items-center gap-1 text-[11px] mr-1" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+              <Braces size={11} strokeWidth={1.5} /> insert
             </span>
             {variables.map((v) => (
               <button
                 key={v}
                 onClick={() => insertVariable(v)}
                 title={variableDescriptions[v]}
-                className="rounded-md px-1.5 py-0.5 text-[10px] transition-colors hover:bg-white/5"
-                style={{ fontFamily: FONT.mono, background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                className="btn-quiet rounded-md px-1.5 py-0.5 text-[11px]"
+                style={{ fontFamily: FONT.mono, background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.line}` }}
               >
                 {v}
               </button>
@@ -546,13 +547,13 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
         <div className="flex flex-col h-full min-h-0">
           <div
             className="flex items-center justify-between px-4 py-2 shrink-0"
-            style={{ background: T.bg, borderBottom: `1px solid ${T.borderSoft}` }}
+            style={{ background: T.bg, borderBottom: `1px solid ${T.line}` }}
           >
             <div className="flex items-center gap-2">
-              <Code2 size={12} style={{ color: T.textFaint }} />
-              <span className="text-[10.5px] font-medium uppercase tracking-widest" style={{ color: T.textFaint }}>HTML</span>
+              <Code2 size={12} strokeWidth={1.5} style={{ color: T.textFaint }} />
+              <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: T.textFaint, fontFamily: FONT.mono }}>HTML</span>
             </div>
-            <span className="text-[10.5px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+            <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
               {template.html.length.toLocaleString()} chars
             </span>
           </div>
@@ -567,19 +568,19 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
         </div>
 
         {/* Preview pane */}
-        <div className="flex flex-col h-full min-h-0" style={{ borderLeft: `1px solid ${T.borderSoft}` }}>
+        <div className="flex flex-col h-full min-h-0" style={{ borderLeft: `1px solid ${T.line}` }}>
           <div
             className="flex items-center justify-between px-4 py-2 shrink-0"
-            style={{ background: T.bg, borderBottom: `1px solid ${T.borderSoft}` }}
+            style={{ background: T.bg, borderBottom: `1px solid ${T.line}` }}
           >
             <div className="flex items-center gap-2">
-              <Eye size={12} style={{ color: T.textFaint }} />
-              <span className="text-[10.5px] font-medium uppercase tracking-widest" style={{ color: T.textFaint }}>Preview</span>
+              <Eye size={12} strokeWidth={1.5} style={{ color: T.textFaint }} />
+              <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: T.textFaint, fontFamily: FONT.mono }}>Preview</span>
             </div>
 
             <div
               className="inline-flex items-center gap-0.5 p-0.5 rounded-lg"
-              style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+              style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.line}` }}
             >
               {([
                 { id: "desktop", icon: Monitor },
@@ -598,7 +599,7 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
                     }}
                     aria-label={`${id} preview`}
                   >
-                    <Icon size={12} />
+                    <Icon size={12} strokeWidth={1.5} />
                   </button>
                 );
               })}
@@ -612,7 +613,7 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
               sandbox=""
               className="w-full h-full rounded-lg bg-white transition-all"
               style={{
-                border: `1px solid ${T.borderSoft}`,
+                border: `1px solid ${T.line}`,
                 boxShadow: "0 12px 30px -12px rgba(0,0,0,0.5)",
                 maxWidth: device === "mobile" ? 390 : device === "tablet" ? 768 : "100%",
               }}
@@ -630,20 +631,20 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md rounded-2xl overflow-hidden"
-            style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
+            className="w-full max-w-md rounded-2xl overflow-hidden modal-pop"
+            style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.line}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
           >
-            <div className="p-5 border-b" style={{ borderColor: T.borderSoft }}>
+            <div className="p-5 border-b" style={{ borderColor: T.line }}>
               <div className="flex items-start gap-3">
                 <div
                   className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
                   style={{ background: T.dangerSoft, color: T.danger }}
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={16} strokeWidth={1.5} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-[15px] font-semibold" style={{ color: T.text }}>Delete template?</h3>
-                  <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
+                  <h3 className="text-[14px] font-medium" style={{ color: T.text }}>Delete template?</h3>
+                  <p className="text-[12px] mt-1" style={{ color: T.textMuted }}>
                     This permanently removes it from the database.
                   </p>
                 </div>
@@ -653,18 +654,18 @@ const TemplateEditor = ({ template: initialTemplate, onSave, onClose, onDelete }
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deleting}
-                className="rounded-md px-3.5 py-2 text-[12px] font-medium transition-colors hover:bg-white/5 disabled:opacity-50"
-                style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+                className="btn-quiet btn-press rounded-md px-3.5 py-2 text-[12px] font-medium disabled:opacity-50"
+                style={{ color: T.textMuted, boxShadow: RING }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmDelete}
                 disabled={deleting}
-                className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-medium text-white disabled:opacity-50"
-                style={{ background: T.danger, boxShadow: "0 6px 18px -8px rgba(239,68,68,0.65)" }}
+                className="btn-press inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-medium text-white disabled:opacity-50"
+                style={{ background: T.danger }}
               >
-                {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />} Delete
+                {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} strokeWidth={1.5} />} Delete
               </button>
             </div>
           </div>
@@ -685,20 +686,20 @@ const StatCard: FC<{
   accentSoft: string;
   accentBorder: string;
 }> = ({ title, value, description, icon: Icon, accent, accentSoft }) => (
-  <div className="rounded-xl p-4" style={{ background: T.surface, boxShadow: RING }}>
+  <div className="rounded-xl p-5" style={{ background: T.surface, boxShadow: RING }}>
     <div className="flex items-start justify-between mb-3">
       <div
-        className="w-8 h-8 rounded-md flex items-center justify-center"
+        className="w-8 h-8 rounded-lg flex items-center justify-center"
         style={{ background: accentSoft, color: accent }}
       >
-        <Icon size={14} />
+        <Icon size={14} strokeWidth={1.5} />
       </div>
     </div>
-    <p className="text-[24px] font-semibold leading-none" style={{ color: T.text, fontFamily: FONT.mono }}>
+    <p className="text-[24px] font-medium leading-none tabular-nums" style={{ color: T.text, fontFamily: FONT.mono }}>
       {value}
     </p>
-    <p className="text-[11.5px] mt-2" style={{ color: T.textMuted }}>{title}</p>
-    <p className="text-[10.5px] mt-0.5" style={{ color: T.textFaint }}>{description}</p>
+    <p className="text-[12px] mt-2" style={{ color: T.textMuted }}>{title}</p>
+    <p className="text-[11px] mt-1" style={{ color: T.textFaint, fontFamily: FONT.mono }}>{description}</p>
   </div>
 );
 
@@ -707,11 +708,12 @@ const StatCard: FC<{
 const FilterPill: FC<{ label: string; active: boolean; onClick: () => void; small?: boolean }> = ({ label, active, onClick, small }) => (
   <button
     onClick={onClick}
-    className={`rounded-md px-2 ${small ? "py-0.5 text-[11px]" : "py-1 text-[11.5px]"} font-medium transition-colors`}
+    className={`rounded-md px-2 ${small ? "py-0.5 text-[11px]" : "py-1 text-[12px]"} font-medium transition-colors`}
     style={{
       background: active ? T.surfaceHi : T.surface2,
       color: active ? T.text : T.textMuted,
-      boxShadow: active ? "none" : `inset 0 0 0 1px ${T.borderSoft}`,
+      boxShadow: active ? `inset 0 0 0 1px ${T.lineStrong}` : `inset 0 0 0 1px ${T.line}`,
+      fontFamily: FONT.mono,
     }}
   >
     {label}
@@ -738,10 +740,10 @@ const ActionBtn: FC<{
     }}
     className="w-6 h-6 rounded-md flex items-center justify-center transition-colors disabled:opacity-50"
     style={{
-      background: "rgba(10,11,16,0.82)",
+      background: "rgba(14,15,17,0.82)",
       backdropFilter: "blur(6px)",
       color: danger ? T.danger : T.textMuted,
-      boxShadow: `inset 0 0 0 1px ${danger ? T.dangerBorder : T.border}`,
+      boxShadow: `inset 0 0 0 1px ${danger ? T.dangerBorder : T.line}`,
     }}
   >
     {children}
@@ -763,22 +765,22 @@ const DeleteConfirmModal: FC<{
   >
     <div
       onClick={(e) => e.stopPropagation()}
-      className="w-full max-w-md rounded-2xl overflow-hidden"
-      style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
+      className="w-full max-w-md rounded-2xl overflow-hidden modal-pop"
+      style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.line}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
     >
-      <div className="p-5 border-b" style={{ borderColor: T.borderSoft }}>
+      <div className="p-5 border-b" style={{ borderColor: T.line }}>
         <div className="flex items-start gap-3">
           <div
             className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
             style={{ background: T.dangerSoft, color: T.danger }}
           >
-            <Trash2 size={16} />
+            <Trash2 size={16} strokeWidth={1.5} />
           </div>
           <div className="min-w-0">
-            <h3 className="text-[15px] font-semibold wrap-break-word" style={{ color: T.text }}>
+            <h3 className="text-[14px] font-medium wrap-break-word" style={{ color: T.text }}>
               Delete “{name}”?
             </h3>
-            <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
+            <p className="text-[12px] mt-1" style={{ color: T.textMuted }}>
               This permanently removes it from the database.
             </p>
           </div>
@@ -788,18 +790,18 @@ const DeleteConfirmModal: FC<{
         <button
           onClick={onCancel}
           disabled={busy}
-          className="rounded-md px-3.5 py-2 text-[12px] font-medium transition-colors hover:bg-white/5 disabled:opacity-50"
-          style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+          className="btn-quiet btn-press rounded-md px-3.5 py-2 text-[12px] font-medium disabled:opacity-50"
+          style={{ color: T.textMuted, boxShadow: RING }}
         >
           Cancel
         </button>
         <button
           onClick={onConfirm}
           disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-medium text-white disabled:opacity-50"
-          style={{ background: T.danger, boxShadow: "0 6px 18px -8px rgba(239,68,68,0.65)" }}
+          className="btn-press inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-medium text-white disabled:opacity-50"
+          style={{ background: T.danger }}
         >
-          {busy ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />} Delete
+          {busy ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} strokeWidth={1.5} />} Delete
         </button>
       </div>
     </div>
@@ -933,14 +935,14 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
   const inputStyle: CSSProperties = {
     background: T.surface2,
     color: T.text,
-    boxShadow: `inset 0 0 0 1px ${T.borderSoft}`,
+    boxShadow: `inset 0 0 0 1px ${T.line}`,
   };
 
   const focusRing = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brandBorder}, 0 0 0 3px ${T.brandSoft}`;
+    e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.accentBorder}, 0 0 0 3px ${T.accentSoft}`;
   };
   const blurRing = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.borderSoft}`;
+    e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.line}`;
   };
 
   const modeTabs: { id: CreateMode; label: string; icon: ElementType; hint: string }[] = [
@@ -958,21 +960,21 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-5xl max-h-[92vh] rounded-2xl overflow-hidden flex flex-col"
-        style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
+        className="w-full max-w-5xl max-h-[92vh] rounded-2xl overflow-hidden flex flex-col modal-pop"
+        style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.line}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 p-5 border-b shrink-0" style={{ borderColor: T.borderSoft }}>
+        <div className="flex items-start justify-between gap-3 p-5 border-b shrink-0" style={{ borderColor: T.line }}>
           <div className="flex items-start gap-3">
             <div
               className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
-              style={{ background: T.brandSoft, color: T.brand }}
+              style={{ background: T.accentSoft, color: T.accent }}
             >
-              <LayoutTemplate size={15} />
+              <LayoutTemplate size={15} strokeWidth={1.5} />
             </div>
             <div>
-              <h2 className="text-[15px] font-semibold" style={{ color: T.text }}>New HTML template</h2>
-              <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
+              <h2 className="text-[14px] font-medium" style={{ color: T.text }}>New HTML template</h2>
+              <p className="text-[12px] mt-1" style={{ color: T.textMuted }}>
                 Build from a starter, paste HTML, upload a file, or fetch from a URL.
               </p>
             </div>
@@ -980,38 +982,38 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
           <button
             onClick={onClose}
             disabled={busy}
-            className="shrink-0 p-1.5 rounded-md transition-colors hover:bg-white/5 disabled:opacity-50"
-            style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+            className="btn-quiet shrink-0 p-1.5 rounded-md disabled:opacity-50"
+            style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.line}` }}
             aria-label="Close"
           >
-            <X size={14} />
+            <X size={14} strokeWidth={1.5} />
           </button>
         </div>
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-2">
           {/* Left: form */}
-          <div className="p-5 space-y-3.5 border-b lg:border-b-0 lg:border-r" style={{ borderColor: T.borderSoft }}>
+          <div className="p-5 space-y-3.5 border-b lg:border-b-0 lg:border-r" style={{ borderColor: T.line }}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div>
-                <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: T.textMuted }}>Template name</label>
+                <label className="block text-[12px] font-medium mb-1.5" style={{ color: T.textMuted }}>Template name</label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Cart Abandonment"
-                  className="w-full rounded-lg px-3 py-2 text-[13px] outline-none transition-all"
+                  className="w-full rounded-lg px-3 py-2 text-[12px] outline-none transition-all"
                   style={inputStyle}
                   onFocus={focusRing}
                   onBlur={blurRing}
                 />
               </div>
               <div>
-                <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: T.textMuted }}>Subject line</label>
+                <label className="block text-[12px] font-medium mb-1.5" style={{ color: T.textMuted }}>Subject line</label>
                 <input
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="e.g. You left something behind"
-                  className="w-full rounded-lg px-3 py-2 text-[13px] outline-none transition-all"
+                  className="w-full rounded-lg px-3 py-2 text-[12px] outline-none transition-all"
                   style={inputStyle}
                   onFocus={focusRing}
                   onBlur={blurRing}
@@ -1021,18 +1023,18 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div>
-                <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: T.textMuted }}>Category</label>
+                <label className="block text-[12px] font-medium mb-1.5" style={{ color: T.textMuted }}>Category</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as Category)}
-                  className="w-full rounded-lg px-3 py-2 text-[13px] outline-none cursor-pointer"
+                  className="w-full rounded-lg px-3 py-2 text-[12px] outline-none cursor-pointer"
                   style={inputStyle}
                 >
                   {categories.map((c) => <option key={c}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: T.textMuted }}>Initial status</label>
+                <label className="block text-[12px] font-medium mb-1.5" style={{ color: T.textMuted }}>Initial status</label>
                 <div className="grid grid-cols-2 gap-2">
                   {(["Draft", "Published"] as Status[]).map((s) => {
                     const active = status === s;
@@ -1044,7 +1046,8 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
                         style={{
                           background: active ? (s === "Published" ? T.successSoft : T.warnSoft) : T.surface2,
                           color: active ? (s === "Published" ? T.success : T.warn) : T.textMuted,
-                          boxShadow: `inset 0 0 0 1px ${active ? (s === "Published" ? T.successBorder : T.warnBorder) : T.borderSoft}`,
+                          boxShadow: `inset 0 0 0 1px ${active ? (s === "Published" ? T.successBorder : T.warnBorder) : T.line}`,
+                          fontFamily: FONT.mono,
                         }}
                       >
                         {s}
@@ -1056,7 +1059,7 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
             </div>
 
             <div>
-              <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: T.textMuted }}>HTML source</label>
+              <label className="block text-[12px] font-medium mb-1.5" style={{ color: T.textMuted }}>HTML source</label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                 {modeTabs.map(({ id, label, icon: Icon }) => {
                   const active = mode === id;
@@ -1066,12 +1069,13 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
                       onClick={() => setMode(id)}
                       className="flex flex-col items-center gap-1 rounded-lg px-2 py-2 text-[11px] font-medium transition-colors"
                       style={{
-                        background: active ? T.brandSoft : T.surface2,
-                        color: active ? T.brand : T.textMuted,
-                        boxShadow: `inset 0 0 0 1px ${active ? T.brandBorder : T.borderSoft}`,
+                        background: active ? T.accentSoft : T.surface2,
+                        color: active ? T.accent : T.textMuted,
+                        boxShadow: `inset 0 0 0 1px ${active ? T.accentBorder : T.line}`,
+                        fontFamily: FONT.mono,
                       }}
                     >
-                      <Icon size={13} />
+                      <Icon size={13} strokeWidth={1.5} />
                       {label}
                     </button>
                   );
@@ -1082,11 +1086,11 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
             {mode === "starter" && (
               <div
                 className="rounded-lg p-3 flex items-start gap-2.5"
-                style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.line}` }}
               >
-                <FileText size={13} style={{ color: T.textFaint }} className="mt-0.5 shrink-0" />
-                <div className="text-[11.5px] leading-relaxed" style={{ color: T.textMuted }}>
-                  A <span style={{ color: T.text, fontWeight: 600 }}>{category}</span> boilerplate will be generated with
+                <FileText size={13} strokeWidth={1.5} style={{ color: T.textFaint }} className="mt-0.5 shrink-0" />
+                <div className="text-[12px] leading-relaxed" style={{ color: T.textMuted }}>
+                  A <span style={{ color: T.text, fontWeight: 500 }}>{category}</span> boilerplate will be generated with
                   standard email variables (<span style={{ fontFamily: FONT.mono }}>{"{{first_name}}"}</span>, <span style={{ fontFamily: FONT.mono }}>{"{{company}}"}</span>, etc.) already wired in.
                 </div>
               </div>
@@ -1095,13 +1099,13 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
             {mode === "paste" && (
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-[11.5px] font-medium" style={{ color: T.textMuted }}>Paste HTML</label>
+                  <label className="text-[12px] font-medium" style={{ color: T.textMuted }}>Paste HTML</label>
                   <button
                     onClick={pasteFromClipboard}
-                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10.5px] transition-colors hover:bg-white/5"
-                    style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                    className="btn-quiet inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px]"
+                    style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.line}`, fontFamily: FONT.mono }}
                   >
-                    <Clipboard size={10} /> Paste
+                    <Clipboard size={11} strokeWidth={1.5} /> Paste
                   </button>
                 </div>
                 <textarea
@@ -1116,8 +1120,8 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
                   onBlur={blurRing}
                 />
                 {pasteHtml && !looksLikeHtml(pasteHtml) && (
-                  <p className="mt-1.5 inline-flex items-center gap-1 text-[10.5px]" style={{ color: T.warn }}>
-                    <AlertCircle size={10} /> This doesn't look like HTML.
+                  <p className="mt-1.5 inline-flex items-center gap-1 text-[11px]" style={{ color: T.warn }}>
+                    <AlertCircle size={11} strokeWidth={1.5} /> This doesn't look like HTML.
                   </p>
                 )}
               </div>
@@ -1139,27 +1143,27 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
                   onClick={() => fileInputRef.current?.click()}
                   className="rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors"
                   style={{
-                    background: dragOver ? T.brandSoft : T.surface2,
-                    boxShadow: `inset 0 0 0 1px ${dragOver ? T.brandBorder : T.borderSoft}`,
-                    border: `1px dashed ${dragOver ? T.brand : T.border}`,
+                    background: dragOver ? T.accentSoft : T.surface2,
+                    boxShadow: `inset 0 0 0 1px ${dragOver ? T.accentBorder : T.line}`,
+                    border: `1px dashed ${dragOver ? T.accent : T.lineStrong}`,
                   }}
                 >
                   <div
                     className="w-10 h-10 rounded-lg flex items-center justify-center mb-2"
-                    style={{ background: T.brandSoft, color: T.brand }}
+                    style={{ background: T.accentSoft, color: T.accent }}
                   >
-                    <Upload size={15} />
+                    <Upload size={15} strokeWidth={1.5} />
                   </div>
                   <p className="text-[12px] font-medium" style={{ color: T.textMuted }}>
                     {fileName ? `Selected: ${fileName}` : "Drop an .html file here"}
                   </p>
-                  <p className="text-[10.5px] mt-0.5" style={{ color: T.textFaint }}>
+                  <p className="text-[11px] mt-1" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                     or click to browse
                   </p>
                 </div>
                 {fileHtml && (
-                  <p className="mt-2 inline-flex items-center gap-1 text-[10.5px]" style={{ color: T.success }}>
-                    <CheckCircle size={10} /> {fileHtml.length.toLocaleString()} chars loaded
+                  <p className="mt-2 inline-flex items-center gap-1 text-[11px]" style={{ color: T.success, fontFamily: FONT.mono }}>
+                    <CheckCircle size={11} strokeWidth={1.5} /> {fileHtml.length.toLocaleString()} chars loaded
                   </p>
                 )}
               </div>
@@ -1167,18 +1171,18 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
 
             {mode === "url" && (
               <div>
-                <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: T.textMuted }}>HTML URL</label>
+                <label className="block text-[12px] font-medium mb-1.5" style={{ color: T.textMuted }}>HTML URL</label>
                 <div className="flex items-center gap-2">
                   <div
                     className="flex items-center gap-2 rounded-lg px-3 py-2 flex-1 min-w-0"
                     style={inputStyle}
                   >
-                    <Link2 size={12} style={{ color: T.textFaint }} className="shrink-0" />
+                    <Link2 size={12} strokeWidth={1.5} style={{ color: T.textFaint }} className="shrink-0" />
                     <input
                       value={url}
                       onChange={(e) => setUrl(e.target.value)}
                       placeholder="https://example.com/template.html"
-                      className="w-full bg-transparent outline-none text-[12.5px]"
+                      className="w-full bg-transparent outline-none text-[12px]"
                       style={{ color: T.text }}
                       onFocus={focusRing}
                       onBlur={blurRing}
@@ -1187,24 +1191,24 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
                   <button
                     onClick={fetchFromUrl}
                     disabled={!url.trim() || fetchingUrl}
-                    className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-medium text-white transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ background: T.brand, boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+                    className="btn-press inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ background: T.text, color: T.bg }}
                   >
-                    {fetchingUrl ? <Loader2 size={12} className="animate-spin" /> : <Link size={12} />}
+                    {fetchingUrl ? <Loader2 size={12} className="animate-spin" /> : <Link size={12} strokeWidth={1.5} />}
                     Fetch
                   </button>
                 </div>
                 {urlError && (
-                  <p className="mt-1.5 inline-flex items-center gap-1 text-[10.5px]" style={{ color: T.danger }}>
-                    <AlertTriangle size={10} /> {urlError}
+                  <p className="mt-1.5 inline-flex items-center gap-1 text-[11px]" style={{ color: T.danger }}>
+                    <AlertTriangle size={11} strokeWidth={1.5} /> {urlError}
                   </p>
                 )}
                 {urlHtml && !urlError && (
-                  <p className="mt-1.5 inline-flex items-center gap-1 text-[10.5px]" style={{ color: T.success }}>
-                    <CheckCircle size={10} /> {urlHtml.length.toLocaleString()} chars loaded
+                  <p className="mt-1.5 inline-flex items-center gap-1 text-[11px]" style={{ color: T.success, fontFamily: FONT.mono }}>
+                    <CheckCircle size={11} strokeWidth={1.5} /> {urlHtml.length.toLocaleString()} chars loaded
                   </p>
                 )}
-                <p className="mt-1.5 text-[10.5px]" style={{ color: T.textFaint }}>
+                <p className="mt-1.5 text-[11px]" style={{ color: T.textFaint }}>
                   The URL must allow cross-origin requests (CORS).
                 </p>
               </div>
@@ -1212,12 +1216,12 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
 
             <div
               className="rounded-lg px-3 py-2 flex items-center justify-between gap-2"
-              style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+              style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.line}` }}
             >
-              <span className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: T.textMuted }}>
-                <Code2 size={11} /> {htmlSourceLabel[mode]}
+              <span className="inline-flex items-center gap-1.5 text-[12px]" style={{ color: T.textMuted }}>
+                <Code2 size={12} strokeWidth={1.5} /> {htmlSourceLabel[mode]}
               </span>
-              <span className="text-[10.5px]" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+              <span className="text-[11px] tabular-nums" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
                 {resolvedHtml.length.toLocaleString()} chars
               </span>
             </div>
@@ -1227,15 +1231,15 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
           <div className="p-5 flex flex-col min-h-80">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Eye size={12} style={{ color: T.textFaint }} />
-                <span className="text-[10.5px] font-medium uppercase tracking-widest" style={{ color: T.textFaint }}>
+                <Eye size={12} strokeWidth={1.5} style={{ color: T.textFaint }} />
+                <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                   Live preview
                 </span>
               </div>
               <button
                 onClick={() => setShowPreview((v) => !v)}
-                className="rounded-md px-2 py-1 text-[10.5px] transition-colors hover:bg-white/5"
-                style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                className="btn-quiet rounded-md px-2 py-1 text-[11px]"
+                style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.line}`, fontFamily: FONT.mono }}
               >
                 {showPreview ? "Hide" : "Show"}
               </button>
@@ -1243,7 +1247,7 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
             {showPreview && (
               <div
                 className="flex-1 rounded-lg overflow-hidden flex items-start justify-center"
-                style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}`, minHeight: 260 }}
+                style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.line}`, minHeight: 260 }}
               >
                 {resolvedHtml ? (
                   <iframe
@@ -1254,8 +1258,8 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center text-center p-6">
-                    <FileCode size={20} style={{ color: T.textFaint }} />
-                    <p className="mt-2 text-[11.5px]" style={{ color: T.textMuted }}>
+                    <FileCode size={20} strokeWidth={1.5} style={{ color: T.textFaint }} />
+                    <p className="mt-2 text-[12px]" style={{ color: T.textMuted }}>
                       HTML preview will appear here.
                     </p>
                   </div>
@@ -1266,22 +1270,22 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({ busy, onClose, onCreate }
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 p-5 border-t shrink-0" style={{ borderColor: T.borderSoft }}>
+        <div className="flex items-center justify-end gap-2 p-5 border-t shrink-0" style={{ borderColor: T.line }}>
           <button
             onClick={onClose}
             disabled={busy}
-            className="rounded-md px-3.5 py-2 text-[12px] font-medium transition-colors hover:bg-white/5 disabled:opacity-50"
-            style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+            className="btn-quiet btn-press rounded-md px-3.5 py-2 text-[12px] font-medium disabled:opacity-50"
+            style={{ color: T.textMuted, boxShadow: RING }}
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-medium text-white transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100"
-            style={{ background: T.brand, boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+            className="btn-primary btn-press inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#ECEDEF]"
+            style={{ background: T.text, color: T.bg }}
           >
-            {busy ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+            {busy ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} strokeWidth={1.5} />}
             Create template
           </button>
         </div>
@@ -1314,20 +1318,20 @@ const AIGenerateModal: FC<{
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg rounded-2xl overflow-hidden"
-        style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
+        className="w-full max-w-lg rounded-2xl overflow-hidden modal-pop"
+        style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.line}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
       >
-        <div className="flex items-start justify-between gap-3 p-5 border-b" style={{ borderColor: T.borderSoft }}>
+        <div className="flex items-start justify-between gap-3 p-5 border-b" style={{ borderColor: T.line }}>
           <div className="flex items-start gap-3">
             <div
               className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
-              style={{ background: T.warnSoft, color: T.warn }}
+              style={{ background: T.accentSoft, color: T.accent }}
             >
-              <Sparkles size={15} />
+              <Sparkles size={15} strokeWidth={1.5} />
             </div>
             <div>
-              <h2 className="text-[15px] font-semibold" style={{ color: T.text }}>AI template generator</h2>
-              <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
+              <h2 className="text-[14px] font-medium" style={{ color: T.text }}>AI template generator</h2>
+              <p className="text-[12px] mt-1" style={{ color: T.textMuted }}>
                 Describe what you want and we'll draft it.
               </p>
             </div>
@@ -1335,17 +1339,17 @@ const AIGenerateModal: FC<{
           <button
             onClick={onClose}
             disabled={busy}
-            className="shrink-0 p-1.5 rounded-md transition-colors hover:bg-white/5 disabled:opacity-50"
-            style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+            className="btn-quiet shrink-0 p-1.5 rounded-md disabled:opacity-50"
+            style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.line}` }}
             aria-label="Close"
           >
-            <X size={14} />
+            <X size={14} strokeWidth={1.5} />
           </button>
         </div>
 
         <div className="p-5 space-y-3.5">
           <div>
-            <label className="block text-[11.5px] font-medium mb-1.5" style={{ color: T.textMuted }}>
+            <label className="block text-[12px] font-medium mb-1.5" style={{ color: T.textMuted }}>
               What kind of email do you want?
             </label>
             <textarea
@@ -1353,25 +1357,25 @@ const AIGenerateModal: FC<{
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="e.g., A welcome email for new users with a 20% discount code…"
               rows={4}
-              className="w-full rounded-lg px-3 py-2 text-[13px] outline-none transition-all resize-none"
-              style={{ background: T.surface2, color: T.text, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
-              onFocus={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brandBorder}, 0 0 0 3px ${T.brandSoft}`)}
-              onBlur={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.borderSoft}`)}
+              className="w-full rounded-lg px-3 py-2 text-[12px] outline-none transition-all resize-none"
+              style={{ background: T.surface2, color: T.text, boxShadow: `inset 0 0 0 1px ${T.line}` }}
+              onFocus={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.accentBorder}, 0 0 0 3px ${T.accentSoft}`)}
+              onBlur={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.line}`)}
             />
-            <p className="mt-1.5 inline-flex items-center gap-1 text-[10.5px]" style={{ color: T.textFaint }}>
-              <AlertCircle size={10} />
+            <p className="mt-1.5 inline-flex items-center gap-1 text-[11px]" style={{ color: T.textFaint }}>
+              <AlertCircle size={11} strokeWidth={1.5} />
               Be specific about tone, purpose, and key messages.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[10.5px] mr-1" style={{ color: T.textFaint }}>Quick prompts</span>
+            <span className="text-[11px] mr-1" style={{ color: T.textFaint, fontFamily: FONT.mono }}>Quick prompts</span>
             {quickPrompts.map((p) => (
               <button
                 key={p.label}
                 onClick={() => setPrompt(p.prompt)}
-                className="rounded-md px-2 py-0.5 text-[11px] transition-colors hover:bg-white/5"
-                style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                className="btn-quiet rounded-md px-2 py-0.5 text-[11px]"
+                style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.line}`, fontFamily: FONT.mono }}
               >
                 {p.label}
               </button>
@@ -1379,22 +1383,22 @@ const AIGenerateModal: FC<{
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 p-5 border-t" style={{ borderColor: T.borderSoft }}>
+        <div className="flex items-center justify-end gap-2 p-5 border-t" style={{ borderColor: T.line }}>
           <button
             onClick={onClose}
             disabled={busy}
-            className="rounded-md px-3.5 py-2 text-[12px] font-medium transition-colors hover:bg-white/5 disabled:opacity-50"
-            style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+            className="btn-quiet btn-press rounded-md px-3.5 py-2 text-[12px] font-medium disabled:opacity-50"
+            style={{ color: T.textMuted, boxShadow: RING }}
           >
             Cancel
           </button>
           <button
             onClick={onGenerate}
             disabled={!canGenerate}
-            className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:brightness-110 disabled:hover:brightness-100"
-            style={{ background: T.warn, color: "#0A0B10", boxShadow: "0 6px 18px -8px rgba(245,158,11,0.65)" }}
+            className="btn-press inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: T.accent, color: T.bg }}
           >
-            {busy ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />} Generate template
+            {busy ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} strokeWidth={1.5} />} Generate template
           </button>
         </div>
       </div>
@@ -1599,32 +1603,50 @@ const EmailTemplatesAdmin = () => {
     }
   };
 
+  const stagger = (i: number) => ({ "--i": i } as React.CSSProperties);
+
   return (
     <div
-      className="flex w-full overflow-hidden"
+      className="etm-root flex w-full overflow-hidden"
       style={{ fontFamily: FONT.body, background: T.bg, height: "100dvh" }}
     >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap');
 
-        /* Kill outer body scroll so only <main> scrolls */
         html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; }
 
-        @keyframes floatIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-        .float-in { animation: floatIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .etm-root { --ease: cubic-bezier(0.2, 0, 0, 1); }
+
+        @keyframes enter {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .enter { animation: enter 240ms var(--ease) both; animation-delay: calc(var(--i, 0) * 40ms); }
+
         @keyframes modalPop { from { opacity: 0; transform: scale(0.98) translateY(6px); } to { opacity: 1; transform: none; } }
-        .modal-pop { animation: modalPop 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .modal-pop { animation: modalPop 200ms var(--ease); }
+
+        .etm-root button, .etm-root a { transition-property: color, background-color, box-shadow, opacity; transition-duration: 120ms; transition-timing-function: var(--ease); }
+        .etm-root button:focus-visible { outline: 2px solid ${T.accent}; outline-offset: 2px; }
+
+        .btn-primary:hover { background: #FFFFFF; }
+        .btn-quiet:hover { background: rgba(236,237,239,0.05); color: ${T.text}; }
+        .btn-press:active { transform: scale(0.98); }
 
         .etm-main::-webkit-scrollbar { width: 8px; }
         .etm-main::-webkit-scrollbar-track { background: transparent; }
-        .etm-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
-        .etm-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
+        .etm-main::-webkit-scrollbar-thumb { background: ${T.surfaceHi}; border-radius: 8px; }
 
         select option { background: ${T.surface2}; color: ${T.text}; }
 
         textarea::-webkit-scrollbar { width: 8px; }
         textarea::-webkit-scrollbar-track { background: transparent; }
-        textarea::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 8px; }
+        textarea::-webkit-scrollbar-thumb { background: ${T.surfaceHi}; border-radius: 8px; }
+
+        @media (prefers-reduced-motion: reduce) {
+          .enter, .modal-pop { animation: none !important; }
+          .btn-press:active { transform: none; }
+        }
       `}</style>
 
       {sidebarOpen && (
@@ -1642,29 +1664,35 @@ const EmailTemplatesAdmin = () => {
       </div>
 
       <main className="etm-main flex-1 min-w-0 overflow-y-auto overflow-x-hidden" style={{ background: T.bg }}>
-        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1280 }}>
+        <div className="mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8 flex flex-col gap-6" style={{ maxWidth: 1440 }}>
 
-          {/* Header */}
-          <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-7">
+          {/* Header — dashboard style */}
+          <header className="enter flex flex-col md:flex-row md:items-end justify-between gap-4" style={stagger(0)}>
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-lg transition-colors hover:bg-white/5"
+                className="lg:hidden mt-1 p-2 rounded-lg btn-quiet"
                 style={{ background: T.surface, color: T.textMuted, boxShadow: RING }}
                 aria-label="Open menu"
               >
-                <Menu size={18} />
+                <Menu {...ICON} />
               </button>
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[10.5px] font-medium tracking-widest uppercase" style={{ color: T.textFaint }}>Content</span>
-                  <ChevronRight size={10} style={{ color: T.textFaint }} />
-                  <span className="text-[10.5px] font-medium tracking-widest uppercase" style={{ color: T.brand }}>Templates</span>
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium"
+                    style={{ background: T.accentSoft, color: T.accent, fontFamily: FONT.mono }}
+                  >
+                    <LayoutTemplate size={11} strokeWidth={1.5} /> Templates
+                  </span>
+                  <span className="text-[12px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                    · {templates.length} total
+                  </span>
                 </div>
-                <h1 className="text-[26px] md:text-[30px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
+                <h1 className="text-[28px] leading-8 font-medium tracking-tight" style={{ color: T.text }}>
                   Email templates
                 </h1>
-                <p className="mt-1 text-[13.5px] max-w-lg" style={{ color: T.textMuted }}>
+                <p className="mt-2 text-[12px]" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
                   Build and manage the HTML templates used across every campaign.
                 </p>
               </div>
@@ -1673,52 +1701,52 @@ const EmailTemplatesAdmin = () => {
             <div className="flex items-center gap-2 flex-wrap self-start md:self-auto">
               <button
                 onClick={refetch}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-medium transition-colors hover:bg-white/5"
-                style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+                className="btn-quiet btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] font-medium"
+                style={{ color: T.textMuted, background: T.surface, boxShadow: RING }}
               >
-                <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+                <RefreshCw {...ICON} size={14} className={loading ? "animate-spin" : ""} />
                 <span className="hidden sm:inline">Refresh</span>
               </button>
               <button
                 onClick={() => setShowNewModal(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium text-white transition-all hover:brightness-110"
-                style={{ background: T.brand, boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+                className="btn-primary btn-press inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-medium"
+                style={{ background: T.text, color: T.bg }}
               >
-                <Plus size={13} /> New template
+                <Plus size={14} strokeWidth={1.5} /> New template
               </button>
             </div>
           </header>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
-            <StatCard title="Total templates" value={String(templates.length)}                                                                    description="Across all categories" icon={LayoutTemplate} accent={T.textMuted} accentSoft={T.surface2} accentBorder={T.borderSoft} />
-            <StatCard title="Published"       value={String(templates.filter((t) => t.status === "Published").length)}                          description="Live and in use"          icon={CheckCircle2}   accent={T.success}   accentSoft={T.successSoft}  accentBorder={T.successBorder} />
-            <StatCard title="Drafts"          value={String(templates.filter((t) => t.status === "Draft").length)}                              description="Not yet published"        icon={Clock}          accent={T.warn}      accentSoft={T.warnSoft}     accentBorder={T.warnBorder} />
-            <StatCard title="Categories"      value={String(categories.length)}                                                                 description="Welcome · Promo · News · Txn" icon={FileCode}   accent={T.brand}     accentSoft={T.brandSoft}    accentBorder={T.brandBorder} />
+          <div className="enter grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" style={stagger(1)}>
+            <StatCard title="Total templates" value={String(templates.length)}                                                                    description="Across all categories" icon={LayoutTemplate} accent={T.textMuted} accentSoft={T.surface2} accentBorder={T.line} />
+            <StatCard title="Published"       value={String(templates.filter((t) => t.status === "Published").length)}                          description="Live and in use"          icon={CheckCircle2}   accent={T.success}   accentSoft={T.successSoft} accentBorder={T.successBorder} />
+            <StatCard title="Drafts"          value={String(templates.filter((t) => t.status === "Draft").length)}                              description="Not yet published"        icon={Clock}          accent={T.warn}      accentSoft={T.warnSoft}    accentBorder={T.warnBorder} />
+            <StatCard title="Categories"      value={String(categories.length)}                                                                 description="Welcome · Promo · News · Txn" icon={FileCode}   accent={T.accent}    accentSoft={T.accentSoft}  accentBorder={T.accentBorder} />
           </div>
 
           {/* Filters */}
-          <div className="rounded-xl p-3 mb-5" style={{ background: T.surface, boxShadow: RING }}>
+          <div className="enter rounded-xl p-3" style={{ background: T.surface, boxShadow: RING, ...stagger(2) }}>
             <div
               className="flex items-center gap-2 rounded-lg px-3 py-2 transition-all"
-              style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
-              onFocusCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brandBorder}, 0 0 0 3px ${T.brandSoft}`)}
-              onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.borderSoft}`)}
+              style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.line}` }}
+              onFocusCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.accentBorder}, 0 0 0 3px ${T.accentSoft}`)}
+              onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.line}`)}
             >
-              <Search size={13} style={{ color: T.textFaint }} className="shrink-0" />
+              <Search size={14} strokeWidth={1.5} style={{ color: T.textFaint }} className="shrink-0" />
               <input
                 type="text"
                 placeholder="Search templates by name or subject…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-transparent text-[13px] outline-none"
+                className="w-full bg-transparent text-[12px] outline-none"
                 style={{ color: T.text }}
               />
               {search && (
                 <button
                   onClick={() => setSearch("")}
-                  className="shrink-0 text-[10px] px-1.5 py-0.5 rounded transition-colors hover:bg-white/5"
-                  style={{ color: T.textMuted }}
+                  className="btn-quiet shrink-0 text-[11px] px-1.5 py-0.5 rounded"
+                  style={{ color: T.textMuted, fontFamily: FONT.mono }}
                 >
                   Clear
                 </button>
@@ -1726,7 +1754,7 @@ const EmailTemplatesAdmin = () => {
             </div>
 
             <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] uppercase tracking-widest mr-1" style={{ color: T.textFaint }}>Category</span>
+              <span className="text-[11px] uppercase tracking-wide mr-1" style={{ color: T.textFaint, fontFamily: FONT.mono }}>Category</span>
               <FilterPill label="All" active={categoryFilter === "All"} onClick={() => setCategoryFilter("All")} small />
               {categories.map((c) => (
                 <FilterPill key={c} label={c} active={categoryFilter === c} onClick={() => setCategoryFilter(c)} small />
@@ -1734,7 +1762,7 @@ const EmailTemplatesAdmin = () => {
             </div>
 
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] uppercase tracking-widest mr-1" style={{ color: T.textFaint }}>Status</span>
+              <span className="text-[11px] uppercase tracking-wide mr-1" style={{ color: T.textFaint, fontFamily: FONT.mono }}>Status</span>
               <FilterPill label="All"       active={statusFilter === "All"}       onClick={() => setStatusFilter("All")} small />
               <FilterPill label="Published" active={statusFilter === "Published"} onClick={() => setStatusFilter("Published")} small />
               <FilterPill label="Draft"     active={statusFilter === "Draft"}     onClick={() => setStatusFilter("Draft")} small />
@@ -1744,52 +1772,52 @@ const EmailTemplatesAdmin = () => {
           {/* Content */}
           {loading && templates.length === 0 ? (
             <div className="rounded-xl p-14 flex flex-col items-center justify-center" style={{ background: T.surface, boxShadow: RING }}>
-              <Loader2 size={24} className="animate-spin" style={{ color: T.brand }} />
-              <p className="mt-3 text-[12.5px]" style={{ color: T.textMuted }}>Loading templates…</p>
+              <Loader2 size={22} className="animate-spin" style={{ color: T.neutral2 }} />
+              <p className="mt-3 text-[12px]" style={{ color: T.textMuted, fontFamily: FONT.mono }}>Loading templates…</p>
             </div>
           ) : !loading && error && templates.length === 0 ? (
             <div className="rounded-xl p-12 flex flex-col items-center justify-center text-center" style={{ background: T.surface, boxShadow: RING }}>
               <div className="w-12 h-12 mb-4 rounded-lg flex items-center justify-center"
                 style={{ background: T.dangerSoft, color: T.danger }}>
-                <AlertTriangle size={22} />
+                <AlertTriangle size={22} strokeWidth={1.5} />
               </div>
-              <h3 className="text-[15px] font-semibold" style={{ color: T.text }}>Couldn't load templates</h3>
-              <p className="mt-2 text-[12.5px] max-w-md" style={{ color: T.textMuted }}>{error}</p>
+              <h3 className="text-[14px] font-medium" style={{ color: T.text }}>Couldn't load templates</h3>
+              <p className="mt-2 text-[12px] max-w-md" style={{ color: T.textMuted }}>{error}</p>
               <button
                 onClick={refetch}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-[12px] font-medium text-white transition-all hover:brightness-110"
-                style={{ background: T.brand, boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+                className="btn-primary btn-press mt-4 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[12px] font-medium"
+                style={{ background: T.text, color: T.bg }}
               >
-                <RefreshCw size={12} /> Try again
+                <RefreshCw {...ICON} size={14} /> Try again
               </button>
             </div>
           ) : templates.length === 0 ? (
             <div className="rounded-xl p-12 flex flex-col items-center justify-center text-center" style={{ background: T.surface, boxShadow: RING }}>
               <div className="w-12 h-12 mb-4 rounded-lg flex items-center justify-center"
-                style={{ background: T.brandSoft, color: T.brand }}>
-                <Inbox size={22} />
+                style={{ background: T.accentSoft, color: T.accent }}>
+                <Inbox size={22} strokeWidth={1.5} />
               </div>
-              <h3 className="text-[15px] font-semibold" style={{ color: T.text }}>No templates yet</h3>
-              <p className="mt-2 text-[12.5px]" style={{ color: T.textMuted }}>Create your first template to get started.</p>
+              <h3 className="text-[14px] font-medium" style={{ color: T.text }}>No templates yet</h3>
+              <p className="mt-2 text-[12px]" style={{ color: T.textMuted }}>Create your first template to get started.</p>
             </div>
           ) : filtered.length === 0 ? (
             <div className="rounded-xl p-12 flex flex-col items-center justify-center text-center" style={{ background: T.surface, boxShadow: RING }}>
               <div className="w-12 h-12 mb-4 rounded-lg flex items-center justify-center"
                 style={{ background: T.surface2, color: T.textMuted }}>
-                <Inbox size={22} />
+                <Inbox size={22} strokeWidth={1.5} />
               </div>
-              <h3 className="text-[15px] font-semibold" style={{ color: T.text }}>No templates match</h3>
-              <p className="mt-2 text-[12.5px] mb-4" style={{ color: T.textMuted }}>Try adjusting your search or filters.</p>
+              <h3 className="text-[14px] font-medium" style={{ color: T.text }}>No templates match</h3>
+              <p className="mt-2 text-[12px] mb-4" style={{ color: T.textMuted }}>Try adjusting your search or filters.</p>
               <button
                 onClick={() => { setSearch(""); setCategoryFilter("All"); setStatusFilter("All"); }}
                 className="text-[12px] font-medium"
-                style={{ color: T.brand }}
+                style={{ color: T.accent }}
               >
                 Clear filters
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filtered.map((t, i) => {
                 const published = t.status === "Published";
                 const busy = busyId === t.id;
@@ -1805,11 +1833,11 @@ const EmailTemplatesAdmin = () => {
                     onKeyDown={(e) => {
                       if (e.target === e.currentTarget && e.key === "Enter") openEditor(t);
                     }}
-                    className="group float-in rounded-xl overflow-hidden text-left transition-colors hover:bg-white/2 cursor-pointer"
+                    className="group enter rounded-xl overflow-hidden text-left row-hover cursor-pointer"
                     style={{
                       background: T.surface,
-                      boxShadow: `inset 0 0 0 1px ${T.borderSoft}`,
-                      animationDelay: `${Math.min(i * 20, 200)}ms`,
+                      boxShadow: RING,
+                      ...stagger(i + 3),
                     }}
                   >
                     {/* preview */}
@@ -1817,7 +1845,7 @@ const EmailTemplatesAdmin = () => {
                       className="relative h-36 overflow-hidden"
                       style={{
                         background: T.surface2,
-                        borderBottom: `1px solid ${T.borderSoft}`,
+                        borderBottom: `1px solid ${T.line}`,
                       }}
                     >
                       {t.html ? (
@@ -1843,56 +1871,57 @@ const EmailTemplatesAdmin = () => {
                         </div>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center p-4">
-                          <FileCode size={20} style={{ color: T.textFaint }} />
+                          <FileCode size={20} strokeWidth={1.5} style={{ color: T.textFaint }} />
                         </div>
                       )}
 
                       {/* actions */}
                       <div className="absolute top-2.5 left-2.5 z-10 flex gap-1 transition-opacity lg:opacity-0 lg:group-hover:opacity-100 focus-within:opacity-100">
-                        <ActionBtn label="Edit"       disabled={busy} onClick={() => openEditor(t)}><Pencil size={11} /></ActionBtn>
-                        <ActionBtn label="Duplicate"  disabled={busy} onClick={() => handleDuplicate(t)}><Copy size={11} /></ActionBtn>
-                        <ActionBtn label="Copy HTML"  onClick={() => handleCopyHtml(t)}><ClipboardCopy size={11} /></ActionBtn>
+                        <ActionBtn label="Edit"       disabled={busy} onClick={() => openEditor(t)}><Pencil size={11} strokeWidth={1.5} /></ActionBtn>
+                        <ActionBtn label="Duplicate"  disabled={busy} onClick={() => handleDuplicate(t)}><Copy size={11} strokeWidth={1.5} /></ActionBtn>
+                        <ActionBtn label="Copy HTML"  onClick={() => handleCopyHtml(t)}><ClipboardCopy size={11} strokeWidth={1.5} /></ActionBtn>
                         <ActionBtn label={published ? "Unpublish" : "Publish"} disabled={busy} onClick={() => handleToggleStatus(t)}>
-                          {published ? <Clock size={11} /> : <CheckCircle2 size={11} />}
+                          {published ? <Clock size={11} strokeWidth={1.5} /> : <CheckCircle2 size={11} strokeWidth={1.5} />}
                         </ActionBtn>
-                        <ActionBtn label="Delete" danger onClick={() => setDeleteTarget(t)}><Trash2 size={11} /></ActionBtn>
+                        <ActionBtn label="Delete" danger onClick={() => setDeleteTarget(t)}><Trash2 size={11} strokeWidth={1.5} /></ActionBtn>
                       </div>
 
                       <span
-                        className="absolute top-2.5 right-2.5 z-10 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                        className="absolute top-2.5 right-2.5 z-10 inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-medium"
                         style={{
-                          background: "rgba(10,11,16,0.78)",
+                          background: "rgba(14,15,17,0.78)",
                           backdropFilter: "blur(6px)",
                           color: meta.fg,
                           boxShadow: `inset 0 0 0 1px ${meta.ring}`,
+                          fontFamily: FONT.mono,
                         }}
                       >
-                        <span className="w-1 h-1 rounded-full" style={{ background: meta.fg }} />
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: meta.fg }} />
                         {meta.label}
                       </span>
 
                       {busy && (
                         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/50">
-                          <Loader2 size={18} className="animate-spin" style={{ color: T.brand }} />
+                          <Loader2 size={18} className="animate-spin" style={{ color: T.accent }} />
                         </div>
                       )}
                     </div>
 
                     {/* meta */}
-                    <div className="p-3.5">
-                      <p className="text-[12.5px] font-semibold truncate" style={{ color: T.text }}>{t.name}</p>
-                      <p className="text-[11px] truncate mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                    <div className="p-4">
+                      <p className="text-[13px] font-medium truncate" style={{ color: T.text }}>{t.name}</p>
+                      <p className="text-[12px] truncate mt-1" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                         {t.subject || "(no subject)"}
                       </p>
 
                       <div className="mt-3.5 flex items-center justify-between gap-2">
                         <span
-                          className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px]"
-                          style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                          className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px]"
+                          style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.line}`, fontFamily: FONT.mono }}
                         >
-                          <Tag size={9} /> {t.category}
+                          <Tag size={10} strokeWidth={1.5} /> {t.category}
                         </span>
-                        <span className="text-[10px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                        <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                           {t.updatedAt}
                         </span>
                       </div>
@@ -1943,11 +1972,12 @@ const EmailTemplatesAdmin = () => {
       {/* Toast */}
       {toast && (
         <div
-          className="fixed bottom-5 right-5 z-70 float-in rounded-lg px-4 py-2.5 text-[12px] font-medium"
+          className="fixed bottom-5 right-5 z-70 enter rounded-lg px-4 py-2.5 text-[12px] font-medium"
           style={{
             background: T.surface,
             color: toast.type === "success" ? T.success : T.danger,
             boxShadow: `inset 0 0 0 1px ${toast.type === "success" ? T.successBorder : T.dangerBorder}, 0 20px 40px -20px rgba(0,0,0,0.7)`,
+            fontFamily: FONT.mono,
           }}
         >
           {toast.msg}

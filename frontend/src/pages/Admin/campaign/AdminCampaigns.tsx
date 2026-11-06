@@ -11,63 +11,53 @@ import {
   Filter, Sparkles, User as UserIcon, Trash2,
 } from 'lucide-react';
 
-/* ─────────────── design tokens ─────────────── */
+/* ─────────────── design tokens (matches AdminDashboard) ─────────────── */
 
 const T = {
-  bg:           "#0A0B10",
-  surface:      "#111319",
-  surface2:     "#161922",
-  surfaceHi:    "#1B1F2A",
-  border:       "#232838",
-  borderSoft:   "#1B1F2A",
-  text:         "#E9EBF0",
-  textMuted:    "#9CA3B4",
-  textFaint:    "#6B7280",
-  brand:        "#6366F1",
-  brandSoft:    "rgba(99,102,241,0.12)",
-  brandBorder:  "rgba(99,102,241,0.35)",
-  success:      "#22C55E",
-  successSoft:  "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:         "#F59E0B",
-  warnSoft:     "rgba(245,158,11,0.12)",
-  warnBorder:   "rgba(245,158,11,0.35)",
-  danger:       "#EF4444",
-  dangerSoft:   "rgba(239,68,68,0.12)",
-  dangerBorder: "rgba(239,68,68,0.35)",
-  info:         "#38BDF8",
-  infoSoft:     "rgba(56,189,248,0.12)",
-  infoBorder:   "rgba(56,189,248,0.35)",
-  purple:       "#A78BFA",
-  purpleSoft:   "rgba(167,139,250,0.12)",
-  purpleBorder: "rgba(167,139,250,0.35)",
+  bg:          "#0E0F11",
+  surface:     "#151618",
+  surface2:    "#1B1C1F",
+  surfaceHi:   "#232427",
+  line:        "rgba(236,237,239,0.08)",
+  lineStrong:  "rgba(236,237,239,0.14)",
+  text:        "#ECEDEF",
+  textMuted:   "#A1A4AB",
+  textFaint:   "#6C7078",
+  accent:      "#F0884D",
+  accentSoft:  "rgba(240,136,77,0.12)",
+  success:     "#5FB07A",
+  warn:        "#D4A24C",
+  danger:      "#D8665D",
+  neutral1:    "#C9CBD0",
+  neutral2:    "#8E9199",
+  neutral3:    "#5E6169",
+  neutral4:    "#44464C",
 };
 
 const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
+  body: "'Geist', system-ui, -apple-system, sans-serif",
+  mono: "'Geist Mono', ui-monospace, monospace",
 };
 
-const RING = `inset 0 0 0 1px ${T.border}`;
+const RING = `inset 0 0 0 1px ${T.line}`;
+const ICON = { size: 16, strokeWidth: 1.5 };
 
 /* ─────────────── status map ─────────────── */
 
 const STATUS_STYLES: Record<
   Campaign['status'],
-  { bg: string; fg: string; ring: string; label: string; Icon: React.ComponentType<{ size?: number }> }
+  { bg: string; fg: string; ring: string; label: string; Icon: React.ComponentType<{ size?: number; strokeWidth?: number }> }
 > = {
-  Draft:     { bg: T.surface2,     fg: T.textMuted, ring: T.borderSoft,   label: "Draft",     Icon: FileEdit },
-  Ready:     { bg: T.brandSoft,    fg: T.brand,     ring: T.brandBorder,  label: "Ready",     Icon: Rocket },
-  Running:   { bg: T.successSoft,  fg: T.success,   ring: T.successBorder,label: "Running",   Icon: Megaphone },
-  Paused:    { bg: T.warnSoft,     fg: T.warn,      ring: T.warnBorder,   label: "Paused",    Icon: PauseCircle },
-  Completed: { bg: T.purpleSoft,   fg: T.purple,    ring: T.purpleBorder, label: "Completed", Icon: CheckCircle2 },
-  Cancelled: { bg: T.dangerSoft,   fg: T.danger,    ring: T.dangerBorder, label: "Cancelled", Icon: XCircle },
+  Draft:     { bg: T.surface2,                fg: T.textMuted, ring: T.line,                          label: "Draft",     Icon: FileEdit },
+  Ready:     { bg: "rgba(201,203,208,0.10)",  fg: T.neutral1,  ring: "rgba(201,203,208,0.28)",       label: "Ready",     Icon: Rocket },
+  Running:   { bg: "rgba(95,176,122,0.12)",   fg: T.success,   ring: "rgba(95,176,122,0.30)",        label: "Running",   Icon: Megaphone },
+  Paused:    { bg: "rgba(212,162,76,0.12)",   fg: T.warn,      ring: "rgba(212,162,76,0.30)",        label: "Paused",    Icon: PauseCircle },
+  Completed: { bg: "rgba(142,145,153,0.12)",  fg: T.neutral2,  ring: "rgba(142,145,153,0.30)",       label: "Completed", Icon: CheckCircle2 },
+  Cancelled: { bg: "rgba(216,102,93,0.12)",   fg: T.danger,    ring: "rgba(216,102,93,0.30)",        label: "Cancelled", Icon: XCircle },
 };
 
-/* ─────────────── helpers ─────────────── */
+/* ─────────────── helpers (unchanged) ─────────────── */
 
-// Only paused or completed campaigns can be deleted.
 const DELETABLE: Array<Campaign['status']> = ['Paused', 'Completed'];
 const canDelete = (status: Campaign['status']) => DELETABLE.includes(status);
 
@@ -94,7 +84,6 @@ const apiErrorMessage = (err: any, fallback: string) => {
   return err?.response?.data?.message || err?.message || fallback;
 };
 
-/** Resolve a friendly owner label from a campaign. Never shows a raw id. */
 const ownerLabelOf = (campaign: Campaign): { name: string; sub: string } => {
   const u = campaign.user;
   const name = u?.username?.trim();
@@ -114,7 +103,7 @@ const AdminCampaigns: React.FC = () => {
     allLoading: loading,
     allError: error,
     fetchAll,
-    deleteMine: deleteCampaignById, // removes from both the user and admin slices
+    deleteMine: deleteCampaignById,
   } = useCampaigns();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -122,7 +111,6 @@ const AdminCampaigns: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
 
-  // Delete flow
   const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -139,7 +127,6 @@ const AdminCampaigns: React.FC = () => {
 
   const confirmDelete = async () => {
     if (!campaignToDelete) return;
-    // Re-check at confirm time in case the status changed since the list loaded
     if (!canDelete(campaignToDelete.status)) {
       setDeleteError('Only paused or completed campaigns can be deleted.');
       return;
@@ -148,7 +135,6 @@ const AdminCampaigns: React.FC = () => {
     setDeleteError(null);
     try {
       await deleteCampaignById(campaignToDelete.id);
-      // If the details modal is showing the deleted campaign, close it too
       setSelectedCampaign((cur) => (cur?.id === campaignToDelete.id ? null : cur));
       setCampaignToDelete(null);
     } catch (err: any) {
@@ -179,29 +165,48 @@ const AdminCampaigns: React.FC = () => {
     'all', 'Draft', 'Ready', 'Running', 'Paused', 'Completed', 'Cancelled',
   ];
 
-  const activeCampaigns = campaigns.filter(c => c.status === 'Running').length;
+  const activeCampaigns = campaigns.filter((c) => c.status === 'Running').length;
   const hasActiveFilters = !!searchQuery || statusFilter !== 'all';
+  const stagger = (i: number) => ({ "--i": i } as React.CSSProperties);
 
   return (
     <div
-      className="flex w-full overflow-hidden"
+      className="ac-root flex w-full overflow-hidden"
       style={{ fontFamily: FONT.body, background: T.bg, height: "100dvh" }}
     >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap');
 
-        /* Kill outer body scroll so only <main> scrolls */
         html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; }
 
-        @keyframes floatIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-        .float-in { animation: floatIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .ac-root { --ease: cubic-bezier(0.2, 0, 0, 1); }
+
+        @keyframes enter {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .enter { animation: enter 240ms var(--ease) both; animation-delay: calc(var(--i, 0) * 40ms); }
+
+        .ac-root button, .ac-root a { transition-property: color, background-color, box-shadow, opacity; transition-duration: 120ms; transition-timing-function: var(--ease); }
+        .ac-root button:focus-visible { outline: 2px solid ${T.accent}; outline-offset: 2px; }
+
+        .row-hover { transition: background-color 120ms var(--ease); }
+        .row-hover:hover { background: rgba(236,237,239,0.03); }
+
+        .btn-primary:hover { background: #FFFFFF; }
+        .btn-quiet:hover { background: rgba(236,237,239,0.05); color: ${T.text}; }
+        .btn-press:active { transform: scale(0.98); }
 
         .ac-main::-webkit-scrollbar { width: 8px; }
         .ac-main::-webkit-scrollbar-track { background: transparent; }
-        .ac-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
-        .ac-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
+        .ac-main::-webkit-scrollbar-thumb { background: ${T.surfaceHi}; border-radius: 8px; }
 
         select option { background: ${T.surface2}; color: ${T.text}; }
+
+        @media (prefers-reduced-motion: reduce) {
+          .enter { animation: none !important; }
+          .btn-press:active { transform: none; }
+        }
       `}</style>
 
       {sidebarOpen && (
@@ -220,83 +225,83 @@ const AdminCampaigns: React.FC = () => {
       </div>
 
       <main className="ac-main flex-1 min-w-0 overflow-y-auto overflow-x-hidden" style={{ background: T.bg }}>
-        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1280 }}>
+        <div className="mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8 flex flex-col gap-6" style={{ maxWidth: 1440 }}>
 
-          {/* Header */}
-          <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-7">
+          {/* Header — dashboard style */}
+          <header className="enter flex flex-col md:flex-row md:items-end justify-between gap-4" style={stagger(0)}>
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-lg transition-colors hover:bg-white/5"
+                className="lg:hidden mt-1 p-2 rounded-lg btn-quiet"
                 style={{ background: T.surface, color: T.textMuted, boxShadow: RING }}
                 aria-label="Open menu"
               >
-                <Menu size={18} />
+                <Menu {...ICON} />
               </button>
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span
-                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                    style={{ background: T.successSoft, color: T.success, boxShadow: `inset 0 0 0 1px ${T.successBorder}` }}
+                    className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium"
+                    style={{ background: "rgba(95,176,122,0.12)", color: T.success, fontFamily: FONT.mono }}
                   >
                     <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.success }} />
                     {activeCampaigns} running
                   </span>
-                  <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                  <span className="text-[12px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                     · {campaigns.length} total
                   </span>
                 </div>
-                <h1 className="text-[26px] md:text-[30px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
+                <h1 className="text-[28px] leading-8 font-medium tracking-tight" style={{ color: T.text }}>
                   All campaigns
                 </h1>
-                <p className="mt-1 text-[13.5px] max-w-lg" style={{ color: T.textMuted }}>
+                <p className="mt-2 text-[12px]" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
                   Every campaign across the platform, with live status.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 self-start md:self-auto">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => fetchAll()}
                 title="Refresh"
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-medium transition-colors hover:bg-white/5"
-                style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+                className="btn-quiet btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] font-medium"
+                style={{ color: T.textMuted, background: T.surface, boxShadow: RING }}
               >
-                <RefreshCw size={13} />
+                <RefreshCw {...ICON} size={14} />
                 <span className="hidden sm:inline">Refresh</span>
               </button>
               <button
                 onClick={() => navigate('/admin/upload')}
-                className="group inline-flex items-center gap-2 px-3.5 py-2 rounded-lg font-medium text-[12.5px] transition-all hover:brightness-110"
-                style={{ background: T.brand, color: "#fff", boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+                className="btn-primary btn-press inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-medium"
+                style={{ background: T.text, color: T.bg }}
               >
-                <Plus size={14} />
+                <Plus size={14} strokeWidth={1.5} />
                 New campaign
               </button>
             </div>
           </header>
 
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 mb-5">
+          <div className="enter flex flex-col sm:flex-row sm:items-center gap-2" style={stagger(1)}>
             <div
               className="flex items-center gap-2 rounded-lg px-3 py-2 flex-1 min-w-0 transition-all"
-              style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
-              onFocusCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brandBorder}, 0 0 0 3px ${T.brandSoft}`)}
-              onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.borderSoft}`)}
+              style={{ background: T.surface, boxShadow: RING }}
+              onFocusCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.accent}, 0 0 0 3px ${T.accentSoft}`)}
+              onBlurCapture={(e) => (e.currentTarget.style.boxShadow = RING)}
             >
-              <Search size={13} style={{ color: T.textFaint }} className="shrink-0" />
+              <Search size={14} style={{ color: T.textFaint }} strokeWidth={1.5} className="shrink-0" />
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name, subject, owner, sender, or template…"
-                className="w-full bg-transparent text-[13px] outline-none"
+                className="w-full bg-transparent text-[12px] outline-none"
                 style={{ color: T.text }}
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="shrink-0 text-[10px] px-1.5 py-0.5 rounded transition-colors hover:bg-white/5"
-                  style={{ color: T.textMuted }}
+                  className="shrink-0 text-[11px] px-1.5 py-0.5 rounded btn-quiet"
+                  style={{ color: T.textMuted, fontFamily: FONT.mono }}
                 >
                   Clear
                 </button>
@@ -304,12 +309,12 @@ const AdminCampaigns: React.FC = () => {
             </div>
 
             <div className="relative">
-              <Filter size={11} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: T.textFaint }} />
+              <Filter size={12} strokeWidth={1.5} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: T.textFaint }} />
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-                className="pl-7 pr-2.5 py-2 rounded-lg text-[12px] cursor-pointer outline-none"
-                style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                className="pl-8 pr-3 py-2 rounded-lg text-[12px] cursor-pointer outline-none"
+                style={{ background: T.surface, color: T.textMuted, boxShadow: RING, fontFamily: FONT.mono }}
               >
                 {statusOptions.map((s) => (
                   <option key={s} value={s}>
@@ -322,8 +327,8 @@ const AdminCampaigns: React.FC = () => {
             {hasActiveFilters && (
               <button
                 onClick={() => { setSearchQuery(""); setStatusFilter("all"); }}
-                className="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-[12px] font-medium transition-colors"
-                style={{ background: T.surface2, color: T.brand, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                className="btn-quiet inline-flex items-center gap-1 rounded-lg px-3 py-2 text-[12px] font-medium"
+                style={{ background: T.surface, color: T.accent, boxShadow: RING }}
               >
                 Clear
               </button>
@@ -334,10 +339,12 @@ const AdminCampaigns: React.FC = () => {
           {loading && (
             <div className="text-center py-16">
               <div
-                className="w-6 h-6 border-2 rounded-full animate-spin mx-auto"
-                style={{ borderColor: T.brand, borderTopColor: "transparent" }}
+                className="w-5 h-5 border-2 rounded-full animate-spin mx-auto"
+                style={{ borderColor: T.neutral2, borderTopColor: "transparent" }}
               />
-              <p className="text-[12px] mt-3" style={{ color: T.textMuted }}>Loading campaigns…</p>
+              <p className="text-[12px] mt-3" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+                Loading campaigns…
+              </p>
             </div>
           )}
 
@@ -345,21 +352,21 @@ const AdminCampaigns: React.FC = () => {
           {!loading && error && (
             <div
               className="text-center py-14 rounded-xl"
-              style={{ background: T.dangerSoft, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
+              style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.danger}55` }}
             >
               <div
                 className="w-12 h-12 mx-auto mb-3 rounded-lg flex items-center justify-center"
-                style={{ background: T.dangerSoft, color: T.danger }}
+                style={{ background: "rgba(216,102,93,0.12)", color: T.danger }}
               >
-                <AlertTriangle size={22} />
+                <AlertTriangle size={22} strokeWidth={1.5} />
               </div>
-              <p className="text-[12.5px] mb-3" style={{ color: T.danger }}>{error}</p>
+              <p className="text-[12px] mb-3" style={{ color: T.danger }}>{error}</p>
               <button
                 onClick={() => fetchAll()}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors hover:bg-white/5"
-                style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+                className="btn-quiet inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-medium"
+                style={{ color: T.textMuted, boxShadow: RING }}
               >
-                <RefreshCw size={13} /> Try again
+                <RefreshCw {...ICON} size={14} /> Try again
               </button>
             </div>
           )}
@@ -372,16 +379,16 @@ const AdminCampaigns: React.FC = () => {
             >
               <div
                 className="w-12 h-12 mx-auto mb-4 rounded-lg flex items-center justify-center"
-                style={{ background: T.surface2, color: campaigns.length === 0 ? T.brand : T.textFaint }}
+                style={{ background: T.surface2, color: campaigns.length === 0 ? T.accent : T.textFaint }}
               >
                 {campaigns.length === 0
-                  ? <Sparkles size={22} />
-                  : <Inbox size={22} />}
+                  ? <Sparkles size={22} strokeWidth={1.5} />
+                  : <Inbox size={22} strokeWidth={1.5} />}
               </div>
-              <p className="text-[14px] font-semibold" style={{ color: T.text }}>
+              <p className="text-[14px] font-medium" style={{ color: T.text }}>
                 {campaigns.length === 0 ? "No campaigns yet" : "No campaigns match"}
               </p>
-              <p className="text-[12px] mt-1.5 mb-5 max-w-sm mx-auto" style={{ color: T.textMuted }}>
+              <p className="text-[12px] mt-1.5 mb-5 max-w-sm mx-auto" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
                 {campaigns.length === 0
                   ? "Create a campaign to get started."
                   : "Try a different search or status filter."}
@@ -392,31 +399,29 @@ const AdminCampaigns: React.FC = () => {
                     ? navigate('/admin/upload')
                     : (setSearchQuery(''), setStatusFilter('all'))
                 }
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12px] font-medium text-white transition-all hover:brightness-110"
-                style={{ background: T.brand, boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+                className="btn-primary btn-press inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-medium"
+                style={{ background: T.text, color: T.bg }}
               >
-                {campaigns.length === 0 ? (<><Plus size={13} /> Create campaign</>) : "Clear filters"}
+                {campaigns.length === 0 ? (<><Plus size={14} strokeWidth={1.5} /> Create campaign</>) : "Clear filters"}
               </button>
             </div>
           )}
 
           {/* Campaign list */}
           {!loading && !error && filteredCampaigns.length > 0 && (
-            <>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[11.5px]" style={{ color: T.textFaint }}>
-                  <span style={{ color: T.text, fontFamily: FONT.mono }}>
-                    {filteredCampaigns.length}
-                  </span>{" "}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[12px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                  <span style={{ color: T.text }}>{filteredCampaigns.length}</span>{" "}
                   {filteredCampaigns.length === 1 ? "campaign" : "campaigns"}
                   {statusFilter !== 'all' && (
-                    <> · filtered by <span style={{ color: T.brand }}>{STATUS_STYLES[statusFilter].label}</span></>
+                    <> · filtered by <span style={{ color: T.accent }}>{STATUS_STYLES[statusFilter].label}</span></>
                   )}
                 </p>
               </div>
 
-              <div className="space-y-2">
-                {filteredCampaigns.map((campaign) => {
+              <div className="flex flex-col gap-2">
+                {filteredCampaigns.map((campaign, i) => {
                   const s = STATUS_STYLES[campaign.status];
                   const StatusIcon = s.Icon;
                   const owner = ownerLabelOf(campaign);
@@ -424,85 +429,84 @@ const AdminCampaigns: React.FC = () => {
                     <div
                       key={campaign.id}
                       onClick={() => setSelectedCampaign(campaign)}
-                      className="group float-in relative flex items-center gap-3 p-3.5 rounded-lg cursor-pointer transition-colors hover:bg-white/[0.02]"
+                      className="enter group relative flex items-center gap-3 p-4 rounded-xl cursor-pointer row-hover"
                       style={{
                         background: T.surface,
-                        boxShadow: `inset 0 0 0 1px ${T.borderSoft}`,
+                        boxShadow: RING,
+                        ...stagger(i + 2),
                       }}
                     >
-                      {/* Status rail */}
                       <span
                         className="absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full"
                         style={{ background: s.fg, opacity: 0.85 }}
                       />
 
                       <div
-                        className="shrink-0 w-9 h-9 rounded-md flex items-center justify-center ml-1.5"
+                        className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ml-1.5"
                         style={{ background: s.bg, color: s.fg }}
                       >
-                        <StatusIcon size={15} />
+                        <StatusIcon size={15} strokeWidth={1.5} />
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 min-w-0">
-                          <h3 className="font-semibold truncate text-[13px]" style={{ color: T.text }}>
+                          <h3 className="font-medium truncate text-[13px]" style={{ color: T.text }}>
                             {campaign.campaign_name}
                           </h3>
                           <span
-                            className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium"
-                            style={{ background: s.bg, color: s.fg, boxShadow: `inset 0 0 0 1px ${s.ring}` }}
+                            className="shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium"
+                            style={{ background: s.bg, color: s.fg, boxShadow: `inset 0 0 0 1px ${s.ring}`, fontFamily: FONT.mono }}
                           >
-                            <span className="w-1 h-1 rounded-full" style={{ background: s.fg }} />
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: s.fg }} />
                             {s.label}
                           </span>
                         </div>
-                        <p className="text-[11.5px] truncate mt-0.5" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+                        <p className="text-[12px] truncate mt-1" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
                           {campaign.subject || "—"}
                         </p>
 
-                        {/* Owner strip — shows name, not id */}
-                        <div className="flex items-center gap-1.5 mt-1 min-w-0">
-                          <UserIcon size={10} style={{ color: T.textFaint }} className="shrink-0" />
-                          <span className="text-[11px] font-medium truncate" style={{ color: T.textMuted }}>
+                        <div className="flex items-center gap-1.5 mt-1.5 min-w-0">
+                          <UserIcon size={11} strokeWidth={1.5} style={{ color: T.textFaint }} className="shrink-0" />
+                          <span className="text-[12px] truncate" style={{ color: T.textMuted }}>
                             {owner.name}
                           </span>
                           {owner.sub && (
-                            <span className="text-[10px] truncate" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                            <span className="text-[11px] truncate" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                               · {owner.sub}
                             </span>
                           )}
                         </div>
                       </div>
 
-                      <div className="shrink-0 hidden md:flex flex-col items-end gap-0.5">
-                        <span className="text-[11px] whitespace-nowrap" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                      <div className="shrink-0 hidden md:flex flex-col items-end gap-1">
+                        <span className="text-[12px] whitespace-nowrap tabular-nums" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                           {relativeTime(campaign.updated_at)}
                         </span>
-                        <span className="text-[10px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                        <span className="text-[11px] tabular-nums" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                           #{campaign.id}
                         </span>
                       </div>
 
-                      {/* Delete (paused / completed only) */}
                       {canDelete(campaign.status) && (
                         <button
                           onClick={(e) => {
-                            e.stopPropagation(); // don't open the details modal
+                            e.stopPropagation();
                             setDeleteError(null);
                             setCampaignToDelete(campaign);
                           }}
                           title="Delete campaign"
                           aria-label={`Delete ${campaign.campaign_name}`}
-                          className="shrink-0 p-1.5 rounded-md transition-colors hover:bg-red-500/10"
+                          className="shrink-0 p-1.5 rounded-md btn-quiet"
                           style={{ color: T.textFaint }}
                           onMouseEnter={(e) => (e.currentTarget.style.color = T.danger)}
                           onMouseLeave={(e) => (e.currentTarget.style.color = T.textFaint)}
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={14} strokeWidth={1.5} />
                         </button>
                       )}
 
                       <ChevronRight
+                        {...ICON}
                         size={14}
                         className="shrink-0 transition-transform group-hover:translate-x-0.5"
                         style={{ color: T.textFaint }}
@@ -511,7 +515,7 @@ const AdminCampaigns: React.FC = () => {
                   );
                 })}
               </div>
-            </>
+            </div>
           )}
         </div>
       </main>
@@ -533,19 +537,19 @@ const AdminCampaigns: React.FC = () => {
             role="alertdialog"
             aria-modal="true"
             className="w-full max-w-md rounded-xl p-5"
-            style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+            style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.line}` }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-3">
               <div
                 className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
-                style={{ background: T.dangerSoft, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
+                style={{ background: "rgba(216,102,93,0.12)", boxShadow: `inset 0 0 0 1px rgba(216,102,93,0.30)` }}
               >
-                <Trash2 size={15} style={{ color: T.danger }} />
+                <Trash2 size={15} strokeWidth={1.5} style={{ color: T.danger }} />
               </div>
               <div className="min-w-0">
-                <h2 className="text-[15px] font-semibold" style={{ color: T.text }}>Delete campaign?</h2>
-                <p className="text-[12.5px] mt-1" style={{ color: T.textMuted }}>
+                <h2 className="text-[15px] font-medium" style={{ color: T.text }}>Delete campaign?</h2>
+                <p className="text-[12px] mt-1.5 leading-5" style={{ color: T.textMuted }}>
                   <span style={{ color: T.text }}>{campaignToDelete.campaign_name}</span>, owned by{" "}
                   <span style={{ color: T.text }}>{ownerLabelOf(campaignToDelete).name}</span>, will be
                   permanently removed. This can't be undone.
@@ -556,7 +560,7 @@ const AdminCampaigns: React.FC = () => {
             {deleteError && (
               <p
                 className="mt-4 text-[12px] rounded-md px-3 py-2"
-                style={{ background: T.dangerSoft, color: T.danger, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
+                style={{ background: "rgba(216,102,93,0.12)", color: T.danger, boxShadow: `inset 0 0 0 1px rgba(216,102,93,0.30)` }}
               >
                 {deleteError}
               </p>
@@ -566,15 +570,15 @@ const AdminCampaigns: React.FC = () => {
               <button
                 onClick={closeDeleteDialog}
                 disabled={deleting}
-                className="px-3.5 py-2 rounded-lg text-[12.5px] font-medium hover:bg-white/5 disabled:opacity-50"
-                style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+                className="btn-quiet btn-press px-3.5 py-2 rounded-lg text-[12px] font-medium disabled:opacity-50"
+                style={{ color: T.textMuted, background: T.surface, boxShadow: RING }}
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium hover:brightness-110 disabled:opacity-60"
+                className="btn-press inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-[12px] font-medium disabled:opacity-60"
                 style={{ background: T.danger, color: '#fff' }}
               >
                 {deleting && (

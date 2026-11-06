@@ -10,56 +10,53 @@ import { UsersContext } from "../../contexts/UsersContext";
 import { useHtmlTemplates } from "../../contexts/HtmlTemplatesContext";
 
 import {
-  Building2, Users, Send, ArrowUpRight, ArrowDownRight,
-  ShieldCheck, ShieldAlert, ShieldX, Activity, AlertTriangle,
-  CheckCircle2, Menu,
-  ChevronRight, TrendingUp, Mail,
-  RefreshCw, Inbox, Crown, ArrowRight,
+  Menu, RefreshCw, ArrowRight, ChevronRight, Inbox, Activity, AlertTriangle,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell,
 } from "recharts";
+
+/* ─────────────────────────────────────────────────────────────
+   Direction
+   Product    Admin console for an email campaign platform: users, campaigns, senders, delivery
+   Character  exact, calm, instrument-like
+   World      mail room, postmarks, ink on graphite
+   Moment     the volume chart (this period against the previous one)
+   Signature  live sync dot next to the page title
+   ───────────────────────────────────────────────────────────── */
 
 /* ─────────────── design tokens ─────────────── */
 
 const T = {
-  bg:          "#0A0B10",
-  surface:     "#111319",
-  surface2:    "#161922",
-  surfaceHi:   "#1B1F2A",
-  border:      "#232838",
-  borderSoft:  "#1B1F2A",
-  text:        "#E9EBF0",
-  textMuted:   "#9CA3B4",
-  textFaint:   "#6B7280",
-  brand:       "#6366F1",
-  brandSoft:   "rgba(99,102,241,0.12)",
-  brandBorder: "rgba(99,102,241,0.35)",
-  success:     "#22C55E",
-  successSoft: "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:        "#F59E0B",
-  warnSoft:    "rgba(245,158,11,0.12)",
-  warnBorder:  "rgba(245,158,11,0.35)",
-  danger:      "#EF4444",
-  dangerSoft:  "rgba(239,68,68,0.12)",
-  dangerBorder:"rgba(239,68,68,0.35)",
-  purple:      "#A78BFA",
-  purpleSoft:  "rgba(167,139,250,0.12)",
-  purpleBorder:"rgba(167,139,250,0.35)",
-  info:        "#38BDF8",
-  infoSoft:    "rgba(56,189,248,0.12)",
-  infoBorder:  "rgba(56,189,248,0.35)",
+  bg:          "#0E0F11",
+  surface:     "#151618",
+  surface2:    "#1B1C1F",
+  surfaceHi:   "#232427",
+  line:        "rgba(236,237,239,0.08)",
+  lineStrong:  "rgba(236,237,239,0.14)",
+  text:        "#ECEDEF",
+  textMuted:   "#A1A4AB",
+  textFaint:   "#6C7078",
+  accent:      "#F0884D",
+  accentSoft:  "rgba(240,136,77,0.12)",
+  success:     "#5FB07A",
+  warn:        "#D4A24C",
+  danger:      "#D8665D",
+  neutral1:    "#C9CBD0",
+  neutral2:    "#8E9199",
+  neutral3:    "#5E6169",
+  neutral4:    "#44464C",
 };
 
 const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
+  body: "'Geist', system-ui, -apple-system, sans-serif",
+  mono: "'Geist Mono', ui-monospace, monospace",
 };
 
-const RING = `inset 0 0 0 1px ${T.border}`;
+const RING = `inset 0 0 0 1px ${T.line}`;
+const ICON = { size: 16, strokeWidth: 1.5 };
+
+type Range = 7 | 14 | 30;
 
 /* ─────────────── helpers ─────────────── */
 
@@ -94,25 +91,51 @@ const initialsOf = (name?: string) => {
   return parts.map((p) => p[0]?.toUpperCase() ?? "").join("") || "?";
 };
 
+const lastNDayKeys = (n: number) => {
+  const out: string[] = [];
+  const today = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    out.push(d.toISOString().slice(0, 10));
+  }
+  return out;
+};
+
+const dailyCounts = (
+  items: any[],
+  getDate: (x: any) => any,
+  pred: (x: any) => boolean,
+  keys: string[]
+) => {
+  const map = new Map<string, number>(keys.map((k) => [k, 0]));
+  items.forEach((it) => {
+    if (!pred(it)) return;
+    const k = dayKey(getDate(it));
+    if (k && map.has(k)) map.set(k, (map.get(k) ?? 0) + 1);
+  });
+  return keys.map((k) => map.get(k) ?? 0);
+};
+
+const sum = (a: number[]) => a.reduce((x, y) => x + y, 0);
+
+const roleLabel = (role?: string) =>
+  role ? role.charAt(0).toUpperCase() + role.slice(1).toLowerCase() : "Employee";
+
 /* ─────────────── status maps ─────────────── */
 
 type HealthStatus = "Operational" | "Degraded" | "Down";
 
-const HEALTH_META: Record<HealthStatus, { bg: string; fg: string; ring: string; icon: React.ElementType }> = {
-  Operational: { bg: T.successSoft, fg: T.success, ring: T.successBorder, icon: ShieldCheck },
-  Degraded:    { bg: T.warnSoft,    fg: T.warn,    ring: T.warnBorder,    icon: ShieldAlert },
-  Down:        { bg: T.dangerSoft,  fg: T.danger,  ring: T.dangerBorder,  icon: ShieldX },
+const HEALTH_COLOR: Record<HealthStatus, string> = {
+  Operational: T.success,
+  Degraded: T.warn,
+  Down: T.danger,
 };
 
-const ROLE_META: Record<string, { fg: string; bg: string; ring: string; icon: React.ElementType }> = {
-  ADMIN:    { fg: T.brand, bg: T.brandSoft, ring: T.brandBorder, icon: Crown },
-  EMPLOYEE: { fg: T.info,  bg: T.infoSoft,  ring: T.infoBorder,  icon: Users },
-};
-
-const INCIDENT_META = {
-  Critical: { fg: T.danger,  bg: T.dangerSoft,  ring: T.dangerBorder,  icon: AlertTriangle },
-  Warning:  { fg: T.warn,    bg: T.warnSoft,    ring: T.warnBorder,    icon: AlertTriangle },
-  Resolved: { fg: T.success, bg: T.successSoft, ring: T.successBorder, icon: CheckCircle2 },
+const INCIDENT_COLOR = {
+  Critical: T.danger,
+  Warning: T.warn,
+  Resolved: T.success,
 };
 
 /* ─────────────── shells ─────────────── */
@@ -120,16 +143,16 @@ const INCIDENT_META = {
 const Card: React.FC<{ children: React.ReactNode; className?: string; style?: React.CSSProperties }> = ({
   children, className = "", style,
 }) => (
-  <div className={`rounded-xl ${className}`} style={{ background: T.surface, boxShadow: RING, ...style }}>
+  <section className={`rounded-xl ${className}`} style={{ background: T.surface, boxShadow: RING, ...style }}>
     {children}
-  </div>
+  </section>
 );
 
 const CardHeader: React.FC<{ title: string; hint?: string; right?: React.ReactNode }> = ({ title, hint, right }) => (
-  <div className="flex flex-wrap items-end justify-between gap-2 px-4 md:px-5 pt-4 pb-3">
+  <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5 pb-4">
     <div>
-      <h2 className="text-[14px] font-semibold tracking-tight" style={{ color: T.text }}>{title}</h2>
-      {hint && <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>{hint}</p>}
+      <h2 className="text-[14px] font-medium" style={{ color: T.text }}>{title}</h2>
+      {hint && <p className="text-[12px] mt-1" style={{ color: T.textMuted }}>{hint}</p>}
     </div>
     {right}
   </div>
@@ -137,29 +160,30 @@ const CardHeader: React.FC<{ title: string; hint?: string; right?: React.ReactNo
 
 const Avatar: React.FC<{ name: string }> = ({ name }) => (
   <div
-    className="shrink-0 w-8 h-8 rounded-md flex items-center justify-center text-[11px] font-semibold"
-    style={{
-      background: T.brandSoft,
-      color: T.brand,
-      boxShadow: `inset 0 0 0 1px ${T.brandBorder}`,
-      fontFamily: FONT.mono,
-    }}
+    className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-medium"
+    style={{ background: T.surface2, color: T.textMuted, boxShadow: RING, fontFamily: FONT.mono }}
   >
     {initialsOf(name)}
   </div>
 );
 
-const RolePill: React.FC<{ role: string }> = ({ role }) => {
-  const meta = ROLE_META[role] ?? ROLE_META.EMPLOYEE;
-  const Icon = meta.icon;
+const Dot: React.FC<{ color: string }> = ({ color }) => (
+  <span className="inline-block w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
+);
+
+const ChartTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  const cur = payload.find((p: any) => p.dataKey === "sent")?.value ?? 0;
+  const prev = payload.find((p: any) => p.dataKey === "prev")?.value ?? 0;
   return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
-      style={{ background: meta.bg, color: meta.fg, boxShadow: `inset 0 0 0 1px ${meta.ring}` }}
+    <div
+      className="rounded-lg px-3 py-2 text-[12px]"
+      style={{ background: T.surfaceHi, boxShadow: `inset 0 0 0 1px ${T.lineStrong}`, fontFamily: FONT.mono, color: T.text }}
     >
-      <Icon size={9} />
-      {role}
-    </span>
+      <p style={{ color: T.textMuted }}>{label}</p>
+      <p className="mt-1 tabular-nums">{formatNumber(cur)} <span style={{ color: T.textMuted }}>this period</span></p>
+      <p className="tabular-nums">{formatNumber(prev)} <span style={{ color: T.textMuted }}>previous</span></p>
+    </div>
   );
 };
 
@@ -169,6 +193,9 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [range, setRange] = useState<Range>(14);
+  const [syncedAt, setSyncedAt] = useState<number>(Date.now());
+  const [, setTick] = useState(0);
 
   /* ── data sources ── */
   const {
@@ -199,6 +226,11 @@ const AdminDashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
@@ -209,7 +241,8 @@ const AdminDashboard = () => {
         Promise.resolve(refetchTemplates?.()),
       ]);
     } finally {
-      setTimeout(() => setRefreshing(false), 500);
+      setSyncedAt(Date.now());
+      setTimeout(() => setRefreshing(false), 400);
     }
   };
 
@@ -218,78 +251,79 @@ const AdminDashboard = () => {
 
   /* ═══════════════ derived data ═══════════════ */
 
-  const stats = useMemo(() => {
-    const sent = emaillogs.filter((l: any) => l.status === "Sent").length;
-    const failed = emaillogs.filter((l: any) => l.status === "Failed").length;
-    const deliveryRate = emaillogs.length
-      ? Math.round((sent / emaillogs.length) * 1000) / 10
-      : 0;
+  const period = useMemo(() => {
+    const keys = lastNDayKeys(range * 2);
+    const prevKeys = keys.slice(0, range);
+    const curKeys = keys.slice(range);
+    const logDate = (l: any) => l.sent_at ?? l.created_at;
+    const isSent = (l: any) => l.status === "Sent";
+    const isFailed = (l: any) => l.status === "Failed";
+    const any = () => true;
+
+    const sentCur = dailyCounts(emaillogs, logDate, isSent, curKeys);
+    const sentPrev = dailyCounts(emaillogs, logDate, isSent, prevKeys);
+    const failedCur = dailyCounts(emaillogs, logDate, isFailed, curKeys);
+    const totalCur = dailyCounts(emaillogs, logDate, any, curKeys);
+
+    const sent = sum(sentCur);
+    const sentBefore = sum(sentPrev);
+    const failed = sum(failedCur);
+    const total = sum(totalCur);
+    const rate = total ? Math.round((sent / total) * 1000) / 10 : 0;
+    const deltaPct = sentBefore ? Math.round(((sent - sentBefore) / sentBefore) * 100) : null;
+
+    const chart = curKeys.map((k, i) => ({
+      day: new Date(k).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      sent: sentCur[i],
+      prev: sentPrev[i],
+    }));
+
+    return { sent, sentBefore, failed, total, rate, deltaPct, chart, today: sentCur[sentCur.length - 1] ?? 0 };
+  }, [emaillogs, range]);
+
+  const accountStats = useMemo(() => {
     const activeUsers = new Set(
       allCampaigns.filter((c: any) => c.status === "Running").map((c: any) => c.user_id)
     ).size;
     const workspaceCount = new Set(allCampaigns.map((c: any) => c.user_id)).size;
-    return { sent, failed, deliveryRate, activeUsers, workspaceCount, total: emaillogs.length };
-  }, [emaillogs, allCampaigns]);
+    return { activeUsers, workspaceCount };
+  }, [allCampaigns]);
 
-  const statCards = [
+  const deltaText =
+    period.deltaPct === null
+      ? `no data for previous ${range} days`
+      : `${period.deltaPct > 0 ? "+" : ""}${period.deltaPct}% vs previous ${range} days`;
+  const deltaColor =
+    period.deltaPct === null || period.deltaPct === 0
+      ? T.textMuted
+      : period.deltaPct > 0 ? T.success : T.danger;
+
+  const statCards: { label: string; value: string; note: string; noteColor: string }[] = [
     {
       label: "Workspaces",
-      value: formatNumber(stats.workspaceCount),
-      delta: `${formatNumber(allCampaigns.length)} campaigns`,
-      trend: "up" as const,
-      icon: Building2,
-      accent: T.brand,
-      accentSoft: T.brandSoft,
+      value: formatNumber(accountStats.workspaceCount),
+      note: `${formatNumber(allCampaigns.length)} campaigns`,
+      noteColor: T.textMuted,
     },
     {
-      label: "Active users (30d)",
-      value: formatNumber(stats.activeUsers),
-      delta: `${formatNumber(users.length)} total`,
-      trend: "up" as const,
-      icon: Users,
-      accent: T.info,
-      accentSoft: T.infoSoft,
+      label: "Active users",
+      value: formatNumber(accountStats.activeUsers),
+      note: `of ${formatNumber(users.length)} users, running campaigns`,
+      noteColor: T.textMuted,
     },
     {
       label: "Emails sent",
-      value: formatNumber(stats.sent),
-      delta: `${formatNumber(stats.failed)} failed`,
-      trend: stats.failed === 0 ? ("up" as const) : ("down" as const),
-      icon: Send,
-      accent: T.warn,
-      accentSoft: T.warnSoft,
+      value: formatNumber(period.sent),
+      note: deltaText,
+      noteColor: deltaColor,
     },
     {
       label: "Delivery rate",
-      value: `${stats.deliveryRate}%`,
-      delta: stats.deliveryRate >= 95 ? "healthy" : "check failed",
-      trend: stats.deliveryRate >= 95 ? ("up" as const) : ("down" as const),
-      icon: CheckCircle2,
-      accent: T.success,
-      accentSoft: T.successSoft,
+      value: `${period.rate.toFixed(1)}%`,
+      note: `${formatNumber(period.failed)} failed of ${formatNumber(period.total)}`,
+      noteColor: period.failed > 0 && period.rate < 95 ? T.warn : T.textMuted,
     },
   ];
-
-  const deliveryTrend = useMemo(() => {
-    const days = 14;
-    const buckets = new Map<string, number>();
-    const today = new Date();
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      buckets.set(d.toISOString().slice(0, 10), 0);
-    }
-    emaillogs.forEach((l: any) => {
-      const k = dayKey(l.sent_at ?? l.created_at);
-      if (k && buckets.has(k)) buckets.set(k, (buckets.get(k) ?? 0) + 1);
-    });
-    return Array.from(buckets.entries()).map(([k, v]) => ({
-      day: new Date(k).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-      sent: v,
-    }));
-  }, [emaillogs]);
-
-  const trendToday = deliveryTrend[deliveryTrend.length - 1]?.sent ?? 0;
 
   const campaignMix = useMemo(() => {
     const counts: Record<string, number> = {
@@ -299,21 +333,18 @@ const AdminDashboard = () => {
       if (counts[c.status] !== undefined) counts[c.status]++;
     });
     return [
-      { name: "Running",   value: counts.Running,   color: T.success },
-      { name: "Ready",     value: counts.Ready,     color: T.brand },
-      { name: "Paused",    value: counts.Paused,    color: T.warn },
-      { name: "Draft",     value: counts.Draft,     color: T.textMuted },
-      { name: "Completed", value: counts.Completed, color: T.purple },
-      { name: "Cancelled", value: counts.Cancelled, color: T.danger },
+      { name: "Running",   value: counts.Running,   color: T.accent },
+      { name: "Ready",     value: counts.Ready,     color: T.neutral1 },
+      { name: "Paused",    value: counts.Paused,    color: T.neutral2 },
+      { name: "Draft",     value: counts.Draft,     color: T.neutral3 },
+      { name: "Completed", value: counts.Completed, color: T.neutral4 },
+      { name: "Cancelled", value: counts.Cancelled, color: T.neutral4 },
     ].filter((x) => x.value > 0);
   }, [allCampaigns]);
 
   const campaignTotal = allCampaigns.length || 1;
-  const runningPct = Math.round(
-    (allCampaigns.filter((c: any) => c.status === "Running").length / campaignTotal) * 100
-  );
 
-  const systemComponents = useMemo<{ name: string; status: HealthStatus; latency: string }[]>(() => {
+  const systemComponents = useMemo<{ name: string; status: HealthStatus; detail: string }[]>(() => {
     const failedRate = emaillogs.length
       ? emaillogs.filter((l: any) => l.status === "Failed").length / emaillogs.length
       : 0;
@@ -323,14 +354,16 @@ const AdminDashboard = () => {
     const templateStatus: HealthStatus = templates.length === 0 ? "Degraded" : "Operational";
     const logsStatus: HealthStatus = logsError ? "Degraded" : "Operational";
     return [
-      { name: "API",               status: apiStatus,      latency: "—" },
-      { name: "Campaigns service", status: apiStatus,      latency: "—" },
-      { name: "Email delivery",    status: queueStatus,    latency: `${Math.round(failedRate * 100)}% failed` },
-      { name: "Sender accounts",   status: senderStatus,   latency: `${formatNumber(senderAcc.length)} active` },
-      { name: "Template service",  status: templateStatus, latency: `${formatNumber(templates.length)} templates` },
-      { name: "Log pipeline",      status: logsStatus,     latency: `${formatNumber(emaillogs.length)} events` },
+      { name: "API",               status: apiStatus,      detail: "Core requests" },
+      { name: "Campaigns service", status: apiStatus,      detail: `${formatNumber(allCampaigns.length)} campaigns` },
+      { name: "Email delivery",    status: queueStatus,    detail: `${Math.round(failedRate * 100)}% failed` },
+      { name: "Sender accounts",   status: senderStatus,   detail: `${formatNumber(senderAcc.length)} connected` },
+      { name: "Template service",  status: templateStatus, detail: `${formatNumber(templates.length)} templates` },
+      { name: "Log pipeline",      status: logsStatus,     detail: `${formatNumber(emaillogs.length)} events` },
     ];
-  }, [campaignsError, logsError, emaillogs, senderAcc, templates]);
+  }, [campaignsError, logsError, emaillogs, senderAcc, templates, allCampaigns]);
+
+  const healthyCount = systemComponents.filter((c) => c.status === "Operational").length;
 
   const incidents = useMemo(() => {
     const items: { title: string; severity: "Critical" | "Warning" | "Resolved"; time: string }[] = [];
@@ -375,7 +408,7 @@ const AdminDashboard = () => {
     }
     if (recentFailures === 0 && stalled.length === 0 && overloadedSenders.length === 0) {
       items.push({
-        title: "All clear — no incidents in the last 24 hours",
+        title: "No incidents in the last 24 hours",
         severity: "Resolved",
         time: "24h",
       });
@@ -419,6 +452,8 @@ const AdminDashboard = () => {
     return Array.from(map.values()).sort((a, b) => b.sent - a.sent).slice(0, 5);
   }, [allCampaigns, emaillogs]);
 
+  const maxSent = Math.max(1, ...topWorkspaces.map((w) => w.sent));
+
   const recentUsers = useMemo(() => {
     return [...users]
       .sort((a: any, b: any) =>
@@ -427,22 +462,42 @@ const AdminDashboard = () => {
       .slice(0, 5);
   }, [users]);
 
-  return (
-    <div className="h-screen w-full flex overflow-hidden" style={{ fontFamily: FONT.body, background: T.bg }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+  const monthLabel = new Date().toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const syncOk = !error;
+  const hasChartData = period.chart.some((d) => d.sent > 0 || d.prev > 0);
+  const stagger = (i: number) => ({ "--i": i } as React.CSSProperties);
 
-        @keyframes pulseFade { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-        .pulse-dot { animation: pulseFade 1.8s ease-in-out infinite; }
+  return (
+    <div className="ad-root h-screen w-full flex overflow-hidden" style={{ fontFamily: FONT.body, background: T.bg }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap');
+
+        .ad-root { --ease: cubic-bezier(0.2, 0, 0, 1); }
+
+        @keyframes enter {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .enter { animation: enter 240ms var(--ease) both; animation-delay: calc(var(--i, 0) * 40ms); }
+
+        .ad-root button, .ad-root a { transition-property: color, background-color, box-shadow, opacity; transition-duration: 120ms; transition-timing-function: var(--ease); }
+        .ad-root button:focus-visible { outline: 2px solid ${T.accent}; outline-offset: 2px; }
+
+        .row-hover { transition: background-color 120ms var(--ease); }
+        .row-hover:hover { background: rgba(236,237,239,0.03); }
+
+        .btn-primary:hover { background: #FFFFFF; }
+        .btn-quiet:hover { background: rgba(236,237,239,0.05); color: ${T.text}; }
+        .btn-press:active { transform: scale(0.98); }
 
         .ad-main::-webkit-scrollbar { width: 8px; }
         .ad-main::-webkit-scrollbar-track { background: transparent; }
-        .ad-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
-        .ad-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
+        .ad-main::-webkit-scrollbar-thumb { background: ${T.surfaceHi}; border-radius: 8px; }
 
-        @media (max-width: 640px) { .stats-grid { grid-template-columns: 1fr 1fr; } }
-        @media (max-width: 480px) { .stats-grid { grid-template-columns: 1fr; } }
-        @media (prefers-reduced-motion: reduce) { .pulse-dot { animation: none !important; } }
+        @media (prefers-reduced-motion: reduce) {
+          .enter { animation: none !important; }
+          .btn-press:active { transform: none; }
+        }
       `}</style>
 
       {sidebarOpen && (
@@ -460,403 +515,410 @@ const AdminDashboard = () => {
       </div>
 
       <main className="ad-main flex-1 overflow-y-auto" style={{ background: T.bg }}>
-        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1280 }}>
+        <div className="mx-auto px-4 md:px-6 lg:px-8 py-6 md:py-8 flex flex-col gap-6" style={{ maxWidth: 1440 }}>
 
           {/* Header */}
-          <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-7">
+          <header className="enter flex flex-col md:flex-row md:items-end justify-between gap-4" style={stagger(0)}>
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-lg transition-colors hover:bg-white/5"
+                className="lg:hidden mt-1 p-2 rounded-lg btn-quiet"
                 style={{ background: T.surface, color: T.textMuted, boxShadow: RING }}
                 aria-label="Open menu"
               >
-                <Menu size={18} />
+                <Menu {...ICON} />
               </button>
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                    style={{ background: T.successSoft, color: T.success, boxShadow: `inset 0 0 0 1px ${T.successBorder}` }}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.success }} />
-                    {stats.deliveryRate >= 95 ? "All systems operational" : "Attention required"}
-                  </span>
-                  <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                    · admin · {formatNumber(users.length)} users
-                  </span>
-                </div>
-                <h1 className="text-[26px] md:text-[30px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
-                  Admin dashboard
+                <h1 className="text-[28px] leading-8 font-medium tracking-tight" style={{ color: T.text }}>
+                  Platform overview
                 </h1>
-                <p className="mt-1 text-[13.5px] max-w-lg" style={{ color: T.textMuted }}>
-                  Platform-wide oversight across users, campaigns, senders, and delivery.
+                <p className="mt-2 flex flex-wrap items-center gap-2 text-[12px]" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+                  <span>{monthLabel}</span>
+                  <span style={{ color: T.textFaint }}>·</span>
+                  <span className="inline-flex items-center gap-2">
+                    <Dot color={syncOk ? T.success : T.warn} />
+                    {syncOk ? `Synced ${formatRelative(new Date(syncedAt).toISOString())}` : "Sync issue"}
+                  </span>
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 self-start md:self-auto">
+            <div className="flex flex-wrap items-center gap-2">
+              <div
+                role="group"
+                aria-label="Time range"
+                className="inline-flex rounded-lg p-1"
+                style={{ background: T.surface, boxShadow: RING }}
+              >
+                {([7, 14, 30] as const).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setRange(r)}
+                    aria-pressed={range === r}
+                    className="px-3 py-1 rounded-md text-[12px] font-medium"
+                    style={{
+                      background: range === r ? T.surfaceHi : "transparent",
+                      color: range === r ? T.text : T.textMuted,
+                      boxShadow: range === r ? `inset 0 0 0 1px ${T.lineStrong}` : "none",
+                      fontFamily: FONT.mono,
+                    }}
+                  >
+                    {r}d
+                  </button>
+                ))}
+              </div>
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-medium transition-colors hover:bg-white/5 disabled:opacity-60"
-                style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+                className="btn-quiet btn-press inline-flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] font-medium disabled:opacity-60"
+                style={{ color: T.textMuted, background: T.surface, boxShadow: RING }}
               >
-                <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
+                <RefreshCw {...ICON} size={14} className={refreshing ? "animate-spin" : ""} />
                 Refresh
               </button>
               <button
                 onClick={() => navigate("/admin/campaigns")}
-                className="group inline-flex items-center gap-2 px-3.5 py-2 rounded-lg font-medium text-[12.5px] transition-all hover:brightness-110"
-                style={{ background: T.brand, color: "#fff", boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+                className="btn-primary btn-press inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-medium"
+                style={{ background: T.text, color: T.bg }}
               >
-                <Mail size={14} />
                 All campaigns
-                <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+                <ArrowRight {...ICON} size={14} />
               </button>
             </div>
           </header>
 
           {error && (
-            <div className="mb-5 rounded-lg px-3.5 py-3 text-[12.5px]"
-              style={{ background: T.dangerSoft, color: T.danger, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}>
+            <div
+              className="enter rounded-lg px-4 py-3 text-[12px] flex items-center gap-2"
+              style={{ background: T.surface, color: T.danger, boxShadow: `inset 0 0 0 1px ${T.danger}55`, ...stagger(1) }}
+            >
+              <AlertTriangle {...ICON} size={14} />
               {error}
             </div>
           )}
 
-          {/* Stat cards */}
-          <div className="stats-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
-            {statCards.map(({ label, value, delta, trend, icon: Icon, accent, accentSoft }) => (
-              <Card key={label} className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div
-                    className="w-8 h-8 rounded-md flex items-center justify-center"
-                    style={{ background: accentSoft, color: accent }}
+          {/* Stats */}
+          <div className="enter grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" style={stagger(1)}>
+            {statCards.map(({ label, value, note, noteColor }) => (
+              <Card key={label} className="p-5">
+                <p className="text-[12px]" style={{ color: T.textMuted }}>{label}</p>
+                {loading && period.total === 0 && accountStats.workspaceCount === 0 ? (
+                  <div className="mt-3 h-8 w-24 rounded-md" style={{ background: T.surface2 }} />
+                ) : (
+                  <p
+                    className="mt-3 text-[32px] leading-8 font-medium tabular-nums"
+                    style={{ color: T.text, fontFamily: FONT.mono }}
                   >
-                    <Icon size={14} />
-                  </div>
-                  <span
-                    className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10.5px] font-medium"
-                    style={{
-                      background: trend === "up" ? T.successSoft : T.dangerSoft,
-                      color: trend === "up" ? T.success : T.danger,
-                      fontFamily: FONT.mono,
-                    }}
-                  >
-                    {trend === "up" ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-                    {delta}
-                  </span>
-                </div>
-                <p className="text-[24px] font-semibold tracking-tight leading-none" style={{ color: T.text, fontFamily: FONT.mono }}>
-                  {value}
+                    {value}
+                  </p>
+                )}
+                <p className="mt-3 text-[12px] tabular-nums" style={{ color: noteColor, fontFamily: FONT.mono }}>
+                  {note}
                 </p>
-                <p className="text-[11.5px] mt-2" style={{ color: T.textMuted }}>{label}</p>
               </Card>
             ))}
           </div>
 
-          {/* Trend + campaign mix */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5 mb-6">
-            <Card className="lg:col-span-2">
+          {/* Volume chart + campaigns by status */}
+          <div className="enter grid grid-cols-1 lg:grid-cols-12 gap-4" style={stagger(2)}>
+            <Card className="lg:col-span-8">
               <CardHeader
-                title="Platform email volume"
-                hint="Last 14 days · daily events"
+                title="Email volume"
+                hint={`Sent per day, last ${range} days against the ${range} before`}
                 right={
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10.5px] font-medium"
-                    style={{ background: T.brandSoft, color: T.brand, fontFamily: FONT.mono }}
-                  >
-                    <TrendingUp size={10} /> {formatNumber(trendToday)} today
-                  </span>
+                  <div className="flex items-center gap-4 text-[12px]" style={{ color: T.textMuted }}>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="inline-block w-4 h-0.5 rounded-full" style={{ background: T.accent }} />
+                      This period
+                    </span>
+                    <span className="inline-flex items-center gap-2">
+                      <span
+                        className="inline-block w-4 h-0 border-t border-dashed"
+                        style={{ borderColor: T.neutral2 }}
+                      />
+                      Previous
+                    </span>
+                  </div>
                 }
               />
-              <div className="px-3 md:px-4 pb-4" style={{ height: 220 }}>
-                {loading && deliveryTrend.every((d) => d.sent === 0) ? (
+              <div className="px-4 pb-5" style={{ height: 300 }}>
+                {loading && !hasChartData ? (
                   <div className="h-full flex items-center justify-center">
-                    <div className="w-5 h-5 border-2 rounded-full animate-spin"
-                      style={{ borderColor: T.brand, borderTopColor: "transparent" }} />
+                    <div
+                      className="w-5 h-5 border-2 rounded-full animate-spin"
+                      style={{ borderColor: T.neutral2, borderTopColor: "transparent" }}
+                    />
                   </div>
-                ) : deliveryTrend.some((d) => d.sent > 0) ? (
+                ) : hasChartData ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={deliveryTrend} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="fillSent" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={T.brand} stopOpacity={0.3} />
-                          <stop offset="100%" stopColor={T.brand} stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid stroke={T.borderSoft} vertical={false} />
-                      <XAxis dataKey="day" tick={{ fontSize: 10, fill: T.textFaint, fontFamily: FONT.mono }}
-                        axisLine={false} tickLine={false} interval={1} />
-                      <YAxis tick={{ fontSize: 10, fill: T.textFaint, fontFamily: FONT.mono }}
-                        axisLine={false} tickLine={false} allowDecimals={false} />
-                      <Tooltip
-                        cursor={{ stroke: T.border, strokeDasharray: "3 3" }}
-                        contentStyle={{
-                          borderRadius: 8, border: `1px solid ${T.border}`, background: T.surface2,
-                          fontFamily: FONT.mono, fontSize: 11, color: T.text,
-                          boxShadow: "0 12px 30px -12px rgba(0,0,0,0.7)",
-                        }}
+                    <AreaChart data={period.chart} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+                      <CartesianGrid stroke={T.line} vertical={false} />
+                      <XAxis
+                        dataKey="day"
+                        tick={{ fontSize: 11, fill: T.textFaint, fontFamily: FONT.mono }}
+                        axisLine={false}
+                        tickLine={false}
+                        interval={range === 30 ? 4 : range === 14 ? 1 : 0}
                       />
-                      <Area type="monotone" dataKey="sent" stroke={T.brand} strokeWidth={2} fill="url(#fillSent)" />
+                      <YAxis
+                        tick={{ fontSize: 11, fill: T.textFaint, fontFamily: FONT.mono }}
+                        axisLine={false}
+                        tickLine={false}
+                        allowDecimals={false}
+                      />
+                      <Tooltip cursor={{ stroke: T.lineStrong }} content={<ChartTooltip />} />
+                      <Area
+                        type="monotone"
+                        dataKey="prev"
+                        stroke={T.neutral2}
+                        strokeWidth={1.5}
+                        strokeDasharray="4 4"
+                        fill="none"
+                        isAnimationActive={false}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="sent"
+                        stroke={T.accent}
+                        strokeWidth={2}
+                        fill={T.accent}
+                        fillOpacity={0.08}
+                        isAnimationActive={false}
+                      />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center">
-                    <Activity size={20} className="mb-2" style={{ color: T.border }} />
-                    <p className="text-[12px]" style={{ color: T.textFaint }}>No email activity yet</p>
+                    <Activity {...ICON} size={20} style={{ color: T.textFaint }} />
+                    <p className="mt-2 text-[12px]" style={{ color: T.textMuted }}>No email activity yet</p>
                   </div>
                 )}
               </div>
             </Card>
 
-            <Card>
-              <CardHeader title="Campaign mix" hint={`${formatNumber(campaignTotal)} total`} />
-              <div className="px-4 md:px-5 pb-4">
+            <Card className="lg:col-span-4">
+              <CardHeader title="Campaigns by status" hint={`${formatNumber(allCampaigns.length)} total`} />
+              <div className="px-5 pb-5">
                 {campaignMix.length === 0 ? (
-                  <div className="py-10 text-center">
-                    <Inbox size={18} className="mx-auto mb-2" style={{ color: T.border }} />
-                    <p className="text-[12px]" style={{ color: T.textFaint }}>No campaigns yet</p>
+                  <div className="py-12 text-center">
+                    <Inbox {...ICON} size={20} className="mx-auto" style={{ color: T.textFaint }} />
+                    <p className="mt-2 text-[12px]" style={{ color: T.textMuted }}>No campaigns yet</p>
                   </div>
                 ) : (
-                  <div className="flex flex-col sm:flex-row items-center gap-4">
-                    <div className="relative shrink-0" style={{ width: 120, height: 120 }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie data={campaignMix} dataKey="value" innerRadius={40} outerRadius={56} paddingAngle={2}>
-                            {campaignMix.map((p) => (
-                              <Cell key={p.name} fill={p.color} stroke="none" />
-                            ))}
-                          </Pie>
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span className="text-[20px] font-semibold leading-none" style={{ color: T.text, fontFamily: FONT.mono }}>
-                          {runningPct}%
-                        </span>
-                        <span className="text-[9px] uppercase tracking-widest mt-1" style={{ color: T.textFaint }}>
-                          Running
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex-1 w-full space-y-2">
-                      {campaignMix.map((p) => (
-                        <div key={p.name} className="flex items-center justify-between text-[12px]">
-                          <span className="flex items-center gap-2" style={{ color: T.textMuted }}>
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: p.color }} />
-                            {p.name}
-                          </span>
-                          <span style={{ fontFamily: FONT.mono, color: T.text }} className="font-medium">
-                            {p.value} <span style={{ color: T.textFaint }}>· {Math.round((p.value / campaignTotal) * 100)}%</span>
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <ul className="flex flex-col gap-4">
+                    {campaignMix.map((p) => {
+                      const pct = Math.round((p.value / campaignTotal) * 100);
+                      return (
+                        <li key={p.name}>
+                          <div className="flex items-center justify-between text-[12px]">
+                            <span className="flex items-center gap-2" style={{ color: T.text }}>
+                              <Dot color={p.color} />
+                              {p.name}
+                            </span>
+                            <span className="tabular-nums" style={{ fontFamily: FONT.mono, color: T.textMuted }}>
+                              <span style={{ color: T.text }}>{formatNumber(p.value)}</span> · {pct}%
+                            </span>
+                          </div>
+                          <div className="mt-2 h-1 rounded-full overflow-hidden" style={{ background: T.surface2 }}>
+                            <div className="h-full rounded-full" style={{ width: `${pct}%`, background: p.color }} />
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 )}
               </div>
             </Card>
           </div>
 
           {/* System health + incidents */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5 mb-6">
-            <Card className="lg:col-span-2">
-              <CardHeader title="System health" hint="Component status derived from live data" />
-              <div className="px-4 md:px-5 pb-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {systemComponents.map((c) => {
-                  const meta = HEALTH_META[c.status];
-                  const Icon = meta.icon;
-                  return (
-                    <div
-                      key={c.name}
-                      className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg"
-                      style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div
-                          className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
-                          style={{ background: meta.bg, color: meta.fg }}
-                        >
-                          <Icon size={12} />
-                        </div>
-                        <span className="text-[12px] truncate" style={{ color: T.textMuted }}>{c.name}</span>
-                      </div>
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium whitespace-nowrap shrink-0"
-                        style={{ background: meta.bg, color: meta.fg }}
-                      >
-                        <span className="w-1 h-1 rounded-full" style={{ background: meta.fg }} />
-                        {c.status}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-
-            <Card>
-              <CardHeader title="Recent incidents" hint="Derived from live platform signals" />
-              <div className="px-4 md:px-5 pb-4 relative">
-                <span className="absolute left-6 md:left-7 top-2 bottom-6 w-px" style={{ background: T.borderSoft }} />
-                <div className="space-y-3 relative">
-                  {incidents.map((inc, i) => {
-                    const meta = INCIDENT_META[inc.severity];
-                    const Icon = meta.icon;
-                    return (
-                      <div key={i} className="flex items-start gap-3">
-                        <div
-                          className="relative z-10 shrink-0 w-7 h-7 rounded-md flex items-center justify-center"
-                          style={{ background: meta.bg, color: meta.fg, boxShadow: `0 0 0 3px ${T.bg}` }}
-                        >
-                          <Icon size={12} />
-                        </div>
-                        <div className="min-w-0 pt-0.5">
-                          <p className="text-[12px] leading-snug" style={{ color: T.textMuted }}>{inc.title}</p>
-                          <p className="text-[10.5px] mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                            {inc.severity} · {inc.time}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Top workspaces */}
-          <Card className="overflow-hidden mb-6">
-            <div className="flex flex-wrap items-center justify-between gap-2 px-4 md:px-5 py-3.5"
-              style={{ borderBottom: `1px solid ${T.borderSoft}` }}>
-              <div>
-                <h2 className="text-[14px] font-semibold tracking-tight" style={{ color: T.text }}>Top workspaces</h2>
-                <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>Ranked by send volume</p>
-              </div>
-              <button
-                onClick={() => navigate("/admin/users")}
-                className="inline-flex items-center gap-1 text-[11.5px] font-medium transition-colors hover:text-white"
-                style={{ color: T.brand }}
-              >
-                All users <ChevronRight size={11} />
-              </button>
-            </div>
-
-            {topWorkspaces.length === 0 ? (
-              <div className="py-14 text-center">
-                <Inbox size={20} className="mx-auto mb-2" style={{ color: T.border }} />
-                <p className="text-[12px]" style={{ color: T.textFaint }}>No workspace activity yet</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left" style={{ minWidth: 620 }}>
-                  <thead>
-                    <tr className="text-[10px] uppercase tracking-widest" style={{ color: T.textFaint }}>
-                      <th className="px-4 md:px-5 py-2.5 font-medium">Workspace</th>
-                      <th className="px-3 py-2.5 font-medium">Role</th>
-                      <th className="px-3 py-2.5 font-medium text-right">Campaigns</th>
-                      <th className="px-3 py-2.5 font-medium text-right">Recipients</th>
-                      <th className="px-3 py-2.5 font-medium text-right">Sent</th>
-                      <th className="px-4 md:px-5 py-2.5 font-medium text-right"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {topWorkspaces.map((w) => (
-                      <tr key={w.user_id} className="transition-colors hover:bg-white/2"
-                        style={{ borderTop: `1px solid ${T.borderSoft}` }}>
-                        <td className="px-4 md:px-5 py-3">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <Avatar name={w.name} />
-                            <div className="min-w-0">
-                              <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>{w.name}</p>
-                              {w.email && (
-                                <p className="text-[11px] truncate mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                                  {w.email}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-3 py-3">
-                          <RolePill role={w.role} />
-                        </td>
-                        <td className="px-3 py-3 text-right text-[11.5px] tabular-nums"
-                          style={{ fontFamily: FONT.mono, color: T.textMuted }}>
-                          {formatNumber(w.campaigns)}
-                        </td>
-                        <td className="px-3 py-3 text-right text-[11.5px] tabular-nums"
-                          style={{ fontFamily: FONT.mono, color: T.textMuted }}>
-                          {formatNumber(w.recipients)}
-                        </td>
-                        <td className="px-3 py-3 text-right text-[11.5px] tabular-nums font-medium"
-                          style={{ fontFamily: FONT.mono, color: T.text }}>
-                          {formatNumber(w.sent)}
-                        </td>
-                        <td className="px-4 md:px-5 py-3 text-right">
-                          <button
-                            onClick={() => navigate("/admin/users")}
-                            aria-label="View user"
-                            className="p-1.5 rounded-md transition-colors hover:bg-white/5"
-                            style={{ color: T.textFaint }}
-                          >
-                            <ChevronRight size={13} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
-
-          {/* Recent signups */}
-          <Card className="overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-2 px-4 md:px-5 py-3.5"
-              style={{ borderBottom: `1px solid ${T.borderSoft}` }}>
-              <div>
-                <h2 className="text-[14px] font-semibold tracking-tight" style={{ color: T.text }}>Recent signups</h2>
-                <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>Newest users on the platform</p>
-              </div>
-              <button
-                onClick={() => navigate("/admin/users")}
-                className="inline-flex items-center gap-1 text-[11.5px] font-medium transition-colors hover:text-white"
-                style={{ color: T.brand }}
-              >
-                View all <ChevronRight size={11} />
-              </button>
-            </div>
-
-            {recentUsers.length === 0 ? (
-              <div className="py-14 text-center">
-                <Users size={20} className="mx-auto mb-2" style={{ color: T.border }} />
-                <p className="text-[12px]" style={{ color: T.textFaint }}>No users yet</p>
-              </div>
-            ) : (
+          <div className="enter grid grid-cols-1 lg:grid-cols-12 gap-4" style={stagger(3)}>
+            <Card className="lg:col-span-7">
+              <CardHeader
+                title="System health"
+                hint="Status derived from live data"
+                right={
+                  <span className="text-[12px] tabular-nums" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+                    {healthyCount} of {systemComponents.length} operational
+                  </span>
+                }
+              />
               <ul>
-                {recentUsers.map((u: any, i: number) => (
+                {systemComponents.map((c) => (
                   <li
-                    key={u.id}
-                    className="flex items-center gap-3 px-4 md:px-5 py-3 transition-colors hover:bg-white/2"
-                    style={{ borderTop: i === 0 ? "none" : `1px solid ${T.borderSoft}` }}
+                    key={c.name}
+                    className="row-hover flex items-center justify-between gap-4 px-5 py-3"
+                    style={{ borderTop: `1px solid ${T.line}` }}
                   >
-                    <Avatar name={u.username || u.email || "?"} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>
-                        {u.username || "—"}
-                      </p>
-                      <p className="text-[11px] truncate mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                        {u.email || "—"}
+                    <div className="min-w-0">
+                      <p className="text-[13px] truncate" style={{ color: T.text }}>{c.name}</p>
+                      <p className="text-[12px] mt-1 truncate tabular-nums" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+                        {c.detail}
                       </p>
                     </div>
-                    <span className="hidden sm:block"><RolePill role={u.role} /></span>
-                    <span className="text-[11px] shrink-0 ml-1" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                      {formatRelative(u.created_at)}
+                    <span className="inline-flex items-center gap-2 text-[12px] shrink-0" style={{ color: HEALTH_COLOR[c.status] }}>
+                      <Dot color={HEALTH_COLOR[c.status]} />
+                      {c.status}
                     </span>
                   </li>
                 ))}
               </ul>
-            )}
-          </Card>
+            </Card>
+
+            <Card className="lg:col-span-5">
+              <CardHeader title="Recent incidents" hint="Derived from live platform signals" />
+              <ul>
+                {incidents.map((inc, i) => (
+                  <li
+                    key={i}
+                    className="row-hover flex items-start gap-3 px-5 py-3"
+                    style={{ borderTop: `1px solid ${T.line}` }}
+                  >
+                    <span className="mt-1.5"><Dot color={INCIDENT_COLOR[inc.severity]} /></span>
+                    <div className="min-w-0">
+                      <p className="text-[13px] leading-5" style={{ color: T.text }}>{inc.title}</p>
+                      <p className="text-[12px] mt-1" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+                        {inc.severity} · {inc.time}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </div>
+
+          {/* Top workspaces + recent signups */}
+          <div className="enter grid grid-cols-1 lg:grid-cols-12 gap-4" style={stagger(4)}>
+            <Card className="lg:col-span-8 overflow-hidden">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5 pb-4">
+                <div>
+                  <h2 className="text-[14px] font-medium" style={{ color: T.text }}>Top workspaces</h2>
+                  <p className="text-[12px] mt-1" style={{ color: T.textMuted }}>Ranked by emails sent</p>
+                </div>
+                <button
+                  onClick={() => navigate("/admin/users")}
+                  className="btn-quiet inline-flex items-center gap-1 text-[12px] font-medium px-2 py-1 rounded-md"
+                  style={{ color: T.textMuted }}
+                >
+                  All users <ChevronRight {...ICON} size={14} />
+                </button>
+              </div>
+
+              {topWorkspaces.length === 0 ? (
+                <div className="py-12 text-center" style={{ borderTop: `1px solid ${T.line}` }}>
+                  <Inbox {...ICON} size={20} className="mx-auto" style={{ color: T.textFaint }} />
+                  <p className="mt-2 text-[12px]" style={{ color: T.textMuted }}>No workspace activity yet</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left" style={{ minWidth: 640 }}>
+                    <thead>
+                      <tr className="text-[12px]" style={{ color: T.textFaint }}>
+                        <th className="px-5 py-3 font-normal">Workspace</th>
+                        <th className="px-3 py-3 font-normal">Role</th>
+                        <th className="px-3 py-3 font-normal text-right">Campaigns</th>
+                        <th className="px-3 py-3 font-normal text-right">Recipients</th>
+                        <th className="px-5 py-3 font-normal" style={{ width: 200 }}>Sent</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topWorkspaces.map((w) => (
+                        <tr
+                          key={w.user_id}
+                          className="row-hover cursor-pointer"
+                          style={{ borderTop: `1px solid ${T.line}` }}
+                          onClick={() => navigate("/admin/users")}
+                        >
+                          <td className="px-5 py-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <Avatar name={w.name} />
+                              <div className="min-w-0">
+                                <p className="text-[13px] truncate" style={{ color: T.text }}>{w.name}</p>
+                                {w.email && (
+                                  <p className="text-[12px] truncate mt-1" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+                                    {w.email}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-[12px]" style={{ color: T.textMuted }}>
+                            {roleLabel(w.role)}
+                          </td>
+                          <td className="px-3 py-3 text-right text-[12px] tabular-nums" style={{ fontFamily: FONT.mono, color: T.textMuted }}>
+                            {formatNumber(w.campaigns)}
+                          </td>
+                          <td className="px-3 py-3 text-right text-[12px] tabular-nums" style={{ fontFamily: FONT.mono, color: T.textMuted }}>
+                            {formatNumber(w.recipients)}
+                          </td>
+                          <td className="px-5 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: T.surface2 }}>
+                                <div
+                                  className="h-full rounded-full"
+                                  style={{ width: `${(w.sent / maxSent) * 100}%`, background: T.neutral2 }}
+                                />
+                              </div>
+                              <span
+                                className="text-[12px] tabular-nums w-12 text-right"
+                                style={{ fontFamily: FONT.mono, color: T.text }}
+                              >
+                                {formatNumber(w.sent)}
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+
+            <Card className="lg:col-span-4 overflow-hidden">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5 pb-4">
+                <div>
+                  <h2 className="text-[14px] font-medium" style={{ color: T.text }}>Recent signups</h2>
+                  <p className="text-[12px] mt-1" style={{ color: T.textMuted }}>Newest users</p>
+                </div>
+                <button
+                  onClick={() => navigate("/admin/users")}
+                  className="btn-quiet inline-flex items-center gap-1 text-[12px] font-medium px-2 py-1 rounded-md"
+                  style={{ color: T.textMuted }}
+                >
+                  View all <ChevronRight {...ICON} size={14} />
+                </button>
+              </div>
+
+              {recentUsers.length === 0 ? (
+                <div className="py-12 text-center" style={{ borderTop: `1px solid ${T.line}` }}>
+                  <Inbox {...ICON} size={20} className="mx-auto" style={{ color: T.textFaint }} />
+                  <p className="mt-2 text-[12px]" style={{ color: T.textMuted }}>No users yet</p>
+                </div>
+              ) : (
+                <ul>
+                  {recentUsers.map((u: any) => (
+                    <li
+                      key={u.id}
+                      className="row-hover flex items-center gap-3 px-5 py-3"
+                      style={{ borderTop: `1px solid ${T.line}` }}
+                    >
+                      <Avatar name={u.username || u.email || "?"} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] truncate" style={{ color: T.text }}>{u.username || "—"}</p>
+                        <p className="text-[12px] truncate mt-1" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+                          {u.email || "—"}
+                        </p>
+                      </div>
+                      <span className="text-[12px] shrink-0 tabular-nums" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                        {formatRelative(u.created_at)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          </div>
         </div>
       </main>
     </div>
