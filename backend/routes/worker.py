@@ -6,14 +6,13 @@ from sqlalchemy.orm import Session
 from database import get_db
 from services.user import GetCurrentUser
 
-from models.campaigns import Campaign
+from models.campaigns import Campaign, CampaignStatus  # same enum the workers use
 from models.campaign_recipients import CampaignRecipient, RecipientStatus
 from models.upload_file import Upload, UploadStatus
 from redis_client import load_analytics
-from schema.campaigns import CampaignStatus
 from workers.extract_email import extract_upload_task
 from workers.start_campaign import dispatch_campaign
-from workers.sending_emails import schedule_campaign_sends
+from workers.sending_emails import schedule_campaign_sends, get_sender_cooldown_until
 
 
 class StartCampaignBody(BaseModel):
@@ -159,6 +158,8 @@ def pause_campaign(
     if campaign.status != CampaignStatus.RUNNING:
         raise HTTPException(status.HTTP_409_CONFLICT, "Only a running campaign can be paused.")
 
+    # The dispatcher only looks at RUNNING campaigns, and send_email_task puts
+    # any already-queued email back to PENDING when it sees PAUSED.
     campaign.status = CampaignStatus.PAUSED
     db.commit()
     return {"message": "Campaign paused.", "data": {"campaign_id": campaign.id}}
@@ -191,6 +192,62 @@ def resume_campaign(
     return {
         "message": "Campaign resumed.",
         "data": {"campaign_id": campaign.id, "rescheduled": rescheduled},
+    }
+
+
+@router.post("/retry-failed/{campaign_id}")
+def retry_failed(
+    campaign_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser),
+):
+    """
+    Put FAILED recipients (valid emails only) back to PENDING, e.g. the ones that
+    failed earlier because of Outlook limits. The campaign is left PAUSED; press
+    Resume to give them a fresh spaced-out schedule.
+    """
+    campaign = _get_user_campaign(db, campaign_id, current_user.id)
+
+    if campaign.status not in (CampaignStatus.PAUSED, CampaignStatus.COMPLETED):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Pause the campaign first, then retry the failed emails.",
+        )
+
+    moved = (
+        db.query(CampaignRecipient)
+        .filter(
+            CampaignRecipient.campaign_id == campaign_id,
+            CampaignRecipient.status == RecipientStatus.FAILED,
+            CampaignRecipient.is_valid_email == True,  # noqa: E712
+        )
+        .update(
+            {
+                CampaignRecipient.status: RecipientStatus.PENDING,
+                CampaignRecipient.scheduled_at: None,
+            },
+            synchronize_session=False,
+        )
+    )
+
+    still_failed = (
+        db.query(func.count(CampaignRecipient.id))
+        .filter(
+            CampaignRecipient.campaign_id == campaign_id,
+            CampaignRecipient.status == RecipientStatus.FAILED,
+        )
+        .scalar()
+    ) or 0
+    campaign.failed_count = still_failed
+
+    if campaign.status == CampaignStatus.COMPLETED and moved:
+        campaign.status = CampaignStatus.PAUSED  # so the normal Resume button works
+
+    db.commit()
+
+    return {
+        "message": "Failed emails moved back to pending. Press Resume to send them.",
+        "data": {"campaign_id": campaign.id, "moved": moved},
     }
 
 
@@ -236,6 +293,9 @@ def campaign_progress(
         .scalar()
     )
 
+    # If Outlook told us to slow down, show until when sending is on hold.
+    limited_until = get_sender_cooldown_until(campaign.sender_account_id)
+
     return {
         "data": {
             "status": str(getattr(campaign.status, "value", campaign.status)).lower(),
@@ -247,5 +307,6 @@ def campaign_progress(
             # scheduled_at DB me naive UTC hai, isliye "Z"
             "next_send_at": next_send.isoformat() + "Z" if next_send else None,
             "estimated_finish_at": last_send.isoformat() + "Z" if last_send else None,
+            "limited_until": limited_until.isoformat() + "Z" if limited_until else None,
         }
     }

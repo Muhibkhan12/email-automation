@@ -1,12 +1,15 @@
 import asyncio
+import os
 import random
 import re
+import time
 from datetime import datetime, timedelta, timezone
 from html import escape
 from html.parser import HTMLParser
 
+import redis  # type: ignore  (already installed: Celery uses it for the Redis broker)
 from celery.utils.log import get_task_logger  # type: ignore
-from sqlalchemy import func
+from sqlalchemy import func, or_, true
 from sqlalchemy.orm import Session
 
 from database import SessionLocal
@@ -29,7 +32,7 @@ MAX_ERROR_LEN = 500
 LIMIT_RESCHEDULE_PAD = 5    # seconds, small buffer after a limit window resets
 DISPATCH_BATCH = 50         # max emails queued per dispatcher run
 DISPATCH_LOOKAHEAD = 45     # seconds: dispatcher queues emails due within this window (with exact eta)
-OVERDUE_GRACE = 90          # seconds: isse zyada late row ko fresh random time milta hai
+OVERDUE_GRACE = 90          # seconds: if a PENDING row is later than this, the campaign schedule is rebuilt from "now"
 STALE_QUEUED_MINUTES = 30   # QUEUED older than this = lost task, put back to PENDING
 
 # Random gap buckets (all values in SECONDS): (probability, min_gap, max_gap)
@@ -44,6 +47,44 @@ FIRST_SEND_DELAY = (2, 20)  # first email goes out within 2-20 seconds of start
 
 # Daily limit is spread over this many seconds (12h working window).
 DAILY_SPREAD_SECONDS = 43200.0
+
+# ---------------------------------------------------------
+# SEND-TIME GATE (the real protection against bursts)
+# ---------------------------------------------------------
+# No matter what the schedule says, one sender account can NEVER send two
+# emails closer than this many seconds. The "last send" time lives in Redis,
+# so worker restarts / backlogs / old tasks cannot break it.
+MIN_SEND_GAP = (10, 20)        # seconds, random per send
+GATE_PUSHBACK_JITTER = 30      # extra random seconds when an email is pushed back by the gate
+
+# ---------------------------------------------------------
+# Outlook / Graph rate-limit handling
+# ---------------------------------------------------------
+RATE_LIMIT_PAD = 15            # seconds added on top of Outlook's Retry-After
+DEFAULT_THROTTLE_WAIT = 300    # seconds, when Outlook says "slow down" without Retry-After
+THROTTLE_STATUS_CODES = (429, 503, 504)
+THROTTLE_MARKERS = (
+    "throttl",                 # ApplicationThrottled, "throttled"
+    "too many requests",
+    "toomanyrequests",
+    "mailboxconcurrency",
+    "rate limit",
+    "ratelimit",
+    "retry-after",
+    "serverbusy",
+    "server busy",
+)
+QUOTA_MARKERS = (              # "daily / sending quota is over" -> wait until tomorrow
+    "sendquota",
+    "quotaexceeded",
+    "quota exceeded",
+    "exceeded the daily",
+    "daily limit",
+    "daily sending limit",
+    "per day",
+    "recipient rate limit",
+)
+_STATUS_429_RE = re.compile(r"\b429\b")
 
 # Domains that get PLAIN TEXT instead of the HTML template.
 PLAIN_TEXT_DOMAINS = {"gmail.com", "googlemail.com"}
@@ -72,6 +113,18 @@ class AuthError(PermanentError):
     """Sender's Microsoft token is unusable; needs the user to re-connect."""
 
 
+class RateLimitError(Exception):
+    """
+    Outlook said 'slow down' / 'limit reached'. This is NOT a failure of the
+    email: it goes back to PENDING and is tried again after `wait` seconds.
+    """
+
+    def __init__(self, wait: int, reason: str = ""):
+        super().__init__(reason or f"Rate limited, retry in {wait}s")
+        self.wait = wait
+        self.reason = reason
+
+
 # =========================================================
 # Helpers
 # =========================================================
@@ -81,6 +134,11 @@ def _as_aware(dt: datetime | None) -> datetime | None:
     if dt is None:
         return None
     return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+
+
+def _naive_utc(dt: datetime) -> datetime:
+    """DB stores naive UTC."""
+    return dt.astimezone(UTC).replace(tzinfo=None) if dt.tzinfo else dt
 
 
 def _status_str(value) -> str:
@@ -113,6 +171,165 @@ def _new_email_log(
     if sent_at is not None:
         fields["sent_at"] = sent_at
     return EmailLog(**fields)
+
+
+# =========================================================
+# Redis: send-time gate + rate-limit cooldown (per sender)
+# =========================================================
+
+_redis_client = None
+
+
+def _get_redis():
+    global _redis_client
+    if _redis_client is None:
+        _redis_client = redis.Redis.from_url(
+            os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+            decode_responses=True,
+        )
+    return _redis_client
+
+
+def _gap_key(sender_id: int) -> str:
+    return f"sender:{sender_id}:next_send_ts"
+
+
+def _cooldown_key(sender_id: int) -> str:
+    return f"sender:{sender_id}:cooldown_until_ts"
+
+
+# Atomic: "may this sender send right now?"
+#   returns '0'      -> yes, and the next allowed time is already reserved
+#   returns 'N.NN'   -> no, wait N.NN seconds
+_GATE_LUA = """
+local now = tonumber(ARGV[1])
+local cd = tonumber(redis.call('GET', KEYS[2]) or '0')
+if cd > now then
+  return tostring(cd - now)
+end
+local nxt = tonumber(redis.call('GET', KEYS[1]) or '0')
+if nxt > now then
+  return tostring(nxt - now)
+end
+redis.call('SET', KEYS[1], tostring(now + tonumber(ARGV[2])), 'EX', 172800)
+return '0'
+"""
+
+
+def _take_send_slot(sender_id: int) -> float:
+    """0.0 = you may send now. Otherwise = seconds you must wait."""
+    gap = random.uniform(*MIN_SEND_GAP)
+    res = _get_redis().eval(
+        _GATE_LUA, 2, _gap_key(sender_id), _cooldown_key(sender_id), time.time(), gap
+    )
+    return float(res)
+
+
+def _set_sender_cooldown(sender_id: int, seconds: float) -> None:
+    """Block ALL sending for this sender for `seconds` (never shortens an existing cooldown)."""
+    r = _get_redis()
+    key = _cooldown_key(sender_id)
+    until = time.time() + seconds
+    current = float(r.get(key) or 0)
+    r.set(key, str(max(current, until)), ex=int(seconds) + 3600)
+
+
+def _cooldown_remaining(sender_id: int) -> float:
+    remaining = float(_get_redis().get(_cooldown_key(sender_id)) or 0) - time.time()
+    return max(0.0, remaining)
+
+
+def get_sender_cooldown_until(sender_id: int | None) -> datetime | None:
+    """For the UI: when will this sender be allowed to send again (naive UTC), or None."""
+    if sender_id is None:
+        return None
+    try:
+        remaining = _cooldown_remaining(sender_id)
+    except Exception:
+        return None
+    if remaining <= 0:
+        return None
+    return datetime.now(UTC).replace(tzinfo=None) + timedelta(seconds=remaining)
+
+
+# =========================================================
+# Outlook error classification
+# =========================================================
+
+def _seconds_until_tomorrow() -> int:
+    now = datetime.now(UTC)
+    next_day = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+    return int((next_day - now).total_seconds())
+
+
+def _as_rate_limit(exc: Exception) -> RateLimitError | None:
+    """
+    Decide if a send error is Outlook throttling / a limit (-> wait and retry)
+    instead of a real failure. Returns RateLimitError or None.
+    """
+    response = getattr(exc, "response", None)
+    status = getattr(exc, "status_code", None) or getattr(response, "status_code", None)
+    try:
+        status = int(status) if status is not None else None
+    except (TypeError, ValueError):
+        status = None
+
+    text = str(exc).lower()
+    is_quota = any(m in text for m in QUOTA_MARKERS)
+    is_throttle = (
+        status in THROTTLE_STATUS_CODES
+        or bool(_STATUS_429_RE.search(text))
+        or any(m in text for m in THROTTLE_MARKERS)
+    )
+    if not (is_quota or is_throttle):
+        return None
+
+    # Outlook often tells us exactly how long to wait.
+    retry_after: float | None = None
+    headers = getattr(response, "headers", None) or getattr(exc, "headers", None)
+    if headers:
+        raw = None
+        try:
+            raw = headers.get("Retry-After") or headers.get("retry-after")
+        except Exception:
+            raw = None
+        if raw is not None:
+            try:
+                retry_after = float(raw)
+            except (TypeError, ValueError):
+                retry_after = None
+
+    if retry_after is None:
+        retry_after = _seconds_until_tomorrow() if is_quota else DEFAULT_THROTTLE_WAIT
+
+    wait = int(max(retry_after, 30)) + RATE_LIMIT_PAD
+    return RateLimitError(wait, f"{type(exc).__name__}: {exc}"[:MAX_ERROR_LEN])
+
+
+def _defer_after_rate_limit(
+    db: Session, recipient_id: int, sender_account_id: int, wait: int
+) -> None:
+    """
+    Outlook said wait. Block the sender for `wait` seconds (everyone, not just
+    this email) and put this recipient back to PENDING. Never marks FAILED.
+    """
+    try:
+        _set_sender_cooldown(sender_account_id, wait)
+    except Exception:
+        logger.exception("Could not set cooldown for sender %s", sender_account_id)
+
+    try:
+        db.rollback()
+        recipient = db.get(CampaignRecipient, recipient_id)
+        if recipient is not None and _status_str(recipient.status) in ("queued", "pending"):
+            recipient.status = RecipientStatus.PENDING
+            recipient.scheduled_at = _naive_utc(
+                datetime.now(UTC) + timedelta(seconds=wait + random.randint(0, 120))
+            )
+            db.commit()
+    except Exception:
+        db.rollback()
+        logger.exception("Could not defer recipient %s after rate limit", recipient_id)
 
 
 # =========================================================
@@ -473,6 +690,8 @@ def schedule_campaign_sends(db: Session, campaign_id: int) -> int:
 
     If the sender's hourly/daily limit needs a slower average speed, ALL gaps
     are scaled up together (keeps the randomness, just stretches it).
+
+    Also used to REBUILD the schedule after downtime / pause (see dispatch_due_task).
     """
     campaign = db.get(Campaign, campaign_id)
     if campaign is None:
@@ -601,7 +820,7 @@ def flag_auth_failure(db: Session, sender_account_id: int, campaign_id: int) -> 
     bind=True,
     acks_late=True,
     autoretry_for=(Exception,),
-    dont_autoretry_for=(PermanentError,),
+    dont_autoretry_for=(PermanentError, RateLimitError),
     retry_backoff=True,
     retry_backoff_max=600,
     retry_jitter=True,
@@ -656,6 +875,18 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
             db.commit()
             return {"message": f"Sender limit reached, moved by {wait}s"}
 
+        # --- SEND-TIME GATE: enforces the gap, whatever the schedule says ---
+        # Also blocks sending while Outlook told us to cool down.
+        gate_wait = _take_send_slot(sender_account_id)
+        if gate_wait > 0:
+            recipient.status = RecipientStatus.PENDING
+            recipient.scheduled_at = _naive_utc(
+                datetime.now(UTC)
+                + timedelta(seconds=gate_wait + random.uniform(0, GATE_PUSHBACK_JITTER))
+            )
+            db.commit()
+            return {"message": f"Too soon for this sender, moved by {gate_wait:.0f}s"}
+
         # --- Token ---
         access_token = get_fresh_access_token(db, sender_account_id)
 
@@ -673,15 +904,21 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
             body, content_type = html, "HTML"
 
         # --- Send ---
-        _run_async(
-            GraphService.send_email(
-                access_token=access_token,
-                recipient=recipient_email,
-                subject=subject,
-                html_body=body,
-                content_type=content_type,
+        try:
+            _run_async(
+                GraphService.send_email(
+                    access_token=access_token,
+                    recipient=recipient_email,
+                    subject=subject,
+                    html_body=body,
+                    content_type=content_type,
+                )
             )
-        )
+        except Exception as send_exc:
+            rate_limit = _as_rate_limit(send_exc)
+            if rate_limit is not None:
+                raise rate_limit from send_exc
+            raise
         email_sent = True
 
         # --- Bookkeeping ---
@@ -709,6 +946,16 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
         db.commit()
         _finalize_if_done(db, campaign_id)
         return {"message": f"Email Sent Successfully ({content_type})"}
+
+    except RateLimitError as exc:
+        # Outlook limit / throttling: NOT a failure. Cool the sender down,
+        # put the email back to PENDING, no retry-count burned, no FAILED row.
+        logger.warning(
+            "Outlook rate limit for sender %s. Cooling down %ss. %s",
+            sender_account_id, exc.wait, exc.reason,
+        )
+        _defer_after_rate_limit(db, recipient_id, sender_account_id, exc.wait)
+        return {"message": f"Rate limited by Outlook, retry in {exc.wait}s"}
 
     except Exception as exc:
         db.rollback()
@@ -757,9 +1004,12 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
 )
 def dispatch_due_task():
     """
-    Queue every recipient due within DISPATCH_LOOKAHEAD seconds, with eta=exact time.
-    Rows that are badly overdue (backlog) get a fresh random gap instead of
-    firing all at once.
+    1. REBUILD: if a running campaign has PENDING rows that are badly overdue
+       (workers were off, or the sender was cooling down), give the whole
+       campaign a fresh random schedule starting NOW. No backlog burst.
+    2. QUEUE: every PENDING recipient due within DISPATCH_LOOKAHEAD seconds is
+       queued with eta = its exact time.
+    Senders in an Outlook cooldown are skipped completely.
     """
     db: Session = SessionLocal()
     try:
@@ -767,6 +1017,43 @@ def dispatch_due_task():
         horizon = now + timedelta(seconds=DISPATCH_LOOKAHEAD)
         overdue_cutoff = now - timedelta(seconds=OVERDUE_GRACE)
 
+        # Senders that Outlook told us to leave alone for a while.
+        running_senders = [
+            sid
+            for (sid,) in db.query(Campaign.sender_account_id)
+            .filter(Campaign.status == CampaignStatus.RUNNING)
+            .distinct()
+            .all()
+            if sid is not None
+        ]
+        cooling = [sid for sid in running_senders if _cooldown_remaining(sid) > 0]
+        not_cooling = (
+            ~Campaign.sender_account_id.in_(cooling) if cooling else true()
+        )
+
+        # ---- 1. Rebuild schedule for campaigns with a backlog ----
+        backlog_campaigns = [
+            cid
+            for (cid,) in db.query(CampaignRecipient.campaign_id)
+            .join(Campaign, Campaign.id == CampaignRecipient.campaign_id)
+            .filter(
+                CampaignRecipient.status == RecipientStatus.PENDING,
+                CampaignRecipient.is_valid_email == True,  # noqa: E712
+                or_(
+                    CampaignRecipient.scheduled_at.is_(None),
+                    CampaignRecipient.scheduled_at < overdue_cutoff,
+                ),
+                Campaign.status == CampaignStatus.RUNNING,
+                not_cooling,
+            )
+            .distinct()
+            .all()
+        ]
+        for cid in backlog_campaigns:
+            n = schedule_campaign_sends(db, cid)
+            logger.warning("Campaign %s had a backlog: re-scheduled %d recipients from now", cid, n)
+
+        # ---- 2. Queue what is due ----
         rows = (
             db.query(
                 CampaignRecipient.id,
@@ -780,6 +1067,7 @@ def dispatch_due_task():
                 CampaignRecipient.scheduled_at.isnot(None),
                 CampaignRecipient.scheduled_at <= horizon,
                 Campaign.status == CampaignStatus.RUNNING,  # paused/cancelled skipped
+                not_cooling,
             )
             .order_by(CampaignRecipient.scheduled_at)
             .limit(DISPATCH_BATCH)
@@ -788,43 +1076,8 @@ def dispatch_due_task():
         if not rows:
             return 0
 
-        # Per sender: next free time slot (after anything already queued).
-        cursors: dict[int, datetime] = {}
-
-        def cursor_for(sender_id: int) -> datetime:
-            if sender_id not in cursors:
-                last = (
-                    db.query(func.max(CampaignRecipient.scheduled_at))
-                    .join(Campaign, Campaign.id == CampaignRecipient.campaign_id)
-                    .filter(
-                        Campaign.sender_account_id == sender_id,
-                        CampaignRecipient.status == RecipientStatus.QUEUED,
-                    )
-                    .scalar()
-                )
-                cursors[sender_id] = max(now, last) if last else now
-            return cursors[sender_id]
-
-        claimed = []  # (row, final_scheduled_at)
+        claimed = []  # (row, scheduled_at)
         for r in rows:
-            sched = r.scheduled_at
-
-            if sched < overdue_cutoff:
-                new_t = cursor_for(r.sender_account_id) + timedelta(seconds=_random_gap())
-                cursors[r.sender_account_id] = new_t
-                sched = new_t
-
-                if new_t > horizon:
-                    # Not due yet: just give it the new time, keep PENDING.
-                    db.query(CampaignRecipient).filter(
-                        CampaignRecipient.id == r.id,
-                        CampaignRecipient.status == RecipientStatus.PENDING,
-                    ).update(
-                        {CampaignRecipient.scheduled_at: new_t},
-                        synchronize_session=False,
-                    )
-                    continue
-
             # Claim each row individually; only queue the ones WE claimed.
             # (Protects against overlapping runs queueing the same recipient twice.)
             updated = (
@@ -834,22 +1087,19 @@ def dispatch_due_task():
                     CampaignRecipient.status == RecipientStatus.PENDING,
                 )
                 .update(
-                    {
-                        CampaignRecipient.status: RecipientStatus.QUEUED,
-                        CampaignRecipient.scheduled_at: sched,
-                    },
+                    {CampaignRecipient.status: RecipientStatus.QUEUED},
                     synchronize_session=False,
                 )
             )
             if updated == 1:
-                claimed.append((r, sched))
+                claimed.append((r, r.scheduled_at))
         db.commit()
 
         for r, sched in claimed:
             send_email_task.apply_async(
                 args=[r.id, r.sender_account_id, r.campaign_id],
                 queue="email_sender_queue",
-                eta=_as_aware(sched),  # exact second; past time = run now
+                eta=_as_aware(sched),  # exact second; past time = run now (the gate still spaces it)
             )
         return len(claimed)
     except Exception:
@@ -869,7 +1119,13 @@ def dispatch_due_task():
     queue="email_sender_queue",
 )
 def requeue_stale_task():
-    """QUEUED for too long = task got lost (broker restart etc.). Back to PENDING."""
+    """
+    QUEUED for too long = task got lost (broker restart etc.). Back to PENDING.
+
+    scheduled_at is deliberately NOT touched: the rows are old, so the
+    dispatcher sees a backlog and rebuilds a spaced-out schedule for them.
+    (Before, scheduled_at was set to "now" for all of them = burst.)
+    """
     db: Session = SessionLocal()
     try:
         now = datetime.now(UTC).replace(tzinfo=None)
@@ -881,10 +1137,7 @@ def requeue_stale_task():
                 CampaignRecipient.scheduled_at < cutoff,
             )
             .update(
-                {
-                    CampaignRecipient.status: RecipientStatus.PENDING,
-                    CampaignRecipient.scheduled_at: now,
-                },
+                {CampaignRecipient.status: RecipientStatus.PENDING},
                 synchronize_session=False,
             )
         )

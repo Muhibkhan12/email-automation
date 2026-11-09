@@ -305,6 +305,7 @@ const CampaignCreatePage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [actionError, setActionError] = useState("");
+  const [acting, setActing] = useState<"pause" | "resume" | "cancel" | null>(null);
   const [run, setRun] = useState({ sent: 0, failed: 0, total: 0 });
   const [live, setLive] = useState<CampaignProgressDTO | null>(null);
 
@@ -312,6 +313,9 @@ const CampaignCreatePage = () => {
   const loadTokenRef = useRef(0);
   const runRef = useRef(run);
   runRef.current = run;
+  // Bumped on every pause/resume/cancel/start so an in-flight poll with an
+  // old status can't overwrite the fresh one.
+  const statusVerRef = useRef(0);
 
   const draftKeyRef = useRef<string | null>(null);
   const draftKey = `${senderId ?? ""}|${templateId ?? ""}|${name.trim()}|${subject.trim()}`;
@@ -357,13 +361,16 @@ const CampaignCreatePage = () => {
     if (next) setStatus(next);
   };
 
+  // Poll progress while Running / Paused. Any poll that started before a
+  // pause/resume click is thrown away (statusVerRef check).
   useEffect(() => {
     if (!campaignId || !["Running", "Paused"].includes(status)) return;
     let stop = false;
     const tick = async () => {
+      const ver = statusVerRef.current;
       try {
         const p = await getCampaignProgress(campaignId);
-        if (!stop && p) applyProgress(p);
+        if (!stop && ver === statusVerRef.current && p) applyProgress(p);
       } catch { /* ignore */ }
     };
     tick();
@@ -476,6 +483,7 @@ const CampaignCreatePage = () => {
     if (campaignId === null) { setSubmitError("Campaign was not created yet. Please re-upload the recipients."); return; }
     if (uploadId === null) { setSubmitError("No uploaded file is attached to this campaign."); return; }
     setSubmitting(true); setSubmitError("");
+    statusVerRef.current++;
     try {
       await startCampaign(campaignId, uploadId);
       setStatus("Running"); setConfirmOpen(false); fetchSenders?.();
@@ -487,24 +495,41 @@ const CampaignCreatePage = () => {
     }
   };
 
-  const act = async (fn: (id: number) => Promise<CampaignDTO>, fallback: Status) => {
-    if (!campaignId) return;
+  // Pause / Resume / Cancel.
+  // - blocks double clicks (acting)
+  // - invalidates any in-flight poll (statusVerRef)
+  // - ALWAYS re-syncs with the server afterwards, even on error, so the
+  //   buttons never get stuck on a stale status.
+  const act = async (
+    kind: "pause" | "resume" | "cancel",
+    fn: (id: number) => Promise<CampaignDTO>,
+    fallback: Status
+  ) => {
+    if (!campaignId || acting) return;
+    setActing(kind);
     setActionError("");
+    statusVerRef.current++;
     try {
       await fn(campaignId);
       setStatus(fallback);
-      try { const p = await getCampaignProgress(campaignId); applyProgress(p); } catch { /* ignore */ }
     } catch (e) {
       setActionError(errMsg(e, "Action failed. Please try again."));
+    } finally {
+      try {
+        const p = await getCampaignProgress(campaignId);
+        if (p) applyProgress(p);
+      } catch { /* ignore */ }
+      setActing(null);
     }
   };
 
   const reset = () => {
     loadTokenRef.current++;
+    statusVerRef.current++;
     draftKeyRef.current = null;
     setStep(0); setMaxStep(0); setName(""); setSubject(""); clearFile();
     setSenderId(null); setTemplateId(null);
-    setCampaignId(null); setSubmitError(""); setActionError("");
+    setCampaignId(null); setSubmitError(""); setActionError(""); setActing(null);
     setRun({ sent: 0, failed: 0, total: 0 }); setStatus("Draft"); setLive(null);
   };
 
@@ -1069,10 +1094,22 @@ const CampaignCreatePage = () => {
               {actionError && <Notice tone="error">{actionError}</Notice>}
 
               <div className="flex gap-2.5 flex-wrap">
-                {status === "Running" && <Btn onClick={() => act(pauseCampaign, "Paused")}><Pause size={13} /> Pause</Btn>}
-                {status === "Paused"  && <Btn variant="primary" onClick={() => act(resumeCampaign, "Running")}><Play size={13} /> Resume</Btn>}
+                {status === "Running" && (
+                  <Btn onClick={() => act("pause", pauseCampaign, "Paused")} disabled={!!acting}>
+                    {acting === "pause" ? <Loader2 size={13} className="animate-spin" /> : <Pause size={13} />}
+                    {acting === "pause" ? "Pausing…" : "Pause"}
+                  </Btn>
+                )}
+                {status === "Paused" && (
+                  <Btn variant="primary" onClick={() => act("resume", resumeCampaign, "Running")} disabled={!!acting}>
+                    {acting === "resume" ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
+                    {acting === "resume" ? "Resuming…" : "Resume"}
+                  </Btn>
+                )}
                 {(status === "Running" || status === "Paused") && (
-                  <Btn variant="danger" onClick={() => setCancelOpen(true)}><Ban size={13} /> Cancel campaign</Btn>
+                  <Btn variant="danger" onClick={() => setCancelOpen(true)} disabled={!!acting}>
+                    <Ban size={13} /> Cancel campaign
+                  </Btn>
                 )}
                 {(status === "Completed" || status === "Cancelled" || status === "Failed") && (
                   <Btn variant="primary" onClick={reset}><Rocket size={13} /> New campaign</Btn>
@@ -1121,7 +1158,7 @@ const CampaignCreatePage = () => {
           </div>
           <div className="flex justify-end gap-2.5 mt-6">
             <Btn onClick={() => setCancelOpen(false)}>Keep running</Btn>
-            <Btn variant="danger" onClick={() => { setCancelOpen(false); act(cancelCampaign, "Cancelled").catch(() => {}); }}>
+            <Btn variant="danger" onClick={() => { setCancelOpen(false); act("cancel", cancelCampaign, "Cancelled"); }}>
               Try cancel
             </Btn>
           </div>

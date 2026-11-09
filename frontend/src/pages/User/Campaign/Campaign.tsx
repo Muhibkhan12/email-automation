@@ -7,13 +7,14 @@ import {
   type Campaign,
   type CreateCampaignData,
 } from '../../../services/CampaignService';
+import { pauseCampaign, resumeCampaign } from '../../../services/WorkerService';
 import Sidebar from '../Sidebar';
 import CampaignModal from './CampaignModel';
 import StartCampaignModal from './UserCampaignModal';
 import {
   Menu, RefreshCw, Search, Plus, Megaphone, Rocket, PauseCircle,
   CheckCircle2, XCircle, FileEdit, ChevronRight, Inbox, AlertTriangle,
-  Trash2,
+  Trash2, Pause, Play, Loader2, X,
 } from 'lucide-react';
 
 /* ─────────────── tokens ───────────────
@@ -117,16 +118,44 @@ const UserCampaigns: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'all' | UiStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  // Keep only the id, so the modal always shows the freshest campaign from the list.
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showStartModal, setShowStartModal] = useState(false);
 
   const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  // Pause / resume state
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
   useEffect(() => {
     fetchMine();
   }, [fetchMine]);
+
+  const selectedCampaign = useMemo(
+    () => (selectedId === null ? null : campaigns.find((c) => c.id === selectedId) ?? null),
+    [campaigns, selectedId]
+  );
+
+  /* Pause / resume — blocks double clicks, and ALWAYS refetches afterwards
+     (even on error) so the row never stays on a stale status. */
+  const changeState = async (campaign: Campaign, kind: 'pause' | 'resume') => {
+    if (busyId !== null) return;
+    setBusyId(campaign.id);
+    setActionError(null);
+    try {
+      await (kind === 'pause' ? pauseCampaign : resumeCampaign)(campaign.id);
+    } catch (err: any) {
+      setActionError(
+        apiErrorMessage(err, kind === 'pause' ? 'Could not pause the campaign.' : 'Could not resume the campaign.')
+      );
+    } finally {
+      try { await fetchMine(); } catch { /* ignore */ }
+      setBusyId(null);
+    }
+  };
 
   const handleStartCampaign = async (data: CreateCampaignData, startNow: boolean) => {
     const payload = {
@@ -172,7 +201,7 @@ const UserCampaigns: React.FC = () => {
     setDeleteError(null);
     try {
       await deleteMine(campaignToDelete.id);
-      setSelectedCampaign((cur) => (cur?.id === campaignToDelete.id ? null : cur));
+      setSelectedId((cur) => (cur === campaignToDelete.id ? null : cur));
       setCampaignToDelete(null);
     } catch (err: any) {
       setDeleteError(apiErrorMessage(err, 'Could not delete the campaign.'));
@@ -303,6 +332,26 @@ const UserCampaigns: React.FC = () => {
             </div>
           </header>
 
+          {/* Pause / resume error banner */}
+          {actionError && (
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-lg px-3.5 py-3 mb-5"
+              style={{ background: 'rgba(224,106,106,0.06)', border: '1px solid rgba(224,106,106,0.28)' }}
+            >
+              <AlertTriangle size={14} style={{ color: T.danger }} className="mt-0.5 shrink-0" />
+              <p className="flex-1 text-[12.5px] leading-5" style={{ color: T.danger }}>{actionError}</p>
+              <button
+                onClick={() => setActionError(null)}
+                aria-label="Dismiss"
+                className="shrink-0 p-0.5 rounded"
+                style={{ color: T.danger }}
+              >
+                <X size={13} />
+              </button>
+            </div>
+          )}
+
           {/* Query bar — search + segmented status filter */}
           <div className="flex flex-col lg:flex-row lg:items-center gap-3 mb-5">
             <div
@@ -350,7 +399,7 @@ const UserCampaigns: React.FC = () => {
                     {label}
                     <span
                       className="tabular-nums"
-                      style={{ color: active ? T.textFaint : T.textFaint, fontFamily: FONT.mono, fontSize: 10.5 }}
+                      style={{ color: T.textFaint, fontFamily: FONT.mono, fontSize: 10.5 }}
                     >
                       {count}
                     </span>
@@ -360,8 +409,8 @@ const UserCampaigns: React.FC = () => {
             </div>
           </div>
 
-          {/* Loading */}
-          {loading && (
+          {/* Loading — only on first load, so rows don't vanish during pause/resume refetch */}
+          {loading && campaigns.length === 0 && (
             <div className="text-center py-16">
               <div
                 className="w-5 h-5 border-2 rounded-full animate-spin mx-auto"
@@ -429,32 +478,36 @@ const UserCampaigns: React.FC = () => {
           )}
 
           {/* Ledger */}
-          {!loading && !error && filteredCampaigns.length > 0 && (
+          {!error && filteredCampaigns.length > 0 && (
             <div className="rounded-xl overflow-hidden" style={{ background: T.surface, border: HAIRLINE }}>
               {/* Table header strip */}
               <div
-                className="hidden md:grid grid-cols-[minmax(0,1fr)_140px_120px_140px_40px] items-center gap-4 px-5 py-2.5"
+                className="hidden md:grid grid-cols-[minmax(0,1fr)_140px_110px_150px_40px] items-center gap-4 px-5 py-2.5"
                 style={{ borderBottom: HAIRLINE_SOFT }}
               >
                 <span className="text-[11px]" style={{ color: T.textFaint }}>Campaign</span>
                 <span className="text-[11px]" style={{ color: T.textFaint }}>Status</span>
                 <span className="text-[11px] text-right" style={{ color: T.textFaint }}>Updated</span>
-                <span className="text-[11px] text-right" style={{ color: T.textFaint }}>Id</span>
+                <span className="text-[11px] text-right" style={{ color: T.textFaint }}>Actions</span>
                 <span />
               </div>
 
               {filteredCampaigns.map((campaign, idx) => {
-                const meta = STATUS_META[normalizeStatus(campaign.status)];
-                const isRunning = normalizeStatus(campaign.status) === 'RUNNING';
+                const ui = normalizeStatus(campaign.status);
+                const meta = STATUS_META[ui];
+                const isRunning = ui === 'RUNNING';
+                const isPaused = ui === 'PAUSED';
                 const showDelete = canDelete(campaign.status);
+                const isBusy = busyId === campaign.id;
+                const anyBusy = busyId !== null;
                 return (
                   <div
                     key={campaign.id}
-                    onClick={() => setSelectedCampaign(campaign)}
+                    onClick={() => setSelectedId(campaign.id)}
                     role="button"
                     tabIndex={0}
-                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSelectedCampaign(campaign)}
-                    className="grid grid-cols-[minmax(0,1fr)_40px] md:grid-cols-[minmax(0,1fr)_140px_120px_140px_40px] items-center gap-4 px-5 py-3 cursor-pointer transition-colors duration-[120ms]"
+                    onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSelectedId(campaign.id)}
+                    className="grid grid-cols-[minmax(0,1fr)_40px] md:grid-cols-[minmax(0,1fr)_140px_110px_150px_40px] items-center gap-4 px-5 py-3 cursor-pointer transition-colors duration-[120ms]"
                     style={{ borderTop: idx === 0 ? 'none' : HAIRLINE_SOFT }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = T.surface2)}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
@@ -472,7 +525,7 @@ const UserCampaigns: React.FC = () => {
                         {campaign.campaign_name}
                       </p>
                       <p className="text-[11.5px] truncate mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                        {campaign.subject || '—'}
+                        {campaign.subject || '—'} <span style={{ opacity: 0.6 }}>· #{campaign.id}</span>
                       </p>
                     </div>
 
@@ -490,14 +543,34 @@ const UserCampaigns: React.FC = () => {
                       {relativeTime(campaign.updated_at)}
                     </span>
 
-                    {/* Id + delete */}
-                    <div className="hidden md:flex items-center justify-end gap-2">
-                      <span
-                        className="text-[11px] tabular-nums"
-                        style={{ color: T.textFaint, fontFamily: FONT.mono }}
-                      >
-                        #{campaign.id}
-                      </span>
+                    {/* Actions: pause / resume / delete */}
+                    <div className="hidden md:flex items-center justify-end gap-1.5">
+                      {isRunning && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); changeState(campaign, 'pause'); }}
+                          disabled={anyBusy}
+                          title="Pause campaign"
+                          aria-label={`Pause ${campaign.campaign_name}`}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11.5px] font-medium transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ background: 'rgba(224,166,74,0.10)', color: T.warn, border: '1px solid rgba(224,166,74,0.28)' }}
+                        >
+                          {isBusy ? <Loader2 size={12} className="animate-spin" /> : <Pause size={12} />}
+                          {isBusy ? 'Pausing' : 'Pause'}
+                        </button>
+                      )}
+                      {isPaused && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); changeState(campaign, 'resume'); }}
+                          disabled={anyBusy}
+                          title="Resume campaign"
+                          aria-label={`Resume ${campaign.campaign_name}`}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11.5px] font-medium transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ background: T.accent, color: T.accentInk, border: `1px solid ${T.accent}` }}
+                        >
+                          {isBusy ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
+                          {isBusy ? 'Resuming' : 'Resume'}
+                        </button>
+                      )}
                       {showDelete && (
                         <button
                           onClick={(e) => {
@@ -505,9 +578,10 @@ const UserCampaigns: React.FC = () => {
                             setDeleteError(null);
                             setCampaignToDelete(campaign);
                           }}
+                          disabled={isBusy}
                           title="Delete campaign"
                           aria-label={`Delete ${campaign.campaign_name}`}
-                          className="p-1.5 rounded-md transition-colors duration-[120ms]"
+                          className="p-1.5 rounded-md transition-colors duration-[120ms] disabled:opacity-40"
                           style={{ color: T.textFaint }}
                           onMouseEnter={(e) => { e.currentTarget.style.color = T.danger; e.currentTarget.style.background = T.surfaceHi; }}
                           onMouseLeave={(e) => { e.currentTarget.style.color = T.textFaint; e.currentTarget.style.background = 'transparent'; }}
@@ -553,8 +627,12 @@ const UserCampaigns: React.FC = () => {
 
       {selectedCampaign && (
         <CampaignModal
-          campaign={selectedCampaign}
-          onClose={() => setSelectedCampaign(null)}
+          campaign={selectedCampaign as any}
+          busy={busyId === selectedCampaign.id}
+          actionError={actionError}
+          onPause={() => changeState(selectedCampaign, 'pause')}
+          onResume={() => changeState(selectedCampaign, 'resume')}
+          onClose={() => setSelectedId(null)}
         />
       )}
 

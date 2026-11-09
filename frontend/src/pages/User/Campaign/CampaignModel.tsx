@@ -5,7 +5,7 @@ import type { Campaign } from '../../../types/CampaignTypes';
 import {
   X, FileText, Mail, Send, XCircle, Clock, User as UserIcon,
   FileSpreadsheet, Eye, Users, LayoutTemplate, CheckCircle2, AlertTriangle,
-  ExternalLink,
+  ExternalLink, Pause, Play, Loader2,
 } from 'lucide-react';
 
 /* ─────────────── design tokens (indigo + mint theme) ─────────────── */
@@ -80,6 +80,12 @@ type Tab = 'overview' | 'template';
 interface CampaignModalProps {
   campaign: Campaign;
   onClose: () => void;
+  /** Pause / resume handlers live in the parent page (it owns the list + refetch). */
+  onPause?: () => void;
+  onResume?: () => void;
+  /** True while a pause/resume request for THIS campaign is in flight. */
+  busy?: boolean;
+  actionError?: string | null;
 }
 
 const formatDate = (iso: string) =>
@@ -133,10 +139,15 @@ const StatCard: React.FC<{
 
 /* ─────────────── component ─────────────── */
 
-const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
+const CampaignModal: React.FC<CampaignModalProps> = ({
+  campaign, onClose, onPause, onResume, busy = false, actionError = null,
+}) => {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('overview');
   const statusStyle = CAMPAIGN_STATUS_STYLES[campaign.status];
+
+  const isRunning = campaign.status === 'Running';
+  const isPaused = campaign.status === 'Paused';
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -390,20 +401,58 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, onClose }) => {
           )}
         </div>
 
+        {/* Action error */}
+        {actionError && (
+          <div className="px-4 md:px-5 pb-3">
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-lg px-3.5 py-2.5"
+              style={{ background: T.dangerSoft, border: `1px solid ${T.dangerBorder}` }}
+            >
+              <AlertTriangle size={13} style={{ color: T.danger }} className="mt-0.5 shrink-0" />
+              <p className="text-[12px] leading-5" style={{ color: T.danger }}>{actionError}</p>
+            </div>
+          </div>
+        )}
+
         {/* Footer */}
         <div className="flex items-center justify-between gap-2 p-3.5 md:p-4" style={{ borderTop: HAIRLINE_SOFT }}>
           <p className="text-[10.5px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
             Campaign #{campaign.id}
           </p>
-          <button
-            onClick={onClose}
-            className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms]"
-            style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
-          >
-            Close
-          </button>
+          <div className="flex items-center gap-2">
+            {isRunning && onPause && (
+              <button
+                onClick={onPause}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: T.warnSoft, color: T.warn, border: `1px solid ${T.warnBorder}` }}
+              >
+                {busy ? <Loader2 size={12} className="animate-spin" /> : <Pause size={12} />}
+                {busy ? 'Pausing…' : 'Pause'}
+              </button>
+            )}
+            {isPaused && onResume && (
+              <button
+                onClick={onResume}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: T.accent, color: T.accentInk, border: `1px solid ${T.accent}` }}
+              >
+                {busy ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}
+                {busy ? 'Resuming…' : 'Resume'}
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms]"
+              style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>
