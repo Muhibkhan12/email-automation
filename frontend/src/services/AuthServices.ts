@@ -30,3 +30,13 @@ export const logoutUser = async() => {
   localStorage.removeItem("access_token")
   await api.post('/auth/logout');
 }
+
+export const SendOTP = async (email: string) => {
+  const res = await api.post("/auth/send-otp", { email });
+  return res.data;
+};
+
+export const VerifyOTP = async (payload: { email: string; otp: string }) => {
+  const res = await api.post("/auth/verify-otp", payload);
+  return res.data;
+};

@@ -106,7 +106,7 @@ const StartCampaignModal: React.FC<Props> = ({ onClose, onSubmit }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4"
+      className="fixed inset-0 z-60 flex items-end sm:items-center justify-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="start-campaign-title"
@@ -168,7 +168,7 @@ const StartCampaignModal: React.FC<Props> = ({ onClose, onSubmit }) => {
             onClick={onClose}
             disabled={busy}
             aria-label="Close"
-            className="p-1.5 rounded-md transition-colors duration-[120ms] disabled:opacity-40"
+            className="p-1.5 rounded-md transition-colors duration-120 disabled:opacity-40"
             style={{ color: T.textMuted, background: T.surface2, border: HAIRLINE_SOFT }}
             onMouseEnter={(e) => { if (!busy) { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi; } }}
             onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = T.surface2; }}
@@ -228,7 +228,7 @@ const StartCampaignModal: React.FC<Props> = ({ onClose, onSubmit }) => {
           <button
             onClick={onClose}
             disabled={busy}
-            className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms] disabled:opacity-40"
+            className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-120 disabled:opacity-40"
             style={{ color: T.textMuted, border: "1px solid transparent" }}
             onMouseEnter={(e) => { if (!busy) { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi; } }}
             onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}

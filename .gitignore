@@ -3,6 +3,12 @@
 backend/node_modules/
 frontend/node_modules/
 
+
+backend/token_cache.bin
+backend/celerybeat-schedule*
+
+
+
 # Ignore env files in both folders
 **/.env
 **/.env.local

@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
-from schema.user import (RegisterSchema, LoginSchema, ForgetSchema, UpdateUser)
+from schema.user import (RegisterSchema, LoginSchema, ForgetSchema, SendOTPSchema, UpdateUser, VerifyOTPSchema)
 from database import get_db
 from models.user import User
-from services.auth import oauth2_scheme, refresh_access_token
-from services.user import (userByIdWithSenAcc,getAllUserWithSenderAccounts,LoginUser, RegisterUser, ForgetPassword, GetCurrentUser, updateUser, deleteUser, getUserById, getAllUsers)
+from services.auth import refresh_access_token
+from services.user import (SendOTP, VerifyOTP, userByIdWithSenAcc,getAllUserWithSenderAccounts,LoginUser, RegisterUser, ForgetPassword, GetCurrentUser, updateUser, deleteUser, getUserById, getAllUsers)
 
 router = APIRouter(
     prefix="/auth",
@@ -88,3 +88,11 @@ def get_send_acc_with_user_id(user_id : int, db : Session = Depends(get_db)):
 @router.delete("/users/{user_id}")
 def delete_user(user_id : int, db : Session = Depends(get_db) ):
     return deleteUser(db, user_id)
+
+@router.post("/send-otp")
+def send_otp(body: SendOTPSchema, db: Session = Depends(get_db)):
+    return SendOTP(db, body.email)
+
+@router.post("/verify-otp")
+def verify_otp(body: VerifyOTPSchema, db: Session = Depends(get_db)):
+    return VerifyOTP(db, body.email, body.otp)

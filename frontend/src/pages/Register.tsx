@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
@@ -6,47 +6,59 @@ import * as z from "zod";
 import {
   Mail, Lock, User as UserIcon, Eye, EyeOff, ArrowRight, Loader2,
   Flame, Check, AlertTriangle, CheckCircle2, Sparkles, ShieldCheck,
-  AlertCircle, Info,
+  AlertCircle, Info, ArrowLeft, KeyRound,
 } from "lucide-react";
+import { AuthContext } from "../contexts/AuthContext";
 import { UserRegister } from "../services/AuthServices";
 
-/* ─────────────── design tokens ─────────────── */
+/* ─────────────── design tokens (indigo + mint theme) ─────────────── */
 
 const T = {
-  bg:          "#0A0B10",
-  panel:       "#0D0F15",
-  panelTop:    "#101219",
-  surface:     "#111319",
-  surface2:    "#161922",
-  surfaceHi:   "#1B1F2A",
-  border:      "#232838",
-  borderSoft:  "#1B1F2A",
-  text:        "#E9EBF0",
-  textMuted:   "#9CA3B4",
-  textFaint:   "#6B7280",
+  bg:          "#0B0C0E",
+  panel:       "#0E0F11",
+  panelTop:    "#111214",
+  surface:     "#111214",
+  surface2:    "#16181B",
+  surfaceHi:   "#1C1F23",
+  border:      "#24282E",
+  borderSoft:  "#1B1E22",
+  text:        "#E8EAED",
+  textMuted:   "#9AA0A6",
+  textFaint:   "#6B7075",
+
   brand:       "#6366F1",
   brandSoft:   "rgba(99,102,241,0.12)",
   brandBorder: "rgba(99,102,241,0.35)",
+  brandInk:    "#ffffff",
+
+  accent:      "#6EE7A8",
+  accentInk:   "#0B0C0E",
+  accentLine:  "#2E6B4D",
+
   violet:      "#8B5CF6",
-  success:     "#22C55E",
-  successSoft: "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:        "#F59E0B",
-  warnSoft:    "rgba(245,158,11,0.12)",
-  warnBorder:  "rgba(245,158,11,0.35)",
-  danger:      "#EF4444",
-  dangerSoft:  "rgba(239,68,68,0.12)",
-  dangerBorder:"rgba(239,68,68,0.35)",
-  info:        "#38BDF8",
-}
+
+  success:     "#6EE7A8",
+  successSoft: "rgba(110,231,168,0.10)",
+  successBorder:"rgba(110,231,168,0.28)",
+
+  warn:        "#E0A64A",
+  warnSoft:    "rgba(224,166,74,0.10)",
+  warnBorder:  "rgba(224,166,74,0.28)",
+
+  danger:      "#E06A6A",
+  dangerSoft:  "rgba(224,106,106,0.10)",
+  dangerBorder:"rgba(224,106,106,0.28)",
+
+  info:        "#6EC1E7",
+};
 
 const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
-}
+  ui:   "'Inter', system-ui, -apple-system, sans-serif",
+  mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+};
 
-const RING = `inset 0 0 0 1px ${T.border}`
+const HAIRLINE = `1px solid ${T.border}`;
+const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`;
 
 const STAGES = ["Queued", "Sending", "Delivered"] as const;
 
@@ -56,7 +68,7 @@ const PASSWORD_RULES = [
   { label: "1 uppercase letter", test: (v: string) => /[A-Z]/.test(v) },
 ];
 
-/* ─────────────── zod schema ─────────────── */
+/* ─────────────── zod schemas ─────────────── */
 
 const registerSchema = z
   .object({
@@ -79,19 +91,35 @@ const registerSchema = z
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
-interface RegisterUser { username: string; email: string; password: string; }
+const otpSchema = z.object({
+  otp: z.string().regex(/^\d{6}$/, "Enter the 6-digit code."),
+});
+type OtpFormValues = z.infer<typeof otpSchema>;
+
+interface RegisterPayload { username: string; email: string; password: string; }
 interface RegisterResponse { message?: string; [key: string]: unknown; }
 
 const STRENGTH_TIERS = [
-  { label: "Weak",   color: T.danger,  },
-  { label: "Fair",   color: T.warn,    },
-  { label: "Good",   color: T.brand,   },
-  { label: "Strong", color: T.success, },
+  { label: "Weak",   color: T.danger  },
+  { label: "Fair",   color: T.warn    },
+  { label: "Good",   color: T.brand   },
+  { label: "Strong", color: T.success },
 ] as const;
 
 /* ─────────────── page ─────────────── */
 
 const Register = () => {
+  const navigate = useNavigate();
+
+  const auth = useContext(AuthContext);
+  if (!auth) throw new Error("Register must be used inside AuthProvider");
+  const { sendOTP, verifyOTP } = auth;
+
+  const [step, setStep] = useState<"form" | "otp">("form");
+  const [registeredEmail, setRegisteredEmail] = useState("");
+  const [resending, setResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
   const {
     register,
     handleSubmit,
@@ -105,6 +133,12 @@ const Register = () => {
       agreed: false as unknown as true,
     },
   });
+
+  const {
+    register: registerOtp,
+    handleSubmit: handleOtpSubmit,
+    formState: { errors: otpErrors, isSubmitting: isOtpSubmitting },
+  } = useForm<OtpFormValues>({ resolver: zodResolver(otpSchema) });
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -131,41 +165,95 @@ const Register = () => {
     return () => clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setInterval(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearInterval(t);
+  }, [resendCooldown]);
+
   const onCapsCheck = (e: React.KeyboardEvent<HTMLInputElement>) => {
     setCapsOn(e.getModifierState && e.getModifierState("CapsLock"));
   };
-  const navigate = useNavigate();
 
-  const onSubmit = async (values: RegisterFormValues) => {
+  // ─── Step 1: register (backend sends OTP) ───
+  const onSubmitForm = async (values: RegisterFormValues) => {
     setError(null);
     setSuccessMessage(null);
     setLoading(true);
     try {
-      const payload: RegisterUser = {
+      const payload: RegisterPayload = {
         username: values.name,
         email: values.email,
         password: values.password,
       };
+
       const res = (await UserRegister(payload)) as RegisterResponse;
       console.log("Register response:", res);
-      setSuccessMessage(res?.message ?? "Account created successfully.");
-      setTimeout(() => navigate("/", { replace: true }), 1500);
+
+      setRegisteredEmail(values.email);
+      setStep("otp");
+      setResendCooldown(30);
     } catch (err: any) {
       const backendMessage =
-        err?.response?.data?.message || err?.message || "Something went wrong. Try again.";
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Something went wrong. Try again.";
       setError(backendMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  // ─── Step 2: verify via context ───
+  const onVerifyOtp = async (values: OtpFormValues) => {
+    setError(null);
+    setSuccessMessage(null);
+    setLoading(true);
+    try {
+      await verifyOTP(registeredEmail, values.otp);
+      setSuccessMessage("Email verified. Redirecting to sign in…");
+      setTimeout(() => navigate("/", { replace: true }), 1400);
+    } catch (err: any) {
+      const backendMessage =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Invalid or expired code.";
+      setError(backendMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── Resend via context ───
+  const handleResend = async () => {
+    if (resendCooldown > 0 || resending) return;
+    setResending(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await sendOTP(registeredEmail);
+      setSuccessMessage("A new code has been sent.");
+      setResendCooldown(30);
+    } catch (err: any) {
+      setError(
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        "Could not resend code. Try again.",
+      );
+    } finally {
+      setResending(false);
+    }
+  };
+
   return (
     <div
       className="min-h-screen w-full flex"
-      style={{ background: T.bg, color: T.text, fontFamily: FONT.body }}
+      style={{ background: T.bg, color: T.text, fontFamily: FONT.ui }}
     >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
         @keyframes travel {
           0% { left: 0%; opacity: 0; }
@@ -185,17 +273,22 @@ const Register = () => {
         }
         .shake { animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
 
+        @keyframes fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .fade-up { animation: fade-up 0.18s ease-out; }
+
+        :focus-visible { outline: 2px solid ${T.accentLine}; outline-offset: 2px; border-radius: 4px; }
+
         @media (prefers-reduced-motion: reduce) {
-          .packet, .packet-2, .packet-3, .shake { animation: none !important; }
+          .packet, .packet-2, .packet-3, .shake, .fade-up { animation: none !important; }
         }
       `}</style>
 
-      {/* ── Brand panel ─────────────────────── */}
+      {/* ── Brand panel (left) ─────────────────────── */}
       <aside
-        className="hidden lg:flex lg:w-[44%] flex-col justify-between p-10 xl:p-12 relative overflow-hidden"
+        className="hidden lg:flex lg:w-[46%] flex-col justify-between p-10 xl:p-12 relative overflow-hidden order-1"
         style={{
-          background: `linear-gradient(180deg, ${T.panelTop} 0%, ${T.panel} 100%)`,
-          borderRight: `1px solid ${T.borderSoft}`,
+          background: `linear-gradient(160deg, ${T.panelTop} 0%, ${T.panel} 100%)`,
+          borderRight: HAIRLINE_SOFT,
         }}
       >
         <div
@@ -204,16 +297,16 @@ const Register = () => {
           style={{
             background:
               "radial-gradient(700px 260px at 20% 0%, rgba(99,102,241,0.14), transparent 65%)," +
-              "radial-gradient(500px 220px at 90% 100%, rgba(139,92,246,0.08), transparent 65%)",
+              "radial-gradient(500px 220px at 90% 100%, rgba(110,231,168,0.06), transparent 65%)",
           }}
         />
 
         <div className="relative flex items-center gap-2.5">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
             style={{
               background: `linear-gradient(135deg, ${T.brand}, ${T.violet})`,
-              boxShadow: "0 4px 12px -4px rgba(99,102,241,0.6)",
+              boxShadow: "0 4px 14px -4px rgba(99,102,241,0.6)",
             }}
           >
             <Flame className="w-4 h-4 text-white" strokeWidth={2.4} />
@@ -226,11 +319,11 @@ const Register = () => {
         <div className="relative space-y-8">
           <div>
             <span
-              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium mb-4"
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-medium mb-4"
               style={{
                 background: T.brandSoft,
                 color: T.brand,
-                boxShadow: `inset 0 0 0 1px ${T.brandBorder}`,
+                border: `1px solid ${T.brandBorder}`,
               }}
             >
               <Sparkles size={10} /> Set up in under a minute
@@ -244,9 +337,22 @@ const Register = () => {
             </p>
           </div>
 
-          <div className="rounded-xl p-4" style={{ background: T.surface, boxShadow: RING, maxWidth: 400 }}>
+          <div
+            className="rounded-2xl p-4 relative overflow-hidden"
+            style={{
+              background: T.surface,
+              border: HAIRLINE,
+              maxWidth: 420,
+              boxShadow: "0 12px 32px -16px rgba(0,0,0,0.6)",
+            }}
+          >
+            <span
+              aria-hidden
+              className="absolute left-0 top-0 bottom-0 w-[2px]"
+              style={{ background: T.brand, opacity: 0.6 }}
+            />
             <div className="flex items-center gap-2 mb-3.5">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.success }} />
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.accent }} />
               <span className="text-[10.5px]" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
                 mailforge · live pipeline
               </span>
@@ -267,7 +373,7 @@ const Register = () => {
                 <div key={stage} className="flex flex-col items-center gap-1.5">
                   <span
                     className="w-1.5 h-1.5 rounded-full"
-                    style={{ background: i === 2 ? T.success : T.brand }}
+                    style={{ background: i === 2 ? T.accent : T.brand }}
                   />
                   <span className="text-[10px] uppercase tracking-wider" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                     {stage}
@@ -276,7 +382,7 @@ const Register = () => {
               ))}
             </div>
 
-            <p className="text-[11px] mt-4 pt-3" style={{ color: T.textMuted, fontFamily: FONT.mono, borderTop: `1px solid ${T.borderSoft}` }}>
+            <p className="text-[11px] mt-4 pt-3" style={{ color: T.textMuted, fontFamily: FONT.mono, borderTop: HAIRLINE_SOFT }}>
               <span style={{ color: T.text }}>{delivered.toLocaleString()}</span> delivered today
             </p>
           </div>
@@ -287,12 +393,21 @@ const Register = () => {
         </p>
       </aside>
 
-      {/* ── Form panel ──────────────────────── */}
-      <main className="flex-1 flex items-center justify-center px-5 md:px-8 py-10">
-        <div className="w-full max-w-[420px]">
+      {/* ── Form panel (right) ──────────────────────── */}
+      <main className="flex-1 flex items-center justify-center px-5 md:px-8 py-10 order-2 relative overflow-hidden">
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(600px 300px at 50% 30%, rgba(99,102,241,0.06), transparent 60%)",
+          }}
+        />
+
+        <div className="w-full max-w-[440px] relative">
           <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center"
+              className="w-9 h-9 rounded-xl flex items-center justify-center"
               style={{ background: `linear-gradient(135deg, ${T.brand}, ${T.violet})` }}
             >
               <Flame className="w-4 h-4 text-white" strokeWidth={2.4} />
@@ -302,270 +417,355 @@ const Register = () => {
             </span>
           </div>
 
-          <div className="rounded-xl p-5 md:p-6" style={{ background: T.surface, boxShadow: RING }}>
-            <div className="mb-5">
-              <div
-                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium mb-3"
-                style={{
-                  background: T.brandSoft,
-                  color: T.brand,
-                  boxShadow: `inset 0 0 0 1px ${T.brandBorder}`,
-                }}
-              >
-                <ShieldCheck size={10} /> Free · no card required
-              </div>
-              <h2 className="text-[20px] md:text-[22px] font-semibold tracking-tight" style={{ color: T.text }}>
-                Create your account
-              </h2>
-              <p className="mt-1 text-[12.5px]" style={{ color: T.textMuted }}>
-                Takes about a minute.
-              </p>
-            </div>
+          <div
+            className="rounded-2xl p-6 md:p-7 relative overflow-hidden"
+            style={{
+              background: T.surface,
+              border: HAIRLINE,
+              boxShadow: "0 16px 48px -24px rgba(0,0,0,0.7)",
+            }}
+          >
+            <div
+              aria-hidden
+              className="absolute inset-x-0 top-0 h-px pointer-events-none"
+              style={{ background: `linear-gradient(90deg, transparent, ${T.brand}, transparent)`, opacity: 0.5 }}
+            />
 
-            {successMessage && (
-              <div
-                role="status"
-                className="mb-4 flex items-start gap-2 rounded-md px-3 py-2.5"
-                style={{ background: T.successSoft, boxShadow: `inset 0 0 0 1px ${T.successBorder}` }}
-              >
-                <CheckCircle2 size={13} className="shrink-0 mt-0.5" style={{ color: T.success }} />
-                <p className="text-[12px] leading-relaxed" style={{ color: T.success }}>{successMessage}</p>
-              </div>
+            {step === "form" && (
+              <>
+                <div className="mb-6">
+                  <h2 className="text-[22px] md:text-[24px] font-semibold tracking-tight" style={{ color: T.text }}>
+                    Create your account
+                  </h2>
+                  <p className="mt-1 text-[12.5px]" style={{ color: T.textMuted }}>
+                    We'll send a 6-digit code to verify your email.
+                  </p>
+                </div>
+
+                <form onSubmit={handleSubmit(onSubmitForm)} noValidate className="space-y-3.5">
+                  <Field label="Full name" htmlFor="name" error={errors.name?.message}>
+                    <InputShell icon={UserIcon} invalid={!!errors.name}>
+                      <input
+                        id="name"
+                        type="text"
+                        autoComplete="name"
+                        name="name"
+                        placeholder="Jane Cooper"
+                        aria-invalid={!!errors.name}
+                        {...register("name")}
+                        className="w-full bg-transparent text-[13px] outline-none"
+                        style={{ color: T.text }}
+                      />
+                    </InputShell>
+                  </Field>
+
+                  <Field label="Email" htmlFor="email" error={errors.email?.message}>
+                    <InputShell icon={Mail} invalid={!!errors.email}>
+                      <input
+                        id="email"
+                        type="email"
+                        inputMode="email"
+                        autoComplete="email"
+                        name="email"
+                        placeholder="you@company.com"
+                        aria-invalid={!!errors.email}
+                        {...register("email")}
+                        className="w-full bg-transparent text-[13px] outline-none"
+                        style={{ color: T.text }}
+                      />
+                    </InputShell>
+                  </Field>
+
+                  <Field label="Password" htmlFor="password" error={errors.password?.message}>
+                    <InputShell icon={Lock} invalid={!!errors.password}>
+                      <input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        autoComplete="new-password"
+                        name="password"
+                        placeholder="••••••••"
+                        aria-invalid={!!errors.password}
+                        onKeyUp={onCapsCheck}
+                        onKeyDown={onCapsCheck}
+                        {...register("password")}
+                        className="w-full bg-transparent text-[13px] outline-none"
+                        style={{ color: T.text }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((s) => !s)}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        className="shrink-0"
+                        style={{ color: T.textFaint }}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </InputShell>
+
+                    {capsOn && (
+                      <p className="mt-2 inline-flex items-center gap-1.5 text-[11px]" style={{ color: T.warn }}>
+                        <Info size={11} /> Caps Lock is on
+                      </p>
+                    )}
+
+                    {password.length > 0 && (
+                      <div className="mt-2 space-y-1.5">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
+                            <div
+                              className="h-full rounded-full transition-all duration-300"
+                              style={{ width: `${strengthPct}%`, background: strength.color }}
+                            />
+                          </div>
+                          <span
+                            className="text-[10.5px] font-medium shrink-0"
+                            style={{ color: strength.color, fontFamily: FONT.mono }}
+                          >
+                            {strength.label}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-x-4 gap-y-1">
+                          {PASSWORD_RULES.map((rule) => {
+                            const passed = rule.test(password);
+                            return (
+                              <span
+                                key={rule.label}
+                                className="inline-flex items-center gap-1.5 text-[10.5px]"
+                                style={{ color: passed ? T.success : T.textFaint, fontFamily: FONT.mono }}
+                              >
+                                <span
+                                  className="w-3 h-3 rounded-full flex items-center justify-center"
+                                  style={{
+                                    background: passed ? T.successSoft : T.surface2,
+                                    border: `1px solid ${passed ? T.successBorder : T.borderSoft}`,
+                                  }}
+                                >
+                                  {passed ? (
+                                    <Check size={7} strokeWidth={3} style={{ color: T.success }} />
+                                  ) : (
+                                    <span className="w-0.5 h-0.5 rounded-full" style={{ background: T.textFaint }} />
+                                  )}
+                                </span>
+                                {rule.label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </Field>
+
+                  <Field label="Confirm password" htmlFor="confirmPassword" error={errors.confirmPassword?.message}>
+                    <InputShell
+                      icon={Lock}
+                      invalid={!!errors.confirmPassword || confirmMismatch}
+                      valid={confirmMatches}
+                    >
+                      <input
+                        id="confirmPassword"
+                        type={showPassword ? "text" : "password"}
+                        autoComplete="new-password"
+                        name="confirmPassword"
+                        placeholder="••••••••"
+                        aria-invalid={!!errors.confirmPassword || confirmMismatch}
+                        {...register("confirmPassword")}
+                        className="w-full bg-transparent text-[13px] outline-none"
+                        style={{ color: T.text }}
+                      />
+                      {confirmMatches && (
+                        <CheckCircle2 size={13} className="shrink-0" style={{ color: T.success }} />
+                      )}
+                    </InputShell>
+
+                    {!errors.confirmPassword && confirmPassword.length > 0 && (
+                      <p className="mt-1.5 text-[11px]" style={{ color: confirmMatches ? T.success : T.warn }}>
+                        {confirmMatches ? "Passwords match" : "Passwords don't match yet"}
+                      </p>
+                    )}
+                  </Field>
+
+                  <div>
+                    <label
+                      className="flex items-start gap-2 cursor-pointer select-none rounded-lg px-2.5 py-2 transition-colors"
+                      style={{
+                        background: errors.agreed ? T.dangerSoft : T.surface2,
+                        border: `1px solid ${errors.agreed ? T.dangerBorder : T.borderSoft}`,
+                      }}
+                    >
+                      <span className="relative shrink-0 mt-0.5">
+                        <input type="checkbox" {...register("agreed")} className="peer sr-only" />
+                        <span
+                          className="w-3.5 h-3.5 rounded flex items-center justify-center"
+                          style={{ background: T.surfaceHi, border: HAIRLINE }}
+                        >
+                          <Check
+                            size={10}
+                            strokeWidth={3}
+                            className="opacity-0 peer-checked:opacity-100"
+                            style={{ color: "#fff" }}
+                          />
+                        </span>
+                        <style>{`
+                          input:checked + span {
+                            background: ${T.brand} !important;
+                            border-color: ${T.brandBorder} !important;
+                          }
+                        `}</style>
+                      </span>
+                      <span className="text-[12px] leading-relaxed" style={{ color: T.textMuted }}>
+                        I agree to the{" "}
+                        <a href="#" className="hover:underline underline-offset-2" style={{ color: T.brand }}>Terms</a>{" "}
+                        and{" "}
+                        <a href="#" className="hover:underline underline-offset-2" style={{ color: T.brand }}>Privacy Policy</a>
+                      </span>
+                    </label>
+                    {errors.agreed && (
+                      <p className="text-[11px] mt-1.5" style={{ color: T.danger }}>
+                        {errors.agreed.message as string}
+                      </p>
+                    )}
+                  </div>
+
+                  {error && (
+                    <div
+                      role="alert"
+                      className="flex items-start gap-2 rounded-lg px-3 py-2.5 shake"
+                      style={{ background: T.dangerSoft, border: `1px solid ${T.dangerBorder}` }}
+                    >
+                      <AlertTriangle size={13} className="shrink-0 mt-0.5" style={{ color: T.danger }} />
+                      <p className="text-[12px] leading-relaxed" style={{ color: T.danger }}>{error}</p>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading || isSubmitting}
+                    className="group w-full inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-[12.5px] font-semibold transition-all hover:brightness-110 disabled:opacity-60"
+                    style={{
+                      background: T.accent,
+                      color: T.accentInk,
+                      boxShadow: "0 8px 24px -8px rgba(110,231,168,0.45)",
+                    }}
+                  >
+                    {loading ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Sending code…</>
+                    ) : (
+                      <>Create account & send code <ArrowRight size={13} /></>
+                    )}
+                  </button>
+                </form>
+              </>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-3.5">
-              <Field label="Full name" htmlFor="name" error={errors.name?.message}>
-                <InputShell icon={UserIcon} invalid={!!errors.name}>
-                  <input
-                    id="name"
-                    type="text"
-                    autoComplete="name"
-                    name="name"
-                    placeholder="Jane Cooper"
-                    aria-invalid={!!errors.name}
-                    aria-describedby={errors.name ? "name-error" : undefined}
-                    {...register("name")}
-                    className="w-full bg-transparent text-[13px] outline-none"
-                    style={{ color: T.text }}
-                  />
-                </InputShell>
-              </Field>
+            {step === "otp" && (
+              <div className="fade-up">
+                <button
+                  onClick={() => { setStep("form"); setError(null); setSuccessMessage(null); }}
+                  className="mb-4 inline-flex items-center gap-1 text-[12px] font-medium"
+                  style={{ color: T.textMuted }}
+                >
+                  <ArrowLeft size={12} /> Back to edit
+                </button>
 
-              <Field label="Email" htmlFor="email" error={errors.email?.message}>
-                <InputShell icon={Mail} invalid={!!errors.email}>
-                  <input
-                    id="email"
-                    type="email"
-                    inputMode="email"
-                    autoComplete="email"
-                    name="email"
-                    placeholder="you@company.com"
-                    aria-invalid={!!errors.email}
-                    aria-describedby={errors.email ? "email-error" : undefined}
-                    {...register("email")}
-                    className="w-full bg-transparent text-[13px] outline-none"
-                    style={{ color: T.text }}
-                  />
-                </InputShell>
-              </Field>
-
-              <Field label="Password" htmlFor="password" error={errors.password?.message}>
-                <InputShell icon={Lock} invalid={!!errors.password}>
-                  <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="new-password"
-                    name="password"
-                    placeholder="••••••••"
-                    aria-invalid={!!errors.password}
-                    aria-describedby={errors.password ? "password-error" : "password-rules"}
-                    onKeyUp={onCapsCheck}
-                    onKeyDown={onCapsCheck}
-                    {...register("password")}
-                    className="w-full bg-transparent text-[13px] outline-none"
-                    style={{ color: T.text }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((s) => !s)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    aria-pressed={showPassword}
-                    className="shrink-0 transition-colors hover:text-white"
-                    style={{ color: T.textFaint }}
+                <div className="mb-6">
+                  <div
+                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-medium mb-3"
+                    style={{
+                      background: T.brandSoft,
+                      color: T.brand,
+                      border: `1px solid ${T.brandBorder}`,
+                    }}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </InputShell>
-
-                {capsOn && (
-                  <p className="mt-2 inline-flex items-center gap-1.5 text-[11px]" style={{ color: T.warn }}>
-                    <Info size={11} /> Caps Lock is on
+                    <ShieldCheck size={10} /> Verify your email
+                  </div>
+                  <h2 className="text-[22px] md:text-[24px] font-semibold tracking-tight" style={{ color: T.text }}>
+                    Enter your code
+                  </h2>
+                  <p className="mt-1 text-[12.5px]" style={{ color: T.textMuted }}>
+                    We sent a 6-digit code to{" "}
+                    <span style={{ color: T.text, fontWeight: 500 }}>{registeredEmail}</span>
                   </p>
-                )}
+                </div>
 
-                {password.length > 0 && (
-                  <div id="password-rules" className="mt-2 space-y-1.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
-                        <div
-                          className="h-full rounded-full transition-all duration-300"
-                          style={{ width: `${strengthPct}%`, background: strength.color }}
-                        />
-                      </div>
-                      <span
-                        className="text-[10.5px] font-medium shrink-0"
-                        style={{ color: strength.color, fontFamily: FONT.mono }}
-                      >
-                        {strength.label}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-x-4 gap-y-1">
-                      {PASSWORD_RULES.map((rule) => {
-                        const passed = rule.test(password);
-                        return (
-                          <span
-                            key={rule.label}
-                            className="inline-flex items-center gap-1.5 text-[10.5px] transition-colors"
-                            style={{ color: passed ? T.success : T.textFaint, fontFamily: FONT.mono }}
-                          >
-                            <span
-                              className="w-3 h-3 rounded-full flex items-center justify-center"
-                              style={{
-                                background: passed ? T.successSoft : T.surface2,
-                                boxShadow: `inset 0 0 0 1px ${passed ? T.successBorder : T.borderSoft}`,
-                              }}
-                            >
-                              {passed ? (
-                                <Check size={7} strokeWidth={3} style={{ color: T.success }} />
-                              ) : (
-                                <span className="w-0.5 h-0.5 rounded-full" style={{ background: T.textFaint }} />
-                              )}
-                            </span>
-                            {rule.label}
-                          </span>
-                        );
-                      })}
-                    </div>
+                {successMessage && (
+                  <div
+                    role="status"
+                    className="mb-4 flex items-start gap-2 rounded-lg px-3 py-2.5"
+                    style={{ background: T.successSoft, border: `1px solid ${T.successBorder}` }}
+                  >
+                    <CheckCircle2 size={13} className="shrink-0 mt-0.5" style={{ color: T.success }} />
+                    <p className="text-[12px] leading-relaxed" style={{ color: T.success }}>{successMessage}</p>
                   </div>
                 )}
-              </Field>
 
-              <Field label="Confirm password" htmlFor="confirmPassword" error={errors.confirmPassword?.message}>
-                <InputShell
-                  icon={Lock}
-                  invalid={!!errors.confirmPassword || confirmMismatch}
-                  valid={confirmMatches}
-                >
-                  <input
-                    id="confirmPassword"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="new-password"
-                    name="confirmPassword"
-                    placeholder="••••••••"
-                    aria-invalid={!!errors.confirmPassword || confirmMismatch}
-                    aria-describedby={errors.confirmPassword ? "confirmPassword-error" : undefined}
-                    {...register("confirmPassword")}
-                    className="w-full bg-transparent text-[13px] outline-none"
-                    style={{ color: T.text }}
-                  />
-                  {confirmMatches && (
-                    <CheckCircle2 size={13} className="shrink-0" style={{ color: T.success }} aria-label="Passwords match" />
-                  )}
-                </InputShell>
-
-                {!errors.confirmPassword && confirmPassword.length > 0 && (
-                  <p className="mt-1.5 text-[11px]" style={{ color: confirmMatches ? T.success : T.warn }}>
-                    {confirmMatches ? "Passwords match" : "Passwords don't match yet"}
-                  </p>
-                )}
-              </Field>
-
-              <div>
-                <label
-                  className="flex items-start gap-2 cursor-pointer select-none rounded-md px-2.5 py-2 transition-colors"
-                  style={{
-                    background: errors.agreed ? T.dangerSoft : T.surface2,
-                    boxShadow: `inset 0 0 0 1px ${errors.agreed ? T.dangerBorder : T.borderSoft}`,
-                  }}
-                >
-                  <span className="relative shrink-0 mt-0.5">
-                    <input
-                      type="checkbox"
-                      {...register("agreed")}
-                      aria-invalid={!!errors.agreed}
-                      className="peer sr-only"
-                    />
-                    <span
-                      className="w-3.5 h-3.5 rounded flex items-center justify-center transition-all"
-                      style={{ background: T.surfaceHi, boxShadow: `inset 0 0 0 1px ${T.border}` }}
-                    >
-                      <Check
-                        size={10}
-                        strokeWidth={3}
-                        className="opacity-0 peer-checked:opacity-100 transition-opacity"
-                        style={{ color: "#fff" }}
+                <form onSubmit={handleOtpSubmit(onVerifyOtp)} noValidate className="space-y-4">
+                  <Field label="Verification code" htmlFor="otp" error={otpErrors.otp?.message}>
+                    <InputShell icon={KeyRound} invalid={!!otpErrors.otp}>
+                      <input
+                        id="otp"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        placeholder="••••••"
+                        aria-invalid={!!otpErrors.otp}
+                        {...registerOtp("otp")}
+                        className="w-full bg-transparent text-[18px] tracking-[0.4em] font-medium outline-none"
+                        style={{ color: T.text, fontFamily: FONT.mono }}
                       />
-                    </span>
-                    <style>{`
-                      input:checked + span {
-                        background: ${T.brand} !important;
-                        box-shadow: inset 0 0 0 1px ${T.brandBorder} !important;
-                      }
-                    `}</style>
-                  </span>
-                  <span className="text-[12px] leading-relaxed" style={{ color: T.textMuted }}>
-                    I agree to the{" "}
-                    <a href="#" className="hover:underline underline-offset-2" style={{ color: T.brand }}>Terms of Service</a>{" "}
-                    and{" "}
-                    <a href="#" className="hover:underline underline-offset-2" style={{ color: T.brand }}>Privacy Policy</a>
-                  </span>
-                </label>
-                {errors.agreed && (
-                  <p id="agreed-error" role="alert" className="text-[11px] mt-1.5" style={{ color: T.danger }}>
-                    {errors.agreed.message as string}
+                    </InputShell>
+                  </Field>
+
+                  {error && (
+                    <div
+                      role="alert"
+                      className="flex items-start gap-2 rounded-lg px-3 py-2.5 shake"
+                      style={{ background: T.dangerSoft, border: `1px solid ${T.dangerBorder}` }}
+                    >
+                      <AlertTriangle size={13} className="shrink-0 mt-0.5" style={{ color: T.danger }} />
+                      <p className="text-[12px] leading-relaxed" style={{ color: T.danger }}>{error}</p>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading || isOtpSubmitting}
+                    className="group w-full inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-[12.5px] font-semibold transition-all hover:brightness-110 disabled:opacity-60"
+                    style={{
+                      background: T.accent,
+                      color: T.accentInk,
+                      boxShadow: "0 8px 24px -8px rgba(110,231,168,0.45)",
+                    }}
+                  >
+                    {loading ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Verifying…</>
+                    ) : (
+                      <>Verify & activate <ArrowRight size={13} /></>
+                    )}
+                  </button>
+                </form>
+
+                <div className="mt-4 text-center">
+                  <p className="text-[11.5px]" style={{ color: T.textFaint }}>
+                    Didn't receive it?{" "}
+                    <button
+                      onClick={handleResend}
+                      disabled={resendCooldown > 0 || resending}
+                      className="font-medium disabled:opacity-50"
+                      style={{ color: T.brand }}
+                    >
+                      {resending ? "Sending…" : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
+                    </button>
                   </p>
-                )}
-              </div>
-
-              {error && (
-                <div
-                  role="alert"
-                  className="flex items-start gap-2 rounded-md px-3 py-2.5 shake"
-                  style={{ background: T.dangerSoft, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
-                >
-                  <AlertTriangle size={13} className="shrink-0 mt-0.5" style={{ color: T.danger }} />
-                  <p className="text-[12px] leading-relaxed" style={{ color: T.danger }}>{error}</p>
                 </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading || isSubmitting}
-                className="group w-full inline-flex items-center justify-center gap-2 rounded-md py-2.5 text-[12.5px] font-medium text-white transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:brightness-100"
-                style={{
-                  background: T.brand,
-                  boxShadow: "0 6px 18px -8px rgba(99,102,241,0.7)",
-                }}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Creating account…
-                  </>
-                ) : (
-                  <>
-                    Create account
-                    <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
-                  </>
-                )}
-              </button>
-            </form>
+              </div>
+            )}
           </div>
 
           <p className="text-[12px] mt-5 text-center" style={{ color: T.textMuted }}>
             Already have an account?{" "}
-            <a href="/" className="hover:underline underline-offset-2 font-medium" style={{ color: T.brand }}>
+            <a href="/" className="hover:underline font-medium" style={{ color: T.brand }}>
               Sign in
             </a>
           </p>
@@ -610,21 +810,21 @@ const InputShell: React.FC<{
   children: React.ReactNode;
 }> = ({ icon: Icon, invalid, valid, children }) => {
   const base = invalid
-    ? `inset 0 0 0 1px ${T.dangerBorder}`
+    ? `1px solid ${T.dangerBorder}`
     : valid
-    ? `inset 0 0 0 1px ${T.successBorder}`
-    : `inset 0 0 0 1px ${T.borderSoft}`;
+    ? `1px solid ${T.successBorder}`
+    : `1px solid ${T.borderSoft}`;
 
   const focus = invalid
-    ? `inset 0 0 0 1px ${T.danger}, 0 0 0 3px ${T.dangerSoft}`
-    : `inset 0 0 0 1px ${T.brand}, 0 0 0 3px ${T.brandSoft}`;
+    ? `1px solid ${T.danger}, 0 0 0 3px ${T.dangerSoft}`
+    : `1px solid ${T.brand}, 0 0 0 3px ${T.brandSoft}`;
 
   return (
     <div
-      className="flex items-center gap-2 rounded-md px-2.5 py-2 transition-shadow"
-      style={{ background: T.surface2, boxShadow: base }}
-      onFocusCapture={(e) => (e.currentTarget.style.boxShadow = focus)}
-      onBlurCapture={(e) => (e.currentTarget.style.boxShadow = base)}
+      className="flex items-center gap-2 rounded-lg px-3 py-2.5 transition-colors duration-[120ms]"
+      style={{ background: T.surface2, border: base }}
+      onFocusCapture={(e) => (e.currentTarget.style.border = focus)}
+      onBlurCapture={(e) => (e.currentTarget.style.border = base)}
     >
       <Icon size={13} className="shrink-0" style={{ color: invalid ? T.danger : T.textFaint }} />
       {children}

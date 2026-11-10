@@ -34,3 +34,10 @@ class UpdateUser(BaseModel):
     username : str | None = None
     email: EmailStr | None = None
     role : UserRole | None = None
+
+class SendOTPSchema(BaseModel):
+    email: EmailStr
+
+class VerifyOTPSchema(BaseModel):
+    email: EmailStr
+    otp: str

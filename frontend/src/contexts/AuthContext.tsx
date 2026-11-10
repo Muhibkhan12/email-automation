@@ -1,3 +1,4 @@
+// src/contexts/AuthContext.tsx
 import {
   createContext,
   useEffect,
@@ -9,6 +10,8 @@ import {
   getProfile,
   loginUser,
   logoutUser,
+  SendOTP,
+  VerifyOTP,
 } from "../services/AuthServices";
 
 import type {
@@ -22,8 +25,10 @@ type AuthContextType = {
   loading: boolean;
 
   login: (data: UserLogin) => Promise<User>;
-
   logout: () => Promise<void>;
+
+  sendOTP: (email: string) => Promise<{ message?: string }>;
+  verifyOTP: (email: string, otp: string) => Promise<{ message?: string }>;
 };
 
 type AuthProviderProps = {
@@ -65,7 +70,6 @@ export const AuthProvider = ({
       }
     };
 
-
     checkAuth();
 
   }, []);
@@ -76,13 +80,7 @@ export const AuthProvider = ({
   // --------------------------------
 
   const login = async (data: UserLogin): Promise<User> => {
-
     const response = await loginUser(data);
-
-    // IMPORTANT:
-    // loginUser already stores the access token
-    // Now we also update AuthContext immediately.
-
     setUser(response.user);
     return response.user;
   };
@@ -93,19 +91,30 @@ export const AuthProvider = ({
   // --------------------------------
 
   const logout = async () => {
-
     try {
-
       await logoutUser();
-
     }
-
     finally {
-
       setUser(null);
-
     }
+  };
 
+
+  // --------------------------------
+  // OTP — Resend
+  // --------------------------------
+
+  const sendOTP = async (email: string) => {
+    return await SendOTP(email);
+  };
+
+
+  // --------------------------------
+  // OTP — Verify
+  // --------------------------------
+
+  const verifyOTP = async (email: string, otp: string) => {
+    return await VerifyOTP({ email, otp });
   };
 
 
@@ -116,6 +125,8 @@ export const AuthProvider = ({
         loading,
         login,
         logout,
+        sendOTP,
+        verifyOTP,
       }}
     >
       {children}
