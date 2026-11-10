@@ -58,7 +58,7 @@ const STATUS_STYLES: Record<
 
 /* ─────────────── helpers (unchanged) ─────────────── */
 
-const DELETABLE: Array<Campaign['status']> = ['Paused', 'Completed'];
+const DELETABLE: Array<Campaign['status']> = ['Paused', 'Completed', 'Draft'];
 const canDelete = (status: Campaign['status']) => DELETABLE.includes(status);
 
 const relativeTime = (iso: string) => {

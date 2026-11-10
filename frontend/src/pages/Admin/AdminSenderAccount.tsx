@@ -14,45 +14,56 @@ import type {
   UpdateSenderAccountInput,
 } from "../../types/SenderAccount";
 
-/* ─────────────── design tokens ─────────────── */
+/* ─────────────── design tokens (indigo + mint theme) ─────────────── */
 
 const T = {
-  bg:           "#0A0B10",
-  surface:      "#111319",
-  surface2:     "#161922",
-  surfaceHi:    "#1B1F2A",
-  border:       "#232838",
-  borderSoft:   "#1B1F2A",
-  text:         "#E9EBF0",
-  textMuted:    "#9CA3B4",
-  textFaint:    "#6B7280",
+  bg:           "#0B0C0E",
+  surface:      "#111214",
+  surface2:     "#16181B",
+  surfaceHi:    "#1C1F23",
+  border:       "#24282E",
+  borderSoft:   "#1B1E22",
+  text:         "#E8EAED",
+  textMuted:    "#9AA0A6",
+  textFaint:    "#6B7075",
+  
   brand:        "#6366F1",
   brandSoft:    "rgba(99,102,241,0.12)",
   brandBorder:  "rgba(99,102,241,0.35)",
-  success:      "#22C55E",
-  successSoft:  "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:         "#F59E0B",
-  warnSoft:     "rgba(245,158,11,0.12)",
-  warnBorder:   "rgba(245,158,11,0.35)",
-  danger:       "#EF4444",
-  dangerSoft:   "rgba(239,68,68,0.12)",
-  dangerBorder: "rgba(239,68,68,0.35)",
-  info:         "#38BDF8",
-  infoSoft:     "rgba(56,189,248,0.12)",
-  infoBorder:   "rgba(56,189,248,0.35)",
-  purple:       "#A78BFA",
-  purpleSoft:   "rgba(167,139,250,0.12)",
-  purpleBorder: "rgba(167,139,250,0.35)",
+  brandInk:     "#ffffff",
+
+  accent:       "#6EE7A8",
+  accentInk:    "#0B0C0E",
+  accentLine:   "#2E6B4D",
+
+  success:      "#6EE7A8",
+  successSoft:  "rgba(110,231,168,0.10)",
+  successBorder:"rgba(110,231,168,0.28)",
+  
+  warn:         "#E0A64A",
+  warnSoft:     "rgba(224,166,74,0.10)",
+  warnBorder:   "rgba(224,166,74,0.28)",
+  
+  danger:       "#E06A6A",
+  dangerSoft:   "rgba(224,106,106,0.10)",
+  dangerBorder: "rgba(224,106,106,0.28)",
+  
+  info:         "#6EC1E7",
+  infoSoft:     "rgba(110,193,231,0.10)",
+  infoBorder:   "rgba(110,193,231,0.28)",
+  
+  purple:       "#B39DE0",
+  purpleSoft:   "rgba(179,157,224,0.10)",
+  purpleBorder: "rgba(179,157,224,0.28)",
 };
 
 const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
+  ui:   "'Inter', system-ui, -apple-system, sans-serif",
+  mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
 };
 
-const RING = `inset 0 0 0 1px ${T.border}`;
+const HAIRLINE = `1px solid ${T.border}`;
+const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`;
 
 const STATUS_FILTERS = ["All", "Active", "Warning", "Disconnected"] as const;
 const PROVIDER_FILTERS = ["All", "Gmail", "Outlook"] as const;
@@ -87,7 +98,7 @@ const providerMeta = (raw: string) =>
 /* ─────────────── primitives ─────────────── */
 
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => (
-  <div className={`rounded-xl ${className}`} style={{ background: T.surface, boxShadow: RING }}>
+  <div className={`rounded-xl ${className}`} style={{ background: T.surface, border: HAIRLINE }}>
     {children}
   </div>
 );
@@ -118,7 +129,12 @@ const StatCard: React.FC<{
   accent: string;
   accentSoft: string;
 }> = ({ title, value, icon: Icon, accent, accentSoft }) => (
-  <Card className="p-4">
+  <Card className="p-4 relative overflow-hidden">
+    <span
+      aria-hidden
+      className="absolute left-0 top-0 bottom-0 w-[2px]"
+      style={{ background: accent, opacity: 0.6 }}
+    />
     <div className="flex items-start justify-between mb-3">
       <div
         className="w-8 h-8 rounded-md flex items-center justify-center"
@@ -130,7 +146,7 @@ const StatCard: React.FC<{
     <p className="text-[24px] font-semibold leading-none" style={{ color: T.text, fontFamily: FONT.mono }}>
       {value}
     </p>
-    <p className="text-[11.5px] mt-2" style={{ color: T.textMuted }}>{title}</p>
+    <p className="text-[11.5px] mt-2 font-medium" style={{ color: T.textMuted }}>{title}</p>
   </Card>
 );
 
@@ -140,7 +156,7 @@ const StatusPill: React.FC<{ status: string }> = ({ status }) => {
   return (
     <span
       className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
-      style={{ background: meta.bg, color: meta.fg, boxShadow: `inset 0 0 0 1px ${meta.ring}` }}
+      style={{ background: meta.bg, color: meta.fg, border: `1px solid ${meta.ring}` }}
     >
       <Icon size={10} />
       {meta.label}
@@ -153,7 +169,7 @@ const ProviderBadge: React.FC<{ provider: string }> = ({ provider }) => {
   return (
     <span
       className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
-      style={{ background: meta.bg, color: meta.fg, boxShadow: `inset 0 0 0 1px ${meta.ring}`, fontFamily: FONT.mono }}
+      style={{ background: meta.bg, color: meta.fg, border: `1px solid ${meta.ring}`, fontFamily: FONT.mono }}
     >
       <span
         className="w-3.5 h-3.5 rounded flex items-center justify-center text-[8px] font-bold"
@@ -233,16 +249,16 @@ const ConnectModal: React.FC<{
 }> = ({ busyId, error, onClose, onConnect }) => {
   return (
     <div
-      className="fixed inset-0 z-60 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       onClick={() => !busyId && onClose()}
-      style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+      style={{ background: "rgba(11,12,14,0.72)", backdropFilter: "blur(4px)" }}
       role="dialog"
       aria-modal="true"
     >
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-xl rounded-2xl overflow-hidden"
-        style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
+        style={{ background: T.surface, border: HAIRLINE, boxShadow: "0 24px 64px -16px rgba(0,0,0,0.7)" }}
       >
         <div className="flex items-start justify-between gap-3 p-5 border-b" style={{ borderColor: T.borderSoft }}>
           <div className="flex items-start gap-3 min-w-0">
@@ -265,8 +281,8 @@ const ConnectModal: React.FC<{
             onClick={onClose}
             disabled={!!busyId}
             aria-label="Close"
-            className="shrink-0 p-1.5 rounded-md transition-colors hover:bg-white/5 disabled:opacity-50"
-            style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+            className="shrink-0 p-1.5 rounded-md transition-colors disabled:opacity-50"
+            style={{ background: T.surface2, color: T.textMuted, border: HAIRLINE_SOFT }}
           >
             <X size={14} />
           </button>
@@ -276,7 +292,7 @@ const ConnectModal: React.FC<{
           {error && (
             <div
               className="rounded-lg px-3.5 py-2.5 flex items-start gap-2.5 text-[12px]"
-              style={{ background: T.dangerSoft, color: T.danger, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
+              style={{ background: T.dangerSoft, color: T.danger, border: `1px solid ${T.dangerBorder}` }}
             >
               <AlertTriangle size={12} className="mt-0.5 shrink-0" />
               <span>{error}</span>
@@ -293,15 +309,15 @@ const ConnectModal: React.FC<{
                 key={p.id}
                 onClick={() => onConnect(p.id)}
                 disabled={disabled || busy}
-                className="w-full text-left rounded-lg px-3.5 py-3 transition-colors hover:bg-white/3 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                className="w-full text-left rounded-lg px-3.5 py-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
                 style={{
                   background: T.surface2,
-                  boxShadow: `inset 0 0 0 1px ${T.borderSoft}`,
+                  border: HAIRLINE_SOFT,
                 }}
               >
                 <span
                   className="shrink-0 w-9 h-9 rounded-md flex items-center justify-center"
-                  style={{ background: T.surfaceHi, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                  style={{ background: T.surfaceHi, border: HAIRLINE_SOFT }}
                 >
                   <Logo size={18} />
                 </span>
@@ -318,7 +334,7 @@ const ConnectModal: React.FC<{
                   style={{
                     color: p.accent,
                     background: `${p.accent}1A`,
-                    boxShadow: `inset 0 0 0 1px ${p.accent}44`,
+                    border: `1px solid ${p.accent}44`,
                   }}
                 >
                   {busy ? (
@@ -346,8 +362,8 @@ const ConnectModal: React.FC<{
           <button
             onClick={onClose}
             disabled={!!busyId}
-            className="rounded-md px-3.5 py-2 text-[12px] font-medium transition-colors hover:bg-white/5 disabled:opacity-50"
-            style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+            className="rounded-md px-3.5 py-2 text-[12px] font-medium transition-colors disabled:opacity-50"
+            style={{ color: T.textMuted, border: HAIRLINE }}
           >
             Cancel
           </button>
@@ -371,16 +387,16 @@ const DeleteConfirmModal: React.FC<{
 
   return (
     <div
-      className="fixed inset-0 z-60 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       onClick={() => !busy && onCancel()}
-      style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+      style={{ background: "rgba(11,12,14,0.72)", backdropFilter: "blur(4px)" }}
       role="dialog"
       aria-modal="true"
     >
       <div
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md rounded-2xl overflow-hidden"
-        style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
+        style={{ background: T.surface, border: HAIRLINE, boxShadow: "0 24px 64px -16px rgba(0,0,0,0.7)" }}
       >
         <div className="p-5 border-b" style={{ borderColor: T.borderSoft }}>
           <div className="flex items-start gap-3">
@@ -403,7 +419,7 @@ const DeleteConfirmModal: React.FC<{
 
         <div
           className="mx-4 mt-4 rounded-lg px-3 py-2.5 flex items-center gap-2.5 text-[12px]"
-          style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+          style={{ background: T.surface2, border: HAIRLINE_SOFT }}
         >
           <Avatar name={account.display_name || account.email} brand={meta.brand} size={28} />
           <div className="min-w-0">
@@ -420,16 +436,16 @@ const DeleteConfirmModal: React.FC<{
           <button
             onClick={onCancel}
             disabled={busy}
-            className="rounded-md px-3.5 py-2 text-[12px] font-medium transition-colors hover:bg-white/5 disabled:opacity-50"
-            style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+            className="rounded-md px-3.5 py-2 text-[12px] font-medium transition-colors disabled:opacity-50"
+            style={{ color: T.textMuted, border: HAIRLINE }}
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-medium text-white disabled:opacity-50"
-            style={{ background: T.danger, boxShadow: "0 6px 18px -8px rgba(239,68,68,0.65)" }}
+            className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-semibold transition-all hover:brightness-110 disabled:opacity-50 disabled:hover:brightness-100"
+            style={{ background: T.danger, color: "#0B0C0E", border: `1px solid ${T.danger}` }}
           >
             {busy ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
             Disconnect
@@ -504,7 +520,7 @@ const AdminSenderAccounts = () => {
 
   if (!context) {
     return (
-      <div className="flex min-h-screen items-center justify-center" style={{ background: T.bg, color: T.text, fontFamily: FONT.body }}>
+      <div className="flex min-h-screen items-center justify-center" style={{ background: T.bg, color: T.text, fontFamily: FONT.ui }}>
         <p>SenderAccountsContext is missing. Wrap this page in the provider.</p>
       </div>
     );
@@ -657,41 +673,38 @@ const AdminSenderAccounts = () => {
     return Math.max(0, Math.min((sent / limit) * 100, 100));
   };
 
-  const usageTone = (percent: number) =>
-    percent >= 90 ? T.danger :
-    percent >= 70 ? T.warn :
-                    T.success;
+  // Simplified to always use accent (mint) color
+  const usageTone = () => T.accent;
 
   return (
     <div
       className="flex w-full overflow-hidden"
-      style={{ fontFamily: FONT.body, background: T.bg, height: "100dvh" }}
+      style={{ fontFamily: FONT.ui, background: T.bg, height: "100dvh" }}
     >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-        /* Kill outer body scroll so only <main> scrolls */
         html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; }
 
         @keyframes floatIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
         .float-in { animation: floatIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
-        @keyframes modalPop { from { opacity: 0; transform: scale(0.98) translateY(6px); } to { opacity: 1; transform: none; } }
-        .modal-pop { animation: modalPop 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); }
-
+        
         .asa-main::-webkit-scrollbar { width: 8px; }
         .asa-main::-webkit-scrollbar-track { background: transparent; }
         .asa-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
         .asa-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
 
-        .asa-row:hover { background: rgba(255,255,255,0.02); }
+        .asa-row:hover { background: ${T.surface2}; }
         .asa-row .asa-actions { opacity: 0; transition: opacity 0.15s ease; }
         .asa-row:hover .asa-actions, .asa-row:focus-within .asa-actions { opacity: 1; }
         select option { background: ${T.surface2}; color: ${T.text}; }
+        :focus-visible { outline: 2px solid ${T.accentLine}; outline-offset: 2px; border-radius: 4px; }
       `}</style>
 
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/70"
+          className="lg:hidden fixed inset-0 z-40"
+          style={{ background: "rgba(11,12,14,0.72)" }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -711,17 +724,17 @@ const AdminSenderAccounts = () => {
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-lg transition-colors hover:bg-white/5"
-                style={{ background: T.surface, color: T.textMuted, boxShadow: RING }}
+                className="lg:hidden mt-1 p-2 rounded-md transition-colors"
+                style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
                 aria-label="Open menu"
               >
-                <Menu size={18} />
+                <Menu size={16} />
               </button>
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span
                     className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                    style={{ background: T.brandSoft, color: T.brand, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
+                    style={{ background: T.brandSoft, color: T.brand, border: `1px solid ${T.brandBorder}` }}
                   >
                     Admin
                   </span>
@@ -729,10 +742,10 @@ const AdminSenderAccounts = () => {
                     · {accounts.length} account{accounts.length === 1 ? "" : "s"}
                   </span>
                 </div>
-                <h1 className="text-[26px] md:text-[30px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
+                <h1 className="text-[24px] md:text-[26px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
                   Sender accounts
                 </h1>
-                <p className="mt-1 text-[13.5px] max-w-lg" style={{ color: T.textMuted }}>
+                <p className="mt-1 text-[13px] max-w-lg font-medium" style={{ color: T.textMuted }}>
                   Connect mailboxes via OAuth. No passwords, no SMTP credentials.
                 </p>
               </div>
@@ -740,8 +753,8 @@ const AdminSenderAccounts = () => {
 
             <button
               onClick={openConnectModal}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12.5px] font-medium text-white transition-all hover:brightness-110 self-start md:self-auto"
-              style={{ background: T.brand, boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[12px] font-semibold transition-all hover:brightness-110 self-start md:self-auto"
+              style={{ background: T.accent, color: T.accentInk, boxShadow: "0 8px 24px -8px rgba(110,231,168,0.45)" }}
             >
               <Plus size={13} /> Connect account
             </button>
@@ -750,20 +763,20 @@ const AdminSenderAccounts = () => {
           {/* Flash toast */}
           {flash && (
             <div
-              className="mb-5 rounded-lg px-3.5 py-2.5 flex items-start gap-2.5 text-[12px] float-in"
+              className="mb-5 rounded-xl px-4 py-3 flex items-start gap-2.5 text-[12px] float-in"
               style={{
                 background: flash.type === "success" ? T.successSoft : T.dangerSoft,
-                color: flash.type === "success" ? T.success : T.danger,
-                boxShadow: `inset 0 0 0 1px ${flash.type === "success" ? T.successBorder : T.dangerBorder}`,
+                color: flash.type === "success" ? T.accent : T.danger,
+                border: `1px solid ${flash.type === "success" ? T.successBorder : T.dangerBorder}`,
               }}
             >
               {flash.type === "success"
-                ? <CheckCircle size={13} className="mt-0.5 shrink-0" />
-                : <AlertTriangle size={13} className="mt-0.5 shrink-0" />}
-              <span className="flex-1">{flash.msg}</span>
+                ? <CheckCircle size={14} className="mt-0.5 shrink-0" />
+                : <AlertTriangle size={14} className="mt-0.5 shrink-0" />}
+              <span className="flex-1 font-medium">{flash.msg}</span>
               <button
                 onClick={() => setFlash(null)}
-                className="shrink-0 p-1 rounded-md hover:bg-black/20"
+                className="shrink-0 p-1 rounded-md transition-colors"
                 aria-label="Dismiss"
               >
                 <X size={12} />
@@ -774,14 +787,14 @@ const AdminSenderAccounts = () => {
           {/* Persistent error */}
           {(actionError || error) && (
             <div
-              className="mb-5 rounded-lg px-3.5 py-2.5 flex items-start gap-2.5 text-[12px]"
-              style={{ background: T.dangerSoft, color: T.danger, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
+              className="mb-5 rounded-xl px-4 py-3 flex items-start gap-2.5 text-[12px]"
+              style={{ background: T.dangerSoft, color: T.danger, border: `1px solid ${T.dangerBorder}` }}
             >
-              <AlertTriangle size={13} className="mt-0.5 shrink-0" />
-              <span className="flex-1">{actionError || error}</span>
+              <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+              <span className="flex-1 font-medium">{actionError || error}</span>
               <button
                 onClick={() => setActionError(null)}
-                className="shrink-0 p-1 rounded-md hover:bg-black/20"
+                className="shrink-0 p-1 rounded-md transition-colors"
                 aria-label="Dismiss"
               >
                 <X size={12} />
@@ -792,7 +805,7 @@ const AdminSenderAccounts = () => {
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
             <StatCard title="Total accounts"  value={String(accounts.length)}        icon={AtSign}       accent={T.brand}   accentSoft={T.brandSoft} />
-            <StatCard title="Active"          value={String(activeCount)}            icon={CheckCircle2} accent={T.success} accentSoft={T.successSoft} />
+            <StatCard title="Active"          value={String(activeCount)}            icon={CheckCircle2} accent={T.accent}  accentSoft={T.successSoft} />
             <StatCard title="Emails today"    value={emailsToday.toLocaleString()}   icon={Send}         accent={T.info}    accentSoft={T.infoSoft} />
             <StatCard title="Daily capacity"  value={dailyCapacity.toLocaleString()} icon={Mail}         accent={T.purple}  accentSoft={T.purpleSoft} />
           </div>
@@ -800,28 +813,28 @@ const AdminSenderAccounts = () => {
           {/* Command bar */}
           <div
             className="rounded-xl p-3 mb-5 sticky top-3 z-20"
-            style={{ background: T.surface, boxShadow: RING }}
+            style={{ background: T.surface, border: HAIRLINE }}
           >
             <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
               <div
-                className="flex items-center gap-2 rounded-lg px-3 py-2 flex-1 min-w-0 transition-all"
-                style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
-                onFocusCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brandBorder}, 0 0 0 3px ${T.brandSoft}`)}
-                onBlurCapture={(e) => (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.borderSoft}`)}
+                className="flex items-center gap-2 rounded-md px-3 py-2 flex-1 min-w-0 transition-colors"
+                style={{ background: T.surface2, border: HAIRLINE_SOFT }}
+                onFocusCapture={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
+                onBlurCapture={(e) => (e.currentTarget.style.borderColor = T.borderSoft)}
               >
                 <Search size={13} style={{ color: T.textFaint }} className="shrink-0" />
                 <input
                   placeholder="Search by name, email, or provider…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-transparent text-[13px] outline-none"
+                  className="w-full bg-transparent text-[12.5px] font-medium outline-none"
                   style={{ color: T.text }}
                   aria-label="Search sender accounts"
                 />
                 {search && (
                   <button
                     onClick={() => setSearch("")}
-                    className="shrink-0 text-[10px] px-1.5 py-0.5 rounded transition-colors hover:bg-white/5"
+                    className="shrink-0 text-[10px] px-1.5 py-0.5 rounded transition-colors"
                     style={{ color: T.textMuted }}
                   >
                     Clear
@@ -835,8 +848,8 @@ const AdminSenderAccounts = () => {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="pl-7 pr-2.5 py-2 rounded-lg text-[12px] cursor-pointer outline-none"
-                    style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                    className="pl-7 pr-2.5 py-2 rounded-md text-[12px] font-medium cursor-pointer outline-none"
+                    style={{ background: T.surface2, color: T.textMuted, border: HAIRLINE_SOFT }}
                     aria-label="Filter by status"
                   >
                     {STATUS_FILTERS.map((f) => <option key={f} value={f}>{f === "All" ? "All statuses" : f}</option>)}
@@ -848,8 +861,8 @@ const AdminSenderAccounts = () => {
                   <select
                     value={providerFilter}
                     onChange={(e) => setProviderFilter(e.target.value)}
-                    className="pl-7 pr-2.5 py-2 rounded-lg text-[12px] cursor-pointer outline-none"
-                    style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                    className="pl-7 pr-2.5 py-2 rounded-md text-[12px] font-medium cursor-pointer outline-none"
+                    style={{ background: T.surface2, color: T.textMuted, border: HAIRLINE_SOFT }}
                     aria-label="Filter by provider"
                   >
                     {PROVIDER_FILTERS.map((p) => <option key={p} value={p}>{p === "All" ? "All providers" : p}</option>)}
@@ -859,8 +872,8 @@ const AdminSenderAccounts = () => {
                 {hasActiveFilters && (
                   <button
                     onClick={() => { setSearch(""); setStatusFilter("All"); setProviderFilter("All"); }}
-                    className="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-[12px] font-medium transition-colors"
-                    style={{ background: T.surface2, color: T.brand, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                    className="inline-flex items-center gap-1 rounded-md px-2.5 py-2 text-[12px] font-medium transition-colors"
+                    style={{ background: T.surface2, color: T.brand, border: HAIRLINE_SOFT }}
                   >
                     <X size={11} /> Clear
                   </button>
@@ -869,8 +882,8 @@ const AdminSenderAccounts = () => {
                 <button
                   onClick={() => fetchAllSenderAccounts()}
                   disabled={loading}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-medium transition-colors hover:bg-white/5 disabled:opacity-60"
-                  style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+                  className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-[12px] font-medium transition-colors disabled:opacity-60"
+                  style={{ color: T.textMuted, border: HAIRLINE }}
                 >
                   <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
                   <span className="hidden sm:inline">Refresh</span>
@@ -879,7 +892,7 @@ const AdminSenderAccounts = () => {
             </div>
 
             <div className="mt-2.5 flex items-center justify-between text-[11px]" style={{ color: T.textFaint }}>
-              <span>
+              <span className="font-medium">
                 Showing{" "}
                 <span style={{ color: T.text, fontFamily: FONT.mono }}>{filteredAccounts.length}</span>{" "}
                 of <span style={{ color: T.text, fontFamily: FONT.mono }}>{accounts.length}</span>
@@ -888,17 +901,17 @@ const AdminSenderAccounts = () => {
           </div>
 
           {/* Table */}
-          <div className="rounded-xl overflow-hidden" style={{ background: T.surface, boxShadow: RING }}>
+          <div className="rounded-xl overflow-hidden" style={{ background: T.surface, border: HAIRLINE }}>
             <div className="overflow-x-auto">
               <table className="w-full text-left" style={{ minWidth: 880 }}>
                 <thead>
-                  <tr className="text-[10px] uppercase tracking-widest" style={{ color: T.textFaint, borderBottom: `1px solid ${T.borderSoft}` }}>
-                    <th className="px-4 md:px-5 py-2.5 font-medium" scope="col">Account</th>
-                    <th className="px-3 py-2.5 font-medium" scope="col">Provider</th>
-                    <th className="px-3 py-2.5 font-medium" scope="col">Status</th>
-                    <th className="px-3 py-2.5 font-medium w-40" scope="col">Daily</th>
-                    <th className="px-3 py-2.5 font-medium w-40" scope="col">Hourly</th>
-                    <th className="px-4 md:px-5 py-2.5 font-medium text-right" scope="col"><span className="sr-only">Actions</span></th>
+                  <tr className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: T.textFaint, borderBottom: HAIRLINE_SOFT }}>
+                    <th className="px-4 md:px-5 py-3 font-semibold" scope="col">Account</th>
+                    <th className="px-3 py-3 font-semibold" scope="col">Provider</th>
+                    <th className="px-3 py-3 font-semibold" scope="col">Status</th>
+                    <th className="px-3 py-3 font-semibold w-40" scope="col">Daily</th>
+                    <th className="px-3 py-3 font-semibold w-40" scope="col">Hourly</th>
+                    <th className="px-4 md:px-5 py-3 font-semibold text-right" scope="col"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
 
@@ -908,7 +921,7 @@ const AdminSenderAccounts = () => {
                       <td colSpan={6}>
                         <div className="py-20 flex flex-col items-center justify-center">
                           <Loader2 size={24} className="animate-spin" style={{ color: T.brand }} />
-                          <p className="mt-3 text-[12.5px]" style={{ color: T.textMuted }}>Loading sender accounts…</p>
+                          <p className="mt-3 text-[12.5px] font-medium" style={{ color: T.textMuted }}>Loading sender accounts…</p>
                         </div>
                       </td>
                     </tr>
@@ -917,13 +930,12 @@ const AdminSenderAccounts = () => {
                   {!loading && filteredAccounts.map((account) => {
                     const dailyPercent = getUsagePercent(account.emails_sent_today, account.daily_limit);
                     const hourlyPercent = getUsagePercent(account.emails_sent_hour, account.hourly_limit);
-                    const dailyTone = usageTone(dailyPercent);
-                    const hourlyTone = usageTone(hourlyPercent);
+                    const tone = usageTone(); // single color now
                     const isDeleting = deletingId === account.id;
                     const meta = providerMeta(account.provider);
 
                     return (
-                      <tr key={account.id} className="asa-row float-in transition-colors" style={{ borderTop: `1px solid ${T.borderSoft}` }}>
+                      <tr key={account.id} className="asa-row float-in transition-colors" style={{ borderTop: HAIRLINE_SOFT }}>
                         <td className="px-4 md:px-5 py-3">
                           <div className="flex items-center gap-2.5 min-w-0">
                             <Avatar name={account.display_name} brand={meta.brand} size={30} />
@@ -954,10 +966,10 @@ const AdminSenderAccounts = () => {
                             <div className="h-1 w-full rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
                               <div
                                 className="h-full rounded-full transition-all"
-                                style={{ width: `${dailyPercent}%`, background: dailyTone }}
+                                style={{ width: `${dailyPercent}%`, background: tone }}
                               />
                             </div>
-                            <p className="text-[9.5px] mt-1" style={{ color: dailyTone, fontFamily: FONT.mono }}>
+                            <p className="text-[9.5px] mt-1 font-medium" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                               {Math.round(dailyPercent)}%
                             </p>
                           </div>
@@ -976,10 +988,10 @@ const AdminSenderAccounts = () => {
                             <div className="h-1 w-full rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
                               <div
                                 className="h-full rounded-full transition-all"
-                                style={{ width: `${hourlyPercent}%`, background: hourlyTone }}
+                                style={{ width: `${hourlyPercent}%`, background: tone }}
                               />
                             </div>
-                            <p className="text-[9.5px] mt-1" style={{ color: hourlyTone, fontFamily: FONT.mono }}>
+                            <p className="text-[9.5px] mt-1 font-medium" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                               {Math.round(hourlyPercent)}%
                             </p>
                           </div>
@@ -990,10 +1002,12 @@ const AdminSenderAccounts = () => {
                             <button
                               onClick={() => openEditModal(account)}
                               aria-label={`Edit ${account.display_name || account.email}`}
-                              className="p-1.5 rounded-md transition-colors hover:bg-white/5"
+                              className="p-1.5 rounded-md transition-colors"
                               style={{ color: T.textMuted }}
+                              onMouseEnter={(e) => (e.currentTarget.style.color = T.text)}
+                              onMouseLeave={(e) => (e.currentTarget.style.color = T.textMuted)}
                             >
-                              <Edit size={12} />
+                              <Edit size={13} />
                             </button>
                             <button
                               onClick={() => setDeleteTarget(account)}
@@ -1004,7 +1018,7 @@ const AdminSenderAccounts = () => {
                               onMouseEnter={(e) => (e.currentTarget.style.background = T.dangerSoft)}
                               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                             >
-                              {isDeleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                              {isDeleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
                             </button>
                           </div>
                         </td>
@@ -1017,15 +1031,15 @@ const AdminSenderAccounts = () => {
                       <td colSpan={6}>
                         <div className="py-16 flex flex-col items-center justify-center text-center px-6">
                           <div
-                            className="w-12 h-12 mb-4 rounded-lg flex items-center justify-center"
-                            style={{ background: T.brandSoft, color: T.brand }}
+                            className="w-12 h-12 mb-4 rounded-xl flex items-center justify-center"
+                            style={{ background: T.surfaceHi, color: T.textFaint }}
                           >
                             <Link2 size={22} />
                           </div>
                           <h3 className="text-[15px] font-semibold" style={{ color: T.text }}>
                             {accounts.length === 0 ? "No connected accounts" : "No accounts match"}
                           </h3>
-                          <p className="mt-2 text-[12.5px] max-w-md" style={{ color: T.textMuted }}>
+                          <p className="mt-2 text-[12.5px] font-medium max-w-md" style={{ color: T.textMuted }}>
                             {accounts.length === 0
                               ? "Connect a Gmail or Outlook mailbox to start sending."
                               : "Try adjusting your search or filters."}
@@ -1033,15 +1047,15 @@ const AdminSenderAccounts = () => {
                           {accounts.length === 0 ? (
                             <button
                               onClick={openConnectModal}
-                              className="mt-4 inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-[12px] font-medium text-white transition-all hover:brightness-110"
-                              style={{ background: T.brand, boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+                              className="mt-4 inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-[12px] font-semibold transition-all hover:brightness-110"
+                              style={{ background: T.accent, color: T.accentInk }}
                             >
                               <Plus size={12} /> Connect account
                             </button>
                           ) : (
                             <button
                               onClick={() => { setSearch(""); setStatusFilter("All"); setProviderFilter("All"); }}
-                              className="mt-4 text-[12px] font-medium"
+                              className="mt-4 text-[12px] font-semibold transition-colors hover:opacity-70"
                               style={{ color: T.brand }}
                             >
                               Clear filters
@@ -1074,16 +1088,16 @@ const AdminSenderAccounts = () => {
       {/* Edit modal */}
       {editingAccount && (
         <div
-          className="fixed inset-0 z-60 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
           onClick={() => !saving && setEditingAccount(null)}
-          style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
+          style={{ background: "rgba(11,12,14,0.72)", backdropFilter: "blur(4px)" }}
           role="dialog"
           aria-modal="true"
         >
           <div
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-2xl rounded-2xl overflow-hidden"
-            style={{ background: T.surface, boxShadow: `inset 0 0 0 1px ${T.border}, 0 30px 60px -20px rgba(0,0,0,0.8)` }}
+            style={{ background: T.surface, border: HAIRLINE, boxShadow: "0 24px 64px -16px rgba(0,0,0,0.7)" }}
           >
             <div className="flex items-start justify-between gap-3 p-5 border-b" style={{ borderColor: T.borderSoft }}>
               <div className="flex items-start gap-3 min-w-0">
@@ -1109,8 +1123,8 @@ const AdminSenderAccounts = () => {
                 onClick={() => setEditingAccount(null)}
                 disabled={saving}
                 aria-label="Close"
-                className="shrink-0 p-1.5 rounded-md transition-colors hover:bg-white/5 disabled:opacity-50"
-                style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                className="shrink-0 p-1.5 rounded-md transition-colors disabled:opacity-50"
+                style={{ background: T.surface2, color: T.textMuted, border: HAIRLINE_SOFT }}
               >
                 <X size={14} />
               </button>
@@ -1120,7 +1134,7 @@ const AdminSenderAccounts = () => {
               {/* Connected account summary */}
               <div
                 className="rounded-lg px-3 py-2.5 flex items-center gap-2.5"
-                style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                style={{ background: T.surface2, border: HAIRLINE_SOFT }}
               >
                 <Avatar
                   name={editingAccount.display_name || editingAccount.email}
@@ -1203,16 +1217,16 @@ const AdminSenderAccounts = () => {
               <button
                 onClick={() => setEditingAccount(null)}
                 disabled={saving}
-                className="rounded-md px-3.5 py-2 text-[12px] font-medium transition-colors hover:bg-white/5 disabled:opacity-50"
-                style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+                className="rounded-md px-3.5 py-2 text-[12px] font-medium transition-colors disabled:opacity-50"
+                style={{ color: T.textMuted, border: HAIRLINE }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveEdit}
                 disabled={saving}
-                className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-medium text-white transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100"
-                style={{ background: T.brand, boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+                className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-semibold transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100"
+                style={{ background: T.accent, color: T.accentInk }}
               >
                 {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
                 {saving ? "Saving…" : "Save changes"}
@@ -1251,11 +1265,11 @@ const inputCls = "w-full rounded-lg px-3 py-2 text-[13px] outline-none transitio
 const inputStyle: React.CSSProperties = {
   background: T.surface2,
   color: T.text,
-  boxShadow: `inset 0 0 0 1px ${T.borderSoft}`,
+  border: HAIRLINE_SOFT,
 };
 const onFocusIn = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) =>
-  (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.brandBorder}, 0 0 0 3px ${T.brandSoft}`);
+  (e.currentTarget.style.borderColor = T.accentLine);
 const onFocusOut = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) =>
-  (e.currentTarget.style.boxShadow = `inset 0 0 0 1px ${T.borderSoft}`);
+  (e.currentTarget.style.borderColor = T.borderSoft);
 
 export default AdminSenderAccounts;

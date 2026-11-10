@@ -41,45 +41,56 @@ interface Job {
   time: string;
 }
 
-/* ─────────────── design tokens ─────────────── */
+/* ─────────────── design tokens (indigo + mint theme) ─────────────── */
 
 const T = {
-  bg:           "#0A0B10",
-  surface:      "#111319",
-  surface2:     "#161922",
-  surfaceHi:    "#1B1F2A",
-  border:       "#232838",
-  borderSoft:   "#1B1F2A",
-  text:         "#E9EBF0",
-  textMuted:    "#9CA3B4",
-  textFaint:    "#6B7280",
+  bg:           "#0B0C0E",
+  surface:      "#111214",
+  surface2:     "#16181B",
+  surfaceHi:    "#1C1F23",
+  border:       "#24282E",
+  borderSoft:   "#1B1E22",
+  text:         "#E8EAED",
+  textMuted:    "#9AA0A6",
+  textFaint:    "#6B7075",
+  
   brand:        "#6366F1",
   brandSoft:    "rgba(99,102,241,0.12)",
   brandBorder:  "rgba(99,102,241,0.35)",
-  success:      "#22C55E",
-  successSoft:  "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:         "#F59E0B",
-  warnSoft:     "rgba(245,158,11,0.12)",
-  warnBorder:   "rgba(245,158,11,0.35)",
-  danger:       "#EF4444",
-  dangerSoft:   "rgba(239,68,68,0.12)",
-  dangerBorder: "rgba(239,68,68,0.35)",
-  info:         "#38BDF8",
-  infoSoft:     "rgba(56,189,248,0.12)",
-  infoBorder:   "rgba(56,189,248,0.35)",
-  purple:       "#A78BFA",
-  purpleSoft:   "rgba(167,139,250,0.12)",
-  purpleBorder: "rgba(167,139,250,0.35)",
+  brandInk:     "#ffffff",
+
+  accent:       "#6EE7A8",
+  accentInk:    "#0B0C0E",
+  accentLine:   "#2E6B4D",
+
+  success:      "#6EE7A8",
+  successSoft:  "rgba(110,231,168,0.10)",
+  successBorder:"rgba(110,231,168,0.28)",
+  
+  warn:         "#E0A64A",
+  warnSoft:     "rgba(224,166,74,0.10)",
+  warnBorder:   "rgba(224,166,74,0.28)",
+  
+  danger:       "#E06A6A",
+  dangerSoft:   "rgba(224,106,106,0.10)",
+  dangerBorder: "rgba(224,106,106,0.28)",
+  
+  info:         "#6EC1E7",
+  infoSoft:     "rgba(110,193,231,0.10)",
+  infoBorder:   "rgba(110,193,231,0.28)",
+  
+  purple:       "#B39DE0",
+  purpleSoft:   "rgba(179,157,224,0.10)",
+  purpleBorder: "rgba(179,157,224,0.28)",
 };
 
 const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
+  ui:   "'Inter', system-ui, -apple-system, sans-serif",
+  mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
 };
 
-const RING = `inset 0 0 0 1px ${T.border}`;
+const HAIRLINE = `1px solid ${T.border}`;
+const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`;
 
 /* ─────────────── data ─────────────── */
 
@@ -111,28 +122,28 @@ const jobs: Job[] = [
 const stats = [
   { label: "Pending jobs",    value: "190",    delta: "-12.4%", trend: "down", icon: Clock,        accent: T.warn,    accentSoft: T.warnSoft },
   { label: "Processing",      value: "14",     delta: "+8.2%",  trend: "up",   icon: Loader2,      accent: T.info,    accentSoft: T.infoSoft },
-  { label: "Completed (24h)", value: "24,842", delta: "+18.6%", trend: "up",   icon: CheckCircle2, accent: T.success, accentSoft: T.successSoft },
+  { label: "Completed (24h)", value: "24,842", delta: "+18.6%", trend: "up",   icon: CheckCircle2, accent: T.accent,  accentSoft: T.successSoft },
   { label: "Failed jobs",     value: "12",     delta: "-4.1%",  trend: "down", icon: XCircle,      accent: T.danger,  accentSoft: T.dangerSoft },
 ];
 
 const QUEUE_STATUS_META: Record<Queue["status"], { fg: string; bg: string; ring: string }> = {
-  Running: { fg: T.success, bg: T.successSoft, ring: T.successBorder },
-  Paused:  { fg: T.warn,    bg: T.warnSoft,    ring: T.warnBorder },
-  Stopped: { fg: T.danger,  bg: T.dangerSoft,  ring: T.dangerBorder },
+  Running: { fg: T.accent, bg: T.successSoft, ring: T.successBorder },
+  Paused:  { fg: T.warn,   bg: T.warnSoft,    ring: T.warnBorder },
+  Stopped: { fg: T.danger, bg: T.dangerSoft,  ring: T.dangerBorder },
 };
 
 const WORKER_STATUS_META: Record<Worker["status"], { fg: string; bg: string; ring: string }> = {
-  Active:  { fg: T.success, bg: T.successSoft, ring: T.successBorder },
-  Busy:    { fg: T.warn,    bg: T.warnSoft,    ring: T.warnBorder },
-  Idle:    { fg: T.info,    bg: T.infoSoft,    ring: T.infoBorder },
-  Offline: { fg: T.danger,  bg: T.dangerSoft,  ring: T.dangerBorder },
+  Active:  { fg: T.accent, bg: T.successSoft, ring: T.successBorder },
+  Busy:    { fg: T.warn,   bg: T.warnSoft,    ring: T.warnBorder },
+  Idle:    { fg: T.info,   bg: T.infoSoft,    ring: T.infoBorder },
+  Offline: { fg: T.danger, bg: T.dangerSoft,  ring: T.dangerBorder },
 };
 
 const JOB_STATUS_META: Record<Job["status"], { fg: string; bg: string; ring: string; icon: React.ElementType; spin?: boolean }> = {
-  Processing: { fg: T.info,    bg: T.infoSoft,    ring: T.infoBorder,    icon: Loader2,      spin: true },
-  Pending:    { fg: T.warn,    bg: T.warnSoft,    ring: T.warnBorder,    icon: Clock },
-  Completed:  { fg: T.success, bg: T.successSoft, ring: T.successBorder, icon: CheckCircle2 },
-  Failed:     { fg: T.danger,  bg: T.dangerSoft,  ring: T.dangerBorder,  icon: XCircle },
+  Processing: { fg: T.info,   bg: T.infoSoft,    ring: T.infoBorder,    icon: Loader2,      spin: true },
+  Pending:    { fg: T.warn,   bg: T.warnSoft,    ring: T.warnBorder,    icon: Clock },
+  Completed:  { fg: T.accent, bg: T.successSoft, ring: T.successBorder, icon: CheckCircle2 },
+  Failed:     { fg: T.danger, bg: T.dangerSoft,  ring: T.dangerBorder,  icon: XCircle },
 };
 
 const PRIORITY_META: Record<Queue["priority"], { fg: string; bg: string; ring: string }> = {
@@ -146,7 +157,7 @@ const PRIORITY_META: Record<Queue["priority"], { fg: string; bg: string; ring: s
 const Card: React.FC<{ children: React.ReactNode; className?: string; style?: React.CSSProperties }> = ({
   children, className = "", style,
 }) => (
-  <div className={`rounded-xl ${className}`} style={{ background: T.surface, boxShadow: RING, ...style }}>
+  <div className={`rounded-xl ${className}`} style={{ background: T.surface, border: HAIRLINE, ...style }}>
     {children}
   </div>
 );
@@ -155,7 +166,7 @@ const CardHeader: React.FC<{ title: string; hint?: string; right?: React.ReactNo
   <div className="flex flex-wrap items-end justify-between gap-2 px-4 md:px-5 pt-4 pb-3">
     <div>
       <h2 className="text-[14px] font-semibold tracking-tight" style={{ color: T.text }}>{title}</h2>
-      {hint && <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>{hint}</p>}
+      {hint && <p className="text-[11.5px] mt-0.5 font-medium" style={{ color: T.textMuted }}>{hint}</p>}
     </div>
     {right}
   </div>
@@ -171,7 +182,12 @@ const StatCard: React.FC<{
   accentSoft: string;
   spinIcon?: boolean;
 }> = ({ label, value, delta, trend, icon: Icon, accent, accentSoft, spinIcon }) => (
-  <Card className="p-4">
+  <Card className="p-4 relative overflow-hidden">
+    <span
+      aria-hidden
+      className="absolute left-0 top-0 bottom-0 w-[2px]"
+      style={{ background: accent, opacity: 0.6 }}
+    />
     <div className="flex items-start justify-between mb-3">
       <div
         className="w-8 h-8 rounded-md flex items-center justify-center"
@@ -183,7 +199,7 @@ const StatCard: React.FC<{
         className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10.5px] font-medium"
         style={{
           background: trend === "up" ? T.successSoft : T.dangerSoft,
-          color: trend === "up" ? T.success : T.danger,
+          color: trend === "up" ? T.accent : T.danger,
           fontFamily: FONT.mono,
         }}
       >
@@ -194,13 +210,14 @@ const StatCard: React.FC<{
     <p className="text-[24px] font-semibold tracking-tight leading-none" style={{ color: T.text, fontFamily: FONT.mono }}>
       {value}
     </p>
-    <p className="text-[11.5px] mt-2" style={{ color: T.textMuted }}>{label}</p>
+    <p className="text-[11.5px] mt-2 font-medium" style={{ color: T.textMuted }}>{label}</p>
   </Card>
 );
 
 const SegmentedBar: React.FC<{ value: number; segments?: number }> = ({ value, segments = 14 }) => {
   const active = Math.round((value / 100) * segments);
-  const tone = value > 80 ? T.danger : value > 50 ? T.warn : T.success;
+  // Single color tone (mint) for a cleaner look
+  const tone = T.accent;
   return (
     <div className="flex items-center gap-0.5">
       {Array.from({ length: segments }).map((_, i) => (
@@ -223,7 +240,7 @@ const StatusPill: React.FC<{
 }> = ({ meta, label, icon: Icon, spin, dotOnly }) => (
   <span
     className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
-    style={{ background: meta.bg, color: meta.fg, boxShadow: `inset 0 0 0 1px ${meta.ring}` }}
+    style={{ background: meta.bg, color: meta.fg, border: `1px solid ${meta.ring}` }}
   >
     {Icon ? (
       <Icon size={10} className={spin ? "animate-spin" : ""} />
@@ -251,15 +268,14 @@ const AdminQueueMonitor = () => {
     <div
       className="flex w-full overflow-hidden"
       style={{
-        fontFamily: FONT.body,
+        fontFamily: FONT.ui,
         background: T.bg,
-        height: "100dvh", // ← locks the shell to the viewport (fixes double scrollbar)
+        height: "100dvh",
       }}
     >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-        /* Kill the body/html scroll entirely so only <main> scrolls */
         html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; }
 
         @keyframes floatIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -270,19 +286,20 @@ const AdminQueueMonitor = () => {
         .aqm-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 10px; }
         .aqm-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
 
-        .aqm-row:hover { background: rgba(255,255,255,0.02); }
+        .aqm-row:hover { background: ${T.surface2}; }
         .aqm-row .aqm-actions { opacity: 0; transition: opacity 0.15s ease; }
         .aqm-row:hover .aqm-actions, .aqm-row:focus-within .aqm-actions { opacity: 1; }
+        :focus-visible { outline: 2px solid ${T.accentLine}; outline-offset: 2px; border-radius: 4px; }
       `}</style>
 
       {sidebarOpen && (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/70"
+          className="lg:hidden fixed inset-0 z-40"
+          style={{ background: "rgba(11,12,14,0.72)" }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar wrapper — h-full so it never exceeds shell height */}
       <div className={`
         fixed lg:sticky top-0 z-50 h-full shrink-0 transition-transform duration-200 ease-out
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
@@ -290,7 +307,6 @@ const AdminQueueMonitor = () => {
         <AdminSidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Single scroll container */}
       <main
         className="aqm-main flex-1 min-w-0 overflow-y-auto overflow-x-hidden"
         style={{ background: T.bg }}
@@ -302,29 +318,29 @@ const AdminQueueMonitor = () => {
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-lg transition-colors hover:bg-white/5"
-                style={{ background: T.surface, color: T.textMuted, boxShadow: RING }}
+                className="lg:hidden mt-1 p-2 rounded-md transition-colors"
+                style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
                 aria-label="Open menu"
               >
-                <Menu size={18} />
+                <Menu size={16} />
               </button>
               <div>
                 <div className="flex flex-wrap items-center gap-2 mb-2">
                   <span
                     className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                    style={{ background: T.successSoft, color: T.success, boxShadow: `inset 0 0 0 1px ${T.successBorder}` }}
+                    style={{ background: T.successSoft, color: T.accent, border: `1px solid ${T.successBorder}` }}
                   >
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.success }} />
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.accent }} />
                     System healthy
                   </span>
                   <span className="text-[11px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                     · {onlineWorkers}/{workers.length} workers
                   </span>
                 </div>
-                <h1 className="text-[26px] md:text-[30px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
+                <h1 className="text-[24px] md:text-[26px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
                   Queue monitor
                 </h1>
-                <p className="mt-1 text-[13.5px] max-w-lg" style={{ color: T.textMuted }}>
+                <p className="mt-1 text-[13px] max-w-lg font-medium" style={{ color: T.textMuted }}>
                   Monitor queues, workers, and background jobs in real time.
                 </p>
               </div>
@@ -333,8 +349,8 @@ const AdminQueueMonitor = () => {
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12.5px] font-medium transition-colors hover:bg-white/5 disabled:opacity-60 self-start md:self-auto"
-              style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-colors disabled:opacity-60 self-start md:self-auto"
+              style={{ color: T.textMuted, border: HAIRLINE }}
             >
               <RefreshCw size={13} className={refreshing ? "animate-spin" : ""} />
               Refresh
@@ -371,7 +387,7 @@ const AdminQueueMonitor = () => {
                       <span
                         key={status}
                         className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium"
-                        style={{ background: meta.bg, color: meta.fg, boxShadow: `inset 0 0 0 1px ${meta.ring}` }}
+                        style={{ background: meta.bg, color: meta.fg, border: `1px solid ${meta.ring}` }}
                       >
                         <span className="w-1 h-1 rounded-full" style={{ background: meta.fg }} />
                         {status}
@@ -385,7 +401,6 @@ const AdminQueueMonitor = () => {
             <div className="px-4 md:px-5 pb-4 space-y-2">
               {workers.map((worker) => {
                 const meta = WORKER_STATUS_META[worker.status];
-                const tone = worker.load > 80 ? T.danger : worker.load > 50 ? T.warn : T.success;
                 const offline = worker.status === "Offline";
 
                 return (
@@ -394,7 +409,7 @@ const AdminQueueMonitor = () => {
                     className="relative rounded-lg transition-colors"
                     style={{
                       background: T.surface2,
-                      boxShadow: `inset 0 0 0 1px ${T.borderSoft}`,
+                      border: HAIRLINE_SOFT,
                       opacity: offline ? 0.65 : 1,
                     }}
                   >
@@ -437,7 +452,7 @@ const AdminQueueMonitor = () => {
                             className="shrink-0 text-[11px] font-semibold tabular-nums"
                             style={{
                               fontFamily: FONT.mono,
-                              color: offline ? T.textFaint : tone,
+                              color: offline ? T.textFaint : T.accent,
                               minWidth: 32,
                               textAlign: "right",
                             }}
@@ -458,7 +473,7 @@ const AdminQueueMonitor = () => {
                         style={{ borderColor: T.borderSoft }}
                       >
                         <div>
-                          <p className="text-[9.5px] uppercase tracking-wide" style={{ color: T.textFaint }}>Jobs</p>
+                          <p className="text-[9.5px] uppercase tracking-wide font-medium" style={{ color: T.textFaint }}>Jobs</p>
                           <p className="text-[12px] font-semibold tabular-nums mt-0.5"
                             style={{ fontFamily: FONT.mono, color: T.text }}>
                             {worker.jobsProcessed.toLocaleString()}
@@ -466,7 +481,7 @@ const AdminQueueMonitor = () => {
                         </div>
 
                         <div className="hidden sm:block">
-                          <p className="text-[9.5px] uppercase tracking-wide" style={{ color: T.textFaint }}>Current</p>
+                          <p className="text-[9.5px] uppercase tracking-wide font-medium" style={{ color: T.textFaint }}>Current</p>
                           <p
                             className="text-[11px] font-medium mt-0.5 truncate"
                             style={{
@@ -493,10 +508,10 @@ const AdminQueueMonitor = () => {
           {/* Queues */}
           <Card className="overflow-hidden mb-6">
             <div className="flex flex-wrap items-end justify-between gap-2 px-4 md:px-5 py-3.5"
-              style={{ borderBottom: `1px solid ${T.borderSoft}` }}>
+              style={{ borderBottom: HAIRLINE_SOFT }}>
               <div>
                 <h2 className="text-[14px] font-semibold tracking-tight" style={{ color: T.text }}>Queues</h2>
-                <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
+                <p className="text-[11.5px] mt-0.5 font-medium" style={{ color: T.textMuted }}>
                   Current status of all processing queues
                 </p>
               </div>
@@ -508,16 +523,16 @@ const AdminQueueMonitor = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left" style={{ minWidth: 780 }}>
                 <thead>
-                  <tr className="text-[10px] uppercase tracking-widest"
-                    style={{ color: T.textFaint, borderBottom: `1px solid ${T.borderSoft}` }}>
-                    <th className="px-4 md:px-5 py-2.5 font-medium">Queue</th>
-                    <th className="px-3 py-2.5 font-medium">Priority</th>
-                    <th className="px-3 py-2.5 font-medium text-right">Pending</th>
-                    <th className="px-3 py-2.5 font-medium text-right">Processing</th>
-                    <th className="px-3 py-2.5 font-medium text-right">Completed</th>
-                    <th className="px-3 py-2.5 font-medium text-right">Failed</th>
-                    <th className="px-3 py-2.5 font-medium">Status</th>
-                    <th className="px-4 md:px-5 py-2.5 font-medium text-right"><span className="sr-only">Actions</span></th>
+                  <tr className="text-[10px] uppercase tracking-widest font-semibold"
+                    style={{ color: T.textFaint, borderBottom: HAIRLINE_SOFT }}>
+                    <th className="px-4 md:px-5 py-3 font-semibold">Queue</th>
+                    <th className="px-3 py-3 font-semibold">Priority</th>
+                    <th className="px-3 py-3 font-semibold text-right">Pending</th>
+                    <th className="px-3 py-3 font-semibold text-right">Processing</th>
+                    <th className="px-3 py-3 font-semibold text-right">Completed</th>
+                    <th className="px-3 py-3 font-semibold text-right">Failed</th>
+                    <th className="px-3 py-3 font-semibold">Status</th>
+                    <th className="px-4 md:px-5 py-3 font-semibold text-right"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -526,11 +541,11 @@ const AdminQueueMonitor = () => {
                     const priorityMeta = PRIORITY_META[queue.priority];
                     return (
                       <tr key={queue.id} className="aqm-row transition-colors"
-                        style={{ borderTop: `1px solid ${T.borderSoft}` }}>
+                        style={{ borderTop: HAIRLINE_SOFT }}>
                         <td className="px-4 md:px-5 py-3">
                           <span
                             className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11.5px]"
-                            style={{ background: T.surface2, color: T.textMuted, fontFamily: FONT.mono }}
+                            style={{ background: T.surface2, color: T.textMuted, fontFamily: FONT.mono, border: HAIRLINE_SOFT }}
                           >
                             <span className="w-1 h-1 rounded-full" style={{ background: statusMeta.fg }} />
                             {queue.name}
@@ -539,24 +554,24 @@ const AdminQueueMonitor = () => {
                         <td className="px-3 py-3">
                           <span
                             className="inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-medium"
-                            style={{ background: priorityMeta.bg, color: priorityMeta.fg, boxShadow: `inset 0 0 0 1px ${priorityMeta.ring}` }}
+                            style={{ background: priorityMeta.bg, color: priorityMeta.fg, border: `1px solid ${priorityMeta.ring}` }}
                           >
                             {queue.priority}
                           </span>
                         </td>
-                        <td className="px-3 py-3 text-right text-[11.5px] tabular-nums"
+                        <td className="px-3 py-3 text-right text-[11.5px] tabular-nums font-medium"
                           style={{ fontFamily: FONT.mono, color: T.textMuted }}>
                           {queue.pending.toLocaleString()}
                         </td>
-                        <td className="px-3 py-3 text-right text-[11.5px] tabular-nums"
+                        <td className="px-3 py-3 text-right text-[11.5px] tabular-nums font-medium"
                           style={{ fontFamily: FONT.mono, color: T.info }}>
                           {queue.processing.toLocaleString()}
                         </td>
-                        <td className="px-3 py-3 text-right text-[11.5px] tabular-nums"
-                          style={{ fontFamily: FONT.mono, color: T.success }}>
+                        <td className="px-3 py-3 text-right text-[11.5px] tabular-nums font-medium"
+                          style={{ fontFamily: FONT.mono, color: T.accent }}>
                           {queue.completed.toLocaleString()}
                         </td>
-                        <td className="px-3 py-3 text-right text-[11.5px] tabular-nums"
+                        <td className="px-3 py-3 text-right text-[11.5px] tabular-nums font-medium"
                           style={{ fontFamily: FONT.mono, color: queue.failed ? T.danger : T.textFaint }}>
                           {queue.failed.toLocaleString()}
                         </td>
@@ -567,22 +582,22 @@ const AdminQueueMonitor = () => {
                           <div className="aqm-actions flex items-center justify-end gap-1">
                             {queue.status === "Running" ? (
                               <button
-                                className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors hover:bg-white/5"
-                                style={{ background: T.warnSoft, color: T.warn, boxShadow: `inset 0 0 0 1px ${T.warnBorder}` }}
+                                className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors"
+                                style={{ background: T.warnSoft, color: T.warn, border: `1px solid ${T.warnBorder}` }}
                               >
                                 <Pause size={10} /> Pause
                               </button>
                             ) : (
                               <button
-                                className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors hover:bg-white/5"
-                                style={{ background: T.successSoft, color: T.success, boxShadow: `inset 0 0 0 1px ${T.successBorder}` }}
+                                className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors"
+                                style={{ background: T.successSoft, color: T.accent, border: `1px solid ${T.successBorder}` }}
                               >
                                 <Play size={10} /> {queue.status === "Paused" ? "Resume" : "Start"}
                               </button>
                             )}
                             <button
                               aria-label="More options"
-                              className="p-1.5 rounded-md transition-colors hover:bg-white/5"
+                              className="p-1.5 rounded-md transition-colors"
                               style={{ color: T.textFaint }}
                             >
                               <MoreHorizontal size={13} />
@@ -600,15 +615,15 @@ const AdminQueueMonitor = () => {
           {/* Recent jobs */}
           <Card className="overflow-hidden">
             <div className="flex flex-wrap items-end justify-between gap-2 px-4 md:px-5 py-3.5"
-              style={{ borderBottom: `1px solid ${T.borderSoft}` }}>
+              style={{ borderBottom: HAIRLINE_SOFT }}>
               <div>
                 <h2 className="text-[14px] font-semibold tracking-tight" style={{ color: T.text }}>Recent jobs</h2>
-                <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
+                <p className="text-[11.5px] mt-0.5 font-medium" style={{ color: T.textMuted }}>
                   Latest jobs processed by workers
                 </p>
               </div>
               <button
-                className="inline-flex items-center gap-1 text-[11.5px] font-medium transition-colors hover:text-white"
+                className="inline-flex items-center gap-1 text-[11.5px] font-semibold transition-colors hover:opacity-70"
                 style={{ color: T.brand }}
               >
                 View all <ChevronRight size={11} />
@@ -618,16 +633,16 @@ const AdminQueueMonitor = () => {
             <div className="overflow-x-auto">
               <table className="w-full text-left" style={{ minWidth: 900 }}>
                 <thead>
-                  <tr className="text-[10px] uppercase tracking-widest"
-                    style={{ color: T.textFaint, borderBottom: `1px solid ${T.borderSoft}` }}>
-                    <th className="px-4 md:px-5 py-2.5 font-medium">Job ID</th>
-                    <th className="px-3 py-2.5 font-medium">Campaign</th>
-                    <th className="px-3 py-2.5 font-medium">Recipient</th>
-                    <th className="px-3 py-2.5 font-medium">Sender</th>
-                    <th className="px-3 py-2.5 font-medium">Queue</th>
-                    <th className="px-3 py-2.5 font-medium">Status</th>
-                    <th className="px-3 py-2.5 font-medium text-right">Attempts</th>
-                    <th className="px-4 md:px-5 py-2.5 font-medium text-right">Time</th>
+                  <tr className="text-[10px] uppercase tracking-widest font-semibold"
+                    style={{ color: T.textFaint, borderBottom: HAIRLINE_SOFT }}>
+                    <th className="px-4 md:px-5 py-3 font-semibold">Job ID</th>
+                    <th className="px-3 py-3 font-semibold">Campaign</th>
+                    <th className="px-3 py-3 font-semibold">Recipient</th>
+                    <th className="px-3 py-3 font-semibold">Sender</th>
+                    <th className="px-3 py-3 font-semibold">Queue</th>
+                    <th className="px-3 py-3 font-semibold">Status</th>
+                    <th className="px-3 py-3 font-semibold text-right">Attempts</th>
+                    <th className="px-4 md:px-5 py-3 font-semibold text-right">Time</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -635,33 +650,33 @@ const AdminQueueMonitor = () => {
                     const meta = JOB_STATUS_META[job.status];
                     return (
                       <tr key={job.id} className="aqm-row transition-colors"
-                        style={{ borderTop: `1px solid ${T.borderSoft}` }}>
+                        style={{ borderTop: HAIRLINE_SOFT }}>
                         <td className="px-4 md:px-5 py-3">
                           <span style={{ fontFamily: FONT.mono, color: T.textMuted, fontSize: 11 }}>
                             {job.id}
                           </span>
                         </td>
                         <td className="px-3 py-3">
-                          <span className="text-[12px] font-medium" style={{ color: T.text }}>
+                          <span className="text-[12.5px] font-medium" style={{ color: T.text }}>
                             {job.campaign}
                           </span>
                         </td>
                         <td className="px-3 py-3">
-                          <span className="text-[11.5px] truncate block max-w-50"
+                          <span className="text-[11.5px] truncate block max-w-50 font-medium"
                             style={{ fontFamily: FONT.mono, color: T.textMuted }}>
                             {job.recipient}
                           </span>
                         </td>
                         <td className="px-3 py-3">
-                          <span className="text-[11.5px] truncate block max-w-55"
+                          <span className="text-[11.5px] truncate block max-w-55 font-medium"
                             style={{ fontFamily: FONT.mono, color: T.textMuted }}>
                             {job.sender}
                           </span>
                         </td>
                         <td className="px-3 py-3">
                           <span
-                            className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10.5px]"
-                            style={{ background: T.surface2, color: T.textMuted, fontFamily: FONT.mono }}
+                            className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10.5px] font-medium"
+                            style={{ background: T.surface2, color: T.textMuted, fontFamily: FONT.mono, border: HAIRLINE_SOFT }}
                           >
                             {job.queue}
                           </span>
@@ -669,11 +684,11 @@ const AdminQueueMonitor = () => {
                         <td className="px-3 py-3">
                           <StatusPill meta={meta} label={job.status} icon={meta.icon} spin={meta.spin} />
                         </td>
-                        <td className="px-3 py-3 text-right text-[11.5px] tabular-nums"
+                        <td className="px-3 py-3 text-right text-[11.5px] tabular-nums font-medium"
                           style={{ fontFamily: FONT.mono, color: T.textMuted }}>
                           {job.attempts}
                         </td>
-                        <td className="px-4 md:px-5 py-3 text-right text-[11px] whitespace-nowrap"
+                        <td className="px-4 md:px-5 py-3 text-right text-[11px] whitespace-nowrap font-medium"
                           style={{ fontFamily: FONT.mono, color: T.textFaint }}>
                           {job.time}
                         </td>
@@ -686,7 +701,7 @@ const AdminQueueMonitor = () => {
 
             <div className="flex flex-wrap items-center justify-between gap-3 px-4 md:px-5 py-3 border-t"
               style={{ borderColor: T.borderSoft }}>
-              <span className="text-[11px]" style={{ color: T.textFaint }}>
+              <span className="text-[11px] font-medium" style={{ color: T.textFaint }}>
                 Showing <span style={{ color: T.text, fontFamily: FONT.mono }}>1–{jobs.length}</span> of{" "}
                 <span style={{ color: T.text, fontFamily: FONT.mono }}>{jobs.length}</span> jobs
               </span>
@@ -695,13 +710,13 @@ const AdminQueueMonitor = () => {
                   disabled
                   aria-label="Previous page"
                   className="inline-flex items-center justify-center rounded-md p-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+                  style={{ color: T.textMuted, border: HAIRLINE }}
                 >
                   <ChevronLeft size={12} />
                 </button>
                 <span
-                  className="min-w-7.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium text-center"
-                  style={{ background: T.brand, color: "#fff", fontFamily: FONT.mono }}
+                  className="min-w-7.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-semibold text-center"
+                  style={{ background: T.accent, color: T.accentInk, fontFamily: FONT.mono }}
                 >
                   1
                 </span>
@@ -709,7 +724,7 @@ const AdminQueueMonitor = () => {
                   disabled
                   aria-label="Next page"
                   className="inline-flex items-center justify-center rounded-md p-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+                  style={{ color: T.textMuted, border: HAIRLINE }}
                 >
                   <ChevronRight size={12} />
                 </button>

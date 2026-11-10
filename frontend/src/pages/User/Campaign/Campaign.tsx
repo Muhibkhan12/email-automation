@@ -76,7 +76,7 @@ const normalizeStatus = (s?: string): UiStatus => {
   return up in STATUS_META ? up : 'DRAFT';
 };
 
-const DELETABLE: UiStatus[] = ['PAUSED', 'COMPLETED'];
+const DELETABLE: UiStatus[] = ['PAUSED', 'COMPLETED', 'DRAFT'];
 const canDelete = (s?: string) => DELETABLE.includes(normalizeStatus(s));
 
 const relativeTime = (iso?: string) => {

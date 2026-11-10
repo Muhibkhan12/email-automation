@@ -9,43 +9,54 @@ import {
 import { AuthContext } from "../contexts/AuthContext";
 import type { UserLogin } from "../types/UserTypes";
 
-/* ─────────────── design tokens ─────────────── */
+/* ─────────────── design tokens (indigo + mint theme) ─────────────── */
 
 const T = {
-  bg:          "#0A0B10",
-  panel:       "#0D0F15",
-  panelTop:    "#101219",
-  surface:     "#111319",
-  surface2:    "#161922",
-  surfaceHi:   "#1B1F2A",
-  border:      "#232838",
-  borderSoft:  "#1B1F2A",
-  text:        "#E9EBF0",
-  textMuted:   "#9CA3B4",
-  textFaint:   "#6B7280",
+  bg:          "#0B0C0E",
+  panel:       "#0E0F11",
+  panelTop:    "#111214",
+  surface:     "#111214",
+  surface2:    "#16181B",
+  surfaceHi:   "#1C1F23",
+  border:      "#24282E",
+  borderSoft:  "#1B1E22",
+  text:        "#E8EAED",
+  textMuted:   "#9AA0A6",
+  textFaint:   "#6B7075",
+
   brand:       "#6366F1",
   brandSoft:   "rgba(99,102,241,0.12)",
   brandBorder: "rgba(99,102,241,0.35)",
+  brandInk:    "#ffffff",
+
+  accent:      "#6EE7A8",
+  accentInk:   "#0B0C0E",
+  accentLine:  "#2E6B4D",
+
   violet:      "#8B5CF6",
-  success:     "#22C55E",
-  successSoft: "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:        "#F59E0B",
-  warnSoft:    "rgba(245,158,11,0.12)",
-  warnBorder:  "rgba(245,158,11,0.35)",
-  danger:      "#EF4444",
-  dangerSoft:  "rgba(239,68,68,0.12)",
-  dangerBorder:"rgba(239,68,68,0.35)",
-  info:        "#38BDF8",
-}
+
+  success:     "#6EE7A8",
+  successSoft: "rgba(110,231,168,0.10)",
+  successBorder:"rgba(110,231,168,0.28)",
+
+  warn:        "#E0A64A",
+  warnSoft:    "rgba(224,166,74,0.10)",
+  warnBorder:  "rgba(224,166,74,0.28)",
+
+  danger:      "#E06A6A",
+  dangerSoft:  "rgba(224,106,106,0.10)",
+  dangerBorder:"rgba(224,106,106,0.28)",
+
+  info:        "#6EC1E7",
+};
 
 const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
-}
+  ui:   "'Inter', system-ui, -apple-system, sans-serif",
+  mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+};
 
-const RING = `inset 0 0 0 1px ${T.border}`
+const HAIRLINE = `1px solid ${T.border}`;
+const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`;
 
 const STAGES = ["Queued", "Sending", "Delivered"] as const;
 
@@ -115,10 +126,10 @@ const Login = () => {
   return (
     <div
       className="min-h-screen w-full flex"
-      style={{ background: T.bg, color: T.text, fontFamily: FONT.body }}
+      style={{ background: T.bg, color: T.text, fontFamily: FONT.ui }}
     >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
         @keyframes travel {
           0% { left: 0%; opacity: 0; }
@@ -138,17 +149,19 @@ const Login = () => {
         }
         .shake { animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
 
+        :focus-visible { outline: 2px solid ${T.accentLine}; outline-offset: 2px; border-radius: 4px; }
+
         @media (prefers-reduced-motion: reduce) {
           .packet, .packet-2, .packet-3, .shake { animation: none !important; }
         }
       `}</style>
 
-      {/* ── Brand panel ─────────────────────── */}
+      {/* ── Brand panel (LEFT side) ─────────────────────── */}
       <aside
-        className="hidden lg:flex lg:w-[44%] flex-col justify-between p-10 xl:p-12 relative overflow-hidden"
+        className="hidden lg:flex lg:w-[46%] flex-col justify-between p-10 xl:p-12 relative overflow-hidden order-1"
         style={{
-          background: `linear-gradient(180deg, ${T.panelTop} 0%, ${T.panel} 100%)`,
-          borderRight: `1px solid ${T.borderSoft}`,
+          background: `linear-gradient(160deg, ${T.panelTop} 0%, ${T.panel} 100%)`,
+          borderRight: HAIRLINE_SOFT,
         }}
       >
         <div
@@ -157,17 +170,16 @@ const Login = () => {
           style={{
             background:
               "radial-gradient(700px 260px at 20% 0%, rgba(99,102,241,0.14), transparent 65%)," +
-              "radial-gradient(500px 220px at 90% 100%, rgba(139,92,246,0.08), transparent 65%)",
+              "radial-gradient(500px 220px at 90% 100%, rgba(110,231,168,0.06), transparent 65%)",
           }}
         />
 
-        {/* Brand mark */}
         <div className="relative flex items-center gap-2.5">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
             style={{
               background: `linear-gradient(135deg, ${T.brand}, ${T.violet})`,
-              boxShadow: "0 4px 12px -4px rgba(99,102,241,0.6)",
+              boxShadow: "0 4px 14px -4px rgba(99,102,241,0.6)",
             }}
           >
             <Flame className="w-4 h-4 text-white" strokeWidth={2.4} />
@@ -177,15 +189,14 @@ const Login = () => {
           </span>
         </div>
 
-        {/* Middle */}
         <div className="relative space-y-8">
           <div>
             <span
-              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium mb-4"
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-medium mb-4"
               style={{
                 background: T.brandSoft,
                 color: T.brand,
-                boxShadow: `inset 0 0 0 1px ${T.brandBorder}`,
+                border: `1px solid ${T.brandBorder}`,
               }}
             >
               <Sparkles size={10} /> Welcome back
@@ -199,13 +210,22 @@ const Login = () => {
             </p>
           </div>
 
-          {/* Pipeline card */}
           <div
-            className="rounded-xl p-4"
-            style={{ background: T.surface, boxShadow: RING, maxWidth: 400 }}
+            className="rounded-2xl p-4 relative overflow-hidden"
+            style={{
+              background: T.surface,
+              border: HAIRLINE,
+              maxWidth: 420,
+              boxShadow: "0 12px 32px -16px rgba(0,0,0,0.6)",
+            }}
           >
+            <span
+              aria-hidden
+              className="absolute left-0 top-0 bottom-0 w-[2px]"
+              style={{ background: T.brand, opacity: 0.6 }}
+            />
             <div className="flex items-center gap-2 mb-3.5">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.success }} />
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: T.accent }} />
               <span className="text-[10.5px]" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
                 mailforge · live pipeline
               </span>
@@ -226,7 +246,7 @@ const Login = () => {
                 <div key={stage} className="flex flex-col items-center gap-1.5">
                   <span
                     className="w-1.5 h-1.5 rounded-full"
-                    style={{ background: i === 2 ? T.success : T.brand }}
+                    style={{ background: i === 2 ? T.accent : T.brand }}
                   />
                   <span className="text-[10px] uppercase tracking-wider" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                     {stage}
@@ -235,7 +255,7 @@ const Login = () => {
               ))}
             </div>
 
-            <p className="text-[11px] mt-4 pt-3" style={{ color: T.textMuted, fontFamily: FONT.mono, borderTop: `1px solid ${T.borderSoft}` }}>
+            <p className="text-[11px] mt-4 pt-3" style={{ color: T.textMuted, fontFamily: FONT.mono, borderTop: HAIRLINE_SOFT }}>
               <span style={{ color: T.text }}>{delivered.toLocaleString()}</span> delivered today
             </p>
           </div>
@@ -246,13 +266,22 @@ const Login = () => {
         </p>
       </aside>
 
-      {/* ── Form panel ──────────────────────── */}
-      <main className="flex-1 flex items-center justify-center px-5 md:px-8 py-10">
-        <div className="w-full max-w-[400px]">
+      {/* ── Form panel (RIGHT side) ──────────────────────── */}
+      <main className="flex-1 flex items-center justify-center px-5 md:px-8 py-10 order-2 relative overflow-hidden">
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(600px 300px at 50% 30%, rgba(99,102,241,0.06), transparent 60%)",
+          }}
+        />
+
+        <div className="w-full max-w-[420px] relative">
           {/* Mobile brand */}
           <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
             <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center"
+              className="w-9 h-9 rounded-xl flex items-center justify-center"
               style={{ background: `linear-gradient(135deg, ${T.brand}, ${T.violet})` }}
             >
               <Flame className="w-4 h-4 text-white" strokeWidth={2.4} />
@@ -263,20 +292,32 @@ const Login = () => {
           </div>
 
           {/* Card */}
-          <div className="rounded-xl p-5 md:p-6" style={{ background: T.surface, boxShadow: RING }}>
-            {/* Header */}
-            <div className="mb-5">
+          <div
+            className="rounded-2xl p-6 md:p-7 relative overflow-hidden"
+            style={{
+              background: T.surface,
+              border: HAIRLINE,
+              boxShadow: "0 16px 48px -24px rgba(0,0,0,0.7)",
+            }}
+          >
+            <div
+              aria-hidden
+              className="absolute inset-x-0 top-0 h-px pointer-events-none"
+              style={{ background: `linear-gradient(90deg, transparent, ${T.brand}, transparent)`, opacity: 0.5 }}
+            />
+
+            <div className="mb-6">
               <div
-                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium mb-3"
+                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-medium mb-3"
                 style={{
                   background: T.brandSoft,
                   color: T.brand,
-                  boxShadow: `inset 0 0 0 1px ${T.brandBorder}`,
+                  border: `1px solid ${T.brandBorder}`,
                 }}
               >
                 <ShieldCheck size={10} /> Secure sign in
               </div>
-              <h2 className="text-[20px] md:text-[22px] font-semibold tracking-tight" style={{ color: T.text }}>
+              <h2 className="text-[22px] md:text-[24px] font-semibold tracking-tight" style={{ color: T.text }}>
                 Sign in
               </h2>
               <p className="mt-1 text-[12.5px]" style={{ color: T.textMuted }}>
@@ -284,8 +325,7 @@ const Login = () => {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-              {/* Email */}
+            <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-3.5">
               <Field label="Email" htmlFor="email" error={errors.email?.message}>
                 <InputShell icon={Mail} invalid={!!errors.email}>
                   <input
@@ -296,7 +336,6 @@ const Login = () => {
                     name="email"
                     placeholder="you@company.com"
                     aria-invalid={!!errors.email}
-                    aria-describedby={errors.email ? "email-error" : undefined}
                     {...register("email", {
                       required: "Enter your email to continue.",
                       pattern: {
@@ -310,7 +349,6 @@ const Login = () => {
                 </InputShell>
               </Field>
 
-              {/* Password */}
               <Field label="Password" htmlFor="password" error={errors.password?.message}>
                 <InputShell icon={Lock} invalid={!!errors.password}>
                   <input
@@ -320,7 +358,6 @@ const Login = () => {
                     name="password"
                     placeholder="••••••••"
                     aria-invalid={!!errors.password}
-                    aria-describedby={errors.password ? "password-error" : undefined}
                     onKeyUp={onCapsCheck}
                     onKeyDown={onCapsCheck}
                     {...register("password", {
@@ -337,8 +374,7 @@ const Login = () => {
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    aria-pressed={showPassword}
-                    className="shrink-0 transition-colors hover:text-white"
+                    className="shrink-0"
                     style={{ color: T.textFaint }}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -352,7 +388,6 @@ const Login = () => {
                 )}
               </Field>
 
-              {/* Remember + forgot */}
               <div className="flex items-center justify-between gap-3">
                 <label className="inline-flex items-center gap-2 cursor-pointer select-none">
                   <span className="relative shrink-0">
@@ -364,7 +399,7 @@ const Login = () => {
                     />
                     <span
                       className="w-3.5 h-3.5 rounded flex items-center justify-center transition-all"
-                      style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+                      style={{ background: T.surface2, border: HAIRLINE }}
                     >
                       <Check
                         size={10}
@@ -376,7 +411,7 @@ const Login = () => {
                     <style>{`
                       .peer:checked + span {
                         background: ${T.brand} !important;
-                        box-shadow: inset 0 0 0 1px ${T.brandBorder} !important;
+                        border-color: ${T.brandBorder} !important;
                       }
                     `}</style>
                   </span>
@@ -385,33 +420,32 @@ const Login = () => {
 
                 <a
                   href="#"
-                  className="text-[12px] font-medium transition-colors hover:brightness-110"
+                  className="text-[12px] font-medium transition-colors"
                   style={{ color: T.brand }}
                 >
                   Forgot password?
                 </a>
               </div>
 
-              {/* Server error */}
               {error && (
                 <div
                   role="alert"
-                  className="flex items-start gap-2 rounded-md px-3 py-2.5 shake"
-                  style={{ background: T.dangerSoft, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
+                  className="flex items-start gap-2 rounded-lg px-3 py-2.5 shake"
+                  style={{ background: T.dangerSoft, border: `1px solid ${T.dangerBorder}` }}
                 >
                   <AlertTriangle size={13} className="shrink-0 mt-0.5" style={{ color: T.danger }} />
                   <p className="text-[12px] leading-relaxed" style={{ color: T.danger }}>{error}</p>
                 </div>
               )}
 
-              {/* Submit */}
               <button
                 type="submit"
                 disabled={loading}
-                className="group w-full inline-flex items-center justify-center gap-2 rounded-md py-2.5 text-[12.5px] font-medium text-white transition-all hover:brightness-110 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:brightness-100"
+                className="group w-full inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-[12.5px] font-semibold transition-all hover:brightness-110 disabled:opacity-60"
                 style={{
-                  background: T.brand,
-                  boxShadow: "0 6px 18px -8px rgba(99,102,241,0.7)",
+                  background: T.accent,
+                  color: T.accentInk,
+                  boxShadow: "0 8px 24px -8px rgba(110,231,168,0.45)",
                 }}
               >
                 {loading ? (
@@ -459,12 +493,7 @@ const Field: React.FC<{
     </div>
     {children}
     {error && (
-      <p
-        id={`${htmlFor}-error`}
-        role="alert"
-        className="flex items-center gap-1 text-[11px] mt-1.5"
-        style={{ color: T.danger }}
-      >
+      <p id={`${htmlFor}-error`} role="alert" className="flex items-center gap-1 text-[11px] mt-1.5" style={{ color: T.danger }}>
         <AlertCircle size={10} />
         {error}
       </p>
@@ -481,21 +510,21 @@ const InputShell: React.FC<{
   children: React.ReactNode;
 }> = ({ icon: Icon, invalid, valid, children }) => {
   const base = invalid
-    ? `inset 0 0 0 1px ${T.dangerBorder}`
+    ? `1px solid ${T.dangerBorder}`
     : valid
-    ? `inset 0 0 0 1px ${T.successBorder}`
-    : `inset 0 0 0 1px ${T.borderSoft}`;
+    ? `1px solid ${T.successBorder}`
+    : `1px solid ${T.borderSoft}`;
 
   const focus = invalid
-    ? `inset 0 0 0 1px ${T.danger}, 0 0 0 3px ${T.dangerSoft}`
-    : `inset 0 0 0 1px ${T.brand}, 0 0 0 3px ${T.brandSoft}`;
+    ? `1px solid ${T.danger}, 0 0 0 3px ${T.dangerSoft}`
+    : `1px solid ${T.brand}, 0 0 0 3px ${T.brandSoft}`;
 
   return (
     <div
-      className="flex items-center gap-2 rounded-md px-2.5 py-2 transition-shadow"
-      style={{ background: T.surface2, boxShadow: base }}
-      onFocusCapture={(e) => (e.currentTarget.style.boxShadow = focus)}
-      onBlurCapture={(e) => (e.currentTarget.style.boxShadow = base)}
+      className="flex items-center gap-2 rounded-lg px-3 py-2.5 transition-colors duration-[120ms]"
+      style={{ background: T.surface2, border: base }}
+      onFocusCapture={(e) => (e.currentTarget.style.border = focus)}
+      onBlurCapture={(e) => (e.currentTarget.style.border = base)}
     >
       <Icon size={13} className="shrink-0" style={{ color: invalid ? T.danger : T.textFaint }} />
       {children}
