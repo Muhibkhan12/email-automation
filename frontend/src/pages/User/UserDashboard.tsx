@@ -18,10 +18,7 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts'
 
-/* ─────────────── design tokens ───────────────
-   One graphite neutral ramp, tinted slightly cool.
-   One accent (phosphor). Amber + red reserved for status semantics only.
-*/
+/* ─────────────── design tokens ─────────────── */
 
 const T = {
   bg:         '#0B0C0E',
@@ -35,9 +32,9 @@ const T = {
   textMuted:  '#9AA0A6',
   textFaint:  '#6B7075',
 
-  accent:     '#6EE7A8',      // phosphor — the one bright thing
-  accentInk:  '#0B0C0E',      // text on accent
-  accentLine: '#2E6B4D',      // phosphor at low energy, for fills/strokes
+  accent:     '#6EE7A8',
+  accentInk:  '#0B0C0E',
+  accentLine: '#2E6B4D',
 
   ok:         '#6EE7A8',
   warn:       '#E0A64A',
@@ -78,7 +75,7 @@ const dayKey = (iso?: string | null) => {
   return d.toISOString().slice(0, 10)
 }
 
-/* ─────────────── status maps (quiet — no colored soft fills) ─────────────── */
+/* ─────────────── status maps ─────────────── */
 
 const CAMPAIGN_STATUS_STYLE: Record<string, { fg: string; dot: string; label: string }> = {
   Draft:     { fg: T.textMuted, dot: T.textFaint, label: 'Draft' },
@@ -164,11 +161,14 @@ const UserDashboard: React.FC = () => {
 
   const myCampaignIds = useMemo(() => new Set(myCampaigns.map((c: any) => c.id)), [myCampaigns])
 
+  // FIX: strict filter — sirf wahi logs jo user ki apni campaigns ke hain.
+  // Pehle: campaigns na hone par saare logs return hote the, aur campaign id
+  // undefined wale logs bhi pass ho jaate the (admin ka data leak).
   const myLogs = useMemo(() => {
-    if (myCampaignIds.size === 0) return emaillogs
+    if (myCampaignIds.size === 0) return []
     return emaillogs.filter((l: any) => {
       const cid = l.campaign_id ?? l.campaign?.id
-      return cid === undefined || myCampaignIds.has(cid)
+      return cid !== undefined && cid !== null && myCampaignIds.has(cid)
     })
   }, [emaillogs, myCampaignIds])
 
@@ -267,10 +267,21 @@ const UserDashboard: React.FC = () => {
       })
   }, [myLogs])
 
+  // FIX: sirf wahi sender accounts dikhao jo user ke apne logs mein use hue hain.
+  // Pehle saare accounts (admin ke bhi) dikh rahe the.
+  const mySenderAcc = useMemo(() => {
+    const ids = new Set(
+      myLogs
+        .map((l: any) => l.sender_account_id ?? l.sender_account?.id)
+        .filter((id: any) => id !== undefined && id !== null)
+    )
+    return senderAcc.filter((a: any) => ids.has(a.id))
+  }, [senderAcc, myLogs])
+
   const senderHealth = useMemo(() => {
     const todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
-    return senderAcc.slice(0, 4).map((a: any) => {
+    return mySenderAcc.slice(0, 4).map((a: any) => {
       const used = myLogs.filter((l: any) => {
         const t = new Date(l.sent_at ?? l.created_at ?? 0).getTime()
         return t >= todayStart.getTime() && l.sender_account_id === a.id
@@ -281,10 +292,8 @@ const UserDashboard: React.FC = () => {
         a.is_active === false ? 'Disabled' : load >= 80 ? 'Warning' : 'Active'
       return { id: a.id, name: a.email || a.display_name || `account #${a.id}`, load, status }
     })
-  }, [senderAcc, myLogs])
+  }, [mySenderAcc, myLogs])
 
-  // Stat cards: label / figure / meta. No sparklines, no icon tiles, no colored deltas.
-  // Trend arrows only when the comparison is a real count ("vs total events") — quiet mono.
   const statCards = [
     { label: 'Emails sent',       value: formatNumber(stats.sent),                    meta: `of ${formatNumber(stats.total)} events`,  icon: Send },
     { label: 'Delivery rate',     value: `${stats.deliveryRate}%`,                    meta: stats.deliveryRate >= 95 ? 'healthy' : 'check failures', icon: CheckCircle2 },

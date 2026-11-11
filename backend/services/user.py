@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, Depends
 from sqlalchemy.orm import selectinload, Session
 
 from services.otp import send_otp_email, store_otp, verify_stored_otp
@@ -85,7 +85,6 @@ def VerifyOTP(db: Session, email: str, otp: str):
     db.commit()
     db.refresh(user)
     return {"message": "Verified. You can log in now."}
-
 
 # ── baaki functions jo pehle se hain, waise hi rahenge ──
 
