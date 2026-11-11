@@ -149,3 +149,13 @@ def require_admin(current_user: User = Depends(GetCurrentUser)):
     if current_user.role != "ADMIN":
         raise HTTPException(status_code=401, detail="Admin Access required")
     return current_user
+
+def ChangePassword(db, user, current_password: str, new_password: str):
+    if not verify_password(current_password, user.password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    if verify_password(new_password, user.password):
+        raise HTTPException(status_code=400, detail="New password must be different")
+
+    user.password = hash_password(new_password)
+    db.commit()
+    return {"message": "Password changed"}

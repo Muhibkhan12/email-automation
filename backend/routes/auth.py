@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
-from schema.user import (RegisterSchema, LoginSchema, ForgetSchema, SendOTPSchema, UpdateUser, VerifyOTPSchema)
+from schema.user import (ChangePasswordSchema, RegisterSchema, LoginSchema, ForgetSchema, SendOTPSchema, UpdateUser, VerifyOTPSchema)
 from database import get_db
 from models.user import User
 from services.auth import refresh_access_token
-from services.user import (SendOTP, VerifyOTP, userByIdWithSenAcc,getAllUserWithSenderAccounts,LoginUser, RegisterUser, ForgetPassword, GetCurrentUser, updateUser, deleteUser, getUserById, getAllUsers)
+from services.user import (ChangePassword, SendOTP, VerifyOTP, userByIdWithSenAcc,getAllUserWithSenderAccounts,LoginUser, RegisterUser, ForgetPassword, GetCurrentUser, updateUser, deleteUser, getUserById, getAllUsers)
 
 router = APIRouter(
     prefix="/auth",
@@ -36,6 +36,14 @@ def login(
         path="/auth/refresh",  # sirf refresh endpoint ko cookie milega
     )
     return result
+
+@router.put("/me/password")
+def change_password(
+    body: ChangePasswordSchema,
+    current_user: User = Depends(GetCurrentUser),
+    db: Session = Depends(get_db),
+):
+    return ChangePassword(db, current_user, body.current_password, body.new_password)
 
 @router.post("/refresh")
 def refresh_token_endpoint(request: Request):

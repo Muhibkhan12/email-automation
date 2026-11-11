@@ -26,7 +26,7 @@ router = APIRouter(
 
 # ADMIN + EMPLOYEE
 @router.get(
-    "/",
+    "",
     dependencies=[Depends(GetCurrentUser)],
 )
 def get_templates(

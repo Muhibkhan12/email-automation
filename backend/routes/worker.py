@@ -251,10 +251,6 @@ def retry_failed(
     }
 
 
-# ---------------------------------------------------------
-# Progress (frontend polls this)
-# ---------------------------------------------------------
-
 @router.get("/progress/{campaign_id}")
 def campaign_progress(
     campaign_id: int,

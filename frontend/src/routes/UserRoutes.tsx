@@ -9,6 +9,7 @@ import HtmlTemplatesProvider from "../contexts/HtmlTemplatesContext";
 import RecipientsContextProvider from "../contexts/RecipientsContext";
 import { CampaignProvider } from "../contexts/CampaignContext";
 import { UploadProvider } from "../contexts/UploadContext";
+import { UserProvider } from "../contexts/UsersContext";
 
 const UserRoute = () => {
   const context = useContext(AuthContext);
@@ -33,19 +34,21 @@ const UserRoute = () => {
 
   // Providers only mount when the user is confirmed to be an EMPLOYEE.
   return (
-    <EmailLogsProvider>
-      <SenderAccountsProvider>
-        <CampaignProvider>
-          <HtmlTemplatesProvider>
-            <RecipientsContextProvider>
-              <UploadProvider>
-                <Outlet />
-              </UploadProvider>
-            </RecipientsContextProvider>
-          </HtmlTemplatesProvider>
-        </CampaignProvider>
-      </SenderAccountsProvider>
-    </EmailLogsProvider>
+    <UserProvider>
+      <EmailLogsProvider>
+        <SenderAccountsProvider>
+          <CampaignProvider>
+            <HtmlTemplatesProvider>
+              <RecipientsContextProvider>
+                <UploadProvider>
+                  <Outlet />
+                </UploadProvider>
+              </RecipientsContextProvider>
+            </HtmlTemplatesProvider>
+          </CampaignProvider>
+        </SenderAccountsProvider>
+      </EmailLogsProvider>
+    </UserProvider>
   );
 };
 

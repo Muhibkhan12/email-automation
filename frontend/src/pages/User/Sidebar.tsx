@@ -75,7 +75,6 @@ const navGroups = [
     label: 'Account',
     items: [
       { name: 'Profile',  path: '/user/profile',  icon: UserIcon },
-      { name: 'Settings', path: '/user/settings', icon: SettingsIcon },
     ],
   },
 ]

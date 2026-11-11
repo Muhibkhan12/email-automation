@@ -1,4 +1,4 @@
-from pydantic import BaseModel,EmailStr
+from pydantic import BaseModel,EmailStr, Field
 from schema.sender_account import SenderAccountResponse
 from enum import Enum
 
@@ -10,6 +10,9 @@ class RegisterSchema(BaseModel):
     username : str
     email : EmailStr
     password : str
+class ChangePasswordSchema(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8)
 
 class UserWithSenderAccountsResponse(BaseModel):
     username : str

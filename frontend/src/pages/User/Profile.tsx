@@ -1,11 +1,12 @@
-import { useState } from "react";
-import Sidebar from "./Sidebar";
+import { useContext, useEffect, useMemo, useState } from "react";
+import Sidebar from "../User/Sidebar";
 import {
-  Megaphone, Send as SendGlyph, Users, KeyRound, ShieldCheck,
-  Monitor, Plus, Pencil, Menu, X,
-  Mail, Trash2, Settings2, ChevronRight, User as UserIcon,
-  Clock, MapPin, ShieldAlert, AlertTriangle, Check,
+  Menu, Check, AlertTriangle, User as UserIcon, KeyRound, Mail,
+  Eye, EyeOff, Loader2, ShieldCheck, Circle,
 } from "lucide-react";
+import UsersContext from "../../contexts/UsersContext";
+import { AuthContext } from "../../contexts/AuthContext";
+import { changeUserPassword } from "../../services/UserServices";
 
 /* ─────────────── design tokens ─────────────── */
 
@@ -16,78 +17,187 @@ const T = {
   surfaceHi:  "#1C1F23",
   border:     "#24282E",
   borderSoft: "#1B1E22",
-
   text:       "#E8EAED",
   textMuted:  "#9AA0A6",
   textFaint:  "#6B7075",
-
   accent:     "#6EE7A8",
   accentInk:  "#0B0C0E",
   accentLine: "#2E6B4D",
-
-  ok:         "#6EE7A8",
   warn:       "#E0A64A",
   danger:     "#E06A6A",
-  info:       "#6EC1E7",
-  purple:     "#B39DE0",
 };
 
-const FONT = {
-  ui:   "'Inter', system-ui, -apple-system, sans-serif",
-  mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
-};
-
+const FONT = { ui: "'Inter', system-ui, -apple-system, sans-serif" };
 const HAIRLINE = `1px solid ${T.border}`;
 const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`;
 
-/* ─────────────── types & data ─────────────── */
+/* /auth/profile returns user_id + username; other endpoints may return id + name. Handle both. */
+type ProfileUser = { id?: number; user_id?: number; username?: string; name?: string; email?: string };
 
-interface SenderAccount {
-  email: string;
-  provider: string;
-  status: "Active" | "Disconnected";
-  sent: number;
-}
+type Notice = { type: "success" | "error"; text: string } | null;
 
-const senderAccounts: SenderAccount[] = [
-  { email: "marketing@company.com", provider: "Gmail SMTP",   status: "Active",       sent: 18420 },
-  { email: "sales@company.com",     provider: "Outlook SMTP", status: "Active",       sent: 15830 },
-  { email: "hello@company.com",     provider: "Custom SMTP",  status: "Disconnected", sent: 13920 },
+const getInitials = (name?: string) => {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+};
+
+/* password rules shown live under the "new password" field */
+const RULES = [
+  { id: "len",   label: "At least 8 characters",       test: (p: string) => p.length >= 8 },
+  { id: "case",  label: "Upper and lowercase letters", test: (p: string) => /[a-z]/.test(p) && /[A-Z]/.test(p) },
+  { id: "num",   label: "A number",                    test: (p: string) => /\d/.test(p) },
+  { id: "sym",   label: "A symbol",                    test: (p: string) => /[^A-Za-z0-9]/.test(p) },
 ];
 
-const PROVIDER_STYLE: Record<string, { short: string; grad: string; ring: string }> = {
-  "Gmail SMTP":   { short: "G", grad: "linear-gradient(135deg, #EA4335, #B32C20)", ring: "rgba(234,67,53,0.35)" },
-  "Outlook SMTP": { short: "O", grad: "linear-gradient(135deg, #0A66C2, #053C74)", ring: "rgba(10,102,194,0.35)" },
-  "Custom SMTP":  { short: "S", grad: "linear-gradient(135deg, #4B5563, #1F2937)", ring: "rgba(107,114,128,0.35)" },
-};
+const STRENGTH = [
+  { label: "Too weak", color: T.danger },
+  { label: "Weak",     color: T.danger },
+  { label: "Fair",     color: T.warn },
+  { label: "Good",     color: T.accent },
+  { label: "Strong",   color: T.accent },
+];
 
 /* ─────────────── page ─────────────── */
 
 const Profile = () => {
-  const [editing, setEditing] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const ctx = useContext(UsersContext);
+  if (!ctx) throw new Error("Profile must be used inside UserProvider");
+  const { selectedUser, getUserUsingId, editUser, loading } = ctx;
 
-  const handleSave = () => {
-    setEditing(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1800);
+  const authCtx = useContext(AuthContext);
+  const authUser = authCtx?.user as ProfileUser | null | undefined;
+  const userId = authUser?.id ?? authUser?.user_id ?? 0;
+
+  const me = selectedUser as ProfileUser | null;
+  const currentName = me?.username ?? me?.name ?? "";
+  const currentEmail = me?.email ?? authUser?.email ?? "";
+  const initialLoading = loading && !selectedUser;
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // name form
+  const [name, setName] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [nameNotice, setNameNotice] = useState<Notice>(null);
+
+  // password form
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showSaved, setShowSaved] = useState(false); // eye toggle in the info card
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordNotice, setPasswordNotice] = useState<Notice>(null);
+
+  useEffect(() => {
+    if (userId) getUserUsingId(userId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  useEffect(() => {
+    if (selectedUser) setName(currentName);
+  }, [selectedUser, currentName]);
+
+  // success messages fade out on their own
+  useEffect(() => {
+    if (nameNotice?.type !== "success") return;
+    const t = setTimeout(() => setNameNotice(null), 3000);
+    return () => clearTimeout(t);
+  }, [nameNotice]);
+
+  useEffect(() => {
+    if (passwordNotice?.type !== "success") return;
+    const t = setTimeout(() => setPasswordNotice(null), 4000);
+    return () => clearTimeout(t);
+  }, [passwordNotice]);
+
+  const storedPassword = (selectedUser as unknown as { password?: string } | null)?.password;
+
+  const nameChanged = !!selectedUser && name.trim() !== currentName;
+
+  const passedRules = useMemo(() => RULES.filter((r) => r.test(newPassword)).length, [newPassword]);
+  const strength = newPassword ? STRENGTH[passedRules] : null;
+  const mismatch = confirmPassword.length > 0 && confirmPassword !== newPassword;
+  const matches = confirmPassword.length > 0 && confirmPassword === newPassword;
+
+  const handleSaveName = async () => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setNameNotice({ type: "error", text: "Name can't be empty." });
+      return;
+    }
+    try {
+      setSavingName(true);
+      setNameNotice(null);
+      await editUser(userId, { username: trimmed } as unknown as Parameters<typeof editUser>[1]);
+      await getUserUsingId(userId);
+      setNameNotice({ type: "success", text: "Name updated." });
+    } catch {
+      setNameNotice({ type: "error", text: "Couldn't update your name. Try again." });
+    } finally {
+      setSavingName(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordNotice(null);
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordNotice({ type: "error", text: "Fill in all password fields." });
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordNotice({ type: "error", text: "New password must be at least 8 characters." });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordNotice({ type: "error", text: "New passwords don't match." });
+      return;
+    }
+
+    try {
+      setSavingPassword(true);
+      await changeUserPassword(currentPassword, newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowCurrent(false);
+      setShowNew(false);
+      setShowSaved(false);
+      getUserUsingId(userId);
+      setPasswordNotice({ type: "success", text: "Password changed." });
+    } catch {
+      setPasswordNotice({
+        type: "error",
+        text: "Couldn't change your password. Check your current password and try again.",
+      });
+    } finally {
+      setSavingPassword(false);
+    }
   };
 
   return (
     <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.ui, background: T.bg }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
         .prof-main::-webkit-scrollbar { width: 8px; }
         .prof-main::-webkit-scrollbar-track { background: transparent; }
         .prof-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 8px; }
-        .prof-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
+        .prof-input {
+          background: ${T.surface2}; color: ${T.text}; border: ${HAIRLINE_SOFT};
+          transition: border-color 120ms, box-shadow 120ms, background 120ms;
+        }
         .prof-input::placeholder { color: ${T.textFaint}; }
-        select option { background: ${T.surface}; color: ${T.text}; }
+        .prof-input:hover:not(:disabled) { border-color: ${T.border}; }
+        .prof-input:focus { border-color: ${T.accentLine}; box-shadow: 0 0 0 3px rgba(110,231,168,0.10); outline: none; }
+        .prof-input:disabled { opacity: 0.5; }
+        .prof-input[aria-invalid="true"] { border-color: rgba(224,106,106,0.5); }
+        .prof-input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px rgba(224,106,106,0.12); }
+        .prof-ghost:hover:not(:disabled) { background: ${T.surfaceHi}; color: ${T.text}; }
         :focus-visible { outline: 2px solid ${T.accentLine}; outline-offset: 2px; border-radius: 6px; }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-        .fade-up { animation: fadeUp 180ms ease-out; }
-        @media (prefers-reduced-motion: reduce) { .prof-main * { animation: none !important; } }
       `}</style>
 
       {sidebarOpen && (
@@ -98,470 +208,419 @@ const Profile = () => {
         />
       )}
 
-      <div className={`
-        fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-200 ease-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
+      <div
+        className={`fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-200 ease-out ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
+      >
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
       <main className="prof-main flex-1 overflow-y-auto" style={{ height: "100vh", width: "100%", background: T.bg }}>
-        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1160 }}>
-
+        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1040 }}>
           {/* Header */}
-          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-            <div className="flex items-start gap-3">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-[120ms]"
-                style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
-                aria-label="Open menu"
-              >
-                <Menu size={16} />
-              </button>
-              <div>
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="inline-flex items-center gap-2 text-[12px]" style={{ color: T.textMuted }}>
-                    <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: T.accent }} />
-                    Active account
-                  </span>
-                  <span style={{ color: T.border }}>|</span>
-                  <span className="text-[12px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                    verified
-                  </span>
-                </div>
-                <h1 className="text-[24px] md:text-[26px] font-medium leading-tight" style={{ color: T.text }}>
-                  Profile
-                </h1>
-                <p className="mt-1 text-[13px] max-w-lg" style={{ color: T.textMuted }}>
-                  Manage your account, security, and connected senders.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 self-start md:self-auto">
-              {saved && (
-                <span className="fade-up inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
-                  style={{ background: "rgba(110,231,168,0.10)", color: T.accent, border: "1px solid rgba(110,231,168,0.28)" }}>
-                  <Check size={11} /> Saved
-                </span>
-              )}
-              <button
-                onClick={() => setEditing(!editing)}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-all"
-                style={
-                  editing
-                    ? { background: T.surface, color: T.text, border: HAIRLINE }
-                    : { background: T.accent, color: T.accentInk }
-                }
-              >
-                {editing ? <X size={13} /> : <Pencil size={13} />}
-                {editing ? "Cancel editing" : "Edit profile"}
-              </button>
+          <header className="flex items-start gap-3 mb-8">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden mt-1 p-2 rounded-md"
+              style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
+              aria-label="Open menu"
+            >
+              <Menu size={16} />
+            </button>
+            <div>
+              <h1 className="text-[26px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
+                Profile
+              </h1>
+              <p className="mt-1 text-[13px]" style={{ color: T.textMuted }}>
+                Update your name or change your password.
+              </p>
             </div>
           </header>
 
-          {/* Hero — split identity layout */}
-          <section className="mb-6 rounded-xl overflow-hidden" style={{ background: T.surface, border: HAIRLINE }}>
-            <div className="p-5 md:p-6">
-              <div className="flex flex-col md:flex-row md:items-center gap-5 md:gap-6">
-                {/* Avatar + status ring */}
-                <div className="relative shrink-0 self-center md:self-auto">
-                  <div
-                    className="w-20 h-20 rounded-full flex items-center justify-center text-[26px] font-medium"
-                    style={{
-                      background: `linear-gradient(135deg, ${T.accent}, #4BC98E)`,
-                      color: T.accentInk,
-                      boxShadow: `0 0 0 4px ${T.surface}, 0 0 0 5px rgba(110,231,168,0.35)`,
-                    }}
-                  >
-                    MK
-                  </div>
-                  <span
-                    className="absolute bottom-0 right-0 w-5 h-5 rounded-full flex items-center justify-center border-[3px]"
-                    style={{ background: T.accent, borderColor: T.surface }}
-                  >
-                    <Check size={10} style={{ color: T.accentInk }} strokeWidth={3} />
-                  </span>
-                </div>
-
-                {/* Identity text */}
-                <div className="flex-1 min-w-0 text-center md:text-left">
-                  <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap">
-                    <h2 className="text-[22px] font-medium leading-tight" style={{ color: T.text }}>
-                      Muhib Khan
-                    </h2>
-                    <span
-                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium"
-                      style={{ background: "rgba(110,231,168,0.10)", color: T.accent, border: "1px solid rgba(110,231,168,0.28)" }}
-                    >
-                      <ShieldCheck size={10} /> Verified
-                    </span>
-                  </div>
-                  <p className="text-[12px] mt-1" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
-                    muhib@example.com
-                  </p>
-                  <div className="flex items-center justify-center md:justify-start gap-1.5 mt-3 flex-wrap">
-                    <Chip icon={Clock} label="Member since Aug 2026" />
-                    <Chip icon={MapPin} label="Asia/Karachi" />
-                    <Chip icon={UserIcon} label="@muhib" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Stats ribbon — vertical accent rail */}
-          <section className="mb-6 rounded-xl overflow-hidden" style={{ background: T.surface, border: HAIRLINE }}>
-            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x" style={{ borderColor: T.borderSoft }}>
-              <StatRibbon
-                icon={Megaphone}
-                label="Campaigns"
-                value="24"
-                delta="+4 this month"
-                accent={T.accent}
-              />
-              <StatRibbon
-                icon={SendGlyph}
-                label="Emails sent"
-                value="48,250"
-                delta="+12.5% this month"
-                accent={T.info}
-              />
-              <StatRibbon
-                icon={Users}
-                label="Sender accounts"
-                value="5"
-                delta="2 currently active"
-                accent={T.ok}
-              />
-            </div>
-          </section>
-
-          {/* Two-column info panel */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-5 mb-6">
-
-            {/* Personal information */}
-            <section className="xl:col-span-2 rounded-xl overflow-hidden" style={{ background: T.surface, border: HAIRLINE }}>
-              <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: HAIRLINE_SOFT }}>
-                <div className="flex items-center gap-2.5">
-                  <UserIcon size={14} style={{ color: T.accent }} />
-                  <h2 className="text-[12.5px] font-medium" style={{ color: T.text }}>
-                    Personal information
-                  </h2>
-                </div>
-                <span className="text-[10.5px] font-medium tracking-widest uppercase" style={{ color: T.textFaint }}>
-                  Account
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2">
-                <InfoCell label="Full name"      value="Muhib Khan"             editing={editing} divider />
-                <InfoCell label="Email address"  value="muhib@example.com"      editing={editing} divider />
-                <InfoCell label="Username"       value="@muhib"                 editing={editing} divider />
-                <InfoCell label="Timezone"       value="Asia/Karachi (GMT+5)"   editing={editing} divider />
-              </div>
-
-              {editing && (
-                <div className="flex justify-end gap-2 px-5 py-3" style={{ borderTop: HAIRLINE_SOFT }}>
-                  <button
-                    onClick={() => setEditing(false)}
-                    className="rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors duration-[120ms]"
-                    style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
-                    onMouseEnter={(e) => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent" }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    className="rounded-md px-3 py-1.5 text-[12px] font-medium transition-all hover:brightness-110"
-                    style={{ background: T.accent, color: T.accentInk }}
-                  >
-                    Save changes
-                  </button>
-                </div>
-              )}
-            </section>
-
-            {/* Security */}
-            <section className="rounded-xl overflow-hidden" style={{ background: T.surface, border: HAIRLINE }}>
-              <div className="flex items-center gap-2.5 px-5 py-4" style={{ borderBottom: HAIRLINE_SOFT }}>
-                <ShieldCheck size={14} style={{ color: T.accent }} />
-                <h2 className="text-[12.5px] font-medium" style={{ color: T.text }}>Security</h2>
-              </div>
-
-              <div>
-                <SecurityRow
-                  icon={KeyRound}
-                  title="Password"
-                  description="Last changed 30 days ago"
-                  action="Change"
-                  accent={T.accent}
-                />
-                <SecurityRow
-                  icon={ShieldAlert}
-                  title="Two-factor authentication"
-                  description="Not enabled"
-                  action="Enable"
-                  accent={T.warn}
-                />
-                <SecurityRow
-                  icon={Monitor}
-                  title="Active sessions"
-                  description="1 active session"
-                  action="View"
-                  accent={T.info}
-                  last
-                />
-              </div>
-            </section>
-          </div>
-
-          {/* Sender accounts */}
-          <section className="rounded-xl overflow-hidden mb-6" style={{ background: T.surface, border: HAIRLINE }}>
-            <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: HAIRLINE_SOFT }}>
-              <div className="flex items-center gap-2.5">
-                <Mail size={14} style={{ color: T.accent }} />
-                <div>
-                  <h2 className="text-[12.5px] font-medium" style={{ color: T.text }}>Sender accounts</h2>
-                  <p className="text-[10.5px] mt-0.5" style={{ color: T.textMuted }}>
-                    Connected accounts used to send campaigns.
-                  </p>
-                </div>
-              </div>
-              <button
-                className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-all hover:brightness-110"
-                style={{ background: T.accent, color: T.accentInk }}
-              >
-                <Plus size={12} /> Add sender
-              </button>
-            </div>
-
-            <ul>
-              {senderAccounts.map((a, i) => {
-                const p = PROVIDER_STYLE[a.provider] ?? PROVIDER_STYLE["Custom SMTP"];
-                const active = a.status === "Active";
-                return (
-                  <li
-                    key={a.email}
-                    className="flex items-center gap-3 px-5 py-3.5 transition-colors duration-[120ms]"
-                    style={{ borderTop: i === 0 ? "none" : HAIRLINE_SOFT }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = T.surface2)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                  >
-                    <div
-                      className="shrink-0 w-9 h-9 rounded-md flex items-center justify-center text-[13px] font-medium text-white"
-                      style={{ background: p.grad, boxShadow: `0 0 0 2px ${T.surface}, 0 0 0 3px ${p.ring}` }}
-                    >
-                      {p.short}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>
-                          {a.email}
-                        </p>
-                        <span
-                          className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
-                          style={{
-                            background: active ? "rgba(110,231,168,0.10)" : "rgba(224,106,106,0.10)",
-                            color: active ? T.ok : T.danger,
-                            border: `1px solid ${active ? "rgba(110,231,168,0.28)" : "rgba(224,106,106,0.28)"}`,
-                          }}
-                        >
-                          <span
-                            className="w-1 h-1 rounded-full"
-                            style={{ background: active ? T.ok : T.danger }}
-                          />
-                          {a.status}
-                        </span>
-                      </div>
-                      <p className="text-[11px] mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                        {a.provider} <span style={{ color: T.border }}>·</span> {a.sent.toLocaleString()} emails sent
-                      </p>
-                    </div>
-
-                    <div className="shrink-0 flex items-center gap-0.5">
-                      <button
-                        className="inline-flex items-center justify-center rounded-md p-2 transition-colors duration-[120ms]"
-                        style={{ color: T.textMuted }}
-                        title="Manage"
-                        onMouseEnter={(e) => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi }}
-                        onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent" }}
-                      >
-                        <Settings2 size={13} />
-                      </button>
-                      <button
-                        aria-label="Remove"
-                        className="inline-flex items-center justify-center rounded-md p-2 transition-colors duration-[120ms]"
-                        style={{ color: T.textFaint }}
-                        title="Remove"
-                        onMouseEnter={(e) => { e.currentTarget.style.color = T.danger; e.currentTarget.style.background = T.surfaceHi }}
-                        onMouseLeave={(e) => { e.currentTarget.style.color = T.textFaint; e.currentTarget.style.background = "transparent" }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-
-          {/* Danger strip */}
-          <section
-            className="rounded-xl overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-5 py-4"
-            style={{ background: "rgba(224,106,106,0.05)", border: "1px solid rgba(224,106,106,0.28)" }}
-          >
-            <div className="flex items-start gap-3 min-w-0">
-              <div
-                className="shrink-0 w-8 h-8 rounded-md flex items-center justify-center"
-                style={{ background: "rgba(224,106,106,0.12)", color: T.danger }}
-              >
-                <AlertTriangle size={14} />
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-[12.5px] font-medium" style={{ color: T.danger }}>
-                  Delete account
-                </h2>
-                <p className="mt-0.5 text-[11px] max-w-lg" style={{ color: "rgba(224,106,106,0.75)" }}>
-                  Permanently delete your account and all associated campaigns, templates, and email data.
-                </p>
-              </div>
-            </div>
-
-            <button
-              className="shrink-0 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11.5px] font-medium transition-all hover:brightness-110 self-start md:self-auto"
-              style={{ background: "rgba(224,106,106,0.12)", color: T.danger, border: "1px solid rgba(224,106,106,0.28)" }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(224,106,106,0.2)" }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(224,106,106,0.12)" }}
+          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-5 items-start">
+            {/* ───── Identity card ───── */}
+            <aside
+              className="rounded-2xl overflow-hidden lg:sticky lg:top-6"
+              style={{ background: T.surface, border: HAIRLINE }}
             >
-              <Trash2 size={12} />
-              Delete account
-            </button>
-          </section>
+              <div
+                className="h-20"
+                style={{
+                  background:
+                    "radial-gradient(120% 140% at 0% 0%, rgba(110,231,168,0.22), rgba(110,231,168,0) 60%), linear-gradient(180deg, #14171A, #111214)",
+                  borderBottom: HAIRLINE_SOFT,
+                }}
+              />
+              <div className="px-5 pb-5 -mt-10">
+                <div
+                  className="w-20 h-20 rounded-full flex items-center justify-center text-[26px] font-semibold"
+                  style={{
+                    background: `linear-gradient(135deg, ${T.accent}, #4BC98E)`,
+                    color: T.accentInk,
+                    boxShadow: `0 0 0 4px ${T.surface}`,
+                  }}
+                  aria-hidden
+                >
+                  {initialLoading ? "" : getInitials(currentName)}
+                </div>
+
+                <h2 className="mt-4 text-[18px] font-semibold leading-tight truncate" style={{ color: T.text }}>
+                  {initialLoading ? "Loading…" : currentName || "—"}
+                </h2>
+                <p className="mt-0.5 text-[12.5px] truncate" style={{ color: T.textMuted }}>
+                  {initialLoading ? "" : currentEmail}
+                </p>
+
+                <dl className="mt-5 pt-4 space-y-3.5" style={{ borderTop: HAIRLINE_SOFT }}>
+                  <InfoItem icon={UserIcon} label="Full name" value={currentName} loading={initialLoading} />
+                  <InfoItem icon={Mail} label="Email" value={currentEmail} loading={initialLoading} />
+                  <InfoItem
+                    icon={KeyRound}
+                    label="Password"
+                    value={storedPassword}
+                    secret
+                    visible={showSaved}
+                    onToggle={storedPassword ? () => setShowSaved((v) => !v) : undefined}
+                    loading={initialLoading}
+                  />
+                </dl>
+              </div>
+            </aside>
+
+            {/* ───── Forms ───── */}
+            <div className="space-y-5 min-w-0">
+              {/* Name */}
+              <Card
+                icon={UserIcon}
+                title="Name"
+                description="This is how you appear across the app."
+                footer={
+                  <>
+                    <NoticeLine notice={nameNotice} />
+                    <div className="flex items-center gap-2 ml-auto">
+                      {nameChanged && (
+                        <GhostButton onClick={() => { setName(currentName); setNameNotice(null); }}>
+                          Reset
+                        </GhostButton>
+                      )}
+                      <PrimaryButton onClick={handleSaveName} disabled={!nameChanged || savingName} busy={savingName}>
+                        {savingName ? "Saving" : "Save name"}
+                      </PrimaryButton>
+                    </div>
+                  </>
+                }
+              >
+                <Field label="Full name" htmlFor="prof-name">
+                  <input
+                    id="prof-name"
+                    type="text"
+                    autoComplete="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter" && nameChanged && !savingName) handleSaveName(); }}
+                    disabled={initialLoading}
+                    className="prof-input w-full rounded-lg px-3.5 py-2.5 text-[13.5px]"
+                  />
+                </Field>
+              </Card>
+
+              {/* Password */}
+              <Card
+                icon={KeyRound}
+                title="Password"
+                description="Use a strong password you don't use anywhere else."
+                footer={
+                  <>
+                    <NoticeLine notice={passwordNotice} />
+                    <div className="ml-auto">
+                      <PrimaryButton onClick={handleChangePassword} disabled={savingPassword} busy={savingPassword}>
+                        {savingPassword ? "Changing" : "Change password"}
+                      </PrimaryButton>
+                    </div>
+                  </>
+                }
+              >
+                <div className="space-y-5">
+                  <Field label="Current password" htmlFor="prof-current">
+                    <PasswordInput
+                      id="prof-current"
+                      autoComplete="current-password"
+                      value={currentPassword}
+                      onChange={setCurrentPassword}
+                      visible={showCurrent}
+                      onToggle={() => setShowCurrent((v) => !v)}
+                    />
+                  </Field>
+
+                  <div className="h-px" style={{ background: T.borderSoft }} />
+
+                  <Field label="New password" htmlFor="prof-new">
+                    <PasswordInput
+                      id="prof-new"
+                      autoComplete="new-password"
+                      value={newPassword}
+                      onChange={setNewPassword}
+                      visible={showNew}
+                      onToggle={() => setShowNew((v) => !v)}
+                      placeholder="At least 8 characters"
+                    />
+
+                    {newPassword && strength && (
+                      <div className="mt-3">
+                        <div className="flex items-center gap-1.5">
+                          {[1, 2, 3, 4].map((i) => (
+                            <span
+                              key={i}
+                              className="h-1 flex-1 rounded-full transition-colors duration-200"
+                              style={{ background: i <= passedRules ? strength.color : T.border }}
+                            />
+                          ))}
+                          <span className="ml-2 text-[11.5px] font-medium w-14 text-right" style={{ color: strength.color }}>
+                            {strength.label}
+                          </span>
+                        </div>
+                        <ul className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+                          {RULES.map((r) => {
+                            const ok = r.test(newPassword);
+                            return (
+                              <li
+                                key={r.id}
+                                className="flex items-center gap-1.5 text-[11.5px] transition-colors"
+                                style={{ color: ok ? T.accent : T.textFaint }}
+                              >
+                                {ok ? <Check size={11} strokeWidth={3} /> : <Circle size={9} />}
+                                {r.label}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    )}
+                  </Field>
+
+                  <Field label="Confirm new password" htmlFor="prof-confirm">
+                    <PasswordInput
+                      id="prof-confirm"
+                      autoComplete="new-password"
+                      value={confirmPassword}
+                      onChange={setConfirmPassword}
+                      visible={showNew}
+                      onToggle={() => setShowNew((v) => !v)}
+                      invalid={mismatch}
+                    />
+                    {mismatch && (
+                      <p className="mt-1.5 text-[11.5px]" style={{ color: T.danger }}>Passwords don't match yet.</p>
+                    )}
+                    {matches && (
+                      <p className="mt-1.5 flex items-center gap-1 text-[11.5px]" style={{ color: T.accent }}>
+                        <ShieldCheck size={11} /> Passwords match.
+                      </p>
+                    )}
+                  </Field>
+                </div>
+              </Card>
+            </div>
+          </div>
         </div>
       </main>
     </div>
   );
 };
 
-/* ─────────────── subcomponents ─────────────── */
+/* ─────────────── components ─────────────── */
 
-const Chip: React.FC<{
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  label: string;
-}> = ({ icon: Icon, label }) => (
-  <span
-    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] whitespace-nowrap"
-    style={{ background: T.surface2, color: T.textMuted, border: HAIRLINE_SOFT }}
-  >
-    <Icon size={10} style={{ color: T.textFaint }} />
-    {label}
-  </span>
-);
-
-/* ─────────────── Stat Ribbon ─────────────── */
-
-interface StatRibbonProps {
-  icon: React.ElementType;
-  label: string;
-  value: string;
-  delta: string;
-  accent: string;
-}
-
-const StatRibbon = ({ icon: Icon, label, value, delta, accent }: StatRibbonProps) => (
-  <div className="relative px-5 py-4">
-    <span
-      aria-hidden
-      className="absolute left-0 top-4 bottom-4 w-[2px] rounded-full hidden sm:block"
-      style={{ background: accent, opacity: 0.6 }}
-    />
-    <div className="flex items-center gap-2 mb-1.5">
-      <Icon size={12} style={{ color: accent }} />
-      <span className="text-[10.5px] uppercase tracking-wider font-medium" style={{ color: T.textFaint }}>
-        {label}
-      </span>
-    </div>
-    <p className="text-[22px] font-medium leading-none tracking-tight" style={{ color: T.text, fontFamily: FONT.mono }}>
-      {value}
-    </p>
-    <p className="text-[10.5px] mt-1.5" style={{ color: delta.startsWith("+") ? T.ok : T.textMuted, fontFamily: FONT.mono }}>
-      {delta}
-    </p>
-  </div>
-);
-
-/* ─────────────── Info Cell ─────────────── */
-
-interface InfoCellProps {
-  label: string;
-  value: string;
-  editing: boolean;
-  divider?: boolean;
-}
-
-const InfoCell = ({ label, value, editing, divider }: InfoCellProps) => (
-  <div
-    className="px-5 py-4"
-    style={{ borderBottom: divider ? HAIRLINE_SOFT : undefined }}
-  >
-    <label className="block text-[10.5px] font-medium tracking-wider uppercase mb-2" style={{ color: T.textFaint }}>
-      {label}
-    </label>
-    {editing ? (
-      <input
-        type="text"
-        defaultValue={value}
-        className="prof-input w-full rounded-md px-2.5 py-1.5 text-[12.5px] outline-none transition-colors duration-[120ms]"
-        style={{ background: T.surface2, color: T.text, border: HAIRLINE_SOFT }}
-        onFocus={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
-        onBlur={(e) => (e.currentTarget.style.borderColor = T.borderSoft)}
-      />
-    ) : (
-      <p className="text-[13px] font-medium truncate" style={{ color: T.text }}>{value}</p>
-    )}
-  </div>
-);
-
-/* ─────────────── Security Row ─────────────── */
-
-interface SecurityRowProps {
+const Card = ({
+  icon: Icon,
+  title,
+  description,
+  children,
+  footer,
+}: {
   icon: React.ElementType;
   title: string;
   description: string;
-  action: string;
-  accent: string;
-  last?: boolean;
-}
+  children: React.ReactNode;
+  footer: React.ReactNode;
+}) => (
+  <section className="rounded-2xl overflow-hidden" style={{ background: T.surface, border: HAIRLINE }}>
+    <div className="flex items-start gap-3 px-6 pt-5 pb-4">
+      <div
+        className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+        style={{ background: "rgba(110,231,168,0.10)", color: T.accent }}
+      >
+        <Icon size={15} />
+      </div>
+      <div>
+        <h2 className="text-[14px] font-semibold leading-tight" style={{ color: T.text }}>{title}</h2>
+        <p className="mt-0.5 text-[12px]" style={{ color: T.textMuted }}>{description}</p>
+      </div>
+    </div>
 
-const SecurityRow = ({ icon: Icon, title, description, action, accent, last }: SecurityRowProps) => (
-  <div
-    className="group flex items-center gap-3 px-5 py-3 transition-colors duration-[120ms]"
-    style={{ borderBottom: last ? "none" : HAIRLINE_SOFT }}
-    onMouseEnter={(e) => (e.currentTarget.style.background = T.surface2)}
-    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-  >
+    <div className="px-6 pb-6">{children}</div>
+
     <div
-      className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center"
-      style={{ background: `${accent}14`, color: accent }}
+      className="flex flex-wrap items-center gap-3 px-6 py-3.5 min-h-14.5"
+      style={{ borderTop: HAIRLINE_SOFT, background: "rgba(255,255,255,0.015)" }}
     >
-      <Icon size={12} />
+      {footer}
     </div>
-    <div className="flex-1 min-w-0">
-      <p className="text-[12px] font-medium truncate" style={{ color: T.text }}>{title}</p>
-      <p className="text-[10.5px] mt-0.5 truncate" style={{ color: T.textMuted }}>{description}</p>
+  </section>
+);
+
+const InfoItem = ({
+  icon: Icon,
+  label,
+  value,
+  loading,
+  secret,
+  visible,
+  onToggle,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value?: string;
+  loading?: boolean;
+  secret?: boolean;
+  visible?: boolean;
+  onToggle?: () => void;
+}) => {
+  const hidden = secret && !visible;
+  const text = loading ? "Loading…" : hidden ? "••••••••••" : value || "—";
+  return (
+    <div className="flex items-center gap-3 min-w-0">
+      <div
+        className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center"
+        style={{ background: T.surface2, color: T.textMuted }}
+      >
+        <Icon size={12} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <dt className="text-[11px]" style={{ color: T.textFaint }}>{label}</dt>
+        <dd
+          className="text-[13px] font-medium truncate"
+          style={{ color: T.text, letterSpacing: hidden ? "0.08em" : undefined }}
+        >
+          {text}
+        </dd>
+      </div>
+      {secret && onToggle && !loading && (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={visible ? "Hide password" : "Show password"}
+          className="prof-ghost shrink-0 p-1.5 rounded-md transition-colors"
+          style={{ color: T.textFaint }}
+        >
+          {visible ? <EyeOff size={14} /> : <Eye size={14} />}
+        </button>
+      )}
     </div>
+  );
+};
+
+const Field = ({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+}) => (
+  <div>
+    <label htmlFor={htmlFor} className="block text-[12.5px] font-medium mb-2" style={{ color: T.textMuted }}>
+      {label}
+    </label>
+    {children}
+  </div>
+);
+
+const PasswordInput = ({
+  id,
+  value,
+  onChange,
+  visible,
+  onToggle,
+  autoComplete,
+  placeholder,
+  invalid,
+}: {
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+  visible: boolean;
+  onToggle: () => void;
+  autoComplete: string;
+  placeholder?: string;
+  invalid?: boolean;
+}) => (
+  <div className="relative">
+    <input
+      id={id}
+      type={visible ? "text" : "password"}
+      autoComplete={autoComplete}
+      value={value}
+      placeholder={placeholder}
+      aria-invalid={invalid ? "true" : undefined}
+      onChange={(e) => onChange(e.target.value)}
+      className="prof-input w-full rounded-lg pl-3.5 pr-11 py-2.5 text-[13.5px]"
+    />
     <button
-      className="shrink-0 inline-flex items-center gap-0.5 text-[11px] font-medium transition-colors duration-[120ms]"
-      style={{ color: accent }}
+      type="button"
+      onClick={onToggle}
+      aria-label={visible ? "Hide password" : "Show password"}
+      className="prof-ghost absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-md transition-colors"
+      style={{ color: T.textFaint }}
     >
-      {action}
-      <ChevronRight size={11} className="opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+      {visible ? <EyeOff size={15} /> : <Eye size={15} />}
     </button>
   </div>
 );
+
+const PrimaryButton = ({
+  children,
+  onClick,
+  disabled,
+  busy,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  busy?: boolean;
+}) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[12.5px] font-semibold transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100 disabled:active:scale-100"
+    style={{ background: T.accent, color: T.accentInk }}
+  >
+    {busy && <Loader2 size={13} className="animate-spin" />}
+    {children}
+  </button>
+);
+
+const GhostButton = ({ children, onClick }: { children: React.ReactNode; onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    className="prof-ghost rounded-lg px-3.5 py-2 text-[12.5px] font-medium transition-colors"
+    style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
+  >
+    {children}
+  </button>
+);
+
+const NoticeLine = ({ notice }: { notice: Notice }) => {
+  if (!notice) return null;
+  const ok = notice.type === "success";
+  const color = ok ? T.accent : T.danger;
+  const Icon = ok ? Check : AlertTriangle;
+  return (
+    <p role="status" className="flex items-center gap-1.5 text-[12.5px] font-medium" style={{ color }}>
+      <Icon size={13} />
+      {notice.text}
+    </p>
+  );
+};
 
 export default Profile;
