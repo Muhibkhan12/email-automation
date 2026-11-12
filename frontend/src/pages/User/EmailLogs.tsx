@@ -1,13 +1,14 @@
-import { useContext, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Sidebar from "./Sidebar";
-import { EmailLogsContext } from "../../contexts/EmaillogsContext";
+import { useEmailLogs } from "../../contexts/EmaillogsContext";
+import type { EmailLogs as EmailLogType, EmailLogsStatus } from "../../types/EmaillogsTypes";
 import {
   Search, RefreshCw, ChevronLeft, ChevronRight,
   CheckCircle2, XCircle, Clock, AlertTriangle, Copy, Inbox,
-  Menu, Send, Mail,
+  Menu, Send,
 } from "lucide-react";
 
-type EmailStatus = "Sent" | "Delivered" | "Failed" | "Bounced";
+type EmailStatus = EmailLogsStatus; // "Pending" | "Sent" | "Failed"
 
 interface NormalizedLog {
   id: string | number;
@@ -17,9 +18,10 @@ interface NormalizedLog {
   subject: string;
   status: EmailStatus;
   sentAt: string;
+  errorMessage: string | null;
 }
 
-/* ─────────────── design tokens (matching Upload page) ─────────────── */
+/* ─────────────── design tokens ─────────────── */
 
 const T = {
   bg:         "#0B0C0E",
@@ -53,14 +55,15 @@ const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`;
 
 const PAGE_SIZE = 5;
 
-const normalizeLog = (log: any): NormalizedLog => ({
+const normalizeLog = (log: EmailLogType): NormalizedLog => ({
   id: log.id ?? "unknown",
   recipient: log.recipient_email || `Recipient ${log.recipient_id ?? ""}`,
   sender: log.sender_email || `Sender ${log.sender_account_id ?? ""}`,
   campaign: log.campaign_name || `Campaign ${log.campaign_id ?? ""}`,
   subject: log.subject || "No Subject",
-  status: (log.status || "Sent") as EmailStatus,
+  status: (log.status || "Pending") as EmailStatus,
   sentAt: log.sent_at || log.created_at || "",
+  errorMessage: log.error_message ?? null,
 });
 
 const formatSentAt = (value: string) => {
@@ -70,6 +73,19 @@ const formatSentAt = (value: string) => {
   return d.toLocaleString(undefined, {
     month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
   });
+};
+
+const matchesDate = (value: string, filter: string) => {
+  if (filter === "All time") return true;
+  const t = new Date(value).getTime();
+  if (isNaN(t)) return false;
+  if (filter === "Today") {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    return t >= start.getTime();
+  }
+  const days = filter === "Last 7 days" ? 7 : 30;
+  return t >= Date.now() - days * 86_400_000;
 };
 
 /* ─────────────── primitives ─────────────── */
@@ -102,8 +118,10 @@ const StatCard = ({ title, value, rate, rateLabel, icon: Icon, accent, accentSof
         </span>
       )}
     </div>
-    <p className="text-[24px] font-medium tracking-tight leading-none"
-      style={{ color: T.text, fontFamily: FONT.mono }}>
+    <p
+      className="text-[24px] font-medium tracking-tight leading-none"
+      style={{ color: T.text, fontFamily: FONT.mono }}
+    >
       {value.toLocaleString()}
     </p>
     <p className="text-[11.5px] mt-1.5" style={{ color: T.textMuted }}>{title}</p>
@@ -119,14 +137,13 @@ const statusConfig: Record<
   EmailStatus,
   { bg: string; fg: string; ring: string; icon: React.ComponentType<{ size?: number }> }
 > = {
-  Sent:      { bg: "rgba(110,193,231,0.10)", fg: T.info,   ring: "rgba(110,193,231,0.28)", icon: Clock },
-  Delivered: { bg: "rgba(110,231,168,0.10)", fg: T.ok,     ring: "rgba(110,231,168,0.28)", icon: CheckCircle2 },
-  Failed:    { bg: "rgba(224,106,106,0.10)", fg: T.danger, ring: "rgba(224,106,106,0.28)", icon: XCircle },
-  Bounced:   { bg: "rgba(224,166,74,0.10)",  fg: T.warn,   ring: "rgba(224,166,74,0.28)",  icon: AlertTriangle },
+  Pending: { bg: "rgba(224,166,74,0.10)",  fg: T.warn,   ring: "rgba(224,166,74,0.28)",  icon: Clock },
+  Sent:    { bg: "rgba(110,231,168,0.10)", fg: T.ok,     ring: "rgba(110,231,168,0.28)", icon: CheckCircle2 },
+  Failed:  { bg: "rgba(224,106,106,0.10)", fg: T.danger, ring: "rgba(224,106,106,0.28)", icon: XCircle },
 };
 
 const StatusBadge = ({ status }: { status: EmailStatus }) => {
-  const config = statusConfig[status] ?? statusConfig.Sent;
+  const config = statusConfig[status] ?? statusConfig.Pending;
   const Icon = config.icon;
   return (
     <span
@@ -142,7 +159,7 @@ const StatusBadge = ({ status }: { status: EmailStatus }) => {
 /* ─────────────── page ─────────────── */
 
 const EmailLogs = () => {
-  const ctx = useContext(EmailLogsContext);
+  const { emaillogs, loading, error, refetch } = useEmailLogs();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -150,11 +167,6 @@ const EmailLogs = () => {
   const [page, setPage] = useState(1);
   const [copiedId, setCopiedId] = useState<string | number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const emaillogs = ctx?.emaillogs ?? [];
-  const loading = ctx?.loading ?? false;
-  const error = ctx?.error ?? null;
-  const refetch = ctx?.refetch ?? (() => {});
 
   const normalizedLogs = useMemo(() => {
     if (!Array.isArray(emaillogs)) return [];
@@ -170,24 +182,35 @@ const EmailLogs = () => {
         log.campaign.toLowerCase().includes(q) ||
         log.subject.toLowerCase().includes(q);
       const matchesStatus = statusFilter === "All" || log.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus && matchesDate(log.sentAt, dateFilter);
     });
-  }, [normalizedLogs, search, statusFilter]);
+  }, [normalizedLogs, search, statusFilter, dateFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE));
   const paginatedLogs = filteredLogs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  const pageNumbers = useMemo(() => {
+    const start = Math.max(1, Math.min(page - 2, totalPages - 4));
+    const end = Math.min(totalPages, start + 4);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }, [page, totalPages]);
+
   const stats = useMemo(() => {
     const total = normalizedLogs.length;
-    const delivered = normalizedLogs.filter((l) => l.status === "Delivered").length;
-    const failed = normalizedLogs.filter((l) => l.status === "Failed").length;
-    const bounced = normalizedLogs.filter((l) => l.status === "Bounced").length;
-    const sent = normalizedLogs.filter((l) => l.status === "Sent").length;
-    return { total, delivered, failed, bounced, sent };
+    const count = (s: EmailStatus) => normalizedLogs.filter((l) => l.status === s).length;
+    return { total, sent: count("Sent"), pending: count("Pending"), failed: count("Failed") };
   }, [normalizedLogs]);
 
   const handleSearchChange = (value: string) => { setSearch(value); setPage(1); };
   const handleStatusChange = (value: string) => { setStatusFilter(value); setPage(1); };
+  const handleDateChange = (value: string) => { setDateFilter(value); setPage(1); };
+
+  const clearFilters = () => {
+    setSearch("");
+    setStatusFilter("All");
+    setDateFilter("All time");
+    setPage(1);
+  };
 
   const handleCopy = (id: string | number) => {
     navigator.clipboard?.writeText(String(id));
@@ -195,17 +218,7 @@ const EmailLogs = () => {
     setTimeout(() => setCopiedId(null), 1200);
   };
 
-  const hasActiveFilters = !!search || statusFilter !== "All";
-
-  if (!ctx) {
-    return (
-      <div className="flex min-h-screen items-center justify-center" style={{ background: T.bg, color: T.text, fontFamily: FONT.ui }}>
-        <p className="text-[13px]" style={{ color: T.textMuted }}>
-          EmailLogsContext not found — wrap this page in &lt;EmailLogsProvider&gt;.
-        </p>
-      </div>
-    );
-  }
+  const hasActiveFilters = !!search || statusFilter !== "All" || dateFilter !== "All time";
 
   return (
     <div className="flex min-h-screen overflow-hidden" style={{ background: T.bg, fontFamily: FONT.ui }}>
@@ -291,13 +304,25 @@ const EmailLogs = () => {
 
           {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-            <StatCard title="Total emails" value={stats.total}     icon={Inbox}        accent={T.accent} accentSoft="rgba(110,231,168,0.10)" />
-            <StatCard title="Delivered"    value={stats.delivered} icon={CheckCircle2} accent={T.ok}     accentSoft="rgba(110,231,168,0.10)"
-              rate={stats.total ? (stats.delivered / stats.total) * 100 : 0} rateLabel="delivery" />
-            <StatCard title="Failed"       value={stats.failed}    icon={XCircle}      accent={T.danger} accentSoft="rgba(224,106,106,0.10)"
-              rate={stats.total ? (stats.failed / stats.total) * 100 : 0} rateLabel="failure" />
-            <StatCard title="Bounced"      value={stats.bounced}   icon={AlertTriangle} accent={T.warn}  accentSoft="rgba(224,166,74,0.10)"
-              rate={stats.total ? (stats.bounced / stats.total) * 100 : 0} rateLabel="bounce" />
+            <StatCard
+              title="Total emails" value={stats.total} icon={Inbox}
+              accent={T.accent} accentSoft="rgba(110,231,168,0.10)"
+            />
+            <StatCard
+              title="Sent" value={stats.sent} icon={CheckCircle2}
+              accent={T.ok} accentSoft="rgba(110,231,168,0.10)"
+              rate={stats.total ? (stats.sent / stats.total) * 100 : 0} rateLabel="success"
+            />
+            <StatCard
+              title="Pending" value={stats.pending} icon={Clock}
+              accent={T.warn} accentSoft="rgba(224,166,74,0.10)"
+              rate={stats.total ? (stats.pending / stats.total) * 100 : 0} rateLabel="pending"
+            />
+            <StatCard
+              title="Failed" value={stats.failed} icon={XCircle}
+              accent={T.danger} accentSoft="rgba(224,106,106,0.10)"
+              rate={stats.total ? (stats.failed / stats.total) * 100 : 0} rateLabel="failure"
+            />
           </div>
 
           {/* Filters */}
@@ -339,15 +364,14 @@ const EmailLogs = () => {
                   onBlur={(e) => (e.currentTarget.style.borderColor = T.borderSoft)}
                 >
                   <option value="All">All statuses</option>
+                  <option value="Pending">Pending</option>
                   <option value="Sent">Sent</option>
-                  <option value="Delivered">Delivered</option>
                   <option value="Failed">Failed</option>
-                  <option value="Bounced">Bounced</option>
                 </select>
 
                 <select
                   value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
+                  onChange={(e) => handleDateChange(e.target.value)}
                   className="px-2.5 py-2 rounded-md text-[12px] cursor-pointer outline-none transition-colors duration-[120ms]"
                   style={{ background: T.surface2, color: T.text, border: HAIRLINE_SOFT }}
                   onFocus={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
@@ -368,7 +392,7 @@ const EmailLogs = () => {
                   {filteredLogs.length === 1 ? "result" : "results"} matching filters
                 </p>
                 <button
-                  onClick={() => { setSearch(""); setStatusFilter("All"); setPage(1); }}
+                  onClick={clearFilters}
                   className="text-[11.5px] font-medium transition-colors duration-[120ms]"
                   style={{ color: T.accent }}
                 >
@@ -432,16 +456,20 @@ const EmailLogs = () => {
                         >
                           <Inbox className="w-5 h-5" style={{ color: T.textFaint }} />
                         </div>
-                        <p className="text-[13px] font-medium" style={{ color: T.text }}>No email logs yet</p>
+                        <p className="text-[13px] font-medium" style={{ color: T.text }}>
+                          {hasActiveFilters ? "No logs match your filters" : "No email logs yet"}
+                        </p>
                         <p className="mt-1 text-[11.5px]" style={{ color: T.textMuted }}>
-                          Once you launch a campaign, activity will show up here.
+                          {hasActiveFilters
+                            ? "Try adjusting or clearing your filters."
+                            : "Once you launch a campaign, activity will show up here."}
                         </p>
                         <button
-                          onClick={() => refetch()}
+                          onClick={() => (hasActiveFilters ? clearFilters() : refetch())}
                           className="mt-3.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11.5px] font-medium transition-colors duration-[120ms]"
                           style={{ color: T.textMuted, border: HAIRLINE }}
                         >
-                          <RefreshCw size={11} /> Refresh
+                          <RefreshCw size={11} /> {hasActiveFilters ? "Clear filters" : "Refresh"}
                         </button>
                       </td>
                     </tr>
@@ -514,7 +542,9 @@ const EmailLogs = () => {
                           </td>
 
                           <td className="px-3 py-3">
-                            <StatusBadge status={log.status} />
+                            <span title={log.status === "Failed" && log.errorMessage ? log.errorMessage : undefined}>
+                              <StatusBadge status={log.status} />
+                            </span>
                           </td>
 
                           <td className="px-4 md:px-5 py-3 whitespace-nowrap">
@@ -553,7 +583,7 @@ const EmailLogs = () => {
                     <ChevronLeft size={12} /> Prev
                   </button>
 
-                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((p) => {
+                  {pageNumbers.map((p) => {
                     const active = p === page;
                     return (
                       <button
@@ -571,7 +601,7 @@ const EmailLogs = () => {
                     );
                   })}
 
-                  {totalPages > 5 && (
+                  {pageNumbers[pageNumbers.length - 1] < totalPages && (
                     <>
                       <span className="text-[11px] px-1" style={{ color: T.textFaint }}>…</span>
                       <button

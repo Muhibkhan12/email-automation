@@ -8,7 +8,7 @@ import { EmailLogsContext } from '../../contexts/EmaillogsContext'
 import { SenderAccContext } from '../../contexts/SenderAccountsContext'
 
 import {
-  Mail, Send, Users, AlertCircle, ArrowUpRight, ArrowDownRight,
+  Mail, Send, Users, AlertCircle,
   Clock, CheckCircle2, XCircle, ShieldCheck, ShieldAlert,
   ShieldX, Menu, ChevronRight, Activity, RefreshCw, Inbox,
 } from 'lucide-react'
@@ -595,10 +595,10 @@ const UserDashboard: React.FC = () => {
                             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                           >
                             <td className="px-5 md:px-6 py-3">
-                              <p className="text-[12.5px] font-medium truncate max-w-[14rem]" style={{ color: T.text }}>
+                              <p className="text-[12.5px] font-medium truncate max-w-56" style={{ color: T.text }}>
                                 {c.campaign_name}
                               </p>
-                              <p className="text-[11px] truncate max-w-[14rem] mt-0.5" style={{ color: T.textFaint }}>
+                              <p className="text-[11px] truncate max-w-56 mt-0.5" style={{ color: T.textFaint }}>
                                 {c.subject || '—'}
                               </p>
                             </td>
