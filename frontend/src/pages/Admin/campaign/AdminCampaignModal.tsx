@@ -10,45 +10,56 @@ import {
   Calendar, Search, Filter, Inbox, RefreshCw,
 } from 'lucide-react';
 
-/* ─────────────── design tokens ─────────────── */
+/* ─────────────── design tokens (indigo + mint theme) ─────────────── */
 
 const T = {
-  bg:           "#0A0B10",
-  surface:      "#111319",
-  surface2:     "#161922",
-  surfaceHi:    "#1B1F2A",
-  border:       "#232838",
-  borderSoft:   "#1B1F2A",
-  text:         "#E9EBF0",
-  textMuted:    "#9CA3B4",
-  textFaint:    "#6B7280",
+  bg:           "#0B0C0E",
+  surface:      "#111214",
+  surface2:     "#16181B",
+  surfaceHi:    "#1C1F23",
+  border:       "#24282E",
+  borderSoft:   "#1B1E22",
+  text:         "#E8EAED",
+  textMuted:    "#9AA0A6",
+  textFaint:    "#6B7075",
+  
   brand:        "#6366F1",
   brandSoft:    "rgba(99,102,241,0.12)",
   brandBorder:  "rgba(99,102,241,0.35)",
-  success:      "#22C55E",
-  successSoft:  "rgba(34,197,94,0.12)",
-  successBorder:"rgba(34,197,94,0.35)",
-  warn:         "#F59E0B",
-  warnSoft:     "rgba(245,158,11,0.12)",
-  warnBorder:   "rgba(245,158,11,0.35)",
-  danger:       "#EF4444",
-  dangerSoft:   "rgba(239,68,68,0.12)",
-  dangerBorder: "rgba(239,68,68,0.35)",
-  info:         "#38BDF8",
-  infoSoft:     "rgba(56,189,248,0.12)",
-  infoBorder:   "rgba(56,189,248,0.35)",
-  purple:       "#A78BFA",
-  purpleSoft:   "rgba(167,139,250,0.12)",
-  purpleBorder: "rgba(167,139,250,0.35)",
+  brandInk:     "#ffffff",
+
+  accent:       "#6EE7A8",
+  accentInk:    "#0B0C0E",
+  accentLine:   "#2E6B4D",
+
+  success:      "#6EE7A8",
+  successSoft:  "rgba(110,231,168,0.10)",
+  successBorder:"rgba(110,231,168,0.28)",
+  
+  warn:         "#E0A64A",
+  warnSoft:     "rgba(224,166,74,0.10)",
+  warnBorder:   "rgba(224,166,74,0.28)",
+  
+  danger:       "#E06A6A",
+  dangerSoft:   "rgba(224,106,106,0.10)",
+  dangerBorder: "rgba(224,106,106,0.28)",
+  
+  info:         "#6EC1E7",
+  infoSoft:     "rgba(110,193,231,0.10)",
+  infoBorder:   "rgba(110,193,231,0.28)",
+  
+  purple:       "#B39DE0",
+  purpleSoft:   "rgba(179,157,224,0.10)",
+  purpleBorder: "rgba(179,157,224,0.28)",
 };
 
 const FONT = {
-  display: "'Inter', system-ui, -apple-system, sans-serif",
-  body:    "'Inter', system-ui, -apple-system, sans-serif",
-  mono:    "'JetBrains Mono', ui-monospace, monospace",
+  ui:   "'Inter', system-ui, -apple-system, sans-serif",
+  mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
 };
 
-const RING = `inset 0 0 0 1px ${T.border}`;
+const HAIRLINE = `1px solid ${T.border}`;
+const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`;
 
 /* ─────────────── status maps ─────────────── */
 
@@ -58,7 +69,7 @@ const CAMPAIGN_STATUS_STYLES: Record<
 > = {
   Draft:     { bg: T.surface2,     fg: T.textMuted, ring: T.borderSoft,    label: "Draft" },
   Ready:     { bg: T.brandSoft,    fg: T.brand,     ring: T.brandBorder,   label: "Ready" },
-  Running:   { bg: T.successSoft,  fg: T.success,   ring: T.successBorder, label: "Running" },
+  Running:   { bg: T.successSoft,  fg: T.accent,    ring: T.successBorder, label: "Running" },
   Paused:    { bg: T.warnSoft,     fg: T.warn,      ring: T.warnBorder,    label: "Paused" },
   Completed: { bg: T.purpleSoft,   fg: T.purple,    ring: T.purpleBorder,  label: "Completed" },
   Cancelled: { bg: T.dangerSoft,   fg: T.danger,    ring: T.dangerBorder,  label: "Cancelled" },
@@ -71,7 +82,7 @@ const LOG_STATUS_META: Record<
   { fg: string; bg: string; ring: string; Icon: React.ComponentType<{ size?: number; className?: string }> }
 > = {
   Sent:      { fg: T.info,    bg: T.infoSoft,    ring: T.infoBorder,    Icon: Clock },
-  Delivered: { fg: T.success, bg: T.successSoft, ring: T.successBorder, Icon: CheckCircle2 },
+  Delivered: { fg: T.accent,  bg: T.successSoft, ring: T.successBorder, Icon: CheckCircle2 },
   Bounced:   { fg: T.warn,    bg: T.warnSoft,    ring: T.warnBorder,    Icon: MailWarning },
   Failed:    { fg: T.danger,  bg: T.dangerSoft,  ring: T.dangerBorder,  Icon: MailX },
   Pending:   { fg: T.textMuted, bg: T.surface2,  ring: T.borderSoft,    Icon: MailWarning },
@@ -137,7 +148,7 @@ const MetaPill: React.FC<{ icon?: React.ReactNode; children: React.ReactNode; mo
 }) => (
   <span
     className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] ${mono ? 'font-mono' : ''}`}
-    style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+    style={{ background: T.surface2, color: T.textMuted, border: HAIRLINE_SOFT }}
   >
     {icon}
     {children}
@@ -151,7 +162,12 @@ const StatCard: React.FC<{
   accent: string;
   accentSoft: string;
 }> = ({ label, value, icon: Icon, accent, accentSoft }) => (
-  <div className="rounded-lg p-3.5" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+  <div className="rounded-lg p-3.5 relative overflow-hidden" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
+    <span
+      aria-hidden
+      className="absolute left-0 top-0 bottom-0 w-[2px]"
+      style={{ background: accent, opacity: 0.6 }}
+    />
     <div
       className="w-7 h-7 rounded-md flex items-center justify-center mb-2.5"
       style={{ background: accentSoft, color: accent }}
@@ -159,7 +175,7 @@ const StatCard: React.FC<{
       <Icon size={13} />
     </div>
     <p className="text-[18px] font-semibold leading-none" style={{ color: T.text, fontFamily: FONT.mono }}>{value}</p>
-    <p className="text-[10px] uppercase tracking-widest mt-1.5" style={{ color: T.textFaint }}>{label}</p>
+    <p className="text-[10px] uppercase tracking-widest mt-1.5 font-medium" style={{ color: T.textFaint }}>{label}</p>
   </div>
 );
 
@@ -169,13 +185,13 @@ const InfoRow: React.FC<{ icon: React.ReactNode; label: string; children: React.
   <div className="flex items-start gap-2.5">
     <div
       className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center"
-      style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+      style={{ background: T.surfaceHi, border: HAIRLINE_SOFT }}
     >
       {icon}
     </div>
     <div className="min-w-0 flex-1">
-      <p className="text-[10px] uppercase tracking-widest mb-0.5" style={{ color: T.textFaint }}>{label}</p>
-      <div className="text-[12.5px] min-w-0" style={{ color: T.textMuted }}>{children}</div>
+      <p className="text-[10px] uppercase tracking-widest mb-0.5 font-medium" style={{ color: T.textFaint }}>{label}</p>
+      <div className="text-[12.5px] min-w-0 font-medium" style={{ color: T.textMuted }}>{children}</div>
     </div>
   </div>
 );
@@ -192,7 +208,7 @@ const SectionTitle: React.FC<{
         <Icon size={13} style={{ color: T.brand }} />
         {title}
       </h3>
-      {subtitle && <p className="text-[11px] mt-0.5" style={{ color: T.textFaint }}>{subtitle}</p>}
+      {subtitle && <p className="text-[11px] mt-0.5 font-medium" style={{ color: T.textFaint }}>{subtitle}</p>}
     </div>
     {right}
   </div>
@@ -203,7 +219,7 @@ const StatusPill: React.FC<{ status: string }> = ({ status }) => {
   return (
     <span
       className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
-      style={{ background: m.bg, color: m.fg, boxShadow: `inset 0 0 0 1px ${m.ring}` }}
+      style={{ background: m.bg, color: m.fg, border: `1px solid ${m.ring}` }}
     >
       <span className="w-1 h-1 rounded-full" style={{ background: m.fg }} />
       {status}
@@ -437,7 +453,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
   const recipientSummary: {
     label: string; key: string; Icon: React.ComponentType<{ size?: number }>; fg: string; soft: string;
   }[] = [
-    { label: 'Delivered', key: 'Delivered', Icon: CheckCircle2, fg: T.success, soft: T.successSoft },
+    { label: 'Delivered', key: 'Delivered', Icon: CheckCircle2, fg: T.accent, soft: T.successSoft },
     { label: 'Sent',      key: 'Sent',      Icon: Mail,         fg: T.info,    soft: T.infoSoft },
     { label: 'Pending',   key: 'Pending',   Icon: Clock,        fg: T.textMuted, soft: T.surface2 },
     { label: 'Bounced',   key: 'Bounced',   Icon: MailWarning,  fg: T.warn,    soft: T.warnSoft },
@@ -458,7 +474,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       onClick={onClose}
-      style={{ fontFamily: FONT.body, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', animation: 'cm-fade 0.15s ease-out' }}
+      style={{ fontFamily: FONT.ui, background: 'rgba(11,12,14,0.72)', backdropFilter: 'blur(4px)', animation: 'cm-fade 0.15s ease-out' }}
     >
       <style>{`
         @keyframes cm-fade { from { opacity: 0 } to { opacity: 1 } }
@@ -469,6 +485,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
         .cm-scroll::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 8px }
         .cm-scroll::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi} }
         .cm-shell select option { background: ${T.surface2}; color: ${T.text}; }
+        :focus-visible { outline: 2px solid ${T.accentLine}; outline-offset: 2px; border-radius: 4px; }
       `}</style>
 
       <div
@@ -476,7 +493,8 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
         className="cm-shell w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl overflow-hidden"
         style={{
           background: T.surface,
-          boxShadow: `inset 0 0 0 1px ${T.border}, 0 30px 60px -20px rgba(0,0,0,0.8)`,
+          border: HAIRLINE,
+          boxShadow: "0 24px 64px -16px rgba(0,0,0,0.7)",
         }}
       >
         {/* Header */}
@@ -490,7 +508,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] uppercase tracking-widest" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                   campaign #{campaign.id}
                 </span>
                 <span
@@ -498,7 +516,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                   style={{
                     backgroundColor: statusStyle.bg,
                     color: statusStyle.fg,
-                    boxShadow: `inset 0 0 0 1px ${statusStyle.ring}`,
+                    border: `1px solid ${statusStyle.ring}`,
                   }}
                 >
                   <span className="w-1 h-1 rounded-full" style={{ background: statusStyle.fg }} />
@@ -508,7 +526,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
               <h2 className="text-[17px] font-semibold truncate" style={{ color: T.text }}>
                 {campaign.campaign_name}
               </h2>
-              <p className="text-[12px] mt-0.5 truncate" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
+              <p className="text-[12px] mt-0.5 truncate font-medium" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
                 {campaign.subject || '—'}
               </p>
             </div>
@@ -516,8 +534,10 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 p-2 rounded-md transition-colors hover:bg-white/5"
-            style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+            className="shrink-0 p-1.5 rounded-md transition-colors"
+            style={{ background: T.surface2, color: T.textMuted, border: HAIRLINE_SOFT }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = T.text)}
+            onMouseLeave={(e) => (e.currentTarget.style.color = T.textMuted)}
           >
             <X size={15} />
           </button>
@@ -541,7 +561,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
         <div className="px-5 mt-3">
           <div
             className="inline-flex max-w-full items-center gap-0.5 p-0.5 rounded-lg overflow-x-auto cm-scroll"
-            style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+            style={{ background: T.surface2, border: HAIRLINE_SOFT }}
           >
             {tabs.map((t) => {
               const Icon = t.icon;
@@ -567,7 +587,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
         {/* Body */}
         <div className="cm-scroll flex-1 overflow-y-auto p-5">
           {detailLoading && (
-            <div className="flex items-center gap-2 mb-4 text-[11px]" style={{ color: T.textFaint }}>
+            <div className="flex items-center gap-2 mb-4 text-[11px] font-medium" style={{ color: T.textFaint }}>
               <div
                 className="w-3 h-3 border-2 rounded-full animate-spin"
                 style={{ borderColor: T.brand, borderTopColor: 'transparent' }}
@@ -578,9 +598,9 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
           {detailError && (
             <div
               className="mb-4 flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-[12px]"
-              style={{ background: T.dangerSoft, color: T.danger, boxShadow: `inset 0 0 0 1px ${T.dangerBorder}` }}
+              style={{ background: T.dangerSoft, color: T.danger, border: `1px solid ${T.dangerBorder}` }}
             >
-              <span>{detailError}</span>
+              <span className="font-medium">{detailError}</span>
               <button
                 onClick={() => setReloadKey((k) => k + 1)}
                 className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium hover:opacity-80"
@@ -596,14 +616,14 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
             <div className="space-y-5">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <StatCard label="Recipients"    value={formatNumber(stats.recipientCount)} icon={Users}        accent={T.brand}   accentSoft={T.brandSoft} />
-                <StatCard label="Sent"          value={formatNumber(stats.sent)}           icon={Send}         accent={T.success} accentSoft={T.successSoft} />
+                <StatCard label="Sent"          value={formatNumber(stats.sent)}           icon={Send}         accent={T.accent}  accentSoft={T.successSoft} />
                 <StatCard label="Failed"        value={formatNumber(stats.failed)}         icon={XCircle}      accent={T.danger}  accentSoft={T.dangerSoft} />
                 <StatCard label="Delivery rate" value={`${stats.deliveryRate}%`}           icon={CheckCircle2} accent={T.purple}  accentSoft={T.purpleSoft} />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {/* Owner */}
-                <div className="rounded-lg p-4" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+                <div className="rounded-lg p-4" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
                   <SectionTitle icon={UserIcon} title="Owner" subtitle="Who created this campaign" />
                   <InfoRow icon={<UserIcon size={12} style={{ color: T.textFaint }} />} label="User">
                     <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>{ownerLabel}</p>
@@ -614,7 +634,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                 </div>
 
                 {/* Sender */}
-                <div className="rounded-lg p-4" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+                <div className="rounded-lg p-4" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
                   <SectionTitle
                     icon={AtSign}
                     title="Sender account"
@@ -640,7 +660,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                     </InfoRow>
                   ) : (
                     <InfoRow icon={<AtSign size={12} style={{ color: T.textFaint }} />} label="From">
-                      <p className="text-[12px]" style={{ color: T.textMuted }}>
+                      <p className="text-[12px] font-medium" style={{ color: T.textMuted }}>
                         {campaign.sender_account_id
                           ? `Sender #${campaign.sender_account_id} (details not loaded)`
                           : 'No sender account attached.'}
@@ -651,7 +671,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
               </div>
 
               {/* Template */}
-              <div className="rounded-lg p-4" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+              <div className="rounded-lg p-4" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
                 <SectionTitle
                   icon={LayoutTemplate}
                   title="Template"
@@ -659,7 +679,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                   right={
                     <button
                       onClick={() => setTab('template')}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-colors hover:bg-white/5"
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-colors"
                       style={{ background: T.brandSoft, color: T.brand }}
                     >
                       <Eye size={10} /> Preview
@@ -686,7 +706,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
 
               {/* Upload */}
               {upload && (
-                <div className="rounded-lg p-4" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+                <div className="rounded-lg p-4" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
                   <SectionTitle
                     icon={FileSpreadsheet}
                     title="Source file"
@@ -716,7 +736,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                       className="h-full rounded-full transition-all duration-500"
                       style={{
                         width: `${upload.total_records ? Math.min(100, (upload.processed_records / upload.total_records) * 100) : 0}%`,
-                        background: T.brand,
+                        background: T.accent,
                       }}
                     />
                   </div>
@@ -730,28 +750,30 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
             <div className="space-y-4">
               {recipients.length > 0 && (
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
-                  <div className="rounded-lg p-3" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+                  <div className="rounded-lg p-3 relative overflow-hidden" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
+                    <span className="absolute left-0 top-0 bottom-0 w-[2px]" style={{ background: T.brand, opacity: 0.6 }} />
                     <Users size={12} style={{ color: T.brand }} className="mb-2" />
                     <p className="text-[18px] font-semibold leading-none" style={{ color: T.text, fontFamily: FONT.mono }}>
                       {recipients.length.toLocaleString()}
                     </p>
-                    <p className="text-[10px] uppercase tracking-widest mt-1.5" style={{ color: T.textFaint }}>Total</p>
+                    <p className="text-[10px] uppercase tracking-widest mt-1.5 font-medium" style={{ color: T.textFaint }}>Total</p>
                   </div>
                   {recipientSummary.map(({ label, key, Icon, fg, soft }) => (
                     <button
                       key={key}
                       onClick={() => setRStatus(rStatus === key ? 'all' : key)}
-                      className="text-left rounded-lg p-3 transition-colors hover:bg-white/[0.02]"
+                      className="relative text-left rounded-lg p-3 transition-colors overflow-hidden"
                       style={{
                         background: T.surface2,
-                        boxShadow: rStatus === key ? `inset 0 0 0 1px ${fg}` : `inset 0 0 0 1px ${T.borderSoft}`,
+                        border: rStatus === key ? `1px solid ${fg}` : HAIRLINE_SOFT,
                       }}
                     >
+                      <span className="absolute left-0 top-0 bottom-0 w-[2px]" style={{ background: fg, opacity: 0.6 }} />
                       <span style={{ color: fg }}><Icon size={12} /></span>
                       <p className="text-[18px] font-semibold leading-none mt-2" style={{ color: T.text, fontFamily: FONT.mono }}>
                         {(recipientCounts[key] ?? 0).toLocaleString()}
                       </p>
-                      <p className="text-[10px] uppercase tracking-widest mt-1.5" style={{ color: T.textFaint }}>{label}</p>
+                      <p className="text-[10px] uppercase tracking-widest mt-1.5 font-medium" style={{ color: T.textFaint }}>{label}</p>
                     </button>
                   ))}
                 </div>
@@ -760,21 +782,21 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
               {/* Toolbar */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <div
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 flex-1 min-w-0"
-                  style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                  className="flex items-center gap-2 rounded-md px-3 py-2 flex-1 min-w-0"
+                  style={{ background: T.surface2, border: HAIRLINE_SOFT }}
                 >
                   <Search size={13} style={{ color: T.textFaint }} className="shrink-0" />
                   <input
                     value={rSearch}
                     onChange={(e) => setRSearch(e.target.value)}
                     placeholder="Search by name or email…"
-                    className="w-full bg-transparent text-[13px] outline-none"
+                    className="w-full bg-transparent text-[13px] font-medium outline-none"
                     style={{ color: T.text }}
                   />
                   {rSearch && (
                     <button
                       onClick={() => setRSearch('')}
-                      className="shrink-0 text-[10px] px-1.5 py-0.5 rounded transition-colors hover:bg-white/5"
+                      className="shrink-0 text-[10px] px-1.5 py-0.5 rounded transition-colors"
                       style={{ color: T.textMuted }}
                     >
                       Clear
@@ -787,8 +809,8 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                   <select
                     value={rStatus}
                     onChange={(e) => setRStatus(e.target.value)}
-                    className="pl-7 pr-2.5 py-2 rounded-lg text-[12px] cursor-pointer outline-none"
-                    style={{ background: T.surface2, color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                    className="pl-7 pr-2.5 py-2 rounded-md text-[12px] font-medium cursor-pointer outline-none"
+                    style={{ background: T.surface2, color: T.textMuted, border: HAIRLINE_SOFT }}
                   >
                     {statusOptions.map((s) => (
                       <option key={s} value={s}>{s === 'all' ? 'All statuses' : s}</option>
@@ -798,8 +820,8 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
 
                 <button
                   onClick={() => setReloadKey((k) => k + 1)}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-medium transition-colors hover:bg-white/5"
-                  style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-colors"
+                  style={{ color: T.textMuted, border: HAIRLINE }}
                   aria-label="Refresh"
                 >
                   <RefreshCw size={12} className={detailLoading ? 'animate-spin' : ''} />
@@ -808,11 +830,11 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                 <button
                   onClick={exportXlsx}
                   disabled={filteredRecipients.length === 0 || exporting}
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-medium text-white transition-all hover:brightness-110 disabled:opacity-40"
-                  style={{ background: T.brand, boxShadow: "0 6px 18px -8px rgba(99,102,241,0.65)" }}
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-semibold transition-all hover:brightness-110 disabled:opacity-40"
+                  style={{ background: T.accent, color: T.accentInk }}
                 >
                   {exporting ? (
-                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <FileSpreadsheet size={12} />
                   )}
@@ -821,9 +843,9 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
               </div>
 
               {filteredRecipients.length === 0 && (
-                <div className="rounded-lg py-14 text-center" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+                <div className="rounded-lg py-14 text-center" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
                   <Inbox size={20} style={{ color: T.textFaint }} className="mx-auto mb-2" />
-                  <p className="text-[12.5px] font-medium" style={{ color: T.text }}>
+                  <p className="text-[12.5px] font-semibold" style={{ color: T.text }}>
                     {detailLoading && recipients.length === 0
                       ? 'Loading recipients…'
                       : recipients.length === 0
@@ -831,7 +853,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                       : 'No recipients match'}
                   </p>
                   {!(detailLoading && recipients.length === 0) && (
-                    <p className="text-[11.5px] mt-1.5" style={{ color: T.textMuted }}>
+                    <p className="text-[11.5px] mt-1.5 font-medium" style={{ color: T.textMuted }}>
                       {recipients.length === 0
                         ? 'Upload a recipient file to this campaign to add people.'
                         : 'Try a different search or status filter.'}
@@ -841,27 +863,29 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
               )}
 
               {filteredRecipients.length > 0 && (
-                <div className="rounded-lg overflow-hidden" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+                <div className="rounded-lg overflow-hidden" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
                   <div className="overflow-x-auto cm-scroll">
                     <table className="w-full text-left min-w-[560px]">
                       <thead>
-                        <tr className="text-[10px] uppercase tracking-widest" style={{ color: T.textFaint, borderBottom: `1px solid ${T.borderSoft}` }}>
-                          <th className="px-4 py-2.5 font-medium">Recipient</th>
-                          <th className="px-4 py-2.5 font-medium">Status</th>
-                          <th className="px-4 py-2.5 font-medium">Last email</th>
-                          <th className="px-4 py-2.5 font-medium text-right">ID</th>
+                        <tr className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: T.textFaint, borderBottom: HAIRLINE_SOFT }}>
+                          <th className="px-4 py-2.5">Recipient</th>
+                          <th className="px-4 py-2.5">Status</th>
+                          <th className="px-4 py-2.5">Last email</th>
+                          <th className="px-4 py-2.5 text-right">ID</th>
                         </tr>
                       </thead>
                       <tbody>
                         {pageRows.map((r) => {
                           const last = lastLogByRecipient[r.id];
                           return (
-                            <tr key={r.id} className="transition-colors hover:bg-white/[0.02]" style={{ borderTop: `1px solid ${T.borderSoft}` }}>
+                            <tr key={r.id} className="transition-colors" style={{ borderTop: HAIRLINE_SOFT }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = T.surfaceHi)}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                               <td className="px-4 py-2.5">
-                                <p className="text-[12px] font-medium truncate max-w-[240px]" style={{ color: T.text }}>
+                                <p className="text-[12.5px] font-semibold truncate max-w-[240px]" style={{ color: T.text }}>
                                   {r.name || '—'}
                                 </p>
-                                <p className="text-[11px] truncate max-w-[240px] mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                                <p className="text-[11px] truncate max-w-[240px] mt-0.5 font-medium" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                                   {r.email}
                                 </p>
                               </td>
@@ -870,15 +894,15 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                                 {last ? (
                                   <div className="flex items-center gap-2">
                                     <StatusPill status={last.status} />
-                                    <span className="text-[10.5px] whitespace-nowrap" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                                    <span className="text-[10.5px] font-medium whitespace-nowrap" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                                       {formatDate(last.sent_at)}
                                     </span>
                                   </div>
                                 ) : (
-                                  <span className="text-[11px]" style={{ color: T.textFaint }}>Not sent</span>
+                                  <span className="text-[11px] font-medium" style={{ color: T.textFaint }}>Not sent</span>
                                 )}
                               </td>
-                              <td className="px-4 py-2.5 text-right text-[10.5px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>#{r.id}</td>
+                              <td className="px-4 py-2.5 text-right text-[10.5px] font-medium" style={{ color: T.textFaint, fontFamily: FONT.mono }}>#{r.id}</td>
                             </tr>
                           );
                         })}
@@ -887,7 +911,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                   </div>
 
                   <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-t" style={{ borderColor: T.borderSoft }}>
-                    <p className="text-[11px]" style={{ color: T.textFaint }}>
+                    <p className="text-[11px] font-medium" style={{ color: T.textFaint }}>
                       <span style={{ color: T.text, fontFamily: FONT.mono }}>{filteredRecipients.length.toLocaleString()}</span>{' '}
                       {filteredRecipients.length === 1 ? 'recipient' : 'recipients'}
                       {filteredRecipients.length !== recipients.length && ` of ${recipients.length.toLocaleString()}`}
@@ -896,17 +920,17 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                       <button
                         onClick={() => setRPage((p) => Math.max(1, p - 1))}
                         disabled={rPage === 1}
-                        className="px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/5 disabled:hover:bg-transparent"
-                        style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                        className="px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
                       >
                         Previous
                       </button>
-                      <span className="text-[11px] px-1.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>{rPage} / {totalPages}</span>
+                      <span className="text-[11px] px-1.5 font-medium" style={{ color: T.textFaint, fontFamily: FONT.mono }}>{rPage} / {totalPages}</span>
                       <button
                         onClick={() => setRPage((p) => Math.min(totalPages, p + 1))}
                         disabled={rPage === totalPages}
-                        className="px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/5 disabled:hover:bg-transparent"
-                        style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}
+                        className="px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
                       >
                         Next
                       </button>
@@ -922,25 +946,25 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <StatCard label="Sent"      value={formatNumber(stats.logsByStatus.Sent ?? 0)}      icon={Clock}       accent={T.info}    accentSoft={T.infoSoft} />
-                <StatCard label="Delivered" value={formatNumber(stats.logsByStatus.Delivered ?? 0)} icon={MailCheck}   accent={T.success} accentSoft={T.successSoft} />
+                <StatCard label="Delivered" value={formatNumber(stats.logsByStatus.Delivered ?? 0)} icon={MailCheck}   accent={T.accent}  accentSoft={T.successSoft} />
                 <StatCard label="Bounced"   value={formatNumber(stats.logsByStatus.Bounced ?? 0)}   icon={MailWarning} accent={T.warn}    accentSoft={T.warnSoft} />
                 <StatCard label="Failed"    value={formatNumber(stats.logsByStatus.Failed ?? 0)}    icon={MailX}       accent={T.danger}  accentSoft={T.dangerSoft} />
               </div>
 
               {logs.length === 0 ? (
-                <div className="rounded-lg p-8 text-center" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+                <div className="rounded-lg p-8 text-center" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
                   <BarChart3 size={20} style={{ color: T.textFaint }} className="mx-auto mb-2" />
-                  <p className="text-[12px]" style={{ color: T.textMuted }}>
+                  <p className="text-[12px] font-medium" style={{ color: T.textMuted }}>
                     {detailLoading ? 'Loading email logs…' : 'No email logs yet.'}
                   </p>
                 </div>
               ) : (
-                <div className="rounded-lg overflow-hidden" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+                <div className="rounded-lg overflow-hidden" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
                   <div className="px-4 py-2.5 flex items-center justify-between border-b" style={{ borderColor: T.borderSoft }}>
-                    <p className="text-[10.5px] uppercase tracking-widest" style={{ color: T.textFaint }}>Recent events</p>
+                    <p className="text-[10.5px] uppercase tracking-widest font-semibold" style={{ color: T.textFaint }}>Recent events</p>
                     <button
                       onClick={() => navigate('/admin/emaillogs')}
-                      className="inline-flex items-center gap-1 text-[11px] font-medium hover:opacity-80"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold hover:opacity-80"
                       style={{ color: T.brand }}
                     >
                       Open logs <ExternalLink size={10} />
@@ -954,14 +978,16 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                       return (
                         <li
                           key={l.id}
-                          className="flex items-center justify-between gap-3 px-4 py-2.5"
-                          style={{ borderTop: `1px solid ${T.borderSoft}` }}
+                          className="flex items-center justify-between gap-3 px-4 py-2.5 transition-colors"
+                          style={{ borderTop: HAIRLINE_SOFT }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = T.surfaceHi)}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                         >
                           <div className="min-w-0">
-                            <p className="text-[12px] truncate" style={{ color: T.text }}>
+                            <p className="text-[12px] font-medium truncate" style={{ color: T.text }}>
                               {r?.email || r?.name || `Recipient #${l.recipient_id ?? '—'}`}
                             </p>
-                            <p className="text-[10.5px] truncate mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                            <p className="text-[10.5px] truncate mt-0.5 font-medium" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                               {formatRelative(l.sent_at)}
                               <span style={{ color: T.textFaint }}> · </span>
                               {formatDate(l.sent_at)}
@@ -969,7 +995,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                           </div>
                           <span
                             className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium"
-                            style={{ background: meta.bg, color: meta.fg, boxShadow: `inset 0 0 0 1px ${meta.ring}` }}
+                            style={{ background: meta.bg, color: meta.fg, border: `1px solid ${meta.ring}` }}
                           >
                             <Icon size={10} />
                             {l.status}
@@ -978,7 +1004,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                       );
                     })}
                     {logs.length > 20 && (
-                      <li className="text-center text-[11px] py-3" style={{ color: T.textFaint, borderTop: `1px solid ${T.borderSoft}` }}>
+                      <li className="text-center text-[11px] font-medium py-3" style={{ color: T.textFaint, borderTop: HAIRLINE_SOFT }}>
                         + {formatNumber(logs.length - 20)} more events
                       </li>
                     )}
@@ -990,12 +1016,12 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
 
           {/* ═══ TEMPLATE ═══ */}
           {tab === 'template' && (
-            <div className="rounded-lg overflow-hidden" style={{ background: T.surface2, boxShadow: `inset 0 0 0 1px ${T.borderSoft}` }}>
+            <div className="rounded-lg overflow-hidden" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
               <div className="flex items-center gap-2 px-4 py-2.5 border-b" style={{ borderColor: T.borderSoft }}>
                 <span className="w-2 h-2 rounded-full bg-[#EF4444]" />
                 <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
                 <span className="w-2 h-2 rounded-full bg-[#22C55E]" />
-                <span className="ml-2.5 text-[11px] truncate" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                <span className="ml-2.5 text-[11px] font-medium truncate" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                   {template?.name ?? (campaign.template_id ? `template #${campaign.template_id}` : 'No template')}
                 </span>
               </div>
@@ -1010,7 +1036,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
               ) : (
                 <div className="p-10 text-center">
                   <LayoutTemplate size={20} style={{ color: T.textFaint }} className="mx-auto mb-2" />
-                  <p className="text-[12px]" style={{ color: T.textMuted }}>
+                  <p className="text-[12px] font-medium" style={{ color: T.textMuted }}>
                     {detailLoading
                       ? 'Loading template…'
                       : campaign.template_id
@@ -1026,9 +1052,9 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
         {/* Footer */}
         <div className="flex items-center justify-between gap-2 p-4 border-t" style={{ borderColor: T.borderSoft }}>
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[10.5px] shrink-0" style={{ color: T.textFaint, fontFamily: FONT.mono }}>#{campaign.id}</span>
+            <span className="text-[10.5px] font-semibold shrink-0" style={{ color: T.textFaint, fontFamily: FONT.mono }}>#{campaign.id}</span>
             <span className="shrink-0" style={{ color: T.textFaint }}>·</span>
-            <span className="text-[11px] truncate" style={{ color: T.textFaint }}>
+            <span className="text-[11px] font-medium truncate" style={{ color: T.textFaint }}>
               owner <span style={{ color: T.textMuted }}>{ownerLabel}</span>
             </span>
           </div>
@@ -1037,8 +1063,8 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
             {tab !== 'recipients' && (
               <button
                 onClick={() => setTab('recipients')}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-colors hover:bg-white/5"
-                style={{ background: T.brandSoft, color: T.brand, boxShadow: `inset 0 0 0 1px ${T.brandBorder}` }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-semibold transition-colors"
+                style={{ background: T.brandSoft, color: T.brand, border: `1px solid ${T.brandBorder}` }}
               >
                 <Users size={12} />
                 Recipients
@@ -1046,8 +1072,8 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
             )}
             <button
               onClick={onClose}
-              className="px-3.5 py-2 text-[12px] rounded-md font-medium transition-colors hover:bg-white/5"
-              style={{ color: T.textMuted, boxShadow: `inset 0 0 0 1px ${T.border}` }}
+              className="px-3.5 py-2 text-[12px] rounded-md font-semibold transition-colors"
+              style={{ color: T.textMuted, border: HAIRLINE }}
             >
               Close
             </button>
@@ -1058,4 +1084,4 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
   );
 };
 
-export default AdminCampaignModal;  
+export default AdminCampaignModal;
