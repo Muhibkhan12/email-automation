@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     OTP_TENANT_ID: str = ""
     OTP_SENDER_EMAIL: str = ""
 
+    GOOGLE_CLIENT_ID : str = ""
+    GOOGLE_CLIENT_SECRET : str = ""
+    GOOGLE_REDIRECT_URI : str = ""
+
     model_config = {
         "env_file": ".env",
         "extra": "ignore",

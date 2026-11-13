@@ -35,7 +35,6 @@ def _get_user_campaign(db: Session, campaign_id: int, user_id: int) -> Campaign:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Campaign not found.")
     return campaign
 
-
 # ---------------------------------------------------------
 # Extraction (unchanged)
 # ---------------------------------------------------------
@@ -103,7 +102,6 @@ def get_analytics(
         }
     }
 
-
 # ---------------------------------------------------------
 # Campaign start / pause / resume
 # ---------------------------------------------------------
@@ -146,7 +144,6 @@ def start_campaign(
 
     return {"message": "Campaign started.", "data": {"campaign_id": campaign.id}}
 
-
 @router.post("/pause/{campaign_id}")
 def pause_campaign(
     campaign_id: int,
@@ -163,7 +160,6 @@ def pause_campaign(
     campaign.status = CampaignStatus.PAUSED
     db.commit()
     return {"message": "Campaign paused.", "data": {"campaign_id": campaign.id}}
-
 
 @router.post("/resume/{campaign_id}")
 def resume_campaign(
@@ -193,7 +189,6 @@ def resume_campaign(
         "message": "Campaign resumed.",
         "data": {"campaign_id": campaign.id, "rescheduled": rescheduled},
     }
-
 
 @router.post("/retry-failed/{campaign_id}")
 def retry_failed(
@@ -249,7 +244,6 @@ def retry_failed(
         "message": "Failed emails moved back to pending. Press Resume to send them.",
         "data": {"campaign_id": campaign.id, "moved": moved},
     }
-
 
 @router.get("/progress/{campaign_id}")
 def campaign_progress(

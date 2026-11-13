@@ -2,10 +2,11 @@ import React, { useContext, useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 import {
   Mail, CheckCircle2, AlertTriangle, XCircle, Gauge, Layers,
-  Plus, Search, Zap, Settings2, Trash2, Wifi, Menu, Loader2, Inbox,
-  X, ShieldAlert,
+  Plus, Search, Wifi, Menu, Loader2, Inbox, Trash2,
+  X, ShieldAlert, ChevronRight,
 } from "lucide-react";
 import { SenderAccContext } from "../../contexts/SenderAccountsContext";
+import { useGmailConnect } from "../../contexts/GmailConnectContext";
 import type { SenderAccount } from "../../types/SenderAccount";
 
 /* ─────────────── design tokens ─────────────── */
@@ -78,9 +79,24 @@ const normalizeProvider = (p?: string): Provider => {
 
 const SenderAccountsPage = () => {
   const ctx = useContext(SenderAccContext);
+  const {
+    connectGmail,
+    connecting: gmailConnecting,
+    result: gmailResult,
+    clearResult: clearGmailResult,
+  } = useGmailConnect();
+
   const [search, setSearch] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<SenderAccount | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+
+  // success banner 6 sec baad khud hat jaye
+  useEffect(() => {
+    if (gmailResult?.status !== "connected") return;
+    const t = window.setTimeout(clearGmailResult, 6000);
+    return () => window.clearTimeout(t);
+  }, [gmailResult, clearGmailResult]);
 
   if (!ctx) {
     throw new Error("SenderAccountsPage must be used inside a <SenderAccountsContext> provider.");
@@ -99,13 +115,20 @@ const SenderAccountsPage = () => {
   const emailsToday = senderAcc.reduce((sum, a) => sum + (a.emails_sent_today ?? 0), 0);
   const dailyCapacity = senderAcc.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0);
 
-  const handleAddAccount = () => {
+  /* ── connect flows ── */
+
+  const connectOutlook = () => {
     const token = localStorage.getItem("access_token");
     if (!token) {
       alert("You must be logged in.");
       return;
     }
     window.location.href = `/api/oauth/outlook/connect?token=${encodeURIComponent(token)}`;
+  };
+
+  const handleReconnect = (account: SenderAccount) => {
+    if (normalizeProvider(account.provider) === "Gmail") connectGmail();
+    else connectOutlook();
   };
 
   const confirmDelete = async (id: number) => {
@@ -182,14 +205,47 @@ const SenderAccountsPage = () => {
             </div>
 
             <button
-              onClick={handleAddAccount}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium self-start md:self-auto transition-all hover:brightness-110"
+              onClick={() => setAddOpen(true)}
+              disabled={gmailConnecting}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium self-start md:self-auto transition-all hover:brightness-110 disabled:opacity-60 disabled:hover:brightness-100"
               style={{ background: T.accent, color: T.accentInk }}
             >
-              <Plus size={13} />
-              Add sender account
+              {gmailConnecting ? <Loader2 size={13} className="spin" /> : <Plus size={13} />}
+              {gmailConnecting ? "Waiting for Google…" : "Add sender account"}
             </button>
           </header>
+
+          {/* Connect result banner */}
+          {gmailResult && (
+            <div
+              role="status"
+              className="mb-6 flex items-start gap-2.5 rounded-lg px-3.5 py-3"
+              style={{
+                background: gmailResult.status === "connected" ? "rgba(110,231,168,0.06)" : "rgba(224,106,106,0.06)",
+                border: `1px solid ${gmailResult.status === "connected" ? "rgba(110,231,168,0.28)" : "rgba(224,106,106,0.28)"}`,
+              }}
+            >
+              {gmailResult.status === "connected"
+                ? <CheckCircle2 size={14} style={{ color: T.ok }} className="mt-0.5 shrink-0" />
+                : <XCircle size={14} style={{ color: T.danger }} className="mt-0.5 shrink-0" />}
+              <p
+                className="flex-1 text-[12.5px] leading-5"
+                style={{ color: gmailResult.status === "connected" ? T.ok : T.danger }}
+              >
+                {gmailResult.status === "connected"
+                  ? "Gmail account connected successfully."
+                  : gmailResult.reason ?? "Could not connect Gmail. Please try again."}
+              </p>
+              <button
+                onClick={clearGmailResult}
+                aria-label="Dismiss"
+                className="shrink-0 p-0.5 rounded transition-opacity opacity-70 hover:opacity-100"
+                style={{ color: gmailResult.status === "connected" ? T.ok : T.danger }}
+              >
+                <X size={13} />
+              </button>
+            </div>
+          )}
 
           {/* Summary strip */}
           <div className="mb-6 rounded-xl overflow-hidden" style={{ background: T.surface, border: HAIRLINE }}>
@@ -260,7 +316,7 @@ const SenderAccountsPage = () => {
                     account={account as any}
                     first={i === 0}
                     onDelete={() => setAccountToDelete(account)}
-                    onReconnect={handleAddAccount}
+                    onReconnect={() => handleReconnect(account)}
                   />
                 ))}
               </ul>
@@ -276,10 +332,10 @@ const SenderAccountsPage = () => {
                 </div>
                 <p className="text-[14px] font-medium" style={{ color: T.text }}>No sender accounts yet</p>
                 <p className="text-[12px] mt-1.5 mb-5" style={{ color: T.textMuted }}>
-                  Connect a Microsoft account to start sending campaigns.
+                  Connect a Gmail or Microsoft account to start sending campaigns.
                 </p>
                 <button
-                  onClick={handleAddAccount}
+                  onClick={() => setAddOpen(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-all hover:brightness-110"
                   style={{ background: T.accent, color: T.accentInk }}
                 >
@@ -313,6 +369,14 @@ const SenderAccountsPage = () => {
         </div>
       </main>
 
+      {addOpen && (
+        <AddAccountModal
+          onClose={() => setAddOpen(false)}
+          onGmail={() => { setAddOpen(false); connectGmail(); }}
+          onOutlook={() => { setAddOpen(false); connectOutlook(); }}
+        />
+      )}
+
       {accountToDelete && (
         <ConfirmDisconnectModal
           account={accountToDelete}
@@ -323,6 +387,115 @@ const SenderAccountsPage = () => {
           }}
         />
       )}
+    </div>
+  );
+};
+
+/* ─────────────── add account modal ─────────────── */
+
+const GoogleG = () => (
+  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+    <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.5l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z" />
+    <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z" />
+    <path fill="#FBBC05" d="M10.5 28.7A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.9-4.7l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.9-6.1z" />
+    <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z" />
+  </svg>
+);
+
+const MicrosoftLogo = () => (
+  <svg width="18" height="18" viewBox="0 0 23 23" aria-hidden="true">
+    <rect x="1" y="1" width="10" height="10" fill="#F25022" />
+    <rect x="12" y="1" width="10" height="10" fill="#7FBA00" />
+    <rect x="1" y="12" width="10" height="10" fill="#00A4EF" />
+    <rect x="12" y="12" width="10" height="10" fill="#FFB900" />
+  </svg>
+);
+
+const AddAccountModal: React.FC<{
+  onClose: () => void;
+  onGmail: () => void;
+  onOutlook: () => void;
+}> = ({ onClose, onGmail, onOutlook }) => {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handleKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+
+  const options = [
+    { key: "gmail",   label: "Gmail",             sub: "Connect with Google",    logo: <GoogleG />,        onClick: onGmail },
+    { key: "outlook", label: "Outlook / Microsoft", sub: "Connect with Microsoft", logo: <MicrosoftLogo />, onClick: onOutlook },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      style={{ background: "rgba(11,12,14,0.72)" }}
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-account-title"
+    >
+      <div
+        className="relative w-full max-w-md rounded-xl overflow-hidden"
+        style={{ background: T.surface, border: HAIRLINE, boxShadow: "0 24px 64px -16px rgba(0,0,0,0.7)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 px-5 pt-5 pb-3">
+          <div>
+            <h2 id="add-account-title" className="text-[15px] font-semibold leading-tight" style={{ color: T.text }}>
+              Add sender account
+            </h2>
+            <p className="text-[11.5px] mt-1" style={{ color: T.textMuted }}>
+              Choose the email provider you want to connect.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="shrink-0 p-1.5 rounded-md transition-colors duration-[120ms]"
+            style={{ color: T.textMuted, background: T.surface2, border: HAIRLINE_SOFT }}
+          >
+            <X size={15} />
+          </button>
+        </div>
+
+        <div className="px-5 pb-5 pt-2 space-y-2.5">
+          {options.map((o) => (
+            <button
+              key={o.key}
+              onClick={o.onClick}
+              className="w-full flex items-center gap-3.5 rounded-lg p-3.5 text-left transition-colors"
+              style={{ background: T.surface2, border: HAIRLINE_SOFT }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.accentLine; e.currentTarget.style.background = T.surfaceHi; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.borderSoft; e.currentTarget.style.background = T.surface2; }}
+            >
+              <span
+                className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                style={{ background: "#FFFFFF" }}
+              >
+                {o.logo}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13px] font-medium" style={{ color: T.text }}>{o.label}</span>
+                <span className="block text-[11.5px] mt-0.5" style={{ color: T.textFaint }}>{o.sub}</span>
+              </span>
+              <ChevronRight size={15} style={{ color: T.textFaint }} />
+            </button>
+          ))}
+
+          <p className="text-[11px] leading-5 pt-1" style={{ color: T.textFaint }}>
+            For Gmail, a Google window opens — make sure you allow
+            {" "}<b style={{ color: T.textMuted, fontWeight: 500 }}>"Send email on your behalf"</b>{" "}
+            on the consent screen, otherwise the account can't be connected.
+          </p>
+        </div>
+      </div>
     </div>
   );
 };
@@ -627,24 +800,15 @@ const ConfirmDisconnectModal: React.FC<{
         <div className="px-5 pb-4">
           <ul className="space-y-1.5 text-[11.5px]" style={{ color: T.textMuted }}>
             <li className="flex items-start gap-2">
-              <span
-                className="mt-1.5 w-1 h-1 rounded-full shrink-0"
-                style={{ background: T.danger }}
-              />
+              <span className="mt-1.5 w-1 h-1 rounded-full shrink-0" style={{ background: T.danger }} />
               Any campaigns queued on this account will pause immediately.
             </li>
             <li className="flex items-start gap-2">
-              <span
-                className="mt-1.5 w-1 h-1 rounded-full shrink-0"
-                style={{ background: T.danger }}
-              />
+              <span className="mt-1.5 w-1 h-1 rounded-full shrink-0" style={{ background: T.danger }} />
               Historical logs and reports are kept.
             </li>
             <li className="flex items-start gap-2">
-              <span
-                className="mt-1.5 w-1 h-1 rounded-full shrink-0"
-                style={{ background: T.textFaint }}
-              />
+              <span className="mt-1.5 w-1 h-1 rounded-full shrink-0" style={{ background: T.textFaint }} />
               You can reconnect it later from this page.
             </li>
           </ul>

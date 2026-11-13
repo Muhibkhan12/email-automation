@@ -10,6 +10,7 @@ import RecipientsContextProvider from "../contexts/RecipientsContext";
 import { CampaignProvider } from "../contexts/CampaignContext";
 import { UploadProvider } from "../contexts/UploadContext";
 import { UserProvider } from "../contexts/UsersContext";
+import { GmailConnectProvider } from "../contexts/GmailConnectContext";
 
 const UserRoute = () => {
   const context = useContext(AuthContext);
@@ -41,7 +42,9 @@ const UserRoute = () => {
             <HtmlTemplatesProvider>
               <RecipientsContextProvider>
                 <UploadProvider>
-                  <Outlet />
+                  <GmailConnectProvider> 
+                    <Outlet />
+                  </GmailConnectProvider>
                 </UploadProvider>
               </RecipientsContextProvider>
             </HtmlTemplatesProvider>
