@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     OTP_TENANT_ID: str = ""
     OTP_SENDER_EMAIL: str = ""
 
+    FRONTEND_URL: str = "http://localhost:5173"
+
     GOOGLE_CLIENT_ID : str = ""
     GOOGLE_CLIENT_SECRET : str = ""
     GOOGLE_REDIRECT_URI : str = ""

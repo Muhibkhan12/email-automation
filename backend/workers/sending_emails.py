@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from html import escape
 from html.parser import HTMLParser
 
-import redis  # type: ignore  (already installed: Celery uses it for the Redis broker)
+import redis  # type: ignore
 from celery.utils.log import get_task_logger  # type: ignore
 from sqlalchemy import func, or_, true
 from sqlalchemy.orm import Session
@@ -17,54 +17,44 @@ from models.campaign_recipients import CampaignRecipient, RecipientStatus
 from models.campaigns import Campaign, CampaignStatus
 from models.email_logs import EmailLog, EmailLogStatus
 from models.html_templates import HTMLTemplate
-from models.sender_account import SenderAccount, AccountStatus
+from models.sender_account import SenderAccount, AccountStatus, Provider
+from services.gmail_service import GmailService, GmailSendError
+from services.google_oauth_service import GoogleOAuthService
 from services.graph_service import GraphService
 from services.oauth_service import OAuthService
 from workers.celery_app import celery
 
 logger = get_task_logger(__name__)
 
-UTC = timezone.utc  # py3.10-safe
+UTC = timezone.utc
 
 MAX_RETRIES = 5
 TOKEN_REFRESH_BUFFER = timedelta(minutes=5)
 MAX_ERROR_LEN = 500
-LIMIT_RESCHEDULE_PAD = 5    # seconds, small buffer after a limit window resets
-DISPATCH_BATCH = 50         # max emails queued per dispatcher run
-DISPATCH_LOOKAHEAD = 45     # seconds: dispatcher queues emails due within this window (with exact eta)
-OVERDUE_GRACE = 90          # seconds: if a PENDING row is later than this, the campaign schedule is rebuilt from "now"
-STALE_QUEUED_MINUTES = 30   # QUEUED older than this = lost task, put back to PENDING
+LIMIT_RESCHEDULE_PAD = 5
+DISPATCH_BATCH = 50
+DISPATCH_LOOKAHEAD = 45
+OVERDUE_GRACE = 90
+STALE_QUEUED_MINUTES = 30
 
-# Random gap buckets (all values in SECONDS): (probability, min_gap, max_gap)
-# Mix of quick follow-ups and longer pauses, so the pattern looks human.
 GAP_BUCKETS = [
-    (0.55, 10, 45),     # 10-45 sec
-    (0.30, 45, 120),    # 45 sec - 2 min
-    (0.12, 120, 300),   # 2 - 5 min
-    (0.03, 300, 600),   # 5 - 10 min (kabhi kabhi lamba pause)
+    (0.55, 10, 45),
+    (0.30, 45, 120),
+    (0.12, 120, 300),
+    (0.03, 300, 600),
 ]
-FIRST_SEND_DELAY = (2, 20)  # first email goes out within 2-20 seconds of start
+FIRST_SEND_DELAY = (2, 20)
 
-# Daily limit is spread over this many seconds (12h working window).
 DAILY_SPREAD_SECONDS = 43200.0
 
-# ---------------------------------------------------------
-# SEND-TIME GATE (the real protection against bursts)
-# ---------------------------------------------------------
-# No matter what the schedule says, one sender account can NEVER send two
-# emails closer than this many seconds. The "last send" time lives in Redis,
-# so worker restarts / backlogs / old tasks cannot break it.
-MIN_SEND_GAP = (10, 20)        # seconds, random per send
-GATE_PUSHBACK_JITTER = 30      # extra random seconds when an email is pushed back by the gate
+MIN_SEND_GAP = (10, 20)
+GATE_PUSHBACK_JITTER = 30
 
-# ---------------------------------------------------------
-# Outlook / Graph rate-limit handling
-# ---------------------------------------------------------
-RATE_LIMIT_PAD = 15            # seconds added on top of Outlook's Retry-After
-DEFAULT_THROTTLE_WAIT = 300    # seconds, when Outlook says "slow down" without Retry-After
+RATE_LIMIT_PAD = 15
+DEFAULT_THROTTLE_WAIT = 300
 THROTTLE_STATUS_CODES = (429, 503, 504)
 THROTTLE_MARKERS = (
-    "throttl",                 # ApplicationThrottled, "throttled"
+    "throttl",
     "too many requests",
     "toomanyrequests",
     "mailboxconcurrency",
@@ -74,7 +64,7 @@ THROTTLE_MARKERS = (
     "serverbusy",
     "server busy",
 )
-QUOTA_MARKERS = (              # "daily / sending quota is over" -> wait until tomorrow
+QUOTA_MARKERS = (
     "sendquota",
     "quotaexceeded",
     "quota exceeded",
@@ -86,20 +76,15 @@ QUOTA_MARKERS = (              # "daily / sending quota is over" -> wait until t
 )
 _STATUS_429_RE = re.compile(r"\b429\b")
 
-# Domains that get PLAIN TEXT instead of the HTML template.
 PLAIN_TEXT_DOMAINS = {"gmail.com", "googlemail.com"}
 
-# Defaults used when the SenderAccount row has no such column.
-# Every key referenced below must exist here, OR be accessed with .get() —
-# we now do BOTH (belt + braces) so a missing key can never fail a send.
 SENDER_DEFAULTS = {
     "company": "Harbour Funding",
     "title": "Funding Advisor",
     "website": "https://www.harbourfundingsolutions.com/",
-    "phone": "",  # add your real phone here if templates use {{ sender_phone }}
+    "phone": "",
 }
 
-# Matches {{ key }} and [Key Name]
 _PLACEHOLDER = re.compile(
     r"\{\{\s*([\w ]+?)\s*\}\}|\[\s*([A-Za-z][A-Za-z ]*?)\s*\]"
 )
@@ -110,14 +95,11 @@ class PermanentError(Exception):
 
 
 class AuthError(PermanentError):
-    """Sender's Microsoft token is unusable; needs the user to re-connect."""
+    """Sender's Microsoft/Google token is unusable; needs the user to re-connect."""
 
 
 class RateLimitError(Exception):
-    """
-    Outlook said 'slow down' / 'limit reached'. This is NOT a failure of the
-    email: it goes back to PENDING and is tried again after `wait` seconds.
-    """
+    """Provider said 'slow down' / 'limit reached'. NOT a failure."""
 
     def __init__(self, wait: int, reason: str = ""):
         super().__init__(reason or f"Rate limited, retry in {wait}s")
@@ -130,24 +112,20 @@ class RateLimitError(Exception):
 # =========================================================
 
 def _as_aware(dt: datetime | None) -> datetime | None:
-    """MySQL returns naive datetimes; treat them as UTC."""
     if dt is None:
         return None
     return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
 
 
 def _naive_utc(dt: datetime) -> datetime:
-    """DB stores naive UTC."""
     return dt.astimezone(UTC).replace(tzinfo=None) if dt.tzinfo else dt
 
 
 def _status_str(value) -> str:
-    """Works for plain strings and Enum members."""
     return str(getattr(value, "value", value) or "").lower()
 
 
 def _run_async(coro):
-    """Run an async coroutine from sync Celery code (fresh loop each call)."""
     return asyncio.run(coro)
 
 
@@ -174,7 +152,7 @@ def _new_email_log(
 
 
 # =========================================================
-# Redis: send-time gate + rate-limit cooldown (per sender)
+# Redis gate
 # =========================================================
 
 _redis_client = None
@@ -198,9 +176,6 @@ def _cooldown_key(sender_id: int) -> str:
     return f"sender:{sender_id}:cooldown_until_ts"
 
 
-# Atomic: "may this sender send right now?"
-#   returns '0'      -> yes, and the next allowed time is already reserved
-#   returns 'N.NN'   -> no, wait N.NN seconds
 _GATE_LUA = """
 local now = tonumber(ARGV[1])
 local cd = tonumber(redis.call('GET', KEYS[2]) or '0')
@@ -217,7 +192,6 @@ return '0'
 
 
 def _take_send_slot(sender_id: int) -> float:
-    """0.0 = you may send now. Otherwise = seconds you must wait."""
     gap = random.uniform(*MIN_SEND_GAP)
     res = _get_redis().eval(
         _GATE_LUA, 2, _gap_key(sender_id), _cooldown_key(sender_id), time.time(), gap
@@ -226,7 +200,6 @@ def _take_send_slot(sender_id: int) -> float:
 
 
 def _set_sender_cooldown(sender_id: int, seconds: float) -> None:
-    """Block ALL sending for this sender for `seconds` (never shortens an existing cooldown)."""
     r = _get_redis()
     key = _cooldown_key(sender_id)
     until = time.time() + seconds
@@ -240,7 +213,6 @@ def _cooldown_remaining(sender_id: int) -> float:
 
 
 def get_sender_cooldown_until(sender_id: int | None) -> datetime | None:
-    """For the UI: when will this sender be allowed to send again (naive UTC), or None."""
     if sender_id is None:
         return None
     try:
@@ -253,7 +225,7 @@ def get_sender_cooldown_until(sender_id: int | None) -> datetime | None:
 
 
 # =========================================================
-# Outlook error classification
+# Rate limit classification (works for Gmail + Outlook)
 # =========================================================
 
 def _seconds_until_tomorrow() -> int:
@@ -263,10 +235,6 @@ def _seconds_until_tomorrow() -> int:
 
 
 def _as_rate_limit(exc: Exception) -> RateLimitError | None:
-    """
-    Decide if a send error is Outlook throttling / a limit (-> wait and retry)
-    instead of a real failure. Returns RateLimitError or None.
-    """
     response = getattr(exc, "response", None)
     status = getattr(exc, "status_code", None) or getattr(response, "status_code", None)
     try:
@@ -284,7 +252,6 @@ def _as_rate_limit(exc: Exception) -> RateLimitError | None:
     if not (is_quota or is_throttle):
         return None
 
-    # Outlook often tells us exactly how long to wait.
     retry_after: float | None = None
     headers = getattr(response, "headers", None) or getattr(exc, "headers", None)
     if headers:
@@ -309,10 +276,6 @@ def _as_rate_limit(exc: Exception) -> RateLimitError | None:
 def _defer_after_rate_limit(
     db: Session, recipient_id: int, sender_account_id: int, wait: int
 ) -> None:
-    """
-    Outlook said wait. Block the sender for `wait` seconds (everyone, not just
-    this email) and put this recipient back to PENDING. Never marks FAILED.
-    """
     try:
         _set_sender_cooldown(sender_account_id, wait)
     except Exception:
@@ -333,38 +296,28 @@ def _defer_after_rate_limit(
 
 
 # =========================================================
-# Template rendering (fills sender / recipient data)
+# Template rendering
 # =========================================================
 
 def _norm_key(raw: str) -> str:
-    """'Sender Name' -> 'sender_name'"""
     return re.sub(r"\s+", "_", raw.strip().lower())
 
 
 def build_context(recipient: CampaignRecipient, sender: SenderAccount) -> dict[str, str]:
-    """All values that can be used as placeholders in a template."""
     name = (recipient.name or "").strip()
     first_name = name.split()[0] if name else ""
     recipient_company = (recipient.company or "").strip()
 
     sender_name = (sender.display_name or sender.email or "").strip()
-    # NOTE: every SenderAccount attribute is looked up via getattr with a
-    # default, and every SENDER_DEFAULTS lookup uses .get() — so a missing
-    # column OR a missing default key can never raise during send.
     sender_company = (
-        getattr(sender, "company_name", None)
-        or SENDER_DEFAULTS.get("company")
-        or ""
+        getattr(sender, "company_name", None) or SENDER_DEFAULTS.get("company") or ""
     ).strip()
     sender_title = (
-        getattr(sender, "job_title", None)
-        or SENDER_DEFAULTS.get("title")
-        or ""
+        getattr(sender, "job_title", None) or SENDER_DEFAULTS.get("title") or ""
     ).strip()
     sender_phone = (getattr(sender, "phone", None) or SENDER_DEFAULTS.get("phone") or "").strip()
 
     return {
-        # recipient
         "name": name,
         "recipient_name": name,
         "business_owner": name,
@@ -376,7 +329,6 @@ def build_context(recipient: CampaignRecipient, sender: SenderAccount) -> dict[s
         "company_name": recipient_company,
         "business_name": recipient_company,
         "recipient_phone": (recipient.phone or "").strip(),
-        # sender
         "sender_name": sender_name,
         "sender_email": sender.email or "",
         "sender_company": sender_company,
@@ -388,12 +340,6 @@ def build_context(recipient: CampaignRecipient, sender: SenderAccount) -> dict[s
 
 
 def render_template(html: str, context: dict[str, str]) -> str:
-    """
-    Replace {{key}} and [Key Name] placeholders with HTML-escaped values.
-    - Unknown {{key}}  -> removed (empty), so recipients never see raw tags.
-    - Unknown [Text]   -> left untouched (could be normal text or [if mso]).
-    """
-
     def repl(match: re.Match) -> str:
         curly = match.group(1)
         raw = curly if curly is not None else match.group(2)
@@ -411,7 +357,7 @@ def render_template(html: str, context: dict[str, str]) -> str:
 
 
 # =========================================================
-# Plain text for Gmail
+# HTML -> text
 # =========================================================
 
 def is_plain_text_recipient(email: str) -> bool:
@@ -463,7 +409,6 @@ class _TextExtractor(HTMLParser):
 
 
 def html_to_text(html: str) -> str:
-    """Convert rendered HTML into clean plain text."""
     parser = _TextExtractor()
     parser.feed(html)
     parser.close()
@@ -474,15 +419,17 @@ def html_to_text(html: str) -> str:
 
 
 # =========================================================
-# Token refresh
+# Token refresh (provider-aware, inline)
 # =========================================================
 
-def _refresh_token(refresh_token: str) -> dict:
+def _refresh_token(provider, refresh_token: str) -> dict:
     """
-    Raises AuthError for permanent failures (invalid_grant, invalid_client),
-    original exception for transient ones (network, 5xx).
+    Gmail -> GoogleOAuthService, everything else -> OAuthService (Microsoft).
+    Raises AuthError for permanent failures, original exception for transient.
     """
     try:
+        if provider == Provider.GMAIL:
+            return _run_async(GoogleOAuthService.refresh_access_token(refresh_token))
         return _run_async(OAuthService.refresh_access_token(refresh_token))
     except Exception as exc:
         msg = str(exc).lower()
@@ -493,7 +440,6 @@ def _refresh_token(refresh_token: str) -> dict:
 
 
 def get_fresh_access_token(db: Session, sender_account_id: int) -> str:
-    """Return a valid access token, refreshing (with row lock) only if needed."""
     sender = db.get(SenderAccount, sender_account_id)
     if sender is None:
         raise PermanentError("Sender not found")
@@ -525,7 +471,7 @@ def get_fresh_access_token(db: Session, sender_account_id: int) -> str:
     if not refresh_token:
         raise AuthError("No refresh token stored for sender account")
 
-    token = _refresh_token(refresh_token)
+    token = _refresh_token(sender.provider, refresh_token)
 
     sender.access_token = token["access_token"]
     sender.refresh_token = token.get("refresh_token", sender.refresh_token)
@@ -539,7 +485,42 @@ def get_fresh_access_token(db: Session, sender_account_id: int) -> str:
 
 
 # =========================================================
-# Sender counters (hourly + daily) and limits
+# Send (provider-aware, inline) — the actual fix
+# =========================================================
+
+async def _dispatch_send(
+    sender: SenderAccount,
+    *,
+    access_token: str,
+    recipient: str,
+    subject: str,
+    body: str,
+    content_type: str,
+    text_alternative: str | None,
+) -> dict:
+    """Gmail -> GmailService, everything else -> GraphService."""
+    if sender.provider == Provider.GMAIL:
+        return await GmailService.send_email(
+            access_token=access_token,
+            recipient=recipient,
+            subject=subject,
+            body=body,
+            content_type=content_type,
+            from_email=sender.email,
+            from_name=sender.display_name,
+            text_alternative=text_alternative,
+        )
+    return await GraphService.send_email(
+        access_token=access_token,
+        recipient=recipient,
+        subject=subject,
+        html_body=body,
+        content_type=content_type,
+    )
+
+
+# =========================================================
+# Counters / limits
 # =========================================================
 
 def _hour_start(now: datetime) -> datetime:
@@ -551,7 +532,6 @@ def _day_start(now: datetime) -> datetime:
 
 
 def _limit_wait_seconds(sender: SenderAccount) -> int | None:
-    """If an hourly/daily limit is hit, return seconds until it resets, else None."""
     now = datetime.now(UTC)
     hour_start, day_start = _hour_start(now), _day_start(now)
 
@@ -578,7 +558,6 @@ def _limit_wait_seconds(sender: SenderAccount) -> int | None:
 
 
 def _bump_sender_counters(db: Session, sender_account_id: int) -> None:
-    """+1 on hour and day counters (reset first if the window changed). Caller commits."""
     sender = (
         db.query(SenderAccount)
         .filter(SenderAccount.id == sender_account_id)
@@ -604,7 +583,6 @@ def _bump_sender_counters(db: Session, sender_account_id: int) -> None:
 
 
 def roll_sender_windows(db: Session) -> None:
-    """Optional: zero stale counters so UI shows correct numbers for idle senders."""
     now = datetime.now(UTC)
     hour_start = _hour_start(now).replace(tzinfo=None)
     day_start = _day_start(now).replace(tzinfo=None)
@@ -636,11 +614,10 @@ def roll_sender_windows(db: Session) -> None:
 
 
 # =========================================================
-# Campaign completion
+# Campaign finalize
 # =========================================================
 
 def _finalize_if_done(db: Session, campaign_id: int) -> None:
-    """If no valid PENDING/QUEUED recipient is left, mark a RUNNING campaign COMPLETED."""
     try:
         pending = (
             db.query(CampaignRecipient)
@@ -656,7 +633,7 @@ def _finalize_if_done(db: Session, campaign_id: int) -> None:
         if pending == 0:
             db.query(Campaign).filter(
                 Campaign.id == campaign_id,
-                Campaign.status == CampaignStatus.RUNNING,  # paused/cancelled stay as is
+                Campaign.status == CampaignStatus.RUNNING,
             ).update(
                 {Campaign.status: CampaignStatus.COMPLETED},
                 synchronize_session=False,
@@ -668,11 +645,10 @@ def _finalize_if_done(db: Session, campaign_id: int) -> None:
 
 
 # =========================================================
-# Human-like random scheduling
+# Scheduling
 # =========================================================
 
 def _random_gap() -> float:
-    """One random gap in SECONDS, picked from the weighted buckets."""
     r = random.random()
     acc = 0.0
     for prob, lo, hi in GAP_BUCKETS:
@@ -684,15 +660,6 @@ def _random_gap() -> float:
 
 
 def schedule_campaign_sends(db: Session, campaign_id: int) -> int:
-    """
-    Start now. Every PENDING valid recipient gets a send time = previous send
-    time + a random gap. The last scheduled_at is the campaign's completion time.
-
-    If the sender's hourly/daily limit needs a slower average speed, ALL gaps
-    are scaled up together (keeps the randomness, just stretches it).
-
-    Also used to REBUILD the schedule after downtime / pause (see dispatch_due_task).
-    """
     campaign = db.get(Campaign, campaign_id)
     if campaign is None:
         return 0
@@ -712,7 +679,6 @@ def schedule_campaign_sends(db: Session, campaign_id: int) -> int:
 
     gaps = [_random_gap() for _ in range(n - 1)]
 
-    # Average gap must respect sender limits.
     sender = db.get(SenderAccount, campaign.sender_account_id)
     needed = 0.0
     if sender is not None:
@@ -726,7 +692,7 @@ def schedule_campaign_sends(db: Session, campaign_id: int) -> int:
             factor = needed / mean
             gaps = [g * factor for g in gaps]
 
-    random.shuffle(recipients)  # random order too, so no pattern
+    random.shuffle(recipients)
 
     t = datetime.now(UTC).replace(tzinfo=None) + timedelta(
         seconds=random.uniform(*FIRST_SEND_DELAY)
@@ -752,7 +718,6 @@ def record_failure(
     error: str,
     mark_recipient_failed: bool = True,
 ) -> None:
-    """Mark recipient FAILED + log row + failed_count +1. Never raises."""
     try:
         db.rollback()
         recipient = db.get(CampaignRecipient, recipient_id)
@@ -771,8 +736,6 @@ def record_failure(
                 )
             )
         elif recipient is not None:
-            # Auth error: not the recipient's fault, will run again after reconnect.
-            # No FAILED log row, so reports stay accurate.
             recipient.status = RecipientStatus.PENDING
 
         if newly_failed:
@@ -791,7 +754,6 @@ def record_failure(
 
 
 def _set_status(db: Session, model, row_id: int, value) -> None:
-    """Best-effort status update. Never raises."""
     try:
         row = db.get(model, row_id)
         if row is not None:
@@ -805,7 +767,6 @@ def _set_status(db: Session, model, row_id: int, value) -> None:
 
 
 def flag_auth_failure(db: Session, sender_account_id: int, campaign_id: int) -> None:
-    """Sender token dead: mark sender NEEDS_REAUTH and pause the campaign."""
     _set_status(db, SenderAccount, sender_account_id, AccountStatus.NEEDS_REAUTH)
     _set_status(db, Campaign, campaign_id, CampaignStatus.PAUSED)
 
@@ -843,28 +804,32 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
         if template is None:
             raise PermanentError("Template not found")
 
-        # Idempotency: duplicate/retried message must not resend.
         if _status_str(recipient.status) == "sent":
             return {"message": "Already sent, skipping"}
 
-        # Only QUEUED recipients are sent. A stale task (e.g. from before a
-        # pause/resume reschedule) finds PENDING here and quietly skips.
         if _status_str(recipient.status) != "queued":
             return {"message": f"Recipient is {_status_str(recipient.status)}, skipping"}
 
         if not recipient.is_valid_email:
             raise PermanentError("Invalid email address")
 
-        # Paused/cancelled: put recipient back to PENDING; resume reschedules it.
         if campaign.status in (CampaignStatus.PAUSED, CampaignStatus.CANCELLED):
             recipient.status = RecipientStatus.PENDING
             db.commit()
             return {"message": f"Campaign is {_status_str(campaign.status)}, skipping"}
 
-        # --- Sender limits (hourly + daily) ---
         sender = db.get(SenderAccount, sender_account_id)
         if sender is None:
             raise PermanentError("Sender not found")
+
+        # Fail fast: account known-broken -> no retry loop.
+        if sender.status == AccountStatus.NEEDS_REAUTH or not sender.refresh_token:
+            recipient.status = RecipientStatus.FAILED
+            db.commit()
+            _finalize_if_done(db, campaign_id)
+            return {
+                "message": f"Sender {_status_str(sender.provider)} disconnected, needs reconnect"
+            }
 
         wait = _limit_wait_seconds(sender)
         if wait is not None:
@@ -875,8 +840,6 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
             db.commit()
             return {"message": f"Sender limit reached, moved by {wait}s"}
 
-        # --- SEND-TIME GATE: enforces the gap, whatever the schedule says ---
-        # Also blocks sending while Outlook told us to cool down.
         gate_wait = _take_send_slot(sender_account_id)
         if gate_wait > 0:
             recipient.status = RecipientStatus.PENDING
@@ -887,31 +850,30 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
             db.commit()
             return {"message": f"Too soon for this sender, moved by {gate_wait:.0f}s"}
 
-        # --- Token ---
         access_token = get_fresh_access_token(db, sender_account_id)
 
-        # --- Render template with sender + recipient data ---
         context = build_context(recipient, sender)
         html = render_template(template.html_content, context)
 
         recipient_email = recipient.email
         subject = campaign.subject
 
-        # --- Gmail -> plain text, everyone else -> HTML ---
         if is_plain_text_recipient(recipient_email):
             body, content_type = html_to_text(html), "Text"
         else:
             body, content_type = html, "HTML"
 
-        # --- Send ---
+        # --- Send: provider-aware ---
         try:
             _run_async(
-                GraphService.send_email(
+                _dispatch_send(
+                    sender,
                     access_token=access_token,
                     recipient=recipient_email,
                     subject=subject,
-                    html_body=body,
+                    body=body,
                     content_type=content_type,
+                    text_alternative=html_to_text(html) if content_type == "HTML" else None,
                 )
             )
         except Exception as send_exc:
@@ -921,7 +883,6 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
             raise
         email_sent = True
 
-        # --- Bookkeeping ---
         now = datetime.now(UTC)
         recipient.status = RecipientStatus.SENT
         recipient.sent_at = now
@@ -948,14 +909,12 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
         return {"message": f"Email Sent Successfully ({content_type})"}
 
     except RateLimitError as exc:
-        # Outlook limit / throttling: NOT a failure. Cool the sender down,
-        # put the email back to PENDING, no retry-count burned, no FAILED row.
         logger.warning(
-            "Outlook rate limit for sender %s. Cooling down %ss. %s",
+            "Rate limit for sender %s. Cooling down %ss. %s",
             sender_account_id, exc.wait, exc.reason,
         )
         _defer_after_rate_limit(db, recipient_id, sender_account_id, exc.wait)
-        return {"message": f"Rate limited by Outlook, retry in {exc.wait}s"}
+        return {"message": f"Rate limited by provider, retry in {exc.wait}s"}
 
     except Exception as exc:
         db.rollback()
@@ -964,7 +923,6 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
             logger.exception(
                 "Email to recipient %s was sent but DB update failed", recipient_id
             )
-            # Never leave it QUEUED/PENDING, or it could be sent twice.
             _set_status(db, CampaignRecipient, recipient_id, RecipientStatus.SENT)
             return {"message": "Sent, but bookkeeping failed"}
 
@@ -974,8 +932,6 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
             or self.request.retries >= self.max_retries
         )
         if is_final_attempt:
-            # Preserve the exception type in the log so KeyError/TypeError/
-            # AuthError are distinguishable at a glance in email_logs.
             error_text = f"{type(exc).__name__}: {exc}"
             record_failure(
                 db,
@@ -995,7 +951,7 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
 
 
 # =========================================================
-# Task: dispatcher (Celery beat, every 30 seconds)
+# Task: dispatcher
 # =========================================================
 
 @celery.task(
@@ -1003,21 +959,12 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
     queue="email_sender_queue",
 )
 def dispatch_due_task():
-    """
-    1. REBUILD: if a running campaign has PENDING rows that are badly overdue
-       (workers were off, or the sender was cooling down), give the whole
-       campaign a fresh random schedule starting NOW. No backlog burst.
-    2. QUEUE: every PENDING recipient due within DISPATCH_LOOKAHEAD seconds is
-       queued with eta = its exact time.
-    Senders in an Outlook cooldown are skipped completely.
-    """
     db: Session = SessionLocal()
     try:
         now = datetime.now(UTC).replace(tzinfo=None)
         horizon = now + timedelta(seconds=DISPATCH_LOOKAHEAD)
         overdue_cutoff = now - timedelta(seconds=OVERDUE_GRACE)
 
-        # Senders that Outlook told us to leave alone for a while.
         running_senders = [
             sid
             for (sid,) in db.query(Campaign.sender_account_id)
@@ -1031,7 +978,6 @@ def dispatch_due_task():
             ~Campaign.sender_account_id.in_(cooling) if cooling else true()
         )
 
-        # ---- 1. Rebuild schedule for campaigns with a backlog ----
         backlog_campaigns = [
             cid
             for (cid,) in db.query(CampaignRecipient.campaign_id)
@@ -1053,7 +999,6 @@ def dispatch_due_task():
             n = schedule_campaign_sends(db, cid)
             logger.warning("Campaign %s had a backlog: re-scheduled %d recipients from now", cid, n)
 
-        # ---- 2. Queue what is due ----
         rows = (
             db.query(
                 CampaignRecipient.id,
@@ -1066,7 +1011,7 @@ def dispatch_due_task():
                 CampaignRecipient.status == RecipientStatus.PENDING,
                 CampaignRecipient.scheduled_at.isnot(None),
                 CampaignRecipient.scheduled_at <= horizon,
-                Campaign.status == CampaignStatus.RUNNING,  # paused/cancelled skipped
+                Campaign.status == CampaignStatus.RUNNING,
                 not_cooling,
             )
             .order_by(CampaignRecipient.scheduled_at)
@@ -1076,10 +1021,8 @@ def dispatch_due_task():
         if not rows:
             return 0
 
-        claimed = []  # (row, scheduled_at)
+        claimed = []
         for r in rows:
-            # Claim each row individually; only queue the ones WE claimed.
-            # (Protects against overlapping runs queueing the same recipient twice.)
             updated = (
                 db.query(CampaignRecipient)
                 .filter(
@@ -1099,7 +1042,7 @@ def dispatch_due_task():
             send_email_task.apply_async(
                 args=[r.id, r.sender_account_id, r.campaign_id],
                 queue="email_sender_queue",
-                eta=_as_aware(sched),  # exact second; past time = run now (the gate still spaces it)
+                eta=_as_aware(sched),
             )
         return len(claimed)
     except Exception:
@@ -1111,7 +1054,7 @@ def dispatch_due_task():
 
 
 # =========================================================
-# Task: safety net for lost tasks (Celery beat, every 10 minutes)
+# Task: requeue stale
 # =========================================================
 
 @celery.task(
@@ -1119,13 +1062,6 @@ def dispatch_due_task():
     queue="email_sender_queue",
 )
 def requeue_stale_task():
-    """
-    QUEUED for too long = task got lost (broker restart etc.). Back to PENDING.
-
-    scheduled_at is deliberately NOT touched: the rows are old, so the
-    dispatcher sees a backlog and rebuilds a spaced-out schedule for them.
-    (Before, scheduled_at was set to "now" for all of them = burst.)
-    """
     db: Session = SessionLocal()
     try:
         now = datetime.now(UTC).replace(tzinfo=None)
