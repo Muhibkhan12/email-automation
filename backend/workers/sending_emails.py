@@ -125,6 +125,59 @@ def _status_str(value) -> str:
     return str(getattr(value, "value", value) or "").lower()
 
 
+def _validate_recipient_email(value: str | None) -> str:
+    """
+    Return a trimmed recipient address or raise PermanentError.
+
+    This checks address syntax only; it does not prove that the mailbox exists.
+    """
+    email = (value or "").strip()
+
+    if not email or len(email) > 254 or any(ch in email for ch in "\\r\\n\\t "):
+        raise PermanentError("Invalid recipient email address")
+
+    if email.count("@") != 1:
+        raise PermanentError("Invalid recipient email address")
+
+    local, domain = email.rsplit("@", 1)
+
+    if (
+        not local
+        or len(local) > 64
+        or not domain
+        or "." not in domain
+        or ".." in local
+        or ".." in domain
+    ):
+        raise PermanentError("Invalid recipient email address")
+
+    # Reject malformed local/domain labels and header-injection characters.
+    local_pattern = r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+"
+    domain_pattern = (
+        r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+        r"(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+"
+    )
+
+    if not re.fullmatch(local_pattern, local) or not re.fullmatch(domain_pattern, domain):
+        raise PermanentError("Invalid recipient email address")
+
+    return email
+
+
+def _is_invalid_to_header_error(exc: Exception) -> bool:
+    """Identify Gmail's specific permanent 400 Invalid To header response."""
+    response = getattr(exc, "response", None)
+    status = getattr(exc, "status_code", None) or getattr(response, "status_code", None)
+
+    try:
+        status = int(status) if status is not None else None
+    except (TypeError, ValueError):
+        status = None
+
+    message = str(exc).lower()
+    return "invalid to header" in message and status in (None, 400)
+
+
 def _run_async(coro):
     return asyncio.run(coro)
 
@@ -813,6 +866,9 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
         if not recipient.is_valid_email:
             raise PermanentError("Invalid email address")
 
+        # Validate and normalize the actual address that will be sent.
+        recipient_email = _validate_recipient_email(recipient.email)
+
         if campaign.status in (CampaignStatus.PAUSED, CampaignStatus.CANCELLED):
             recipient.status = RecipientStatus.PENDING
             db.commit()
@@ -855,7 +911,6 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
         context = build_context(recipient, sender)
         html = render_template(template.html_content, context)
 
-        recipient_email = recipient.email
         subject = campaign.subject
 
         if is_plain_text_recipient(recipient_email):
@@ -877,6 +932,11 @@ def send_email_task(self, recipient_id: int, sender_account_id: int, campaign_id
                 )
             )
         except Exception as send_exc:
+            if _is_invalid_to_header_error(send_exc):
+                raise PermanentError(
+                    f"Gmail rejected the recipient address: {recipient_email}"
+                ) from send_exc
+
             rate_limit = _as_rate_limit(send_exc)
             if rate_limit is not None:
                 raise rate_limit from send_exc
