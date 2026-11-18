@@ -100,3 +100,6 @@ def update_email_log(db: Session, log_id: int, credentials: UpdateEmailLogSchema
     db.commit()
     db.refresh(log)
     return {"message": "Email log updated successfully", "data": _serialize_log(log)}
+
+def get_all_email_logs_admin(db: Session):
+    return db.query(EmailLog).order_by(EmailLog.created_at.desc()).all()

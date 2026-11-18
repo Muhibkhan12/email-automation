@@ -26,6 +26,11 @@ from workers.celery_app import celery
 
 logger = get_task_logger(__name__)
 
+# Bump this string whenever you edit the file. It is printed when the worker
+# loads this module, so you can confirm the worker is running the new code.
+WORKER_BUILD = "2026-11-18-validator-fix"
+logger.warning("sending_emails loaded: build=%s file=%s", WORKER_BUILD, __file__)
+
 UTC = timezone.utc
 
 MAX_RETRIES = 5
@@ -133,11 +138,11 @@ def _validate_recipient_email(value: str | None) -> str:
     """
     email = (value or "").strip()
 
-    if not email or len(email) > 254 or any(ch in email for ch in "\\r\\n\\t "):
-        raise PermanentError("Invalid recipient email address")
+    if not email or len(email) > 254 or any(ch in email for ch in ("\r", "\n", "\t", " ")):
+        raise PermanentError(f"Invalid recipient email address: {email!r}")
 
     if email.count("@") != 1:
-        raise PermanentError("Invalid recipient email address")
+        raise PermanentError(f"Invalid recipient email address: {email!r}")
 
     local, domain = email.rsplit("@", 1)
 
@@ -149,17 +154,16 @@ def _validate_recipient_email(value: str | None) -> str:
         or ".." in local
         or ".." in domain
     ):
-        raise PermanentError("Invalid recipient email address")
+        raise PermanentError(f"Invalid recipient email address: {email!r}")
 
-    # Reject malformed local/domain labels and header-injection characters.
     local_pattern = r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+"
     domain_pattern = (
         r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
-        r"(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+"
+        r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+"
     )
 
     if not re.fullmatch(local_pattern, local) or not re.fullmatch(domain_pattern, domain):
-        raise PermanentError("Invalid recipient email address")
+        raise PermanentError(f"Invalid recipient email address: {email!r}")
 
     return email
 
@@ -538,7 +542,7 @@ def get_fresh_access_token(db: Session, sender_account_id: int) -> str:
 
 
 # =========================================================
-# Send (provider-aware, inline) — the actual fix
+# Send (provider-aware, inline)
 # =========================================================
 
 async def _dispatch_send(

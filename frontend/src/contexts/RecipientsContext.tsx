@@ -44,7 +44,7 @@ interface RecipientsType {
     updateRecipientById: (id: number, data: UpdateRecpient) => Promise<void>;
 }
 
-const RecipientsContext = createContext<RecipientsType | undefined>(undefined);
+export const RecipientsContext = createContext<RecipientsType | undefined>(undefined);
 
 const RecipientsContextProvider = ({ children }: RecipientProviderProps) => {
     const [recipients, setRecipients] = useState<CampaignRecipient[]>([]);

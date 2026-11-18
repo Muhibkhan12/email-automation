@@ -132,7 +132,7 @@ const StatCard: React.FC<{
   <Card className="p-4 relative overflow-hidden">
     <span
       aria-hidden
-      className="absolute left-0 top-0 bottom-0 w-[2px]"
+      className="absolute left-0 top-0 bottom-0 w-0.5"
       style={{ background: accent, opacity: 0.6 }}
     />
     <div className="flex items-start justify-between mb-3">
@@ -1088,7 +1088,7 @@ const AdminSenderAccounts = () => {
       {/* Edit modal */}
       {editingAccount && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          className="fixed inset-0 z-60 flex items-center justify-center p-4"
           onClick={() => !saving && setEditingAccount(null)}
           style={{ background: "rgba(11,12,14,0.72)", backdropFilter: "blur(4px)" }}
           role="dialog"

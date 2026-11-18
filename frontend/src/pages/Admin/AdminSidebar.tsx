@@ -59,7 +59,6 @@ const navGroups = [
     items: [
       { name: "Dashboard",     path: "/admin/dashboard", icon: LayoutDashboard },
       { name: "Analytics",     path: "/admin/analytics", icon: BarChart3 },
-      { name: "System Health", path: "/admin/system",    icon: Activity },
     ],
   },
   {

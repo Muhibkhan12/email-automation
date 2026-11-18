@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -46,3 +46,12 @@ def update_email_log(
     current_user=Depends(GetCurrentUser),
 ):
     return email_log_service.update_email_log(db, id, credentials, current_user.id)
+
+@router.get("/admin/all")
+def admin_get_all_logs(
+    db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser),
+):
+    if current_user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Admin only")
+    return email_log_service.get_all_email_logs_admin(db)

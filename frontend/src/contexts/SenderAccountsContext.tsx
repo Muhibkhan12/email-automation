@@ -6,6 +6,7 @@ import {
   updateSenderAccount as apiUpdate,
   deleteSenderAccount as apiDelete,
 } from "../services/SenderService";
+
 import type {
   SenderAccount,
   CreateSenderAccountInput,
@@ -21,6 +22,13 @@ interface SenderAccContextValue {
   updateSenderAccount: (id: number, data: UpdateSenderAccountInput) => Promise<SenderAccount>;
   deleteSenderAccount: (id: number) => Promise<void>;
 }
+export const useSenderAccounts = () => {
+  const ctx = React.useContext(SenderAccContext);
+  if (!ctx) {
+    throw new Error("useSenderAccounts must be used within SenderAccountsProvider");
+  }
+  return ctx;
+};
 
 export const SenderAccContext = createContext<SenderAccContextValue | null>(null);
 
