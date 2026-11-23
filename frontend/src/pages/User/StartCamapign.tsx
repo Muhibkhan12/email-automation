@@ -6,7 +6,7 @@ import {
   XCircle, Pause, Play, Ban, X, Send, Users, Trash2, Loader2,
   Pencil, Type, Clock, Inbox, Timer, Hourglass, Info,
 } from "lucide-react";
-import { SenderAccContext } from "../../contexts/SenderAccountsContext";
+import { useSenderAccounts } from "../../contexts/SenderAccountsContext";
 import { useHtmlTemplates } from "../../contexts/HtmlTemplatesContext";
 import { useUpload } from "../../contexts/UploadContext";
 import { AuthContext } from "../../contexts/AuthContext";
@@ -94,6 +94,18 @@ const errMsg = (e: any, fallback: string) => {
   return d?.toString?.() ?? data?.message ?? e?.message ?? fallback;
 };
 
+/** Safe stringifier — Notice me kabhi bhi object/array na render ho. */
+const asText = (v: any): string => {
+  if (v === null || v === undefined) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  if (Array.isArray(v)) return v.map(asText).join(" | ");
+  if (typeof v === "object") {
+    return (v as any).msg ?? (v as any).message ?? (v as any).detail ?? JSON.stringify(v);
+  }
+  return String(v);
+};
+
 const toStatus = (raw?: string): Status | null => {
   const s = String(raw ?? "").toLowerCase();
   if (s === "draft") return "Draft";
@@ -178,6 +190,7 @@ const Head = ({ title, sub }: { title: string; sub: string }) => (
   </div>
 );
 
+/* ── FIXED Notice: kabhi bhi object render nahi karega ── */
 const Notice = ({ tone, children }: { tone: "error" | "warn" | "info" | "success"; children: React.ReactNode }) => {
   const map = {
     error:   { c: T.danger, soft: "rgba(224,106,106,0.06)", border: "rgba(224,106,106,0.28)", icon: XCircle },
@@ -190,7 +203,7 @@ const Notice = ({ tone, children }: { tone: "error" | "warn" | "info" | "success
     <div className="flex items-start gap-2.5 rounded-lg px-3.5 py-3"
       style={{ background: map.soft, border: `1px solid ${map.border}` }}>
       <Icon size={14} style={{ color: map.c }} className="mt-0.5 shrink-0" />
-      <p className="text-[12.5px] leading-5" style={{ color: map.c }}>{children}</p>
+      <p className="text-[12.5px] leading-5" style={{ color: map.c }}>{asText(children)}</p>
     </div>
   );
 };
@@ -265,11 +278,12 @@ const Stepper: React.FC<{ step: number; maxReached: number; onStepClick: (i: num
 
 /* ───────── page ───────── */
 const CampaignCreatePage = () => {
-  const ctx = useContext(SenderAccContext);
-  const accounts: any[] = Array.isArray(ctx?.senderAcc) ? (ctx!.senderAcc as any[]) : [];
-  const sendersLoading = ctx?.loading ?? false;
-  const sendersError = ctx?.error ?? null;
-  const fetchSenders = ctx?.fetchAllSenderAccounts;
+    const {
+    accounts,
+    loading: sendersLoading,
+    error: sendersError,
+    refresh: fetchSenders,
+  } = useSenderAccounts();
 
   const auth = useContext(AuthContext);
   const currentUserId = auth?.user?.user_id ?? null;

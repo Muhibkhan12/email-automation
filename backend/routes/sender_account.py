@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -7,6 +7,8 @@ from schema.sender_account import SenderAccountResponse, addSenderAccountSchema,
 from services.user import GetCurrentUser
 from services.sender_accounts import (
     add_sender_account,
+    admin_delete_sender_account,
+    admin_get_all_sender_accounts,
     update_sender_account,
     delete_sender_account,
     get_account_by_id,
@@ -26,18 +28,12 @@ def get_my_senders_accounts(
 ):
     return get_my_senders_accounts_using_id(current_user,db)
 
-# @router.get("/all", response_model=list[SenderAccountResponse])
-# def getAllSenderAccounts(
-#     current_user: User = Depends(GetCurrentUser),
+# @router.get("/all")
+# def get_all(
 #     db: Session = Depends(get_db),
+#     current_user: User = Depends(GetCurrentUser),
 # ):
 #     return get_all_sender_accounts(current_user.id, db)
-@router.get("/all")
-def get_all(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(GetCurrentUser),
-):
-    return get_all_sender_accounts(current_user.id, db)
 
 @router.get("/{id}")
 def getAccount(
@@ -71,3 +67,18 @@ def deleteAccount(
     db: Session = Depends(get_db),
 ):
     return delete_sender_account(id, db, current_user.id)
+
+def require_admin(current_user: User = Depends(GetCurrentUser)):
+    # Apne User model ke hisaab se adjust karo (is_admin / role / is_superuser)
+    is_admin = getattr(current_user, "ADMIN", False) or getattr(current_user, "role", None) == "ADMIN"
+    if not is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+    return current_user
+
+@router.get("/admin/all")
+def admin_all(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    return admin_get_all_sender_accounts(db)
+
+@router.delete("/admin/{id}")
+def admin_delete(id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    return admin_delete_sender_account(id, db)

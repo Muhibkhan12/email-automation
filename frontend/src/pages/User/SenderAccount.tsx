@@ -1,867 +1,633 @@
-import React, { useContext, useEffect, useState } from "react";
-import Sidebar from "./Sidebar";
+// frontend/src/pages/MySenderAccounts.tsx
+import React, { useMemo, useRef, useState } from "react";
 import {
-  Mail, CheckCircle2, AlertTriangle, XCircle, Gauge, Layers,
-  Plus, Search, Wifi, Menu, Loader2, Inbox, Trash2,
-  X, ShieldAlert, ChevronRight,
+  AtSign, Search, Trash2, RefreshCw, Plus, X, Send, Mail,
+  SlidersHorizontal, AlertTriangle, Loader2, Link2, Link2Off,
+  CheckCircle, ShieldCheck, ShieldAlert, ShieldX, Edit3, Save,
 } from "lucide-react";
-import { SenderAccContext } from "../../contexts/SenderAccountsContext";
-import { useGmailConnect } from "../../contexts/GmailConnectContext";
-import type { SenderAccount } from "../../types/SenderAccount";
+import {
+  SenderAccountsProvider,
+  useSenderAccounts,
+} from "../../contexts/SenderAccountsContext";
+import type {
+  SenderAccount,
+  CreateSenderAccountInput,
+} from "../../types/SenderAccount";
+// NOTE: adjust this path/name to match where your sidebar component lives
 
-/* ─────────────── design tokens ─────────────── */
+import Sidebar from "./Sidebar";
 
 const T = {
-  bg:         "#0B0C0E",
-  surface:    "#111214",
-  surface2:   "#16181B",
-  surfaceHi:  "#1C1F23",
-  border:     "#24282E",
-  borderSoft: "#1B1E22",
-
-  text:       "#E8EAED",
-  textMuted:  "#9AA0A6",
-  textFaint:  "#6B7075",
-
-  accent:     "#6EE7A8",
-  accentInk:  "#0B0C0E",
-  accentLine: "#2E6B4D",
-
-  ok:         "#6EE7A8",
-  warn:       "#E0A64A",
-  danger:     "#E06A6A",
-  info:       "#6EC1E7",
-  purple:     "#B39DE0",
+  bg: "#0B0C0E", surface: "#111214", surface2: "#16181B", surfaceHi: "#1C1F23",
+  border: "#24282E", borderSoft: "#1B1E22",
+  text: "#E8EAED", textMuted: "#9AA0A6", textFaint: "#6B7075",
+  brand: "#6366F1", brandSoft: "rgba(99,102,241,0.12)", brandBorder: "rgba(99,102,241,0.35)",
+  accent: "#6EE7A8",
+  success: "#6EE7A8", successSoft: "rgba(110,231,168,0.10)", successBorder: "rgba(110,231,168,0.28)",
+  warn: "#E0A64A", warnSoft: "rgba(224,166,74,0.10)", warnBorder: "rgba(224,166,74,0.28)",
+  danger: "#E06A6A", dangerSoft: "rgba(224,106,106,0.10)", dangerBorder: "rgba(224,106,106,0.28)",
+  info: "#6EC1E7", infoSoft: "rgba(110,193,231,0.10)", infoBorder: "rgba(110,193,231,0.28)",
+  purple: "#B39DE0", purpleSoft: "rgba(179,157,224,0.10)",
 };
-
 const FONT = {
-  ui:   "'Inter', system-ui, -apple-system, sans-serif",
+  ui: "'Inter', system-ui, -apple-system, sans-serif",
   mono: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
 };
-
 const HAIRLINE = `1px solid ${T.border}`;
 const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`;
 
-/* ─────────────── helpers ─────────────── */
+const PROVIDERS = ["Gmail", "Outlook"] as const;
+type KnownStatus = "Active" | "Warning" | "Disconnected";
 
-type AccountStatus = "Active" | "Warning" | "Disconnected";
-type Provider = "Gmail" | "Outlook" | "Custom SMTP";
-
-const providerMeta: Record<Provider, { short: string; grad: string; ring: string; fg: string }> = {
-  Gmail:         { short: "G",  grad: "linear-gradient(135deg, #EA4335, #B32C20)", ring: "rgba(234,67,53,0.35)",  fg: "#EA4335" },
-  Outlook:       { short: "O",  grad: "linear-gradient(135deg, #0A66C2, #053C74)", ring: "rgba(10,102,194,0.35)", fg: "#0A66C2" },
-  "Custom SMTP": { short: "SM", grad: "linear-gradient(135deg, #4B5563, #1F2937)", ring: "rgba(107,114,128,0.35)", fg: "#9BA0A8" },
+const STATUS_META: Record<KnownStatus, { fg: string; bg: string; ring: string; icon: React.ElementType }> = {
+  Active:       { fg: T.success, bg: T.successSoft, ring: T.successBorder, icon: ShieldCheck },
+  Warning:      { fg: T.warn,    bg: T.warnSoft,    ring: T.warnBorder,    icon: ShieldAlert },
+  Disconnected: { fg: T.danger,  bg: T.dangerSoft,  ring: T.dangerBorder,  icon: ShieldX },
 };
 
-const statusMeta: Record<AccountStatus, { fg: string; bg: string; ring: string; icon: React.ComponentType<{ size?: number }> }> = {
-  Active:       { fg: T.ok,     bg: "rgba(110,231,168,0.10)", ring: "rgba(110,231,168,0.28)", icon: CheckCircle2 },
-  Warning:      { fg: T.warn,   bg: "rgba(224,166,74,0.10)",  ring: "rgba(224,166,74,0.28)",  icon: AlertTriangle },
-  Disconnected: { fg: T.danger, bg: "rgba(224,106,106,0.10)", ring: "rgba(224,106,106,0.28)", icon: XCircle },
-};
+const providerBrand = (p: string) =>
+  p === "Gmail" ? "#EA4335" : p === "Outlook" ? "#0078D4" : T.brand;
 
-const pct = (used: number, limit: number) => (limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0);
+const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => (
+  <div className={`rounded-xl ${className}`} style={{ background: T.surface, border: HAIRLINE }}>{children}</div>
+);
 
-const normalizeStatus = (s?: string): AccountStatus => {
-  const v = (s ?? "").toLowerCase();
-  if (v === "active") return "Active";
-  if (v === "disconnected") return "Disconnected";
-  return "Warning";
-};
-
-const normalizeProvider = (p?: string): Provider => {
-  const v = (p ?? "").toLowerCase();
-  if (v === "gmail") return "Gmail";
-  if (v === "outlook") return "Outlook";
-  return "Custom SMTP";
-};
-
-/* ─────────────── page ─────────────── */
-
-const SenderAccountsPage = () => {
-  const ctx = useContext(SenderAccContext);
-  const {
-    connectGmail,
-    connecting: gmailConnecting,
-    result: gmailResult,
-    clearResult: clearGmailResult,
-  } = useGmailConnect();
-
-  const [search, setSearch] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [accountToDelete, setAccountToDelete] = useState<SenderAccount | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
-
-  // success banner 6 sec baad khud hat jaye
-  useEffect(() => {
-    if (gmailResult?.status !== "connected") return;
-    const t = window.setTimeout(clearGmailResult, 6000);
-    return () => window.clearTimeout(t);
-  }, [gmailResult, clearGmailResult]);
-
-  if (!ctx) {
-    throw new Error("SenderAccountsPage must be used inside a <SenderAccountsContext> provider.");
-  }
-  const { senderAcc: rawAccounts, loading, deleteSenderAccount } = ctx;
-  const senderAcc: SenderAccount[] = Array.isArray(rawAccounts) ? rawAccounts : [];
-
-  const query = search.toLowerCase();
-  const filteredAccounts = senderAcc.filter(
-    (a) =>
-      (a.email ?? "").toLowerCase().includes(query) ||
-      (a.display_name ?? "").toLowerCase().includes(query)
+const Avatar: React.FC<{ name?: string; size?: number; brand?: string }> = ({ name, size = 30, brand }) => {
+  const initial = (name || "?").trim()[0]?.toUpperCase() ?? "?";
+  const bg = brand ?? T.brand;
+  return (
+    <div className="shrink-0 rounded-md flex items-center justify-center font-semibold text-white select-none"
+      style={{ width: size, height: size, fontSize: size * 0.42,
+        background: `linear-gradient(135deg, ${bg}, ${bg}88)`,
+        boxShadow: `inset 0 0 0 1px rgba(255,255,255,0.06)` }} aria-hidden>
+      {initial}
+    </div>
   );
+};
 
-  const activeCount = senderAcc.filter((a) => normalizeStatus(a.status) === "Active").length;
-  const emailsToday = senderAcc.reduce((sum, a) => sum + (a.emails_sent_today ?? 0), 0);
-  const dailyCapacity = senderAcc.reduce((sum, a) => sum + (a.daily_limit ?? 0), 0);
+const StatusPill: React.FC<{ status: string }> = ({ status }) => {
+  const meta = STATUS_META[status as KnownStatus];
+  const Icon = meta?.icon ?? ShieldAlert;
+  const m = meta ?? { fg: T.textMuted, bg: T.surface2, ring: T.borderSoft, icon: ShieldAlert };
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium whitespace-nowrap"
+      style={{ background: m.bg, color: m.fg, border: `1px solid ${m.ring}` }}>
+      <Icon size={10} />{status || "Unknown"}
+    </span>
+  );
+};
 
-  /* ── connect flows ── */
+const UsageBar: React.FC<{ sent: number; limit: number }> = ({ sent, limit }) => {
+  const pct = limit > 0 ? Math.max(0, Math.min((sent / limit) * 100, 100)) : 0;
+  return (
+    <div className="w-32">
+      <div className="flex items-center justify-between text-[10.5px] mb-1">
+        <span style={{ color: T.textMuted, fontFamily: FONT.mono }}>{sent.toLocaleString()}</span>
+        <span style={{ color: T.text, fontFamily: FONT.mono }}>/ {limit.toLocaleString()}</span>
+      </div>
+      <div className="h-1 w-full rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: T.accent }} />
+      </div>
+      <p className="text-[9.5px] mt-1 font-medium" style={{ color: T.textFaint, fontFamily: FONT.mono }}>{Math.round(pct)}%</p>
+    </div>
+  );
+};
 
-  const connectOutlook = () => {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      alert("You must be logged in.");
-      return;
-    }
-    window.location.href = `/api/oauth/outlook/connect?token=${encodeURIComponent(token)}`;
-  };
+/* ─────────── Add / Edit modal ─────────── */
+const AccountFormModal: React.FC<{
+  open: boolean;
+  mode: "create" | "edit";
+  initial?: SenderAccount | null;
+  busy: boolean;
+  error: string | null;
+  onClose: () => void;
+  onSubmit: (data: CreateSenderAccountInput) => void;
+}> = ({ open, mode, initial, busy, error, onClose, onSubmit }) => {
+  const [displayName, setDisplayName] = useState(initial?.display_name ?? "");
+  const [email, setEmail] = useState(initial?.email ?? "");
+  const [provider, setProvider] = useState(initial?.provider ?? "Gmail");
+  const [daily, setDaily] = useState<number>(initial?.daily_limit ?? 500);
+  const [hourly, setHourly] = useState<number>(initial?.hourly_limit ?? 50);
 
-  const handleReconnect = (account: SenderAccount) => {
-    if (normalizeProvider(account.provider) === "Gmail") connectGmail();
-    else connectOutlook();
-  };
+  React.useEffect(() => {
+    if (!open) return;
+    setDisplayName(initial?.display_name ?? "");
+    setEmail(initial?.email ?? "");
+    setProvider(initial?.provider ?? "Gmail");
+    setDaily(initial?.daily_limit ?? 500);
+    setHourly(initial?.hourly_limit ?? 50);
+  }, [open, initial]);
 
-  const confirmDelete = async (id: number) => {
-    await deleteSenderAccount(id);
+  if (!open) return null;
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit({
+      display_name: displayName.trim(),
+      email: email.trim(),
+      provider,
+      daily_limit: Number(daily) || 0,
+      hourly_limit: Number(hourly) || 0,
+    } as CreateSenderAccountInput);
   };
 
   return (
-    <div className="flex min-h-screen overflow-hidden" style={{ fontFamily: FONT.ui, background: T.bg }}>
+    <div className="fixed inset-0 z-60 flex items-center justify-center p-4"
+      onClick={() => !busy && onClose()}
+      style={{ background: "rgba(11,12,14,0.72)", backdropFilter: "blur(4px)" }} role="dialog" aria-modal="true">
+      <form onSubmit={submit} onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-2xl overflow-hidden"
+        style={{ background: T.surface, border: HAIRLINE, boxShadow: "0 24px 64px -16px rgba(0,0,0,0.7)" }}>
+        <div className="p-5 border-b flex items-start justify-between gap-3" style={{ borderColor: T.borderSoft }}>
+          <div>
+            <h3 className="text-[15px] font-semibold" style={{ color: T.text }}>
+              {mode === "create" ? "Add sender account" : "Edit sender account"}
+            </h3>
+            <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
+              {mode === "create"
+                ? "Connect a Gmail or Outlook account you own."
+                : "Update the saved account details."}
+            </p>
+          </div>
+          <button type="button" onClick={onClose} disabled={busy}
+            className="p-1.5 rounded-md" style={{ color: T.textMuted }} aria-label="Close">
+            <X size={14} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-3">
+          <label className="block">
+            <span className="text-[11px] font-medium mb-1 block" style={{ color: T.textMuted }}>Display name</span>
+            <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} required
+              placeholder="Sales team"
+              className="w-full rounded-md px-3 py-2 text-[12.5px] outline-none"
+              style={{ background: T.surface2, color: T.text, border: HAIRLINE_SOFT }} />
+          </label>
+          <label className="block">
+            <span className="text-[11px] font-medium mb-1 block" style={{ color: T.textMuted }}>Email</span>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
+              placeholder="sender@example.com"
+              className="w-full rounded-md px-3 py-2 text-[12.5px] outline-none"
+              style={{ background: T.surface2, color: T.text, border: HAIRLINE_SOFT, fontFamily: FONT.mono }} />
+          </label>
+          <label className="block">
+            <span className="text-[11px] font-medium mb-1 block" style={{ color: T.textMuted }}>Provider</span>
+            <select value={provider} onChange={(e) => setProvider(e.target.value)}
+              className="w-full rounded-md px-3 py-2 text-[12.5px] outline-none cursor-pointer"
+              style={{ background: T.surface2, color: T.text, border: HAIRLINE_SOFT }}>
+              {PROVIDERS.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-[11px] font-medium mb-1 block" style={{ color: T.textMuted }}>Daily limit</span>
+              <input type="number" min={0} value={daily} onChange={(e) => setDaily(Number(e.target.value))}
+                className="w-full rounded-md px-3 py-2 text-[12.5px] outline-none"
+                style={{ background: T.surface2, color: T.text, border: HAIRLINE_SOFT, fontFamily: FONT.mono }} />
+            </label>
+            <label className="block">
+              <span className="text-[11px] font-medium mb-1 block" style={{ color: T.textMuted }}>Hourly limit</span>
+              <input type="number" min={0} value={hourly} onChange={(e) => setHourly(Number(e.target.value))}
+                className="w-full rounded-md px-3 py-2 text-[12.5px] outline-none"
+                style={{ background: T.surface2, color: T.text, border: HAIRLINE_SOFT, fontFamily: FONT.mono }} />
+            </label>
+          </div>
+
+          {error && (
+            <div className="rounded-lg px-3 py-2.5 flex items-start gap-2.5 text-[12px]"
+              style={{ background: T.dangerSoft, color: T.danger, border: `1px solid ${T.dangerBorder}` }}>
+              <AlertTriangle size={12} className="mt-0.5 shrink-0" /><span>{error}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 p-4 border-t" style={{ borderColor: T.borderSoft }}>
+          <button type="button" onClick={onClose} disabled={busy}
+            className="rounded-md px-3.5 py-2 text-[12px] font-medium disabled:opacity-50"
+            style={{ color: T.textMuted, border: HAIRLINE }}>Cancel</button>
+          <button type="submit" disabled={busy}
+            className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-semibold disabled:opacity-50"
+            style={{ background: T.brand, color: "#fff", border: `1px solid ${T.brandBorder}` }}>
+            {busy ? <Loader2 size={12} className="animate-spin" /> : mode === "create" ? <Plus size={12} /> : <Save size={12} />}
+            {mode === "create" ? "Add account" : "Save changes"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+/* ─────────── Delete confirm ─────────── */
+const DeleteConfirmModal: React.FC<{
+  account: SenderAccount | null;
+  busy: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}> = ({ account, busy, error, onCancel, onConfirm }) => {
+  if (!account) return null;
+  const brand = providerBrand(account.provider);
+  const label = account.display_name || account.email;
+  return (
+    <div className="fixed inset-0 z-60 flex items-center justify-center p-4"
+      onClick={() => !busy && onCancel()}
+      style={{ background: "rgba(11,12,14,0.72)", backdropFilter: "blur(4px)" }} role="dialog" aria-modal="true">
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-2xl overflow-hidden"
+        style={{ background: T.surface, border: HAIRLINE, boxShadow: "0 24px 64px -16px rgba(0,0,0,0.7)" }}>
+        <div className="p-5 border-b" style={{ borderColor: T.borderSoft }}>
+          <div className="flex items-start gap-3">
+            <div className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
+              style={{ background: T.dangerSoft, color: T.danger }}>
+              <Link2Off size={16} />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-[15px] font-semibold wrap-break-word" style={{ color: T.text }}>
+                Disconnect “{label}”?
+              </h3>
+              <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
+                This removes the saved account and its OAuth token. You can reconnect later.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="mx-4 mt-4 rounded-lg px-3 py-2.5 flex items-center gap-2.5 text-[12px]"
+          style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
+          <Avatar name={label} brand={brand} size={28} />
+          <div className="min-w-0">
+            <p className="truncate font-medium" style={{ color: T.text }}>{account.display_name || "Unnamed"}</p>
+            <p className="truncate text-[11px] mt-0.5" style={{ color: T.textMuted, fontFamily: FONT.mono }}>{account.email}</p>
+          </div>
+        </div>
+        {error && (
+          <div className="mx-4 mt-3 rounded-lg px-3 py-2.5 flex items-start gap-2.5 text-[12px]"
+            style={{ background: T.dangerSoft, color: T.danger, border: `1px solid ${T.dangerBorder}` }}>
+            <AlertTriangle size={12} className="mt-0.5 shrink-0" /><span>{error}</span>
+          </div>
+        )}
+        <div className="flex items-center justify-end gap-2 p-4">
+          <button onClick={onCancel} disabled={busy}
+            className="rounded-md px-3.5 py-2 text-[12px] font-medium disabled:opacity-50"
+            style={{ color: T.textMuted, border: HAIRLINE }}>Cancel</button>
+          <button onClick={onConfirm} disabled={busy}
+            className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-semibold disabled:opacity-50"
+            style={{ background: T.danger, color: "#0B0C0E", border: `1px solid ${T.danger}` }}>
+            {busy ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+            Disconnect
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─────────── Inner page ─────────── */
+const Inner: React.FC = () => {
+  const {
+    accounts, loading, error: ctxError, refresh,
+    addSenderAccount, updateSenderAccount, deleteSenderAccount,
+  } = useSenderAccounts();
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [providerFilter, setProviderFilter] = useState("All");
+
+  const [flash, setFlash] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showFlash = (type: "success" | "error", msg: string) => {
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    setFlash({ type, msg });
+    flashTimer.current = setTimeout(() => setFlash(null), 3500);
+  };
+  React.useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
+  const [editTarget, setEditTarget] = useState<SenderAccount | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formBusy, setFormBusy] = useState(false);
+
+  const [deleteTarget, setDeleteTarget] = useState<SenderAccount | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+
+  const filtered = useMemo(() => {
+    let r = [...accounts];
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      r = r.filter((a) =>
+        (a.email ?? "").toLowerCase().includes(q) ||
+        (a.display_name ?? "").toLowerCase().includes(q) ||
+        (a.provider ?? "").toLowerCase().includes(q)
+      );
+    }
+    if (statusFilter !== "All") r = r.filter((a) => a.status === statusFilter);
+    if (providerFilter !== "All") r = r.filter((a) => a.provider === providerFilter);
+    return r;
+  }, [accounts, search, statusFilter, providerFilter]);
+
+  const activeCount = accounts.filter((a) => a.status === "Active").length;
+  const emailsToday = accounts.reduce((s, a) => s + (a.emails_sent_today ?? 0), 0);
+  const dailyCapacity = accounts.reduce((s, a) => s + (a.daily_limit ?? 0), 0);
+  const hasFilters = !!search || statusFilter !== "All" || providerFilter !== "All";
+
+  const openCreate = () => {
+    setFormMode("create");
+    setEditTarget(null);
+    setFormError(null);
+    setFormOpen(true);
+  };
+  const openEdit = (acc: SenderAccount) => {
+    setFormMode("edit");
+    setEditTarget(acc);
+    setFormError(null);
+    setFormOpen(true);
+  };
+
+  const handleSubmitForm = async (data: CreateSenderAccountInput) => {
+    setFormBusy(true);
+    setFormError(null);
+    try {
+      if (formMode === "create") {
+        await addSenderAccount(data);
+        showFlash("success", "Sender account added.");
+      } else if (editTarget) {
+        await updateSenderAccount(editTarget.id, data);
+        showFlash("success", "Sender account updated.");
+      }
+      setFormOpen(false);
+    } catch (e: any) {
+      setFormError(e?.response?.data?.detail ?? e?.message ?? "Failed to save sender account.");
+    } finally {
+      setFormBusy(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    try {
+      await deleteSenderAccount(deleteTarget.id);
+      setDeleteTarget(null);
+      showFlash("success", "Sender account disconnected.");
+    } catch (e: any) {
+      setDeleteError(e?.response?.data?.detail ?? e?.message ?? "Failed to disconnect sender account.");
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex w-full" style={{ fontFamily: FONT.ui, background: T.bg, minHeight: "100dvh" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap');
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .spin { animation: spin 1s linear infinite; }
-        .sa-main::-webkit-scrollbar { width: 8px; }
-        .sa-main::-webkit-scrollbar-track { background: transparent; }
-        .sa-main::-webkit-scrollbar-thumb { background: ${T.border}; border-radius: 8px; }
-        .sa-main::-webkit-scrollbar-thumb:hover { background: ${T.surfaceHi}; }
-        .sa-input::placeholder { color: ${T.textFaint}; }
-        select option { background: ${T.surface}; color: ${T.text}; }
-        :focus-visible { outline: 2px solid ${T.accentLine}; outline-offset: 2px; border-radius: 6px; }
-        @media (prefers-reduced-motion: reduce) { .spin { animation: none !important; } }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        .msa-row:hover { background: ${T.surface2}; }
+        .msa-row .msa-actions { opacity: 0; transition: opacity 0.15s ease; }
+        .msa-row:hover .msa-actions, .msa-row:focus-within .msa-actions { opacity: 1; }
+        @media (hover: none) { .msa-row .msa-actions { opacity: 1; } }
+        select option { background: ${T.surface2}; color: ${T.text}; }
       `}</style>
 
-      {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 z-40"
-          style={{ background: "rgba(11,12,14,0.72)" }}
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      <Sidebar />
 
-      <div className={`
-        fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-200 ease-out
-        ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-      `}>
-        <Sidebar onClose={() => setSidebarOpen(false)} />
-      </div>
-
-      <main className="sa-main flex-1 overflow-y-auto" style={{ height: "100vh", width: "100%", background: T.bg }}>
-        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1160 }}>
-
-          {/* Header */}
-          <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-            <div className="flex items-start gap-3">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-[120ms]"
-                style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
-                aria-label="Open menu"
-              >
-                <Menu size={16} />
-              </button>
-              <div>
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="inline-flex items-center gap-2 text-[12px]" style={{ color: T.textMuted }}>
-                    <span
-                      className="inline-block w-1.5 h-1.5 rounded-full"
-                      style={{ background: activeCount > 0 ? T.accent : T.textFaint }}
-                    />
-                    {activeCount} active
-                  </span>
-                  <span style={{ color: T.border }}>|</span>
-                  <span className="text-[12px]" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                    {senderAcc.length} total
-                  </span>
-                </div>
-
-                <h1 className="text-[24px] md:text-[26px] font-medium leading-tight" style={{ color: T.text }}>
-                  Sender accounts
-                </h1>
-                <p className="mt-1 text-[13px] max-w-lg" style={{ color: T.textMuted }}>
-                  Manage the accounts used to send your campaigns.
-                </p>
-              </div>
+      <main className="flex-1 min-w-0 overflow-y-auto" style={{ height: "100dvh" }}>
+        <div className="mx-auto px-4 md:px-6 lg:px-10 py-6 md:py-8 lg:py-10" style={{ maxWidth: 1280 }}>
+          <header className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-7">
+            <div>
+              <h1 className="text-[24px] md:text-[26px] font-semibold leading-tight tracking-tight" style={{ color: T.text }}>
+                My sender accounts
+              </h1>
+              <p className="mt-1 text-[13px] max-w-lg font-medium" style={{ color: T.textMuted }}>
+                Connect and manage the email accounts you use to send campaigns.
+              </p>
             </div>
-
-            <button
-              onClick={() => setAddOpen(true)}
-              disabled={gmailConnecting}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium self-start md:self-auto transition-all hover:brightness-110 disabled:opacity-60 disabled:hover:brightness-100"
-              style={{ background: T.accent, color: T.accentInk }}
-            >
-              {gmailConnecting ? <Loader2 size={13} className="spin" /> : <Plus size={13} />}
-              {gmailConnecting ? "Waiting for Google…" : "Add sender account"}
+            <button onClick={openCreate}
+              className="inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12.5px] font-semibold self-start md:self-auto"
+              style={{ background: T.brand, color: "#fff", border: `1px solid ${T.brandBorder}` }}>
+              <Plus size={13} /> Add sender account
             </button>
           </header>
 
-          {/* Connect result banner */}
-          {gmailResult && (
-            <div
-              role="status"
-              className="mb-6 flex items-start gap-2.5 rounded-lg px-3.5 py-3"
+          {flash && (
+            <div className="mb-5 rounded-xl px-4 py-3 flex items-start gap-2.5 text-[12px]"
               style={{
-                background: gmailResult.status === "connected" ? "rgba(110,231,168,0.06)" : "rgba(224,106,106,0.06)",
-                border: `1px solid ${gmailResult.status === "connected" ? "rgba(110,231,168,0.28)" : "rgba(224,106,106,0.28)"}`,
-              }}
-            >
-              {gmailResult.status === "connected"
-                ? <CheckCircle2 size={14} style={{ color: T.ok }} className="mt-0.5 shrink-0" />
-                : <XCircle size={14} style={{ color: T.danger }} className="mt-0.5 shrink-0" />}
-              <p
-                className="flex-1 text-[12.5px] leading-5"
-                style={{ color: gmailResult.status === "connected" ? T.ok : T.danger }}
-              >
-                {gmailResult.status === "connected"
-                  ? "Gmail account connected successfully."
-                  : gmailResult.reason ?? "Could not connect Gmail. Please try again."}
-              </p>
-              <button
-                onClick={clearGmailResult}
-                aria-label="Dismiss"
-                className="shrink-0 p-0.5 rounded transition-opacity opacity-70 hover:opacity-100"
-                style={{ color: gmailResult.status === "connected" ? T.ok : T.danger }}
-              >
-                <X size={13} />
-              </button>
+                background: flash.type === "success" ? T.successSoft : T.dangerSoft,
+                color: flash.type === "success" ? T.success : T.danger,
+                border: `1px solid ${flash.type === "success" ? T.successBorder : T.dangerBorder}`,
+              }}>
+              {flash.type === "success" ? <CheckCircle size={14} className="mt-0.5 shrink-0" />
+                : <AlertTriangle size={14} className="mt-0.5 shrink-0" />}
+              <span className="flex-1 font-medium">{flash.msg}</span>
+              <button onClick={() => setFlash(null)} className="shrink-0 p-1 rounded-md" aria-label="Dismiss"><X size={12} /></button>
             </div>
           )}
 
-          {/* Summary strip */}
-          <div className="mb-6 rounded-xl overflow-hidden" style={{ background: T.surface, border: HAIRLINE }}>
-            <div className="grid grid-cols-2 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x" style={{ borderColor: T.borderSoft }}>
-              <SummaryTile icon={Layers}       label="Total accounts"  value={String(senderAcc.length)}       tone={T.textMuted} />
-              <SummaryTile icon={CheckCircle2} label="Active"          value={String(activeCount)}            tone={T.ok} />
-              <SummaryTile icon={Mail}         label="Emails today"    value={emailsToday.toLocaleString()}   tone={T.info} />
-              <SummaryTile icon={Gauge}        label="Daily capacity"  value={dailyCapacity.toLocaleString()} tone={T.purple} />
+          {ctxError && (
+            <div className="mb-5 rounded-xl px-4 py-3 flex items-start gap-2.5 text-[12px]"
+              style={{ background: T.dangerSoft, color: T.danger, border: `1px solid ${T.dangerBorder}` }}>
+              <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+              <span className="flex-1 font-medium">{ctxError}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
+            {[
+              { title: "Total accounts", value: String(accounts.length), icon: AtSign, accent: T.brand, soft: T.brandSoft },
+              { title: "Active", value: String(activeCount), icon: CheckCircle, accent: T.accent, soft: T.successSoft },
+              { title: "Emails today", value: emailsToday.toLocaleString(), icon: Send, accent: T.info, soft: T.infoSoft },
+              { title: "Daily capacity", value: dailyCapacity.toLocaleString(), icon: Mail, accent: T.purple, soft: T.purpleSoft },
+            ].map(({ title, value, icon: Icon, accent, soft }) => (
+              <Card key={title} className="p-4 relative overflow-hidden">
+                <span aria-hidden className="absolute left-0 top-0 bottom-0 w-0.5" style={{ background: accent, opacity: 0.6 }} />
+                <div className="w-8 h-8 rounded-md flex items-center justify-center mb-3" style={{ background: soft, color: accent }}>
+                  <Icon size={14} />
+                </div>
+                <p className="text-[24px] font-semibold leading-none" style={{ color: T.text, fontFamily: FONT.mono }}>{value}</p>
+                <p className="text-[11.5px] mt-2 font-medium" style={{ color: T.textMuted }}>{title}</p>
+              </Card>
+            ))}
+          </div>
+
+          <div className="rounded-xl p-3 mb-5" style={{ background: T.surface, border: HAIRLINE }}>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+              <div className="flex items-center gap-2 rounded-md px-3 py-2 flex-1 min-w-0"
+                style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
+                <Search size={13} style={{ color: T.textFaint }} className="shrink-0" />
+                <input placeholder="Search by name, email, provider…" value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full bg-transparent text-[12.5px] font-medium outline-none" style={{ color: T.text }} />
+                {search && (
+                  <button onClick={() => setSearch("")} className="shrink-0 text-[10px] px-1.5 py-0.5 rounded"
+                    style={{ color: T.textMuted }}>Clear</button>
+                )}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative">
+                  <SlidersHorizontal size={11} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2"
+                    style={{ color: T.textFaint }} />
+                  <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+                    className="pl-7 pr-2.5 py-2 rounded-md text-[12px] font-medium cursor-pointer outline-none"
+                    style={{ background: T.surface2, color: T.textMuted, border: HAIRLINE_SOFT }}>
+                    {["All", "Active", "Warning", "Disconnected"].map((f) =>
+                      <option key={f} value={f}>{f === "All" ? "All statuses" : f}</option>)}
+                  </select>
+                </div>
+                <div className="relative">
+                  <AtSign size={11} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2"
+                    style={{ color: T.textFaint }} />
+                  <select value={providerFilter} onChange={(e) => setProviderFilter(e.target.value)}
+                    className="pl-7 pr-2.5 py-2 rounded-md text-[12px] font-medium cursor-pointer outline-none"
+                    style={{ background: T.surface2, color: T.textMuted, border: HAIRLINE_SOFT }}>
+                    {["All", "Gmail", "Outlook"].map((p) =>
+                      <option key={p} value={p}>{p === "All" ? "All providers" : p}</option>)}
+                  </select>
+                </div>
+                {hasFilters && (
+                  <button onClick={() => { setSearch(""); setStatusFilter("All"); setProviderFilter("All"); }}
+                    className="inline-flex items-center gap-1 rounded-md px-2.5 py-2 text-[12px] font-medium"
+                    style={{ background: T.surface2, color: T.brand, border: HAIRLINE_SOFT }}>
+                    <X size={11} /> Clear
+                  </button>
+                )}
+                <button onClick={refresh} disabled={loading}
+                  className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-[12px] font-medium disabled:opacity-60"
+                  style={{ color: T.textMuted, border: HAIRLINE }}>
+                  <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+                  <span className="hidden sm:inline">Refresh</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Accounts panel */}
-          <section className="rounded-xl overflow-hidden mb-6" style={{ background: T.surface, border: HAIRLINE }}>
-            <header
-              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 md:px-5 py-3"
-              style={{ borderBottom: HAIRLINE_SOFT }}
-            >
-              <div>
-                <h2 className="text-[12.5px] font-medium flex items-center gap-2" style={{ color: T.text }}>
-                  <Inbox size={13} style={{ color: T.accent }} />
-                  Your accounts
-                </h2>
-                <p className="text-[11px] mt-0.5" style={{ color: T.textMuted }}>
-                  Monitor health and sending capacity.
-                </p>
-              </div>
-
-              <div className="relative w-full sm:w-64">
-                <Search
-                  size={13}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
-                  style={{ color: T.textFaint }}
-                />
-                <input
-                  type="text"
-                  placeholder="Search accounts…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="sa-input w-full rounded-md py-2 pl-8 pr-16 text-[12.5px] outline-none transition-colors duration-[120ms]"
-                  style={{ background: T.surface2, color: T.text, border: HAIRLINE_SOFT }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
-                  onBlur={(e)  => (e.currentTarget.style.borderColor = T.borderSoft)}
-                />
-                {search && (
-                  <button
-                    onClick={() => setSearch("")}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10.5px] px-1.5 py-0.5 rounded transition-colors duration-[120ms]"
-                    style={{ color: T.textFaint }}
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-            </header>
-
-            {loading && senderAcc.length === 0 && (
-              <div className="flex items-center justify-center gap-2 py-16">
-                <Loader2 size={15} className="spin" style={{ color: T.accent }} />
-                <span className="text-[12.5px]" style={{ color: T.textMuted }}>Loading sender accounts…</span>
-              </div>
-            )}
-
-            {filteredAccounts.length > 0 && (
-              <ul>
-                {filteredAccounts.map((account, i) => (
-                  <SenderAccountRow
-                    key={account.id}
-                    account={account as any}
-                    first={i === 0}
-                    onDelete={() => setAccountToDelete(account)}
-                    onReconnect={() => handleReconnect(account)}
-                  />
-                ))}
-              </ul>
-            )}
-
-            {!loading && senderAcc.length === 0 && (
-              <div className="text-center py-16 px-6">
-                <div
-                  className="w-11 h-11 mx-auto mb-4 rounded-lg flex items-center justify-center"
-                  style={{ background: T.surfaceHi, border: HAIRLINE }}
-                >
-                  <Mail className="w-5 h-5" style={{ color: T.textFaint }} />
-                </div>
-                <p className="text-[14px] font-medium" style={{ color: T.text }}>No sender accounts yet</p>
-                <p className="text-[12px] mt-1.5 mb-5" style={{ color: T.textMuted }}>
-                  Connect a Gmail or Microsoft account to start sending campaigns.
-                </p>
-                <button
-                  onClick={() => setAddOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-all hover:brightness-110"
-                  style={{ background: T.accent, color: T.accentInk }}
-                >
-                  <Plus size={13} />
-                  Add sender account
-                </button>
-              </div>
-            )}
-
-            {senderAcc.length > 0 && filteredAccounts.length === 0 && (
-              <div className="text-center py-14 px-6">
-                <div
-                  className="w-10 h-10 mx-auto mb-3 rounded-lg flex items-center justify-center"
-                  style={{ background: T.surfaceHi, border: HAIRLINE }}
-                >
-                  <Search className="w-4 h-4" style={{ color: T.textFaint }} />
-                </div>
-                <p className="text-[12.5px]" style={{ color: T.textMuted }}>
-                  No accounts match "{search}"
-                </p>
-                <button
-                  onClick={() => setSearch("")}
-                  className="mt-2.5 text-[11.5px] font-medium"
-                  style={{ color: T.accent }}
-                >
-                  Clear search
-                </button>
-              </div>
-            )}
-          </section>
+          <div className="rounded-xl overflow-hidden" style={{ background: T.surface, border: HAIRLINE }}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left" style={{ minWidth: 820 }}>
+                <thead>
+                  <tr className="text-[10px] uppercase tracking-widest font-semibold"
+                    style={{ color: T.textFaint, borderBottom: HAIRLINE_SOFT }}>
+                    <th className="px-4 md:px-5 py-3">Account</th>
+                    <th className="px-3 py-3">Provider</th>
+                    <th className="px-3 py-3">Status</th>
+                    <th className="px-3 py-3 w-40">Daily</th>
+                    <th className="px-3 py-3 w-40">Hourly</th>
+                    <th className="px-4 md:px-5 py-3 text-right"><span className="sr-only">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading && accounts.length === 0 && (
+                    <tr><td colSpan={6}>
+                      <div className="py-20 flex flex-col items-center justify-center">
+                        <Loader2 size={24} className="animate-spin" style={{ color: T.brand }} />
+                        <p className="mt-3 text-[12.5px] font-medium" style={{ color: T.textMuted }}>Loading sender accounts…</p>
+                      </div>
+                    </td></tr>
+                  )}
+                  {filtered.map((a) => {
+                    const brand = providerBrand(a.provider);
+                    return (
+                      <tr key={a.id} className="msa-row transition-colors" style={{ borderTop: HAIRLINE_SOFT }}>
+                        <td className="px-4 md:px-5 py-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <Avatar name={a.display_name || a.email} brand={brand} size={30} />
+                            <div className="min-w-0">
+                              <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>
+                                {a.display_name || "Unnamed"}
+                              </p>
+                              <p className="text-[11px] truncate mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                                {a.email}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px] font-medium"
+                            style={{ background: T.surface2, color: T.textMuted, border: HAIRLINE_SOFT, fontFamily: FONT.mono }}>
+                            {a.provider || "Unknown"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3"><StatusPill status={a.status} /></td>
+                        <td className="px-3 py-3"><UsageBar sent={a.emails_sent_today ?? 0} limit={a.daily_limit ?? 0} /></td>
+                        <td className="px-3 py-3"><UsageBar sent={a.emails_sent_hour ?? 0} limit={a.hourly_limit ?? 0} /></td>
+                        <td className="px-4 md:px-5 py-3 text-right">
+                          <div className="msa-actions flex items-center justify-end gap-1">
+                            <button onClick={() => openEdit(a)}
+                              className="p-1.5 rounded-md" style={{ color: T.textMuted }} aria-label="Edit">
+                              <Edit3 size={13} />
+                            </button>
+                            <button onClick={() => { setDeleteError(null); setDeleteTarget(a); }}
+                              className="p-1.5 rounded-md" style={{ color: T.danger }} aria-label="Disconnect">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {!loading && filtered.length === 0 && (
+                    <tr><td colSpan={6}>
+                      <div className="py-16 flex flex-col items-center justify-center text-center px-6">
+                        <div className="w-12 h-12 mb-4 rounded-xl flex items-center justify-center"
+                          style={{ background: T.surfaceHi, color: T.textFaint }}>
+                          <Link2 size={22} />
+                        </div>
+                        <h3 className="text-[15px] font-semibold" style={{ color: T.text }}>
+                          {accounts.length === 0 ? "No sender accounts yet" : "No accounts match"}
+                        </h3>
+                        <p className="mt-2 text-[12.5px] font-medium max-w-md" style={{ color: T.textMuted }}>
+                          {accounts.length === 0
+                            ? "Connect your first Gmail or Outlook account to start sending."
+                            : "Try adjusting your search or filters."}
+                        </p>
+                        {accounts.length === 0 ? (
+                          <button onClick={openCreate}
+                            className="mt-4 inline-flex items-center gap-1.5 rounded-md px-3.5 py-2 text-[12px] font-semibold"
+                            style={{ background: T.brand, color: "#fff", border: `1px solid ${T.brandBorder}` }}>
+                            <Plus size={12} /> Add sender account
+                          </button>
+                        ) : (
+                          <button onClick={() => { setSearch(""); setStatusFilter("All"); setProviderFilter("All"); }}
+                            className="mt-4 text-[12px] font-semibold" style={{ color: T.brand }}>
+                            Clear filters
+                          </button>
+                        )}
+                      </div>
+                    </td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </main>
 
-      {addOpen && (
-        <AddAccountModal
-          onClose={() => setAddOpen(false)}
-          onGmail={() => { setAddOpen(false); connectGmail(); }}
-          onOutlook={() => { setAddOpen(false); connectOutlook(); }}
+      <AccountFormModal
+        open={formOpen}
+        mode={formMode}
+        initial={editTarget}
+        busy={formBusy}
+        error={formError}
+        onClose={() => { if (!formBusy) setFormOpen(false); }}
+        onSubmit={handleSubmitForm}
+      />
+
+      {deleteTarget && (
+        <DeleteConfirmModal
+          account={deleteTarget}
+          busy={deleteBusy}
+          error={deleteError}
+          onCancel={() => { if (!deleteBusy) { setDeleteTarget(null); setDeleteError(null); } }}
+          onConfirm={handleConfirmDelete}
         />
       )}
-
-      {accountToDelete && (
-        <ConfirmDisconnectModal
-          account={accountToDelete}
-          onClose={() => setAccountToDelete(null)}
-          onConfirm={async () => {
-            await confirmDelete(accountToDelete.id);
-            setAccountToDelete(null);
-          }}
-        />
-      )}
     </div>
   );
 };
 
-/* ─────────────── add account modal ─────────────── */
-
-const GoogleG = () => (
-  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-    <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.5l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z" />
-    <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z" />
-    <path fill="#FBBC05" d="M10.5 28.7A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.2.9-4.7l-7.9-6.1A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.9-6.1z" />
-    <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z" />
-  </svg>
+/* ─────────── Page export ─────────── */
+const MySenderAccounts: React.FC = () => (
+  <SenderAccountsProvider mode="user">
+    <Inner />
+  </SenderAccountsProvider>
 );
 
-const MicrosoftLogo = () => (
-  <svg width="18" height="18" viewBox="0 0 23 23" aria-hidden="true">
-    <rect x="1" y="1" width="10" height="10" fill="#F25022" />
-    <rect x="12" y="1" width="10" height="10" fill="#7FBA00" />
-    <rect x="1" y="12" width="10" height="10" fill="#00A4EF" />
-    <rect x="12" y="12" width="10" height="10" fill="#FFB900" />
-  </svg>
-);
-
-const AddAccountModal: React.FC<{
-  onClose: () => void;
-  onGmail: () => void;
-  onOutlook: () => void;
-}> = ({ onClose, onGmail, onOutlook }) => {
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handleKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", handleKey);
-      document.body.style.overflow = prev;
-    };
-  }, [onClose]);
-
-  const options = [
-    { key: "gmail",   label: "Gmail",             sub: "Connect with Google",    logo: <GoogleG />,        onClick: onGmail },
-    { key: "outlook", label: "Outlook / Microsoft", sub: "Connect with Microsoft", logo: <MicrosoftLogo />, onClick: onOutlook },
-  ];
-
-  return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-      style={{ background: "rgba(11,12,14,0.72)" }}
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="add-account-title"
-    >
-      <div
-        className="relative w-full max-w-md rounded-xl overflow-hidden"
-        style={{ background: T.surface, border: HAIRLINE, boxShadow: "0 24px 64px -16px rgba(0,0,0,0.7)" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-4 px-5 pt-5 pb-3">
-          <div>
-            <h2 id="add-account-title" className="text-[15px] font-semibold leading-tight" style={{ color: T.text }}>
-              Add sender account
-            </h2>
-            <p className="text-[11.5px] mt-1" style={{ color: T.textMuted }}>
-              Choose the email provider you want to connect.
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="shrink-0 p-1.5 rounded-md transition-colors duration-[120ms]"
-            style={{ color: T.textMuted, background: T.surface2, border: HAIRLINE_SOFT }}
-          >
-            <X size={15} />
-          </button>
-        </div>
-
-        <div className="px-5 pb-5 pt-2 space-y-2.5">
-          {options.map((o) => (
-            <button
-              key={o.key}
-              onClick={o.onClick}
-              className="w-full flex items-center gap-3.5 rounded-lg p-3.5 text-left transition-colors"
-              style={{ background: T.surface2, border: HAIRLINE_SOFT }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = T.accentLine; e.currentTarget.style.background = T.surfaceHi; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = T.borderSoft; e.currentTarget.style.background = T.surface2; }}
-            >
-              <span
-                className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: "#FFFFFF" }}
-              >
-                {o.logo}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13px] font-medium" style={{ color: T.text }}>{o.label}</span>
-                <span className="block text-[11.5px] mt-0.5" style={{ color: T.textFaint }}>{o.sub}</span>
-              </span>
-              <ChevronRight size={15} style={{ color: T.textFaint }} />
-            </button>
-          ))}
-
-          <p className="text-[11px] leading-5 pt-1" style={{ color: T.textFaint }}>
-            For Gmail, a Google window opens — make sure you allow
-            {" "}<b style={{ color: T.textMuted, fontWeight: 500 }}>"Send email on your behalf"</b>{" "}
-            on the consent screen, otherwise the account can't be connected.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/* ─────────────── summary tile ─────────────── */
-
-const SummaryTile: React.FC<{
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  label: string;
-  value: string;
-  tone: string;
-}> = ({ icon: Icon, label, value, tone }) => (
-  <div className="p-4">
-    <div className="flex items-center gap-2 mb-2">
-      <div
-        className="w-7 h-7 rounded-md flex items-center justify-center"
-        style={{ background: `${tone}14`, color: tone }}
-      >
-        <Icon size={13} />
-      </div>
-      <span className="text-[10.5px] uppercase tracking-wider font-medium" style={{ color: T.textFaint }}>
-        {label}
-      </span>
-    </div>
-    <p className="text-[22px] font-medium leading-none tracking-tight"
-      style={{ color: T.text, fontFamily: FONT.mono }}>
-      {value}
-    </p>
-  </div>
-);
-
-/* ─────────────── usage bar ─────────────── */
-
-const UsageBar: React.FC<{
-  label: string;
-  current: number;
-  limit: number;
-  pct: number;
-}> = ({ label, current, limit, pct }) => {
-  const tone = pct >= 90 ? T.danger : pct >= 70 ? T.warn : T.accent;
-  return (
-    <div>
-      <div className="flex items-baseline justify-between gap-2 mb-1.5">
-        <span className="text-[10.5px] uppercase tracking-wider" style={{ color: T.textFaint }}>
-          {label}
-        </span>
-        <span className="text-[11px] tabular-nums" style={{ color: T.textMuted, fontFamily: FONT.mono }}>
-          {current.toLocaleString()} <span style={{ color: T.textFaint }}>/ {limit.toLocaleString()}</span>
-        </span>
-      </div>
-      <div className="h-1 rounded-full overflow-hidden" style={{ background: T.surfaceHi }}>
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${pct}%`, background: tone }}
-        />
-      </div>
-      <p className="text-[10px] mt-1 tabular-nums" style={{ color: tone, fontFamily: FONT.mono }}>
-        {pct}% used
-      </p>
-    </div>
-  );
-};
-
-/* ─────────────── account row ─────────────── */
-
-type AccountWithCampaigns = SenderAccount & { campaigns?: number };
-
-const SenderAccountRow: React.FC<{
-  account: AccountWithCampaigns;
-  first?: boolean;
-  onDelete: () => void;
-  onReconnect: () => void;
-}> = ({ account, first, onDelete, onReconnect }) => {
-  const provider = normalizeProvider(account.provider);
-  const status = normalizeStatus(account.status);
-  const p = providerMeta[provider];
-  const s = statusMeta[status];
-
-  const sentToday = account.emails_sent_today ?? 0;
-  const dailyLimit = account.daily_limit ?? 0;
-  const sentThisHour = account.emails_sent_hour ?? 0;
-  const hourlyLimit = account.hourly_limit ?? 0;
-  const dailyPct = pct(sentToday, dailyLimit);
-  const hourlyPct = pct(sentThisHour, hourlyLimit);
-  const disconnected = status === "Disconnected";
-  const campaigns = account.campaigns ?? 0;
-  const StatusIcon = s.icon;
-
-  return (
-    <li
-      className={`px-4 md:px-5 py-4 transition-colors duration-[120ms] ${disconnected ? "opacity-75" : ""}`}
-      style={{ borderTop: first ? "none" : HAIRLINE_SOFT }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = T.surface2)}
-      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-    >
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
-
-        {/* Identity */}
-        <div className="lg:col-span-5 flex items-center gap-3 min-w-0">
-          <div
-            className="shrink-0 w-9 h-9 rounded-md flex items-center justify-center text-[12px] font-medium text-white"
-            style={{ background: p.grad, boxShadow: `0 0 0 2px ${T.surface}, 0 0 0 3px ${p.ring}` }}
-          >
-            {p.short}
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-[13px] font-medium truncate" style={{ color: T.text }}>
-                {account.email}
-              </h3>
-              <span
-                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap"
-                style={{ background: s.bg, color: s.fg, boxShadow: `inset 0 0 0 1px ${s.ring}` }}
-              >
-                <StatusIcon size={9} />
-                {status}
-              </span>
-            </div>
-            <p className="text-[11px] mt-0.5 truncate" style={{ color: T.textFaint }}>
-              {account.display_name} <span style={{ color: T.border }}>·</span>{" "}
-              <span style={{ fontFamily: FONT.mono }}>{account.provider}</span>
-            </p>
-            <p className="text-[10.5px] mt-0.5" style={{ color: T.textFaint }}>
-              {campaigns} campaign{campaigns !== 1 && "s"}
-            </p>
-          </div>
-        </div>
-
-        {/* Usage bars */}
-        <div className="lg:col-span-4 grid grid-cols-2 gap-4">
-          <UsageBar label="Daily"  current={sentToday}    limit={dailyLimit}  pct={dailyPct} />
-          <UsageBar label="Hourly" current={sentThisHour} limit={hourlyLimit} pct={hourlyPct} />
-        </div>
-
-        {/* Actions */}
-        <div className="lg:col-span-3 flex items-center lg:justify-end gap-1.5 flex-wrap">
-          {disconnected && (
-            <button
-              onClick={onReconnect}
-              className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-all hover:brightness-110"
-              style={{ background: T.accent, color: T.accentInk }}
-            >
-              <Wifi size={12} /> Reconnect
-            </button>
-          )}
-
-          <button
-            onClick={onDelete}
-            aria-label="Delete account"
-            className="inline-flex items-center justify-center rounded-md px-2 py-1.5 text-[11.5px] font-medium transition-colors duration-[120ms]"
-            style={{ color: T.danger, border: HAIRLINE_SOFT }}
-            title="Delete account"
-            onMouseEnter={(e) => { e.currentTarget.style.background = T.surfaceHi }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent" }}
-          >
-            <Trash2 size={12} />
-          </button>
-        </div>
-      </div>
-    </li>
-  );
-};
-
-/* ─────────────── confirm disconnect modal ─────────────── */
-
-const ConfirmDisconnectModal: React.FC<{
-  account: SenderAccount;
-  onClose: () => void;
-  onConfirm: () => Promise<void>;
-}> = ({ account, onClose, onConfirm }) => {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const provider = normalizeProvider(account.provider);
-  const p = providerMeta[provider];
-  const status = normalizeStatus(account.status);
-  const s = statusMeta[status];
-
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !busy) onClose();
-    };
-    window.addEventListener("keydown", handleKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", handleKey);
-      document.body.style.overflow = prev;
-    };
-  }, [onClose, busy]);
-
-  const handleConfirm = async () => {
-    if (busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await onConfirm();
-    } catch (e: any) {
-      setError(e?.message || "Could not disconnect this account. Please try again.");
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-      style={{ background: "rgba(11,12,14,0.72)" }}
-      onClick={() => !busy && onClose()}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="disconnect-title"
-    >
-      <style>{`
-        @keyframes dc-rise { from { opacity: 0; transform: scale(0.97) } to { opacity: 1; transform: none } }
-        .dc-shell { animation: dc-rise 0.15s ease-out }
-        @media (prefers-reduced-motion: reduce) { .dc-shell { animation: none !important } }
-      `}</style>
-
-      <div
-        className="dc-shell relative w-full max-w-md rounded-xl overflow-hidden"
-        style={{
-          background: T.surface,
-          border: HAIRLINE,
-          boxShadow: "0 24px 64px -16px rgba(0,0,0,0.7)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* top danger accent */}
-        <div
-          aria-hidden
-          className="absolute inset-x-0 top-0 h-px pointer-events-none"
-          style={{ background: `linear-gradient(90deg, transparent, ${T.danger}, transparent)`, opacity: 0.5 }}
-        />
-
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 px-5 pt-5 pb-3">
-          <div className="flex items-start gap-3 min-w-0">
-            <div
-              className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
-              style={{ background: "rgba(224,106,106,0.10)", color: T.danger, border: "1px solid rgba(224,106,106,0.28)" }}
-            >
-              <ShieldAlert size={16} />
-            </div>
-            <div className="min-w-0">
-              <h2
-                id="disconnect-title"
-                className="text-[15px] font-semibold leading-tight"
-                style={{ color: T.text }}
-              >
-                Disconnect this sender account?
-              </h2>
-              <p className="text-[11.5px] mt-0.5" style={{ color: T.textMuted }}>
-                Sending from this account will stop immediately.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            disabled={busy}
-            aria-label="Close"
-            className="shrink-0 p-1.5 rounded-md transition-colors duration-[120ms] disabled:opacity-40"
-            style={{ color: T.textMuted, background: T.surface2, border: HAIRLINE_SOFT }}
-            onMouseEnter={(e) => { if (!busy) { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi; } }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = T.surface2; }}
-          >
-            <X size={15} />
-          </button>
-        </div>
-
-        {/* Account preview card */}
-        <div className="px-5 pt-2 pb-3">
-          <div
-            className="rounded-lg p-3 flex items-center gap-3"
-            style={{ background: T.surface2, border: HAIRLINE_SOFT }}
-          >
-            <div
-              className="shrink-0 w-9 h-9 rounded-md flex items-center justify-center text-[12px] font-semibold text-white"
-              style={{ background: p.grad, boxShadow: `0 0 0 2px ${T.surface}, 0 0 0 3px ${p.ring}` }}
-            >
-              {p.short}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>
-                  {account.email}
-                </p>
-                <span
-                  className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium whitespace-nowrap"
-                  style={{ background: s.bg, color: s.fg, boxShadow: `inset 0 0 0 1px ${s.ring}` }}
-                >
-                  {status}
-                </span>
-              </div>
-              <p className="text-[10.5px] mt-0.5" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                {account.provider} · <span style={{ color: T.textMuted }}>{account.display_name}</span>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Body copy */}
-        <div className="px-5 pb-4">
-          <ul className="space-y-1.5 text-[11.5px]" style={{ color: T.textMuted }}>
-            <li className="flex items-start gap-2">
-              <span className="mt-1.5 w-1 h-1 rounded-full shrink-0" style={{ background: T.danger }} />
-              Any campaigns queued on this account will pause immediately.
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-1.5 w-1 h-1 rounded-full shrink-0" style={{ background: T.danger }} />
-              Historical logs and reports are kept.
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-1.5 w-1 h-1 rounded-full shrink-0" style={{ background: T.textFaint }} />
-              You can reconnect it later from this page.
-            </li>
-          </ul>
-
-          {error && (
-            <div
-              className="mt-3 flex items-start gap-2 rounded-md px-3 py-2 text-[11.5px]"
-              style={{ background: "rgba(224,106,106,0.08)", color: T.danger, border: "1px solid rgba(224,106,106,0.28)" }}
-              role="alert"
-            >
-              <AlertTriangle size={12} className="mt-0.5 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div
-          className="flex items-center justify-end gap-2 px-5 py-3.5"
-          style={{ borderTop: HAIRLINE_SOFT }}
-        >
-          <button
-            onClick={onClose}
-            disabled={busy}
-            className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-120 disabled:opacity-40"
-            style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
-            onMouseEnter={(e) => { if (!busy) { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi; } }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleConfirm}
-            disabled={busy}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-[12px] font-semibold transition-all hover:brightness-110 disabled:opacity-60 disabled:hover:brightness-100"
-            style={{ background: T.danger, color: "#0B0C0E", border: `1px solid ${T.danger}` }}
-          >
-            {busy ? (
-              <>
-                <Loader2 size={12} className="spin" />
-                Disconnecting…
-              </>
-            ) : (
-              <>
-                <Trash2 size={12} />
-                Disconnect account
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default SenderAccountsPage;
+export default MySenderAccounts;

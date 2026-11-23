@@ -33,16 +33,15 @@ const UserRoute = () => {
     return <Navigate to="/404" replace />;
   }
 
-  // Providers only mount when the user is confirmed to be an EMPLOYEE.
   return (
     <UserProvider>
       <EmailLogsProvider>
-        <SenderAccountsProvider>
+        <SenderAccountsProvider mode="user">
           <CampaignProvider>
             <HtmlTemplatesProvider>
               <RecipientsContextProvider>
                 <UploadProvider>
-                  <GmailConnectProvider> 
+                  <GmailConnectProvider>
                     <Outlet />
                   </GmailConnectProvider>
                 </UploadProvider>

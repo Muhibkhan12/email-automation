@@ -16,7 +16,6 @@ router = APIRouter(
     tags=["recipients"]
 )
 
-
 @router.get("")
 def get_recipients(
     page: int = 1,

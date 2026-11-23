@@ -3,7 +3,7 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 
-import { EmailLogsProvider } from "../contexts/EmailLogsContext";         // ← lowercase l
+import { EmailLogsProvider } from "../contexts/EmaillogsContext";         // ← lowercase l
 import { SenderAccountsProvider } from "../contexts/SenderAccountsContext";
 import HtmlTemplatesProvider from "../contexts/HtmlTemplatesContext";
 import { CampaignProvider } from "../contexts/CampaignContext";

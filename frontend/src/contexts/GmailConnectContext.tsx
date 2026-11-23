@@ -3,7 +3,7 @@ import {
   type ReactNode,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { SenderAccContext } from "./SenderAccountsContext";
+import { useSenderAccounts } from "./SenderAccountsContext";
 import {
   buildGmailConnectUrl, getAccessToken, openGmailPopup,
 } from "../services/GmailOAuthService";
@@ -15,19 +15,21 @@ import {
 const GmailConnectContext = createContext<GmailConnectContextValue | null>(null);
 
 /**
- * Isko Router ke ANDAR aur SenderAccProvider ke ANDAR mount karo.
+ * Isko Router ke ANDAR aur SenderAccountsProvider ke ANDAR mount karo.
  * Callback page (/user/sender-account?google=...) par yahi param padhta hai.
  */
 export const GmailConnectProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const senderCtx = useContext(SenderAccContext);
+
+  // NEW: consume the sender-accounts hook instead of the raw context
+  const { refresh: refreshSenderAccounts } = useSenderAccounts();
 
   const [connecting, setConnecting] = useState(false);
   const [result, setResult] = useState<GmailConnectResult | null>(null);
 
-  const refetchRef = useRef(senderCtx?.fetchAllSenderAccounts);
-  refetchRef.current = senderCtx?.fetchAllSenderAccounts;
+  const refetchRef = useRef(refreshSenderAccounts);
+  refetchRef.current = refreshSenderAccounts;
 
   const popupRef = useRef<Window | null>(null);
   const pollRef = useRef<number | null>(null);
@@ -73,8 +75,7 @@ export const GmailConnectProvider = ({ children }: { children: ReactNode }) => {
     if (isPopup && channelRef.current) {
       const msg: GmailOAuthMessage = { type: "gmail-oauth-result", ...r };
       channelRef.current.postMessage(msg);
-      window.close(); // popup band
-      // agar browser close na kare to normal handling bhi chalne do
+      window.close();
     }
 
     applyResult(r);
@@ -101,7 +102,6 @@ export const GmailConnectProvider = ({ children }: { children: ReactNode }) => {
     const popup = openGmailPopup(url);
 
     if (!popup) {
-      // popup blocked → same-tab redirect (wizard state is case mein reset hoga)
       window.location.href = url;
       return;
     }
@@ -109,7 +109,6 @@ export const GmailConnectProvider = ({ children }: { children: ReactNode }) => {
     popupRef.current = popup;
     popup.focus();
 
-    // user ne popup bina finish kiye band kar diya → button unlock + list refresh
     stopPolling();
     pollRef.current = window.setInterval(() => {
       if (popupRef.current?.closed) {

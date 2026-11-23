@@ -6,13 +6,11 @@ import type {
   UpdateSenderAccountInput,
 } from "../types/SenderAccount";
 
-/* ─────────────── Runtime guard (defensive against bad API rows) ─────────────── */
+/* ─────────────── Runtime guards ─────────────── */
 
 const isObject = (v: unknown): v is Record<string, any> =>
   typeof v === "object" && v !== null;
 
-/** Coerce a raw API row into a strictly-typed SenderAccount.
- *  Falls back to safe defaults for any field the backend omits. */
 const mapSenderAccount = (raw: any): SenderAccount => {
   const r = isObject(raw) ? raw : {};
   return {
@@ -21,19 +19,19 @@ const mapSenderAccount = (raw: any): SenderAccount => {
     display_name: String(r.display_name ?? r.name ?? ""),
     email: String(r.email ?? ""),
     provider: String(r.provider ?? ""),
-    status: String(r.status ?? ""),
+    status: String(r.status ?? "Active"),
     daily_limit: Number(r.daily_limit ?? r.dailyLimit ?? 0) || 0,
     hourly_limit: Number(r.hourly_limit ?? r.hourlyLimit ?? 0) || 0,
     emails_sent_today: Number(r.emails_sent_today ?? r.sentToday ?? 0) || 0,
     emails_sent_hour: Number(r.emails_sent_hour ?? r.sentThisHour ?? 0) || 0,
     created_at: String(r.created_at ?? ""),
     updated_at: String(r.updated_at ?? ""),
-  };
+    // admin-only fields — kept optional so user page ignores them
+    owner_email: r.owner_email ?? null,
+    owner_name: r.owner_name ?? null,
+  } as SenderAccount;
 };
 
-/* ─────────────── Response unwrappers ─────────────── */
-
-/** Handles { account }, { data }, or bare object. Returns null if none. */
 const unwrapOne = (raw: any): SenderAccount | null => {
   if (!isObject(raw)) return null;
   const row = raw.account ?? raw.data ?? raw;
@@ -41,74 +39,54 @@ const unwrapOne = (raw: any): SenderAccount | null => {
   return mapSenderAccount(row);
 };
 
-/** Handles [ ... ], { accounts: [...] }, { data: [...] }, { items: [...] }, { results: [...] }. */
 const unwrapMany = (raw: any): SenderAccount[] => {
   if (Array.isArray(raw)) return raw.map(mapSenderAccount);
-
   if (isObject(raw)) {
-    const candidates = [raw.accounts, raw.data, raw.items, raw.results];
-    for (const c of candidates) {
+    for (const c of [raw.accounts, raw.data, raw.items, raw.results]) {
       if (Array.isArray(c)) return c.map(mapSenderAccount);
     }
   }
   return [];
 };
 
-/* ─────────────── CRUD ─────────────── */
+/* ─────────────── USER-SCOPED ─────────────── */
 
-/**
- * GET /sender-accounts/all → SenderAccount[]
- *
- * NOTE: This endpoint is expected to be scoped to the *logged-in user*
- * by the backend (via the auth token / session), not via a query param.
- * If your backend's `/sender-accounts/all` route returns accounts for
- * ALL users, fix the backend — the client intentionally does not send a
- * user_id here, since trusting a client-supplied user_id is insecure.
- */
-export const getAllSenderAccounts = async (): Promise<SenderAccount[]> => {
-  const { data } = await api.get("/sender-accounts/all");
+/** GET /sender-accounts/my → all sender accounts of the logged-in user */
+export const getMySenderAccounts = async (): Promise<SenderAccount[]> => {
+  const { data } = await api.get("/sender-accounts/my");
   return unwrapMany(data);
 };
 
-/** GET /sender-accounts/{id} → SenderAccount (optionally scoped by user_id) */
-export const getSenderAccount = async (
-  id: number,
-  userId?: string
-): Promise<SenderAccount> => {
-  const { data } = await api.get(`/sender-accounts/${id}`, {
-    params: userId ? { user_id: userId } : undefined,
-  });
+/** GET /sender-accounts/{id} */
+export const getSenderAccount = async (id: number): Promise<SenderAccount> => {
+  const { data } = await api.get(`/sender-accounts/${id}`);
   const mapped = unwrapOne(data);
   if (!mapped) throw new Error("Sender account not found in response");
   return mapped;
 };
 
-/** POST /sender-accounts/ → SenderAccount */
+/** POST /sender-accounts/  — user_id derived from auth token, NOT sent by client */
 export const addSenderAccount = async (
   input: CreateSenderAccountInput
 ): Promise<SenderAccount> => {
-  // Send exactly the shape the backend expects (snake_case).
-  const body: CreateSenderAccountInput = {
-    user_id: input.user_id,
+  const body = {
     display_name: input.display_name,
     email: input.email,
     provider: input.provider,
     daily_limit: input.daily_limit,
     hourly_limit: input.hourly_limit,
   };
-
   const { data } = await api.post("/sender-accounts/", body);
   const mapped = unwrapOne(data);
   if (!mapped) throw new Error("Backend did not return the created account");
   return mapped;
 };
 
-/** PUT /sender-accounts/{id} → SenderAccount */
+/** PUT /sender-accounts/{id} */
 export const updateSenderAccount = async (
   id: number,
   input: UpdateSenderAccountInput
 ): Promise<SenderAccount> => {
-  // Build the payload from only the keys that were provided.
   const body: UpdateSenderAccountInput = {};
   if (input.display_name !== undefined) body.display_name = input.display_name;
   if (input.email !== undefined) body.email = input.email;
@@ -123,11 +101,19 @@ export const updateSenderAccount = async (
 };
 
 /** DELETE /sender-accounts/{id} */
-export const deleteSenderAccount = async (
-  id: number,
-  userId?: string
-): Promise<void> => {
-  await api.delete(`/sender-accounts/${id}`, {
-    params: userId ? { user_id: userId } : undefined,
-  });
+export const deleteSenderAccount = async (id: number): Promise<void> => {
+  await api.delete(`/sender-accounts/${id}`);
+};
+
+/* ─────────────── ADMIN-ONLY ─────────────── */
+
+/** GET /sender-accounts/admin/all → every user's sender accounts (flattened) */
+export const adminGetAllSenderAccounts = async (): Promise<SenderAccount[]> => {
+  const { data } = await api.get("/sender-accounts/admin/all");
+  return unwrapMany(data);
+};
+
+/** DELETE /sender-accounts/admin/{id} */
+export const adminDeleteSenderAccount = async (id: number): Promise<void> => {
+  await api.delete(`/sender-accounts/admin/${id}`);
 };

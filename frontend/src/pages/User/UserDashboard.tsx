@@ -5,7 +5,7 @@ import Sidebar from './Sidebar'
 
 import { useCampaigns } from '../../contexts/CampaignContext'
 import { EmailLogsContext } from '../../contexts/EmaillogsContext'
-import { SenderAccContext } from '../../contexts/SenderAccountsContext'
+import { useSenderAccounts } from '../../contexts/SenderAccountsContext'
 
 import {
   Mail, Send, Users, AlertCircle,
@@ -141,16 +141,18 @@ const UserDashboard: React.FC = () => {
   const logsError = emailLogsCtx?.error ?? null
   const refetchLogs = emailLogsCtx?.refetch
 
-  const senderCtx = React.useContext(SenderAccContext)
-  const senderAcc = senderCtx?.senderAcc ?? []
-  const fetchAllSenderAccounts = senderCtx?.fetchAllSenderAccounts
+  // ── Sender accounts now come from the hook (matches the updated context) ──
+  const {
+    accounts: senderAcc = [],
+    refresh: refreshSenderAcc,
+  } = useSenderAccounts()
 
   useEffect(() => { fetchMine?.(); /* eslint-disable-next-line */ }, [])
 
   const handleRefresh = async () => {
     setRefreshing(true)
     try {
-      await Promise.allSettled([fetchMine?.(), refetchLogs?.(), fetchAllSenderAccounts?.()])
+      await Promise.allSettled([fetchMine?.(), refetchLogs?.(), refreshSenderAcc?.()])
     } finally {
       setTimeout(() => setRefreshing(false), 500)
     }
@@ -161,9 +163,7 @@ const UserDashboard: React.FC = () => {
 
   const myCampaignIds = useMemo(() => new Set(myCampaigns.map((c: any) => c.id)), [myCampaigns])
 
-  // FIX: strict filter — sirf wahi logs jo user ki apni campaigns ke hain.
-  // Pehle: campaigns na hone par saare logs return hote the, aur campaign id
-  // undefined wale logs bhi pass ho jaate the (admin ka data leak).
+  // strict filter — only logs that belong to the user's own campaigns.
   const myLogs = useMemo(() => {
     if (myCampaignIds.size === 0) return []
     return emaillogs.filter((l: any) => {
@@ -267,8 +267,7 @@ const UserDashboard: React.FC = () => {
       })
   }, [myLogs])
 
-  // FIX: sirf wahi sender accounts dikhao jo user ke apne logs mein use hue hain.
-  // Pehle saare accounts (admin ke bhi) dikh rahe the.
+  // only show sender accounts actually used by this user's logs
   const mySenderAcc = useMemo(() => {
     const ids = new Set(
       myLogs
@@ -286,7 +285,7 @@ const UserDashboard: React.FC = () => {
         const t = new Date(l.sent_at ?? l.created_at ?? 0).getTime()
         return t >= todayStart.getTime() && l.sender_account_id === a.id
       }).length
-      const cap = a.daily_quota ?? a.quota ?? 500
+      const cap = a.daily_quota ?? a.quota ?? a.daily_limit ?? 500
       const load = cap > 0 ? Math.min(100, Math.round((used / cap) * 100)) : 0
       const status: 'Active' | 'Warning' | 'Disabled' =
         a.is_active === false ? 'Disabled' : load >= 80 ? 'Warning' : 'Active'

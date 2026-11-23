@@ -12,8 +12,10 @@ type EmailStatus = "Sent" | "Delivered" | "Failed" | "Bounced" | "Pending";
 
 interface NormalizedLog {
   id: string | number;
-  recipient: string;
-  sender: string;
+  recipientName: string;
+  recipientEmail: string;
+  senderName: string;
+  senderEmail: string;
   campaign: string;
   subject: string;
   status: EmailStatus;
@@ -21,6 +23,15 @@ interface NormalizedLog {
   errorMessage: string | null;
   raw: any;
 }
+
+/* ─────────────── endpoints (ADJUST TO YOUR BACKEND) ─────────────── */
+
+const ENDPOINTS = {
+  logs: "/email-logs/admin/all",
+  campaigns: "/campaigns/admin/all",
+  senders: "/sender-accounts/admin/all",
+  recipients: "/campaign-recipients/admin/all",
+};
 
 /* ─────────────── design tokens ─────────────── */
 
@@ -56,6 +67,57 @@ const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`;
 
 const PAGE_SIZE = 10;
 
+/* ─────────────── lookup helpers ─────────────── */
+
+type LookupMap = Map<string, any>;
+
+interface Lookups {
+  campaigns: LookupMap;
+  senders: LookupMap;
+  recipients: LookupMap;
+  // true only if that lookup list was fetched successfully
+  loaded: { campaigns: boolean; senders: boolean; recipients: boolean };
+}
+
+const EMPTY_LOOKUPS: Lookups = {
+  campaigns: new Map(),
+  senders: new Map(),
+  recipients: new Map(),
+  loaded: { campaigns: false, senders: false, recipients: false },
+};
+
+// Accepts [..], { data: [..] }, { items: [..] }, { results: [..] }
+const extractArray = (res: any): any[] => {
+  const body = res?.data ?? res;
+  if (Array.isArray(body)) return body;
+  if (Array.isArray(body?.data)) return body.data;
+  if (Array.isArray(body?.items)) return body.items;
+  if (Array.isArray(body?.results)) return body.results;
+  return [];
+};
+
+const toMap = (arr: any[]): LookupMap => {
+  const m: LookupMap = new Map();
+  arr.forEach((item) => {
+    if (item?.id !== undefined && item?.id !== null) m.set(String(item.id), item);
+  });
+  return m;
+};
+
+const fullName = (o: any): string => {
+  if (!o) return "";
+  const direct = o.name || o.full_name || o.display_name;
+  if (direct) return String(direct);
+  return [o.first_name, o.last_name].filter(Boolean).join(" ");
+};
+
+const pickCampaignName = (c: any): string => c?.name || c?.title || c?.campaign_name || "";
+const pickSenderName = (s: any): string => fullName(s) || s?.label || "";
+const pickSenderEmail = (s: any): string => s?.email || s?.sender_email || s?.username || "";
+const pickRecipientEmail = (r: any): string => r?.email || r?.recipient_email || "";
+
+const isDeletedLabel = (s: string) => s.startsWith("Deleted ");
+
 /* ─────────────── normalize ─────────────── */
 
 const normalizeStatus = (s: any): EmailStatus => {
@@ -67,17 +129,57 @@ const normalizeStatus = (s: any): EmailStatus => {
   return "Pending";
 };
 
-const normalizeLog = (log: any): NormalizedLog => ({
-  id: log.id ?? "unknown",
-  recipient: log.recipient_email || (log.recipient_id ? `Recipient ${log.recipient_id}` : "—"),
-  sender: log.sender_email || (log.sender_account_id ? `Sender ${log.sender_account_id}` : "—"),
-  campaign: log.campaign_name || (log.campaign_id ? `Campaign ${log.campaign_id}` : "—"),
-  subject: log.subject || "—",
-  status: normalizeStatus(log.status),
-  sentAt: log.sent_at || log.created_at || "",
-  errorMessage: log.error_message ?? null,
-  raw: log,
-});
+const normalizeLog = (log: any, lk: Lookups): NormalizedLog => {
+  // id null/missing                       -> deleted (FK was set to NULL)
+  // id present, lookup loaded, not found  -> deleted
+  // id present, lookup NOT loaded         -> unknown, fall back to ID label
+  const find = (id: any, map: LookupMap) => (id != null ? map.get(String(id)) : undefined);
+  const isGone = (id: any, rec: any, loaded: boolean) => id == null || (loaded && !rec);
+
+  const recipient = find(log.recipient_id, lk.recipients);
+  const sender = find(log.sender_account_id, lk.senders);
+  const campaign = find(log.campaign_id, lk.campaigns);
+
+  // Recipient
+  const recipientEmail = log.recipient_email || pickRecipientEmail(recipient) || "";
+  let recipientName = log.recipient_name || fullName(recipient) || recipientEmail;
+  if (!recipientName) {
+    recipientName = isGone(log.recipient_id, recipient, lk.loaded.recipients)
+      ? "Deleted recipient"
+      : `Recipient ${log.recipient_id}`;
+  }
+
+  // Sender
+  const senderEmail = log.sender_email || pickSenderEmail(sender) || "";
+  let senderName = log.sender_name || pickSenderName(sender) || senderEmail;
+  if (!senderName) {
+    senderName = isGone(log.sender_account_id, sender, lk.loaded.senders)
+      ? "Deleted sender"
+      : `Sender ${log.sender_account_id}`;
+  }
+
+  // Campaign
+  let campaignName = log.campaign_name || pickCampaignName(campaign);
+  if (!campaignName) {
+    campaignName = isGone(log.campaign_id, campaign, lk.loaded.campaigns)
+      ? "Deleted campaign"
+      : `Campaign ${log.campaign_id}`;
+  }
+
+  return {
+    id: log.id ?? "unknown",
+    recipientName,
+    recipientEmail: recipientEmail && recipientEmail !== recipientName ? recipientEmail : "",
+    senderName,
+    senderEmail: senderEmail && senderEmail !== senderName ? senderEmail : "",
+    campaign: campaignName,
+    subject: log.subject || "—",
+    status: normalizeStatus(log.status),
+    sentAt: log.sent_at || log.created_at || "",
+    errorMessage: log.error_message ?? null,
+    raw: log,
+  };
+};
 
 const formatSentAt = (value: string) => {
   if (!value) return "—";
@@ -161,8 +263,10 @@ const StatusBadge = ({ status }: { status: EmailStatus }) => {
 
 const AdminEmailLogs = () => {
   const [rawLogs, setRawLogs] = useState<any[]>([]);
+  const [lookups, setLookups] = useState<Lookups>(EMPTY_LOOKUPS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -171,21 +275,52 @@ const AdminEmailLogs = () => {
   const [copiedId, setCopiedId] = useState<string | number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // ── fetch all logs directly from API (same endpoint as EmailLogsContext) ──
+  // ── fetch logs + related details (campaigns, sender accounts, recipients) ──
   const fetchLogs = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setWarning(null);
+
     try {
-      const res = await api.get("/email-logs/admin/all");
-      // axios response → body is in res.data
-      const body = res?.data ?? res;
-      const arr = Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
-      setRawLogs(arr);
-      console.log("[AdminEmailLogs] fetched logs:", arr.length, "sample:", arr[0]);
+      const [logsRes, campaignsRes, sendersRes, recipientsRes] = await Promise.allSettled([
+        api.get(ENDPOINTS.logs),
+        api.get(ENDPOINTS.campaigns),
+        api.get(ENDPOINTS.senders),
+        api.get(ENDPOINTS.recipients),
+      ]);
+
+      // Logs are required
+      if (logsRes.status === "rejected") throw logsRes.reason;
+      setRawLogs(extractArray(logsRes.value));
+
+      // Details are optional: fall back to ID labels if any of them fail
+      const failed: string[] = [];
+      const take = (r: PromiseSettledResult<any>, label: string): LookupMap => {
+        if (r.status === "fulfilled") return toMap(extractArray(r.value));
+        console.warn(`[AdminEmailLogs] could not load ${label}:`, r.reason);
+        failed.push(label);
+        return new Map();
+      };
+
+      setLookups({
+        campaigns: take(campaignsRes, "campaigns"),
+        senders: take(sendersRes, "sender accounts"),
+        recipients: take(recipientsRes, "recipients"),
+        loaded: {
+          campaigns: campaignsRes.status === "fulfilled",
+          senders: sendersRes.status === "fulfilled",
+          recipients: recipientsRes.status === "fulfilled",
+        },
+      });
+
+      if (failed.length) {
+        setWarning(`Couldn't load ${failed.join(", ")}. Showing IDs where names are unavailable.`);
+      }
     } catch (e: any) {
       console.error("[AdminEmailLogs] fetch failed:", e);
       setError(e?.response?.data?.detail || e?.message || "Failed to load email logs");
       setRawLogs([]);
+      setLookups(EMPTY_LOOKUPS);
     } finally {
       setLoading(false);
     }
@@ -193,15 +328,20 @@ const AdminEmailLogs = () => {
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
-  const normalizedLogs = useMemo(() => rawLogs.map(normalizeLog), [rawLogs]);
+  const normalizedLogs = useMemo(
+    () => rawLogs.map((l) => normalizeLog(l, lookups)),
+    [rawLogs, lookups]
+  );
 
   const filteredLogs = useMemo(() => {
     const q = search.toLowerCase();
     return normalizedLogs.filter((log) => {
       const matchesSearch =
         !q ||
-        log.recipient.toLowerCase().includes(q) ||
-        log.sender.toLowerCase().includes(q) ||
+        log.recipientName.toLowerCase().includes(q) ||
+        log.recipientEmail.toLowerCase().includes(q) ||
+        log.senderName.toLowerCase().includes(q) ||
+        log.senderEmail.toLowerCase().includes(q) ||
         log.campaign.toLowerCase().includes(q) ||
         log.subject.toLowerCase().includes(q);
       const matchesStatus = statusFilter === "All" || log.status === statusFilter;
@@ -267,7 +407,7 @@ const AdminEmailLogs = () => {
         <div className="fixed inset-0 z-40 lg:hidden" style={{ background: "rgba(11,12,14,0.72)" }} onClick={() => setSidebarOpen(false)} />
       )}
 
-      <div className={`fixed top-0 z-50 h-screen flex-shrink-0 transition-transform duration-200 ease-out lg:sticky lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      <div className={`fixed top-0 z-50 h-screen shrink-0 transition-transform duration-200 ease-out lg:sticky lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <AdminSidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
@@ -310,6 +450,15 @@ const AdminEmailLogs = () => {
               style={{ background: "rgba(224,106,106,0.08)", border: "1px solid rgba(224,106,106,0.28)" }}>
               <AlertTriangle size={13} style={{ color: T.danger }} className="mt-0.5 shrink-0" />
               <p className="text-[12.5px]" style={{ color: T.danger }}>{error}</p>
+            </div>
+          )}
+
+          {/* Warning (partial detail load failure) */}
+          {warning && !error && (
+            <div className="mb-6 flex items-start gap-2.5 rounded-lg px-3.5 py-3"
+              style={{ background: "rgba(224,166,74,0.08)", border: "1px solid rgba(224,166,74,0.28)" }}>
+              <AlertTriangle size={13} style={{ color: T.warn }} className="mt-0.5 shrink-0" />
+              <p className="text-[12.5px]" style={{ color: T.warn }}>{warning}</p>
             </div>
           )}
 
@@ -390,13 +539,13 @@ const AdminEmailLogs = () => {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left" style={{ minWidth: "880px" }}>
+              <table className="w-full text-left" style={{ minWidth: "920px" }}>
                 <thead className="sticky top-0 z-10" style={{ background: T.surface }}>
                   <tr className="text-[10px] uppercase tracking-widest" style={{ color: T.textFaint, borderBottom: HAIRLINE_SOFT }}>
                     <th className="px-4 md:px-5 py-2.5 font-medium">Recipient</th>
                     <th className="px-3 py-2.5 font-medium">Campaign</th>
                     <th className="px-3 py-2.5 font-medium">Subject</th>
-                    <th className="px-3 py-2.5 font-medium">Sender</th>
+                    <th className="px-3 py-2.5 font-medium">Sender account</th>
                     <th className="px-3 py-2.5 font-medium">Status</th>
                     <th className="px-4 md:px-5 py-2.5 font-medium">Sent at</th>
                   </tr>
@@ -436,19 +585,36 @@ const AdminEmailLogs = () => {
                   )}
 
                   {!loading && paginatedLogs.map((log) => {
-                    const initial = (log.recipient?.trim()?.[0] || "?").toUpperCase();
+                    const recipientDeleted = isDeletedLabel(log.recipientName);
+                    const senderDeleted = isDeletedLabel(log.senderName);
+                    const campaignDeleted = isDeletedLabel(log.campaign);
+                    const initial = recipientDeleted ? "?" : (log.recipientName?.trim()?.[0] || "?").toUpperCase();
+
                     return (
-                      <tr key={log.id} className="transition-colors duration-[120ms]" style={{ borderTop: HAIRLINE_SOFT }}
+                      <tr key={log.id} className="transition-colors duration-120" style={{ borderTop: HAIRLINE_SOFT }}
                         onMouseEnter={(e) => (e.currentTarget.style.background = T.surface2)}
                         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+
+                        {/* Recipient: name + email + log id */}
                         <td className="px-4 md:px-5 py-3">
                           <div className="flex items-center gap-2.5 min-w-0">
                             <div className="shrink-0 w-8 h-8 rounded-md flex items-center justify-center text-[11.5px] font-medium"
-                              style={{ background: "rgba(110,231,168,0.10)", color: T.accent, boxShadow: "inset 0 0 0 1px rgba(110,231,168,0.28)" }}>
+                              style={recipientDeleted
+                                ? { background: T.surface2, color: T.textFaint, boxShadow: `inset 0 0 0 1px ${T.border}` }
+                                : { background: "rgba(110,231,168,0.10)", color: T.accent, boxShadow: "inset 0 0 0 1px rgba(110,231,168,0.28)" }}>
                               {initial}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-[12.5px] font-medium truncate" style={{ color: T.text }}>{log.recipient}</p>
+                              <p className="text-[12.5px] font-medium truncate max-w-55"
+                                style={{ color: recipientDeleted ? T.textFaint : T.text, fontStyle: recipientDeleted ? "italic" : "normal" }}
+                                title={log.recipientName}>
+                                {log.recipientName}
+                              </p>
+                              {log.recipientEmail && (
+                                <p className="text-[11px] truncate max-w-55" style={{ color: T.textMuted }} title={log.recipientEmail}>
+                                  {log.recipientEmail}
+                                </p>
+                              )}
                               <button onClick={() => handleCopy(log.id)}
                                 className="mt-0.5 inline-flex items-center gap-1 text-[10.5px]"
                                 style={{ color: T.textFaint, fontFamily: FONT.mono }}>
@@ -459,23 +625,39 @@ const AdminEmailLogs = () => {
                           </div>
                         </td>
 
+                        {/* Campaign name */}
                         <td className="px-3 py-3">
-                          <span className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[11px] font-medium max-w-[160px]"
-                            style={{ background: T.surface2, color: T.textMuted, border: HAIRLINE_SOFT }}>
+                          <span className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[11px] font-medium max-w-45"
+                            style={{
+                              background: T.surface2,
+                              color: campaignDeleted ? T.textFaint : T.textMuted,
+                              fontStyle: campaignDeleted ? "italic" : "normal",
+                              border: HAIRLINE_SOFT,
+                            }}
+                            title={log.campaign}>
                             <Send size={9} style={{ color: T.textFaint }} className="shrink-0" />
                             <span className="truncate">{log.campaign}</span>
                           </span>
                         </td>
 
-                        <td className="px-3 py-3 max-w-[220px]">
+                        <td className="px-3 py-3 max-w-55">
                           <span className="block text-[12px] truncate" style={{ color: T.textMuted }} title={log.subject}>{log.subject}</span>
                         </td>
 
+                        {/* Sender account: name + email */}
                         <td className="px-3 py-3">
-                          <span className="text-[11.5px] truncate max-w-[180px] inline-block"
-                            style={{ color: T.textFaint, fontFamily: FONT.mono }} title={log.sender}>
-                            {log.sender}
-                          </span>
+                          <div className="min-w-0 max-w-50">
+                            <p className="text-[12px] font-medium truncate"
+                              style={{ color: senderDeleted ? T.textFaint : T.text, fontStyle: senderDeleted ? "italic" : "normal" }}
+                              title={log.senderName}>
+                              {log.senderName}
+                            </p>
+                            {log.senderEmail && (
+                              <p className="text-[11px] truncate" style={{ color: T.textFaint, fontFamily: FONT.mono }} title={log.senderEmail}>
+                                {log.senderEmail}
+                              </p>
+                            )}
+                          </div>
                         </td>
 
                         <td className="px-3 py-3">

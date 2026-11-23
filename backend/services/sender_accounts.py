@@ -116,11 +116,74 @@ def get_all_sender_accounts(user_id: int, db: Session):
         .all()
     )
 
-def get_my_senders_accounts_using_id(current_user : id , db : Session):
-        data = (
-            db.query(SenderAccount, User)
-            .outerjoin(User, SenderAccount.user_id == User.id)
-            .filter(SenderAccount.user_id == current_user.id)
-            .all()
+def admin_get_all_sender_accounts(db: Session):
+    rows = (
+        db.query(SenderAccount, User)
+        .outerjoin(User, SenderAccount.user_id == User.id)
+        .order_by(SenderAccount.id.desc())
+        .all()
+    )
+    # Flat dicts: User ka password hash etc. leak nahi hoga
+    return [
+        {
+            "id": acc.id,
+            "user_id": acc.user_id,
+            "display_name": acc.display_name,
+            "email": acc.email,
+            "provider": acc.provider,
+            "status": acc.status,
+            "daily_limit": acc.daily_limit,
+            "hourly_limit": acc.hourly_limit,
+            "emails_sent_today": acc.emails_sent_today,
+            "emails_sent_hour": acc.emails_sent_hour,
+            "owner_email": getattr(user, "email", None),
+            "owner_name": getattr(user, "name", None) or getattr(user, "username", None),
+        }
+        for acc, user in rows
+    ]
+
+
+def admin_delete_sender_account(id: int, db: Session):
+    account = db.query(SenderAccount).filter(SenderAccount.id == id).first()
+    if not account:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Sender Account not found",
         )
-        return data
+
+    db.delete(account)
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    return {"message": "Account Disconnected Successfully"}
+
+def get_my_senders_accounts_using_id(current_user: User, db: Session):
+    rows = (
+        db.query(SenderAccount, User)
+        .outerjoin(User, SenderAccount.user_id == User.id)
+        .filter(SenderAccount.user_id == current_user.id)
+        .order_by(SenderAccount.id.desc())
+        .all()
+    )
+    return [
+        {
+            "id": acc.id,
+            "user_id": acc.user_id,
+            "display_name": acc.display_name,
+            "email": acc.email,
+            "provider": acc.provider,
+            "status": acc.status,
+            "daily_limit": acc.daily_limit,
+            "hourly_limit": acc.hourly_limit,
+            "emails_sent_today": acc.emails_sent_today,
+            "emails_sent_hour": acc.emails_sent_hour,
+            "created_at": getattr(acc, "created_at", None),
+            "updated_at": getattr(acc, "updated_at", None),
+            "owner_email": getattr(user, "email", None),
+            "owner_name": getattr(user, "name", None) or getattr(user, "username", None),
+        }
+        for acc, user in rows
+    ]
