@@ -289,3 +289,28 @@ def delete_recipient_data(
     return {
         "message": "Recipient deleted successfully"
     }
+
+def get_admin_recipient_summary(db: Session):
+    """
+    Admin-only: aggregate recipient status counts across ALL users.
+    Mirrors the `summary` block returned by `get_all_recipients` but is
+    not scoped to `current_user.id`.
+
+    Returns:
+        {
+            "total":    int,
+            "sent":     int,
+            "failed":   int,
+            "pending":  int,   # Pending + Queued + Sending
+            "status_counts": { "<status>": count, ..., "All": total },
+        }
+    """
+    q = db.query(CampaignRecipient)
+    counts = _status_counts(q)
+    return {
+        "total": counts.get("All", 0),
+        "sent": counts.get("Sent", 0),
+        "failed": counts.get("Failed", 0),
+        "pending": sum(counts.get(k, 0) for k in ("Pending", "Queued", "Sending")),
+        "status_counts": counts,
+    }

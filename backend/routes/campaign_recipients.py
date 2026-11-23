@@ -1,16 +1,12 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-
 from database import get_db
-
 from schema.campaign_recipients import (
     AddRecipientsSchema,
     UpdateRecipientsSchema
 )
 import services.campaign_recipients as recipient_service
-
-from services.user import GetCurrentUser
-
+from services.user import GetCurrentUser, require_admin
 router = APIRouter(
     prefix="/recipient",
     tags=["recipients"]
@@ -102,3 +98,10 @@ def delete_recipient(
         db,
         current_user
     )
+
+@router.get("/admin/summary")
+def admin_recipient_summary(
+    db: Session = Depends(get_db),
+    _=Depends(require_admin),
+):
+    return recipient_service.get_admin_recipient_summary(db)

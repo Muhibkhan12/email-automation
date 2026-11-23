@@ -58,7 +58,6 @@ const navGroups = [
     label: "Overview",
     items: [
       { name: "Dashboard",     path: "/admin/dashboard", icon: LayoutDashboard },
-      { name: "Analytics",     path: "/admin/analytics", icon: BarChart3 },
     ],
   },
   {
@@ -73,7 +72,6 @@ const navGroups = [
     label: "Monitoring",
     items: [
       { name: "Email Logs",      path: "/admin/emaillogs",       icon: Mail },
-      { name: "Queue Monitor",   path: "/admin/queuemonitor",    icon: ListOrdered },
       { name: "Sender Accounts", path: "/admin/senders-account", icon: AtSign },
     ],
   },

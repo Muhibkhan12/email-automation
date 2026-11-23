@@ -128,13 +128,27 @@ def userByIdWithSenAcc(db: Session, user_id: int):
 
 def updateUser(db: Session, user_id: int, credentials: UpdateUser):
     user = getUserById(db, user_id)
+
     if credentials.username is not None:
         user.username = credentials.username
     if credentials.email is not None:
         user.email = credentials.email
+    if credentials.role is not None:
+        user.role = credentials.role      # ← THE FIX
+
     db.commit()
     db.refresh(user)
-    return {"user": user, "message": "User Updated Successfully"}
+
+    return {
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role.value if hasattr(user.role, "value") else user.role,
+            "created_at": user.created_at,
+        },
+        "message": "User Updated Successfully",
+    }
 
 
 def deleteUser(db: Session, user_id: int):

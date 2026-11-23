@@ -407,7 +407,7 @@ const Inner: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-3 py-3">
-                          <div className="min-w-0 max-w-[180px]">
+                          <div className="min-w-0 max-w-45">
                             <p className="text-[12px] font-medium truncate" style={{ color: T.text }}>
                               {ownerName || ownerEmail || (a.user_id != null ? `User #${a.user_id}` : "—")}
                             </p>

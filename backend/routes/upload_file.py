@@ -72,17 +72,11 @@ def get_all_uploads_file(
     db: Session = Depends(get_db),
     current_user = Depends(GetCurrentUser),
 ):
-    data = (
-        db.query(Upload)
-        .filter(Upload.user_id == current_user.id)
-        .all()
-    )
-
-    if not data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Data doesn't exist",
-        )
+    role = (getattr(current_user, "role", None) or "").upper()
+    q = db.query(Upload)
+    if role != "ADMIN":
+        q = q.filter(Upload.user_id == current_user.id)
+    data = q.order_by(Upload.created_at.desc()).all()
 
     return {
         "message": "Data fetched successfully",

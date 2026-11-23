@@ -3,11 +3,12 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 
-import { EmailLogsProvider } from "../contexts/EmaillogsContext";         // ← lowercase l
+import { EmailLogsProvider } from "../contexts/EmaillogsContext";
 import { SenderAccountsProvider } from "../contexts/SenderAccountsContext";
 import HtmlTemplatesProvider from "../contexts/HtmlTemplatesContext";
 import { CampaignProvider } from "../contexts/CampaignContext";
-import RecipientsContextProvider from "../contexts/RecipientsContext";   // ← ADD THIS
+import RecipientsContextProvider from "../contexts/RecipientsContext";
+import { UploadProvider } from "../contexts/UploadContext";
 import { UserProvider } from "../contexts/UsersContext";
 
 const AdminRoute = () => {
@@ -22,19 +23,21 @@ const AdminRoute = () => {
   if (user.role !== "ADMIN") return <Navigate to="/404" replace />;
 
   return (
-    <EmailLogsProvider>
-      <SenderAccountsProvider>
-        <CampaignProvider>
-          <RecipientsContextProvider>          {/* ← NEW */}
+    <UserProvider>
+      <EmailLogsProvider>
+        <SenderAccountsProvider mode="admin">
+          <CampaignProvider>
             <HtmlTemplatesProvider>
-              <UserProvider>
-                <Outlet />
-              </UserProvider>
+              <RecipientsContextProvider>
+                <UploadProvider>
+                  <Outlet />
+                </UploadProvider>
+              </RecipientsContextProvider>
             </HtmlTemplatesProvider>
-          </RecipientsContextProvider>
-        </CampaignProvider>
-      </SenderAccountsProvider>
-    </EmailLogsProvider>
+          </CampaignProvider>
+        </SenderAccountsProvider>
+      </EmailLogsProvider>
+    </UserProvider>
   );
 };
 

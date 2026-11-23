@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from models.email_logs import EmailLog, EmailLogStatus
-from models.campaigns import Campaign  # apne actual path ke hisaab se adjust karo
+from models.campaigns import Campaign
 from schema.email_logs import AddEmailLogSchema, UpdateEmailLogSchema
 
 
@@ -12,15 +12,15 @@ def _serialize_log(log: EmailLog) -> dict:
         "campaign_id": log.campaign_id,
         "recipient_id": log.recipient_id,
         "sender_account_id": log.sender_account_id,
-        "status": log.status.value,
+        "status": log.status.value if hasattr(log.status, "value") else log.status,
         "error_message": log.error_message,
         "sent_at": log.sent_at,
         "created_at": log.created_at,
         "updated_at": log.updated_at,
-        "campaign_name": log.campaign.campaign_name if log.campaign else None,
-        "subject": log.campaign.subject if log.campaign else None,
-        "recipient_email": log.recipient.email if log.recipient else None,         # column name check karna
-        "sender_email": log.sender_account.email if log.sender_account else None,  # column name check karna
+        "campaign_name": getattr(getattr(log, "campaign", None), "campaign_name", None),
+        "subject": getattr(getattr(log, "campaign", None), "subject", None),
+        "recipient_email": getattr(getattr(log, "recipient", None), "email", None),
+        "sender_email": getattr(getattr(log, "sender_account", None), "email", None),
     }
 
 
@@ -58,7 +58,6 @@ def get_email_log_by_id(db: Session, log_id: int, user_id: int):
 
 
 def add_email_log(db: Session, credentials: AddEmailLogSchema, user_id: int):
-    # Campaign isi user ki honi chahiye
     campaign = (
         db.query(Campaign)
         .filter(Campaign.id == credentials.campaign_id, Campaign.user_id == user_id)
@@ -101,5 +100,20 @@ def update_email_log(db: Session, log_id: int, credentials: UpdateEmailLogSchema
     db.refresh(log)
     return {"message": "Email log updated successfully", "data": _serialize_log(log)}
 
+
 def get_all_email_logs_admin(db: Session):
-    return db.query(EmailLog).order_by(EmailLog.created_at.desc()).all()
+    logs = (
+        db.query(EmailLog)
+        .options(
+            joinedload(EmailLog.campaign),
+            joinedload(EmailLog.recipient),
+            joinedload(EmailLog.sender_account),
+        )
+        .order_by(EmailLog.created_at.desc())
+        .all()
+    )
+    return {
+        "message": "Email logs fetched successfully",
+        "count": len(logs),
+        "data": [_serialize_log(l) for l in logs],
+    }

@@ -21,10 +21,8 @@ import Register from "../pages/Register";
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 import EmailTemplatesAdmin from "../pages/Admin/AdminTemplates";
 import AdminCampaigns from "../pages/Admin/campaign/AdminCampaigns";
-import AdminAnalytics from "../pages/Admin/AdminAnalytics";
 import AdminUsers from "../pages/Admin/AdminUsersPage";
 import AdminEmailLogs from "../pages/Admin/AdminEmaillogs";
-import AdminQueueMonitor from "../pages/Admin/AdminQueuemonitor";
 import AdminSettings from "../pages/Admin/AdminSettings";
 import AdminSenderAccounts from "../pages/Admin/AdminSenderAccount";
 import AdminCampaignRecipients from "../pages/Admin/campaign/AdminRecipients";
@@ -127,9 +125,6 @@ const AppRouter = () => {
           {/* Full path: /admin/dashboard */}
           <Route path="dashboard" element={<AdminDashboard />} />
 
-          {/* Full path: /admin/analytics */}
-          <Route path="analytics" element={<AdminAnalytics />} />
-
           <Route path="campaigns/:id/recipients" element={<AdminCampaignRecipients />} />
 
           {/* Full path: /admin/templates */}
@@ -145,9 +140,6 @@ const AppRouter = () => {
 
           {/* Full path: /admin/emaillogs */}
           <Route path="emaillogs" element={<AdminEmailLogs />} />
-
-          {/* Full path: /admin/queuemonitor */}
-          <Route path="queuemonitor" element={<AdminQueueMonitor />} />
 
           {/* Full path: /admin/settings */}
           <Route path="settings" element={<AdminSettings />} />

@@ -312,10 +312,6 @@ const AdminEmailLogs = () => {
           recipients: recipientsRes.status === "fulfilled",
         },
       });
-
-      if (failed.length) {
-        setWarning(`Couldn't load ${failed.join(", ")}. Showing IDs where names are unavailable.`);
-      }
     } catch (e: any) {
       console.error("[AdminEmailLogs] fetch failed:", e);
       setError(e?.response?.data?.detail || e?.message || "Failed to load email logs");

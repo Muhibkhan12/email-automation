@@ -29,13 +29,14 @@
   };
 
   export const getUsersWithSenderAccounts = async () => {
-      const response = await api.get<UserWithSenderAccounts[]>(`/auth/users/sender-accounts`)
-      return response.data
+      const res = await api.get(`/auth/users/sender-account`)
+      const body = res.data
+      return Array.isArray(body) ? body : body?.users ?? body?.data ?? []
   }
 
-  export const getSenderAccountWithUserById = async (id : number)=> {
-      const response = await api.get<UserWithSenderAccounts>(`/auth/user/sender-accounts/${id}`)
-      return response.data
+  export const getSenderAccountWithUserById = async (id: number) => {
+      const res = await api.get(`/auth/user/sender-account/${id}`)
+      return res.data
   }
 export const changeUserPassword = async (
   currentPassword: string,
