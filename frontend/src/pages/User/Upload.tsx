@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Sidebar from "./Sidebar";
 import {
   FileSpreadsheet, CheckCircle2, XCircle, Loader2, X, Menu,
-  Pencil, Lock, Trash2, Upload as UploadIcon, PlayCircle, AlertTriangle,
-  Search, ChevronUp, ChevronDown, Inbox, RefreshCw, ArrowUpDown,
+  Pencil, Lock, Trash2, AlertTriangle,
+  Search, ChevronUp, ChevronDown, Inbox, RefreshCw,
 } from "lucide-react";
 import { useUpload } from "../../contexts/UploadContext";
 
@@ -118,7 +118,7 @@ const Toast: React.FC<{ toast: ToastData; onClose: () => void }> = ({ toast, onC
   return (
     <div
       role="status"
-      className="fixed bottom-4 right-4 left-4 sm:left-auto z-[70] sm:w-[360px] flex items-start gap-3 rounded-lg px-3.5 py-3"
+      className="fixed bottom-4 right-4 left-4 sm:left-auto z-70 sm:w-90 flex items-start gap-3 rounded-lg px-3.5 py-3"
       style={{
         background: T.surface,
         border: HAIRLINE,
@@ -133,7 +133,7 @@ const Toast: React.FC<{ toast: ToastData; onClose: () => void }> = ({ toast, onC
       <button
         onClick={onClose}
         style={{ color: T.textFaint }}
-        className="transition-colors duration-[120ms]"
+        className="transition-colors duration-120"
         aria-label="Dismiss"
       >
         <X size={14} />
@@ -153,7 +153,7 @@ const ModalShell: React.FC<{
   useEscape(close);
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-3 md:p-6"
+      className="fixed inset-0 z-60 flex items-center justify-center p-3 md:p-6"
       style={{ background: "rgba(11,12,14,0.78)" }}
       onClick={close}
     >
@@ -211,7 +211,7 @@ const RenameModal: React.FC<{
         <button
           onClick={onClose}
           disabled={saving}
-          className="p-1.5 rounded-md transition-colors duration-[120ms]"
+          className="p-1.5 rounded-md transition-colors duration-120"
           style={{ color: T.textFaint }}
           aria-label="Close"
         >
@@ -228,7 +228,7 @@ const RenameModal: React.FC<{
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSave()}
-          className="w-full rounded-md px-3 py-2 text-[13px] outline-none transition-colors duration-[120ms]"
+          className="w-full rounded-md px-3 py-2 text-[13px] outline-none transition-colors duration-120"
           style={{ background: T.surface2, color: T.text, border: HAIRLINE }}
           onFocus={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
           onBlur={(e) => (e.currentTarget.style.borderColor = T.border)}
@@ -240,7 +240,7 @@ const RenameModal: React.FC<{
         <button
           onClick={onClose}
           disabled={saving}
-          className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms]"
+          className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-120"
           style={{ color: T.textMuted, border: HAIRLINE }}
         >
           Cancel
@@ -248,7 +248,7 @@ const RenameModal: React.FC<{
         <button
           onClick={handleSave}
           disabled={saving || !trimmed || unchanged}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-120 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ background: T.text, color: T.accentInk, border: `1px solid ${T.text}` }}
         >
           {saving && <Loader2 size={12} className="animate-spin" />}
@@ -305,7 +305,7 @@ const DeleteModal: React.FC<{
         <button
           onClick={onClose}
           disabled={deleting}
-          className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms]"
+          className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-120"
           style={{ color: T.textMuted, border: HAIRLINE }}
         >
           Cancel
@@ -313,7 +313,7 @@ const DeleteModal: React.FC<{
         <button
           onClick={handleDelete}
           disabled={deleting}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms] disabled:opacity-60 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-120 disabled:opacity-60 disabled:cursor-not-allowed"
           style={{ background: "transparent", color: T.danger, border: `1px solid ${T.border}` }}
         >
           {deleting && <Loader2 size={12} className="animate-spin" />}
@@ -366,7 +366,7 @@ const LiveRow: React.FC<{ u: UploadCardData }> = ({ u }) => {
     >
       <span
         aria-hidden
-        className="absolute left-0 top-3 bottom-3 w-[2px] rounded-full"
+        className="absolute left-0 top-3 bottom-3 w-0.5 rounded-full"
         style={{ background: T.accent }}
       />
       <div className="flex items-start gap-3">
@@ -408,7 +408,7 @@ const LibraryRow: React.FC<{
 
   return (
     <div
-      className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 px-4 md:px-5 py-3 transition-colors duration-[120ms]"
+      className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 px-4 md:px-5 py-3 transition-colors duration-120"
       onMouseEnter={(e) => (e.currentTarget.style.background = T.surface2)}
       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
     >
@@ -426,7 +426,7 @@ const LibraryRow: React.FC<{
       </div>
 
       {/* Capacity */}
-      <div className="w-full md:w-[200px] shrink-0">
+      <div className="w-full md:w-50 shrink-0">
         <CapacityBar added={u.addedCount} skipped={u.skippedCount} failed={u.status === "Failed"} />
         <div className="flex items-center gap-3 mt-1.5">
           <span className="text-[10.5px] tabular-nums" style={{ color: T.ok, fontFamily: FONT.mono }}>
@@ -439,7 +439,7 @@ const LibraryRow: React.FC<{
       </div>
 
       {/* Status + meta */}
-      <div className="w-full md:w-[220px] shrink-0 flex items-center justify-between md:justify-end gap-4">
+      <div className="w-full md:w-55 shrink-0 flex items-center justify-between md:justify-end gap-4">
         <div className="flex flex-col items-start md:items-end gap-1">
           <StatusTag status={u.status} />
           <span className="text-[10.5px] tabular-nums" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
@@ -453,7 +453,7 @@ const LibraryRow: React.FC<{
         {editable ? (
           <button
             onClick={onRename}
-            className="p-1.5 rounded-md transition-colors duration-[120ms]"
+            className="p-1.5 rounded-md transition-colors duration-120"
             style={{ color: T.textFaint }}
             title="Rename file"
             aria-label="Rename file"
@@ -474,7 +474,7 @@ const LibraryRow: React.FC<{
         {deletable && (
           <button
             onClick={onDelete}
-            className="p-1.5 rounded-md transition-colors duration-[120ms]"
+            className="p-1.5 rounded-md transition-colors duration-120"
             style={{ color: T.textFaint }}
             title="Delete file"
             aria-label="Delete file"
@@ -573,7 +573,7 @@ const Upload = () => {
     return (
       <button
         onClick={() => toggleSort(k)}
-        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[12px] transition-colors duration-[120ms]"
+        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[12px] transition-colors duration-120"
         style={{
           background: active ? T.surface2 : "transparent",
           color: active ? T.text : T.textMuted,
@@ -621,7 +621,7 @@ const Upload = () => {
         />
       )}
 
-      <div className={`fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-200 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+      <div className={`fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-200 ease-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
@@ -633,7 +633,7 @@ const Upload = () => {
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-[120ms]"
+                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-120"
                 style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
                 aria-label="Open menu"
               >
@@ -720,7 +720,7 @@ const Upload = () => {
                 style={{ borderBottom: HAIRLINE_SOFT }}
               >
                 <div
-                  className="flex items-center gap-2 rounded-md px-3 py-1.5 flex-1 min-w-0 transition-colors duration-[120ms]"
+                  className="flex items-center gap-2 rounded-md px-3 py-1.5 flex-1 min-w-0 transition-colors duration-120"
                   style={{ background: T.surface2, border: HAIRLINE_SOFT }}
                   onFocusCapture={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
                   onBlurCapture={(e) => (e.currentTarget.style.borderColor = T.borderSoft)}
@@ -736,7 +736,7 @@ const Upload = () => {
                   {query && (
                     <button
                       onClick={() => setQuery("")}
-                      className="shrink-0 text-[11px] px-1.5 py-0.5 rounded transition-colors duration-[120ms]"
+                      className="shrink-0 text-[11px] px-1.5 py-0.5 rounded transition-colors duration-120"
                       style={{ color: T.textFaint }}
                     >
                       Clear
@@ -766,7 +766,7 @@ const Upload = () => {
                   <p className="text-[13px] mb-4" style={{ color: T.danger }}>{error}</p>
                   <button
                     onClick={() => fetchAllFiles()}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms]"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-120"
                     style={{ color: T.textMuted, border: HAIRLINE }}
                   >
                     <RefreshCw size={12} /> Try again
@@ -791,7 +791,7 @@ const Upload = () => {
                   <p className="text-[12.5px]" style={{ color: T.textMuted }}>No files match your search.</p>
                   <button
                     onClick={() => setQuery("")}
-                    className="mt-3 text-[11.5px] font-medium px-3 py-1.5 rounded-md transition-colors duration-[120ms]"
+                    className="mt-3 text-[11.5px] font-medium px-3 py-1.5 rounded-md transition-colors duration-120"
                     style={{ color: T.textMuted, border: HAIRLINE }}
                   >
                     Clear search

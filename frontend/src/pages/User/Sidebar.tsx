@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
-  LayoutGrid, Mail, FileStack,
-  Settings as SettingsIcon, User as UserIcon, AtSign,
+  LayoutGrid, Mail, FileStack, User as UserIcon, AtSign,
   Megaphone, UploadCloud, Users, ChevronRight, Menu, X,
   LogOut, Shield, UserCog, Send, HelpCircle,
 } from 'lucide-react'
@@ -92,7 +91,7 @@ const NavItem = ({ path, name, icon: Icon, onClose }: NavItemProps) => (
     to={path}
     end
     onClick={onClose}
-    className="relative flex items-center gap-2.5 pl-3 pr-2.5 h-9 rounded-md text-[13px] font-medium transition-colors duration-[120ms]"
+    className="relative flex items-center gap-2.5 pl-3 pr-2.5 h-9 rounded-md text-[13px] font-medium transition-colors duration-120"
     style={({ isActive }) => ({
       background: isActive ? T.surfaceHi : 'transparent',
       color: isActive ? T.text : T.textMuted,
@@ -112,11 +111,11 @@ const NavItem = ({ path, name, icon: Icon, onClose }: NavItemProps) => (
       <>
         <span
           aria-hidden
-          className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-full transition-opacity duration-[120ms]"
+          className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full transition-opacity duration-120"
           style={{ background: T.accent, opacity: isActive ? 1 : 0 }}
         />
         <span
-          className="relative shrink-0 w-6 h-6 rounded-[6px] flex items-center justify-center"
+          className="relative shrink-0 w-6 h-6 rounded-md flex items-center justify-center"
           style={{ color: isActive ? T.accent : T.textFaint }}
         >
           <Icon size={14} strokeWidth={1.5} />
@@ -257,7 +256,7 @@ const ProfileMenu = ({ onClose, user, loadingUser }: ProfileMenuProps) => {
             key={label}
             role="menuitem"
             onClick={onClick}
-            className="w-full flex items-center gap-2.5 rounded-md px-2 h-9 text-left text-[12.5px] transition-colors duration-[120ms]"
+            className="w-full flex items-center gap-2.5 rounded-md px-2 h-9 text-left text-[12.5px] transition-colors duration-120"
             style={{ color: T.textMuted }}
             onMouseEnter={(e) => { e.currentTarget.style.background = T.surfaceHi; e.currentTarget.style.color = T.text }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = T.textMuted }}
@@ -274,7 +273,7 @@ const ProfileMenu = ({ onClose, user, loadingUser }: ProfileMenuProps) => {
           role="menuitem"
           onClick={handleLogout}
           disabled={loggingOut}
-          className="w-full flex items-center gap-2.5 rounded-md px-2 h-9 text-left text-[12.5px] font-medium transition-colors duration-[120ms] disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full flex items-center gap-2.5 rounded-md px-2 h-9 text-left text-[12.5px] font-medium transition-colors duration-120 disabled:opacity-60 disabled:cursor-not-allowed"
           style={{
             color: T.danger,
             background: confirmingLogout ? T.surfaceHi : 'transparent',
@@ -332,7 +331,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
         style={{ borderBottom: HAIRLINE_SOFT }}
       >
         <div
-          className="w-7 h-7 rounded-[6px] flex items-center justify-center shrink-0"
+          className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
           style={{ background: T.surfaceHi, border: HAIRLINE }}
         >
           <span
@@ -359,7 +358,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
           <button
             onClick={onClose}
             aria-label="Close menu"
-            className="lg:hidden shrink-0 p-1.5 rounded-md transition-colors duration-[120ms]"
+            className="lg:hidden shrink-0 p-1.5 rounded-md transition-colors duration-120"
             style={{ color: T.textMuted }}
           >
             <X size={15} />
@@ -401,7 +400,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
           href="https://docs.example.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2.5 pl-3 pr-2.5 h-8 rounded-md text-[12px] transition-colors duration-[120ms]"
+          className="flex items-center gap-2.5 pl-3 pr-2.5 h-8 rounded-md text-[12px] transition-colors duration-120"
           style={{ color: T.textFaint }}
           onMouseEnter={(e) => { e.currentTarget.style.background = T.surface; e.currentTarget.style.color = T.textMuted }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = T.textFaint }}
@@ -415,7 +414,7 @@ const SidebarContent = ({ onClose }: { onClose?: () => void }) => {
           onClick={() => setProfileOpen((o) => !o)}
           aria-haspopup="menu"
           aria-expanded={profileOpen}
-          className="w-full flex items-center gap-2.5 px-2 h-11 mt-1 rounded-md transition-colors duration-[120ms] text-left"
+          className="w-full flex items-center gap-2.5 px-2 h-11 mt-1 rounded-md transition-colors duration-120 text-left"
           style={{
             background: profileOpen ? T.surfaceHi : 'transparent',
             border: profileOpen ? HAIRLINE : '1px solid transparent',
@@ -522,7 +521,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
 export const MobileMenuButton = ({ onClick }: { onClick: () => void }) => (
   <button
     onClick={onClick}
-    className="lg:hidden p-2 rounded-md transition-colors duration-[120ms]"
+    className="lg:hidden p-2 rounded-md transition-colors duration-120"
     style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
     aria-label="Toggle menu"
   >
@@ -577,7 +576,7 @@ const SidebarWithMobile = () => {
         <MobileMenuButton onClick={() => setIsMobileOpen(true)} />
         <div className="flex items-center gap-2 min-w-0">
           <div
-            className="w-6 h-6 rounded-[6px] flex items-center justify-center shrink-0"
+            className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
             style={{ background: T.surfaceHi, border: HAIRLINE }}
           >
             <span

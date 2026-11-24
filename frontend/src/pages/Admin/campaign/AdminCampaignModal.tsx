@@ -165,7 +165,7 @@ const StatCard: React.FC<{
   <div className="rounded-lg p-3.5 relative overflow-hidden" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
     <span
       aria-hidden
-      className="absolute left-0 top-0 bottom-0 w-[2px]"
+      className="absolute left-0 top-0 bottom-0 w-0.5"
       style={{ background: accent, opacity: 0.6 }}
     />
     <div
@@ -472,7 +472,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      className="fixed inset-0 z-100 flex items-center justify-center p-4"
       onClick={onClose}
       style={{ fontFamily: FONT.ui, background: 'rgba(11,12,14,0.72)', backdropFilter: 'blur(4px)', animation: 'cm-fade 0.15s ease-out' }}
     >
@@ -751,14 +751,14 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
               {recipients.length > 0 && (
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
                   <div className="rounded-lg p-3 relative overflow-hidden" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
-                    <span className="absolute left-0 top-0 bottom-0 w-[2px]" style={{ background: T.brand, opacity: 0.6 }} />
+                    <span className="absolute left-0 top-0 bottom-0 w-0.5" style={{ background: T.brand, opacity: 0.6 }} />
                     <Users size={12} style={{ color: T.brand }} className="mb-2" />
                     <p className="text-[18px] font-semibold leading-none" style={{ color: T.text, fontFamily: FONT.mono }}>
                       {recipients.length.toLocaleString()}
                     </p>
                     <p className="text-[10px] uppercase tracking-widest mt-1.5 font-medium" style={{ color: T.textFaint }}>Total</p>
                   </div>
-                  {recipientSummary.map(({ label, key, Icon, fg, soft }) => (
+                  {recipientSummary.map(({ label, key, Icon, fg }) => (
                     <button
                       key={key}
                       onClick={() => setRStatus(rStatus === key ? 'all' : key)}
@@ -768,7 +768,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                         border: rStatus === key ? `1px solid ${fg}` : HAIRLINE_SOFT,
                       }}
                     >
-                      <span className="absolute left-0 top-0 bottom-0 w-[2px]" style={{ background: fg, opacity: 0.6 }} />
+                      <span className="absolute left-0 top-0 bottom-0 w-0.5" style={{ background: fg, opacity: 0.6 }} />
                       <span style={{ color: fg }}><Icon size={12} /></span>
                       <p className="text-[18px] font-semibold leading-none mt-2" style={{ color: T.text, fontFamily: FONT.mono }}>
                         {(recipientCounts[key] ?? 0).toLocaleString()}
@@ -865,7 +865,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
               {filteredRecipients.length > 0 && (
                 <div className="rounded-lg overflow-hidden" style={{ background: T.surface2, border: HAIRLINE_SOFT }}>
                   <div className="overflow-x-auto cm-scroll">
-                    <table className="w-full text-left min-w-[560px]">
+                    <table className="w-full text-left min-w-140">
                       <thead>
                         <tr className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: T.textFaint, borderBottom: HAIRLINE_SOFT }}>
                           <th className="px-4 py-2.5">Recipient</th>
@@ -882,10 +882,10 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                                 onMouseEnter={(e) => (e.currentTarget.style.background = T.surfaceHi)}
                                 onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                               <td className="px-4 py-2.5">
-                                <p className="text-[12.5px] font-semibold truncate max-w-[240px]" style={{ color: T.text }}>
+                                <p className="text-[12.5px] font-semibold truncate max-w-60" style={{ color: T.text }}>
                                   {r.name || '—'}
                                 </p>
-                                <p className="text-[11px] truncate max-w-[240px] mt-0.5 font-medium" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
+                                <p className="text-[11px] truncate max-w-60 mt-0.5 font-medium" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                                   {r.email}
                                 </p>
                               </td>
@@ -970,7 +970,7 @@ const AdminCampaignModal: React.FC<AdminCampaignModalProps> = ({
                       Open logs <ExternalLink size={10} />
                     </button>
                   </div>
-                  <ul className="max-h-[280px] overflow-y-auto cm-scroll">
+                  <ul className="max-h-70 overflow-y-auto cm-scroll">
                     {logs.slice(0, 20).map((l) => {
                       const r = recipientById[l.recipient_id];
                       const meta = LOG_STATUS_META[l.status] ?? FALLBACK_LOG;

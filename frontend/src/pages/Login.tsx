@@ -221,7 +221,7 @@ const Login = () => {
           >
             <span
               aria-hidden
-              className="absolute left-0 top-0 bottom-0 w-[2px]"
+              className="absolute left-0 top-0 bottom-0 w-0.5"
               style={{ background: T.brand, opacity: 0.6 }}
             />
             <div className="flex items-center gap-2 mb-3.5">
@@ -231,14 +231,14 @@ const Login = () => {
               </span>
             </div>
 
-            <div className="relative h-[2px] rounded-full mb-4" style={{ background: T.borderSoft }}>
+            <div className="relative h-0.5 rounded-full mb-4" style={{ background: T.borderSoft }}>
               <span
                 className="absolute inset-0 rounded-full"
                 style={{ background: `linear-gradient(90deg, ${T.brand}, ${T.violet})`, opacity: 0.4 }}
               />
-              <span className="packet absolute -top-[5px] w-3 h-3 rounded-full" style={{ background: T.brand }} />
-              <span className="packet packet-2 absolute -top-[5px] w-3 h-3 rounded-full" style={{ background: T.brand }} />
-              <span className="packet packet-3 absolute -top-[5px] w-3 h-3 rounded-full" style={{ background: T.violet }} />
+              <span className="packet absolute -top-1.25 w-3 h-3 rounded-full" style={{ background: T.brand }} />
+              <span className="packet packet-2 absolute -top-1.25 w-3 h-3 rounded-full" style={{ background: T.brand }} />
+              <span className="packet packet-3 absolute -top-1.25 w-3 h-3 rounded-full" style={{ background: T.violet }} />
             </div>
 
             <div className="flex items-center justify-between">
@@ -277,7 +277,7 @@ const Login = () => {
           }}
         />
 
-        <div className="w-full max-w-[420px] relative">
+        <div className="w-full max-w-105 relative">
           {/* Mobile brand */}
           <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
             <div
@@ -521,7 +521,7 @@ const InputShell: React.FC<{
 
   return (
     <div
-      className="flex items-center gap-2 rounded-lg px-3 py-2.5 transition-colors duration-[120ms]"
+      className="flex items-center gap-2 rounded-lg px-3 py-2.5 transition-colors duration-120"
       style={{ background: T.surface2, border: base }}
       onFocusCapture={(e) => (e.currentTarget.style.border = focus)}
       onBlurCapture={(e) => (e.currentTarget.style.border = base)}

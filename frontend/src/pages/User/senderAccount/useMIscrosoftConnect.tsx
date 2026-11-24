@@ -9,17 +9,6 @@ export interface MicrosoftConnectOptions {
   hourlyLimit: number;
 }
 
-/**
- * Flow:
- * 1. Open a blank popup synchronously (so browsers don't block it).
- * 2. Ask the backend for the Microsoft authorize URL (it creates the `state`).
- * 3. Point the popup at that URL; the user signs in and consents.
- * 4. Microsoft redirects to the backend callback, which exchanges the code,
- *    stores the refresh token, creates the sender account, and renders a tiny
- *    page that does:
- *      window.opener.postMessage({ type: "ms-oauth-result", success: true }, FRONTEND_ORIGIN)
- * 5. We receive that message here and resolve.
- */
 export function useMicrosoftConnect() {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -3,7 +3,7 @@ import Sidebar from "./Sidebar";
 import {
   Menu, Check, ChevronLeft, ChevronRight, UploadCloud, FileText, Mail,
   LayoutTemplate, ClipboardCheck, Rocket, AlertTriangle, CheckCircle2,
-  XCircle, Pause, Play, Ban, X, Send, Users, Trash2, Loader2,
+  XCircle, Pause, Play, Ban, X, Users, Trash2, Loader2,
   Pencil, Type, Clock, Inbox, Timer, Hourglass, Info,
 } from "lucide-react";
 import { useSenderAccounts } from "../../contexts/SenderAccountsContext";
@@ -209,7 +209,7 @@ const Notice = ({ tone, children }: { tone: "error" | "warn" | "info" | "success
 };
 
 const Modal = ({ onClose, children }: { onClose: () => void; children: React.ReactNode }) => (
-  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: "rgba(11,12,14,0.72)" }} onClick={onClose}>
+  <div className="fixed inset-0 z-100 flex items-center justify-center p-4" style={{ background: "rgba(11,12,14,0.72)" }} onClick={onClose}>
     <div onClick={(e) => e.stopPropagation()}
       className="relative w-full max-w-md rounded-2xl p-6"
       style={{ background: T.surface, border: HAIRLINE, boxShadow: "0 24px 64px -16px rgba(0,0,0,0.7)" }}>
@@ -268,7 +268,7 @@ const Stepper: React.FC<{ step: number; maxReached: number; onStepClick: (i: num
             </span>
           </button>
           {i < STEPS.length - 1 && (
-            <span className="flex-1 h-px min-w-[12px]" style={{ background: isDone ? T.accentLine : T.border }} />
+            <span className="flex-1 h-px min-w-3" style={{ background: isDone ? T.accentLine : T.border }} />
           )}
         </div>
       );

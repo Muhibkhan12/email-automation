@@ -242,7 +242,7 @@ const EmailLogs = () => {
       )}
 
       <div
-        className={`fixed top-0 z-50 h-screen flex-shrink-0 transition-transform duration-200 ease-out lg:sticky lg:translate-x-0 ${
+        className={`fixed top-0 z-50 h-screen shrink-0 transition-transform duration-200 ease-out lg:sticky lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -257,7 +257,7 @@ const EmailLogs = () => {
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-[120ms]"
+                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-120"
                 style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
                 aria-label="Open menu"
               >
@@ -282,7 +282,7 @@ const EmailLogs = () => {
               <button
                 onClick={() => refetch()}
                 disabled={loading}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-colors duration-[120ms] disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-colors duration-120 disabled:opacity-50"
                 style={{ color: T.textMuted, border: HAIRLINE }}
               >
                 <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
@@ -329,7 +329,7 @@ const EmailLogs = () => {
           <div className="mb-5 rounded-xl p-3" style={{ background: T.surface, border: HAIRLINE }}>
             <div className="flex flex-col lg:flex-row gap-2.5">
               <div
-                className="flex items-center gap-2 rounded-md px-3 py-2 flex-1 min-w-0 transition-colors duration-[120ms]"
+                className="flex items-center gap-2 rounded-md px-3 py-2 flex-1 min-w-0 transition-colors duration-120"
                 style={{ background: T.surface2, border: HAIRLINE_SOFT }}
                 onFocusCapture={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
                 onBlurCapture={(e) => (e.currentTarget.style.borderColor = T.borderSoft)}
@@ -346,7 +346,7 @@ const EmailLogs = () => {
                 {search && (
                   <button
                     onClick={() => handleSearchChange("")}
-                    className="shrink-0 text-[11px] px-1.5 py-0.5 rounded transition-colors duration-[120ms]"
+                    className="shrink-0 text-[11px] px-1.5 py-0.5 rounded transition-colors duration-120"
                     style={{ color: T.textFaint }}
                   >
                     Clear
@@ -358,7 +358,7 @@ const EmailLogs = () => {
                 <select
                   value={statusFilter}
                   onChange={(e) => handleStatusChange(e.target.value)}
-                  className="px-2.5 py-2 rounded-md text-[12px] cursor-pointer outline-none transition-colors duration-[120ms]"
+                  className="px-2.5 py-2 rounded-md text-[12px] cursor-pointer outline-none transition-colors duration-120"
                   style={{ background: T.surface2, color: T.text, border: HAIRLINE_SOFT }}
                   onFocus={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
                   onBlur={(e) => (e.currentTarget.style.borderColor = T.borderSoft)}
@@ -372,7 +372,7 @@ const EmailLogs = () => {
                 <select
                   value={dateFilter}
                   onChange={(e) => handleDateChange(e.target.value)}
-                  className="px-2.5 py-2 rounded-md text-[12px] cursor-pointer outline-none transition-colors duration-[120ms]"
+                  className="px-2.5 py-2 rounded-md text-[12px] cursor-pointer outline-none transition-colors duration-120"
                   style={{ background: T.surface2, color: T.text, border: HAIRLINE_SOFT }}
                   onFocus={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
                   onBlur={(e) => (e.currentTarget.style.borderColor = T.borderSoft)}
@@ -393,7 +393,7 @@ const EmailLogs = () => {
                 </p>
                 <button
                   onClick={clearFilters}
-                  className="text-[11.5px] font-medium transition-colors duration-[120ms]"
+                  className="text-[11.5px] font-medium transition-colors duration-120"
                   style={{ color: T.accent }}
                 >
                   Clear filters
@@ -466,7 +466,7 @@ const EmailLogs = () => {
                         </p>
                         <button
                           onClick={() => (hasActiveFilters ? clearFilters() : refetch())}
-                          className="mt-3.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11.5px] font-medium transition-colors duration-[120ms]"
+                          className="mt-3.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11.5px] font-medium transition-colors duration-120"
                           style={{ color: T.textMuted, border: HAIRLINE }}
                         >
                           <RefreshCw size={11} /> {hasActiveFilters ? "Clear filters" : "Refresh"}
@@ -481,7 +481,7 @@ const EmailLogs = () => {
                       return (
                         <tr
                           key={log.id}
-                          className="transition-colors duration-[120ms]"
+                          className="transition-colors duration-120"
                           style={{ borderTop: HAIRLINE_SOFT }}
                           onMouseEnter={(e) => (e.currentTarget.style.background = T.surface2)}
                           onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
@@ -504,7 +504,7 @@ const EmailLogs = () => {
                                 </p>
                                 <button
                                   onClick={() => handleCopy(log.id)}
-                                  className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] transition-colors duration-[120ms]"
+                                  className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] transition-colors duration-120"
                                   style={{ color: T.textFaint, fontFamily: FONT.mono }}
                                 >
                                   #{log.id}
@@ -517,7 +517,7 @@ const EmailLogs = () => {
 
                           <td className="px-3 py-3">
                             <span
-                              className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[11px] font-medium max-w-[160px]"
+                              className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[11px] font-medium max-w-40"
                               style={{ background: T.surface2, color: T.textMuted, border: HAIRLINE_SOFT }}
                             >
                               <Send size={9} style={{ color: T.textFaint }} className="shrink-0" />
@@ -525,7 +525,7 @@ const EmailLogs = () => {
                             </span>
                           </td>
 
-                          <td className="px-3 py-3 max-w-[220px]">
+                          <td className="px-3 py-3 max-w-55">
                             <span className="block text-[12px] truncate" style={{ color: T.textMuted }} title={log.subject}>
                               {log.subject}
                             </span>
@@ -533,7 +533,7 @@ const EmailLogs = () => {
 
                           <td className="px-3 py-3">
                             <span
-                              className="text-[11.5px] truncate max-w-[180px] inline-block"
+                              className="text-[11.5px] truncate max-w-45 inline-block"
                               style={{ color: T.textFaint, fontFamily: FONT.mono }}
                               title={log.sender}
                             >
@@ -577,7 +577,7 @@ const EmailLogs = () => {
                   <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-[120ms] disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-120 disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
                   >
                     <ChevronLeft size={12} /> Prev
@@ -589,7 +589,7 @@ const EmailLogs = () => {
                       <button
                         key={p}
                         onClick={() => setPage(p)}
-                        className="rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-[120ms]"
+                        className="rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-120"
                         style={{
                           background: active ? T.accent : T.surface2,
                           color: active ? T.accentInk : T.textMuted,
@@ -606,7 +606,7 @@ const EmailLogs = () => {
                       <span className="text-[11px] px-1" style={{ color: T.textFaint }}>…</span>
                       <button
                         onClick={() => setPage(totalPages)}
-                        className="rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-[120ms]"
+                        className="rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-120"
                         style={{
                           background: page === totalPages ? T.accent : T.surface2,
                           color: page === totalPages ? T.accentInk : T.textMuted,
@@ -621,7 +621,7 @@ const EmailLogs = () => {
                   <button
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
-                    className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-[120ms] disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-120 disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
                   >
                     Next <ChevronRight size={12} />

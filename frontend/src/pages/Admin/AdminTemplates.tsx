@@ -6,7 +6,7 @@ import {
   Plus, Search, Trash2, CheckCircle2, Clock, Code2, Eye, Save, X,
   Monitor, Smartphone, Tablet, FileCode, Braces, LayoutTemplate,
   Inbox, Check, Menu, Sparkles, Wand2, AlertCircle, ArrowLeft,
-  Loader2, AlertTriangle, RefreshCw, ChevronRight, Tag,
+  Loader2, AlertTriangle, RefreshCw, Tag,
   Pencil, Copy, ClipboardCopy, Upload, Link2, FileUp, Clipboard,
   Link, Globe, FileText, CheckCircle,
 } from "lucide-react";

@@ -5,7 +5,7 @@ import Sidebar from "./Sidebar";
 import { useRecipients } from "../../contexts/RecipientsContext";
 import type { RecipientStatus } from "../../types/RecipientTypes";
 import {
-  Search, Users, MailCheck, MailX, MailWarning, Menu,
+  Search, MailX, Menu,
   ChevronLeft, ChevronRight, ArrowLeft, Inbox, Plus,
   Copy, Check, X, CheckSquare, Square, RefreshCw,
 } from "lucide-react";
@@ -87,7 +87,7 @@ const CopyChip: React.FC<{ value: string; label?: string }> = ({ value, label })
   return (
     <button
       onClick={onCopy}
-      className="inline-flex items-center gap-1 text-[11px] transition-colors duration-[120ms]"
+      className="inline-flex items-center gap-1 text-[11px] transition-colors duration-120"
       style={{ fontFamily: FONT.mono, color: copied ? T.accent : T.textFaint }}
       title={`Copy ${label ?? "value"}`}
       onMouseEnter={(e) => { if (!copied) e.currentTarget.style.color = T.textMuted; }}
@@ -104,7 +104,7 @@ const Checkbox: React.FC<{ checked: boolean; onChange: () => void; label: string
     onClick={onChange}
     aria-label={label}
     aria-pressed={checked}
-    className="transition-colors duration-[120ms]"
+    className="transition-colors duration-120"
     style={{ color: checked ? T.accent : T.textFaint }}
   >
     {checked ? <CheckSquare size={14} /> : <Square size={14} />}
@@ -228,7 +228,7 @@ const Recipients = () => {
       )}
 
       <div
-        className={`fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-200 ease-out ${
+        className={`fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-200 ease-out ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
@@ -243,7 +243,7 @@ const Recipients = () => {
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-[120ms]"
+                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-120"
                 style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
                 aria-label="Open menu"
               >
@@ -276,7 +276,7 @@ const Recipients = () => {
               {uploadId && (
                 <button
                   onClick={clearUploadFilter}
-                  className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-[120ms]"
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-120"
                   style={{ color: T.textMuted, border: HAIRLINE }}
                 >
                   <ArrowLeft size={13} /> Clear filter
@@ -311,7 +311,7 @@ const Recipients = () => {
               <p className="text-[13px] mb-4" style={{ color: T.danger }}>{error}</p>
               <button
                 onClick={() => fetchPage(page)}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms]"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-120"
                 style={{ color: T.textMuted, border: HAIRLINE }}
               >
                 <RefreshCw size={12} /> Try again
@@ -341,7 +341,7 @@ const Recipients = () => {
               </p>
               <button
                 onClick={() => navigate("/user/upload")}
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-[120ms]"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-120"
                 style={{ background: T.text, color: T.accentInk, border: `1px solid ${T.text}` }}
               >
                 <Plus size={13} /> Upload a file
@@ -375,7 +375,7 @@ const Recipients = () => {
               {/* Query bar */}
               <div className="flex flex-col lg:flex-row lg:items-center gap-3 mb-4">
                 <div
-                  className="flex items-center gap-2 rounded-md px-3 py-2 flex-1 min-w-0 transition-colors duration-[120ms]"
+                  className="flex items-center gap-2 rounded-md px-3 py-2 flex-1 min-w-0 transition-colors duration-120"
                   style={{ background: T.surface, border: HAIRLINE }}
                   onFocusCapture={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
                   onBlurCapture={(e) => (e.currentTarget.style.borderColor = T.border)}
@@ -391,7 +391,7 @@ const Recipients = () => {
                   {query && (
                     <button
                       onClick={() => setQuery("")}
-                      className="shrink-0 text-[11px] px-1.5 py-0.5 rounded transition-colors duration-[120ms]"
+                      className="shrink-0 text-[11px] px-1.5 py-0.5 rounded transition-colors duration-120"
                       style={{ color: T.textFaint }}
                     >
                       Clear
@@ -410,7 +410,7 @@ const Recipients = () => {
                       <button
                         key={f}
                         onClick={() => setFilter(f)}
-                        className="rc-seg inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[12px] whitespace-nowrap transition-colors duration-[120ms]"
+                        className="rc-seg inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[12px] whitespace-nowrap transition-colors duration-120"
                         style={{
                           background: active ? T.surface2 : "transparent",
                           color: active ? T.text : T.textMuted,
@@ -430,7 +430,7 @@ const Recipients = () => {
                   {hasActiveFilters && (
                     <button
                       onClick={() => { setQuery(""); setFilter("All"); }}
-                      className="rc-seg inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-[12px] whitespace-nowrap transition-colors duration-[120ms]"
+                      className="rc-seg inline-flex items-center gap-1 px-2.5 py-1.5 rounded text-[12px] whitespace-nowrap transition-colors duration-120"
                       style={{ color: T.textMuted }}
                     >
                       <X size={11} /> Clear
@@ -471,14 +471,14 @@ const Recipients = () => {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={copySelectedEmails}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11.5px] font-medium transition-colors duration-[120ms]"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11.5px] font-medium transition-colors duration-120"
                         style={{ color: T.textMuted, border: HAIRLINE }}
                       >
                         <Copy size={11} /> Copy emails
                       </button>
                       <button
                         onClick={clearSelection}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11.5px] font-medium transition-colors duration-[120ms]"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11.5px] font-medium transition-colors duration-120"
                         style={{ color: T.textMuted, border: HAIRLINE }}
                       >
                         <X size={11} /> Clear
@@ -499,10 +499,10 @@ const Recipients = () => {
                   <table className="w-full text-left">
                     <thead>
                       <tr className="text-[11px]" style={{ color: T.textFaint }}>
-                        <th className="px-5 py-2.5 font-normal w-[40px]"></th>
-                        <th className="px-3 py-2.5 font-normal w-[90px]">Id</th>
+                        <th className="px-5 py-2.5 font-normal w-10"></th>
+                        <th className="px-3 py-2.5 font-normal w-22.5">Id</th>
                         <th className="px-3 py-2.5 font-normal">Recipient</th>
-                        <th className="px-5 py-2.5 font-normal text-right w-[110px]">Status</th>
+                        <th className="px-5 py-2.5 font-normal text-right w-27.5">Status</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -518,7 +518,7 @@ const Recipients = () => {
                             <p className="text-[12.5px]" style={{ color: T.textMuted }}>No recipients match your search.</p>
                             <button
                               onClick={() => { setQuery(""); setFilter("All"); }}
-                              className="mt-3 text-[11.5px] font-medium transition-colors duration-[120ms]"
+                              className="mt-3 text-[11.5px] font-medium transition-colors duration-120"
                               style={{ color: T.textMuted, border: HAIRLINE, padding: "6px 12px", borderRadius: 6 }}
                             >
                               Clear filters
@@ -531,7 +531,7 @@ const Recipients = () => {
                           return (
                             <tr
                               key={r.id}
-                              className="transition-colors duration-[120ms]"
+                              className="transition-colors duration-120"
                               style={{
                                 borderTop: HAIRLINE_SOFT,
                                 background: selected ? T.surface2 : "transparent",
@@ -648,7 +648,7 @@ const Recipients = () => {
                     <button
                       onClick={() => goToPage(1)}
                       disabled={page <= 1 || loading}
-                      className="rc-ctrl hidden md:inline-flex items-center rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors duration-[120ms] disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="rc-ctrl hidden md:inline-flex items-center rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors duration-120 disabled:opacity-40 disabled:cursor-not-allowed"
                       style={{ color: T.textMuted, border: HAIRLINE }}
                     >
                       First
@@ -656,7 +656,7 @@ const Recipients = () => {
                     <button
                       onClick={() => goToPage(page - 1)}
                       disabled={page <= 1 || loading}
-                      className="rc-ctrl inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-[120ms] disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="rc-ctrl inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-120 disabled:opacity-40 disabled:cursor-not-allowed"
                       style={{ color: T.textMuted, border: HAIRLINE }}
                     >
                       <ChevronLeft size={12} /> Prev
@@ -664,7 +664,7 @@ const Recipients = () => {
                     <button
                       onClick={() => goToPage(page + 1)}
                       disabled={page >= totalPages || loading}
-                      className="rc-ctrl inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-[120ms] disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="rc-ctrl inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors duration-120 disabled:opacity-40 disabled:cursor-not-allowed"
                       style={{ color: T.textMuted, border: HAIRLINE }}
                     >
                       Next <ChevronRight size={12} />
@@ -672,7 +672,7 @@ const Recipients = () => {
                     <button
                       onClick={() => goToPage(totalPages)}
                       disabled={page >= totalPages || loading}
-                      className="rc-ctrl hidden md:inline-flex items-center rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors duration-[120ms] disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="rc-ctrl hidden md:inline-flex items-center rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors duration-120 disabled:opacity-40 disabled:cursor-not-allowed"
                       style={{ color: T.textMuted, border: HAIRLINE }}
                     >
                       Last

@@ -194,7 +194,7 @@ const CampaignRecipients: React.FC = () => {
             <div className="flex items-start gap-2.5">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-[120ms]"
+                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-120"
                 style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
                 aria-label="Open menu"
               >
@@ -203,7 +203,7 @@ const CampaignRecipients: React.FC = () => {
               <button
                 onClick={() => navigate(-1)}
                 title="Back"
-                className="mt-1 p-2 rounded-md transition-colors duration-[120ms]"
+                className="mt-1 p-2 rounded-md transition-colors duration-120"
                 style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
                 aria-label="Back"
                 onMouseEnter={(e) => { e.currentTarget.style.color = T.text }}
@@ -233,7 +233,7 @@ const CampaignRecipients: React.FC = () => {
                 onClick={fetchRecipients}
                 disabled={loading}
                 title="Refresh"
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-colors duration-[120ms] disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-[12px] font-medium transition-colors duration-120 disabled:opacity-50"
                 style={{ color: T.textMuted, border: HAIRLINE }}
                 onMouseEnter={(e) => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent" }}
@@ -270,7 +270,7 @@ const CampaignRecipients: React.FC = () => {
               <p className="text-[12.5px] mb-3 font-medium" style={{ color: T.danger }}>{error}</p>
               <button
                 onClick={fetchRecipients}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11.5px] font-medium transition-colors duration-[120ms]"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11.5px] font-medium transition-colors duration-120"
                 style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
                 onMouseEnter={(e) => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent" }}
@@ -308,7 +308,7 @@ const CampaignRecipients: React.FC = () => {
               ) : (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="text-[11.5px] font-medium transition-colors duration-[120ms] hover:opacity-70"
+                  className="text-[11.5px] font-medium transition-colors duration-120 hover:opacity-70"
                   style={{ color: T.accent }}
                 >
                   Clear search
@@ -330,7 +330,7 @@ const CampaignRecipients: React.FC = () => {
               {/* Search */}
               <div className="flex items-center gap-3 mb-4">
                 <div
-                  className="flex items-center gap-2 rounded-md px-3 py-2 flex-1 min-w-0 transition-colors duration-[120ms]"
+                  className="flex items-center gap-2 rounded-md px-3 py-2 flex-1 min-w-0 transition-colors duration-120"
                   style={{ background: T.surface, border: HAIRLINE }}
                   onFocusCapture={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
                   onBlurCapture={(e) => (e.currentTarget.style.borderColor = T.border)}
@@ -346,7 +346,7 @@ const CampaignRecipients: React.FC = () => {
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery("")}
-                      className="shrink-0 text-[11px] px-1.5 py-0.5 rounded transition-colors duration-[120ms]"
+                      className="shrink-0 text-[11px] px-1.5 py-0.5 rounded transition-colors duration-120"
                       style={{ color: T.textFaint }}
                     >
                       Clear
@@ -376,7 +376,7 @@ const CampaignRecipients: React.FC = () => {
                         return (
                           <tr
                             key={r.id}
-                            className="transition-colors duration-[120ms]"
+                            className="transition-colors duration-120"
                             style={{ borderTop: HAIRLINE_SOFT }}
                             onMouseEnter={(e) => (e.currentTarget.style.background = T.surface2)}
                             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}

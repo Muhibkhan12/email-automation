@@ -282,7 +282,7 @@ const UserCampaigns: React.FC = () => {
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-[120ms]"
+                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-120"
                 style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
                 aria-label="Open menu"
               >
@@ -315,7 +315,7 @@ const UserCampaigns: React.FC = () => {
               <button
                 onClick={() => refetch()}
                 title="Refresh"
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-[120ms]"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-120"
                 style={{ color: T.textMuted, border: HAIRLINE }}
               >
                 <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
@@ -323,7 +323,7 @@ const UserCampaigns: React.FC = () => {
               </button>
               <button
                 onClick={() => setShowStartModal(true)}
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-[120ms]"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-120"
                 style={{ background: T.text, color: T.accentInk, border: `1px solid ${T.text}` }}
               >
                 <Plus size={14} />
@@ -369,7 +369,7 @@ const UserCampaigns: React.FC = () => {
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="shrink-0 text-[11px] px-1.5 py-0.5 rounded transition-colors duration-[120ms]"
+                  className="shrink-0 text-[11px] px-1.5 py-0.5 rounded transition-colors duration-120"
                   style={{ color: T.textFaint }}
                 >
                   Clear
@@ -389,7 +389,7 @@ const UserCampaigns: React.FC = () => {
                   <button
                     key={s}
                     onClick={() => setStatusFilter(s)}
-                    className="uc-seg inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[12px] whitespace-nowrap transition-colors duration-[120ms]"
+                    className="uc-seg inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[12px] whitespace-nowrap transition-colors duration-120"
                     style={{
                       background: active ? T.surface2 : 'transparent',
                       color: active ? T.text : T.textMuted,
@@ -435,7 +435,7 @@ const UserCampaigns: React.FC = () => {
               <p className="text-[13px] mb-4" style={{ color: T.danger }}>{error}</p>
               <button
                 onClick={() => refetch()}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms]"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-120"
                 style={{ color: T.textMuted, border: HAIRLINE }}
               >
                 <RefreshCw size={12} /> Try again
@@ -469,7 +469,7 @@ const UserCampaigns: React.FC = () => {
                     ? setShowStartModal(true)
                     : (setSearchQuery(''), setStatusFilter('all'))
                 }
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-[120ms]"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-120"
                 style={{ background: T.text, color: T.accentInk, border: `1px solid ${T.text}` }}
               >
                 {campaigns.length === 0 ? (<><Plus size={13} /> New campaign</>) : 'Clear filters'}
@@ -507,7 +507,7 @@ const UserCampaigns: React.FC = () => {
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setSelectedId(campaign.id)}
-                    className="grid grid-cols-[minmax(0,1fr)_40px] md:grid-cols-[minmax(0,1fr)_140px_110px_150px_40px] items-center gap-4 px-5 py-3 cursor-pointer transition-colors duration-[120ms]"
+                    className="grid grid-cols-[minmax(0,1fr)_40px] md:grid-cols-[minmax(0,1fr)_140px_110px_150px_40px] items-center gap-4 px-5 py-3 cursor-pointer transition-colors duration-120"
                     style={{ borderTop: idx === 0 ? 'none' : HAIRLINE_SOFT }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = T.surface2)}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
@@ -581,7 +581,7 @@ const UserCampaigns: React.FC = () => {
                           disabled={isBusy}
                           title="Delete campaign"
                           aria-label={`Delete ${campaign.campaign_name}`}
-                          className="p-1.5 rounded-md transition-colors duration-[120ms] disabled:opacity-40"
+                          className="p-1.5 rounded-md transition-colors duration-120 disabled:opacity-40"
                           style={{ color: T.textFaint }}
                           onMouseEnter={(e) => { e.currentTarget.style.color = T.danger; e.currentTarget.style.background = T.surfaceHi; }}
                           onMouseLeave={(e) => { e.currentTarget.style.color = T.textFaint; e.currentTarget.style.background = 'transparent'; }}
@@ -646,7 +646,7 @@ const UserCampaigns: React.FC = () => {
       {/* Delete dialog */}
       {campaignToDelete && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          className="fixed inset-0 z-60 flex items-center justify-center p-4"
           style={{ background: 'rgba(11,12,14,0.72)' }}
           onClick={closeDeleteDialog}
         >
@@ -686,7 +686,7 @@ const UserCampaigns: React.FC = () => {
               <button
                 onClick={closeDeleteDialog}
                 disabled={deleting}
-                className="px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-[120ms] disabled:opacity-50"
+                className="px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-120 disabled:opacity-50"
                 style={{ color: T.textMuted, border: HAIRLINE }}
               >
                 Cancel
@@ -694,7 +694,7 @@ const UserCampaigns: React.FC = () => {
               <button
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-[120ms] disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-120 disabled:opacity-60"
                 style={{ background: 'transparent', color: T.danger, border: `1px solid ${T.border}` }}
               >
                 {deleting && (

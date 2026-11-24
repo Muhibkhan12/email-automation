@@ -530,7 +530,7 @@ const AdminCampaigns: React.FC = () => {
       {/* Delete confirmation */}
       {campaignToDelete && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70"
+          className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/70"
           onClick={closeDeleteDialog}
         >
           <div

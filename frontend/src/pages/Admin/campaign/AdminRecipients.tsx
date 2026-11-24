@@ -399,7 +399,7 @@ const AdminCampaignRecipients: React.FC = () => {
                 <button
                   key={key}
                   onClick={() => setStatusFilter(statusFilter === key ? 'all' : key)}
-                  className="text-left rounded-lg p-3 transition-colors hover:bg-white/[0.02]"
+                  className="text-left rounded-lg p-3 transition-colors hover:bg-white/2"
                   style={{
                     background: T.surface2,
                     boxShadow: statusFilter === key
@@ -538,14 +538,14 @@ const AdminCampaignRecipients: React.FC = () => {
                       return (
                         <tr
                           key={r.id}
-                          className="transition-colors hover:bg-white/[0.02]"
+                          className="transition-colors hover:bg-white/2"
                           style={{ borderTop: `1px solid ${T.borderSoft}` }}
                         >
                           <td className="px-4 md:px-5 py-3">
-                            <p className="text-[12.5px] font-medium truncate max-w-[280px]" style={{ color: T.text }}>
+                            <p className="text-[12.5px] font-medium truncate max-w-70" style={{ color: T.text }}>
                               {r.name || '—'}
                             </p>
-                            <p className="text-[11px] truncate max-w-[280px] mt-0.5"
+                            <p className="text-[11px] truncate max-w-70 mt-0.5"
                               style={{ color: T.textFaint, fontFamily: FONT.mono }}>
                               {r.email}
                             </p>

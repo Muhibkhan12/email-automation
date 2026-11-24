@@ -2,9 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, BarChart3, Bell, Mail, FileText,
-  Settings as SettingsIcon, Users, AtSign, ListOrdered,
-  Megaphone, ChevronRight, Activity, X,
+  LayoutDashboard,   Mail, FileText, Users, AtSign, 
+  Megaphone, ChevronRight,  X,
   LogOut, Shield, UserCog, User as UserIcon, Loader2,
 } from "lucide-react";
 import { getProfile, logoutUser } from "../../services/AuthServices";
@@ -40,8 +39,6 @@ const FONT = {
   mono: "'Geist Mono', ui-monospace, monospace",
 };
 
-const RING = `inset 0 0 0 1px ${T.line}`;
-const ICON = { size: 16, strokeWidth: 1.5 };
 
 /* ─────────────── helpers ─────────────── */
 

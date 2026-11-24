@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Sidebar from "./Sidebar";
 import {
-  Search, LayoutTemplate, CheckCircle2, XCircle, Menu,
+  Search, Menu,
   Eye, X, Filter, AlertTriangle, Copy, Check,
   Monitor, Tablet, Smartphone, ExternalLink, Inbox, RefreshCw,
 } from "lucide-react";
@@ -159,7 +159,7 @@ const TemplateCard: React.FC<{
 
             {/* Hover affordance — small hairline chip, no blur, no glow */}
             <div
-              className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-[120ms]"
+              className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-120"
               style={{ background: "rgba(11,12,14,0.55)" }}
             >
               <span
@@ -203,7 +203,7 @@ const TemplateCard: React.FC<{
         <div className="mt-auto flex items-center justify-between gap-2">
           <button
             onClick={handleCopyId}
-            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10.5px] transition-colors duration-[120ms]"
+            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10.5px] transition-colors duration-120"
             style={{
               fontFamily: FONT.mono,
               color: copied ? T.accent : T.textFaint,
@@ -218,7 +218,7 @@ const TemplateCard: React.FC<{
 
           <button
             onClick={onPreview}
-            className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11.5px] font-medium transition-colors duration-[120ms]"
+            className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11.5px] font-medium transition-colors duration-120"
             style={{ color: T.text, border: HAIRLINE, background: "transparent" }}
             onMouseEnter={(e) => { e.currentTarget.style.background = T.surface2; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
@@ -300,7 +300,7 @@ const Templates = () => {
       )}
 
       <div
-        className={`fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-200 ease-out ${
+        className={`fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-200 ease-out ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
@@ -315,7 +315,7 @@ const Templates = () => {
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-[120ms]"
+                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-120"
                 style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
                 aria-label="Open menu"
               >
@@ -374,7 +374,7 @@ const Templates = () => {
           {/* Query bar */}
           <div className="flex flex-col lg:flex-row lg:items-center gap-3 mb-6">
             <div
-              className="flex items-center gap-2 rounded-md px-3 py-2 flex-1 min-w-0 transition-colors duration-[120ms]"
+              className="flex items-center gap-2 rounded-md px-3 py-2 flex-1 min-w-0 transition-colors duration-120"
               style={{ background: T.surface, border: HAIRLINE }}
               onFocusCapture={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
               onBlurCapture={(e) => (e.currentTarget.style.borderColor = T.border)}
@@ -390,7 +390,7 @@ const Templates = () => {
               {query && (
                 <button
                   onClick={() => setQuery("")}
-                  className="shrink-0 text-[11px] px-1.5 py-0.5 rounded transition-colors duration-[120ms]"
+                  className="shrink-0 text-[11px] px-1.5 py-0.5 rounded transition-colors duration-120"
                   style={{ color: T.textFaint }}
                 >
                   Clear
@@ -409,7 +409,7 @@ const Templates = () => {
                   <button
                     key={s}
                     onClick={() => setStatus(s)}
-                    className="tpl-seg inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[12px] whitespace-nowrap transition-colors duration-[120ms]"
+                    className="tpl-seg inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[12px] whitespace-nowrap transition-colors duration-120"
                     style={{
                       background: active ? T.surface2 : "transparent",
                       color: active ? T.text : T.textMuted,
@@ -456,7 +456,7 @@ const Templates = () => {
               {refetch && (
                 <button
                   onClick={() => refetch()}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms]"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-120"
                   style={{ color: T.textMuted, border: HAIRLINE }}
                 >
                   <RefreshCw size={12} /> Try again
@@ -505,7 +505,7 @@ const Templates = () => {
                 {hasActiveFilters && (
                   <button
                     onClick={() => { setQuery(""); setStatus("All"); }}
-                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-[120ms]"
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md text-[12.5px] font-medium transition-colors duration-120"
                     style={{ background: T.text, color: T.accentInk, border: `1px solid ${T.text}` }}
                   >
                     Clear filters
@@ -582,7 +582,7 @@ const PreviewModal: React.FC<{
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 md:p-6 lg:p-8"
+      className="fixed inset-0 z-60 flex items-center justify-center p-4 md:p-6 lg:p-8"
       style={{ background: "rgba(11,12,14,0.78)" }}
       onClick={onClose}
     >
@@ -626,7 +626,7 @@ const PreviewModal: React.FC<{
           <button
             onClick={onClose}
             aria-label="Close preview"
-            className="shrink-0 p-1.5 rounded-md transition-colors duration-[120ms]"
+            className="shrink-0 p-1.5 rounded-md transition-colors duration-120"
             style={{ color: T.textMuted }}
           >
             <X size={15} />
@@ -646,7 +646,7 @@ const PreviewModal: React.FC<{
                 <button
                   key={d.id}
                   onClick={() => setDevice(d.id)}
-                  className="tpl-seg inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-[11.5px] font-medium transition-colors duration-[120ms]"
+                  className="tpl-seg inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-[11.5px] font-medium transition-colors duration-120"
                   style={{
                     background: active ? T.surfaceHi : "transparent",
                     color: active ? T.text : T.textMuted,
@@ -670,7 +670,7 @@ const PreviewModal: React.FC<{
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopyId}
-              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] transition-colors duration-[120ms]"
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] transition-colors duration-120"
               style={{
                 fontFamily: FONT.mono,
                 color: copied ? T.accent : T.textFaint,
@@ -686,7 +686,7 @@ const PreviewModal: React.FC<{
             <button
               onClick={openRaw}
               disabled={!html}
-              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors duration-[120ms] disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors duration-120 disabled:opacity-50"
               style={{ color: T.textMuted, border: HAIRLINE }}
             >
               <ExternalLink size={11} />

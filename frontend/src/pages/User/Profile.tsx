@@ -1,7 +1,7 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import Sidebar from "../User/Sidebar";
 import {
-  Menu, Check, AlertTriangle, User as UserIcon, KeyRound, Mail,
+  Menu, Check, AlertTriangle, KeyRound, Mail,
   Eye, EyeOff, Loader2, ShieldCheck, Circle,
 } from "lucide-react";
 import UsersContext from "../../contexts/UsersContext";
@@ -31,17 +31,22 @@ const FONT = { ui: "'Inter', system-ui, -apple-system, sans-serif" };
 const HAIRLINE = `1px solid ${T.border}`;
 const HAIRLINE_SOFT = `1px solid ${T.borderSoft}`;
 
-/* /auth/profile returns user_id + username; other endpoints may return id + name. Handle both. */
-type ProfileUser = { id?: number; user_id?: number; username?: string; name?: string; email?: string };
+/* DB table `users` columns: username, email, password (password is never read or shown here).
+   /auth/profile returns user_id; other endpoints may return id. Handle both. */
+type ProfileUser = { id?: number; user_id?: number; username?: string; email?: string };
+
+/* The API may return the user directly, wrapped ({ user } / { data }), or as a one-item array. */
+const unwrapUser = (raw: unknown): ProfileUser | null => {
+  if (!raw) return null;
+  if (Array.isArray(raw)) return (raw[0] as ProfileUser) ?? null;
+  const obj = raw as Record<string, unknown>;
+  const inner = obj.user ?? obj.data;
+  if (inner && typeof inner === "object") return unwrapUser(inner);
+  return obj as ProfileUser;
+};
 
 type Notice = { type: "success" | "error"; text: string } | null;
 
-const getInitials = (name?: string) => {
-  if (!name) return "?";
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
-};
 
 /* password rules shown live under the "new password" field */
 const RULES = [
@@ -64,22 +69,21 @@ const STRENGTH = [
 const Profile = () => {
   const ctx = useContext(UsersContext);
   if (!ctx) throw new Error("Profile must be used inside UserProvider");
-  const { selectedUser, getUserUsingId, editUser, loading } = ctx;
+  const { selectedUser, getUserUsingId, loading } = ctx;
 
   const authCtx = useContext(AuthContext);
   const authUser = authCtx?.user as ProfileUser | null | undefined;
   const userId = authUser?.id ?? authUser?.user_id ?? 0;
 
-  const me = selectedUser as ProfileUser | null;
-  const currentName = me?.username ?? me?.name ?? "";
+  const me = unwrapUser(selectedUser);
+  const currentName = me?.username ?? "";
   const currentEmail = me?.email ?? authUser?.email ?? "";
   const initialLoading = loading && !selectedUser;
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // name form
-  const [name, setName] = useState("");
-  const [savingName, setSavingName] = useState(false);
+  const [, setName] = useState("");
   const [nameNotice, setNameNotice] = useState<Notice>(null);
 
   // password form
@@ -88,12 +92,16 @@ const Profile = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
-  const [showSaved, setShowSaved] = useState(false); // eye toggle in the info card
   const [savingPassword, setSavingPassword] = useState(false);
   const [passwordNotice, setPasswordNotice] = useState<Notice>(null);
 
   useEffect(() => {
-    if (userId) getUserUsingId(userId);
+    if (userId) {
+      getUserUsingId(userId).catch((err) => {
+        console.error("Profile load failed:", err);
+        setNameNotice({ type: "error", text: "Couldn't load your profile. Refresh and try again." });
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
@@ -114,37 +122,20 @@ const Profile = () => {
     return () => clearTimeout(t);
   }, [passwordNotice]);
 
-  const storedPassword = (selectedUser as unknown as { password?: string } | null)?.password;
-
-  const nameChanged = !!selectedUser && name.trim() !== currentName;
 
   const passedRules = useMemo(() => RULES.filter((r) => r.test(newPassword)).length, [newPassword]);
   const strength = newPassword ? STRENGTH[passedRules] : null;
   const mismatch = confirmPassword.length > 0 && confirmPassword !== newPassword;
   const matches = confirmPassword.length > 0 && confirmPassword === newPassword;
 
-  const handleSaveName = async () => {
-    const trimmed = name.trim();
-    if (!trimmed) {
-      setNameNotice({ type: "error", text: "Name can't be empty." });
-      return;
-    }
-    try {
-      setSavingName(true);
-      setNameNotice(null);
-      await editUser(userId, { username: trimmed } as unknown as Parameters<typeof editUser>[1]);
-      await getUserUsingId(userId);
-      setNameNotice({ type: "success", text: "Name updated." });
-    } catch {
-      setNameNotice({ type: "error", text: "Couldn't update your name. Try again." });
-    } finally {
-      setSavingName(false);
-    }
-  };
 
   const handleChangePassword = async () => {
     setPasswordNotice(null);
 
+    if (!userId) {
+      setPasswordNotice({ type: "error", text: "You're signed out. Sign in again and retry." });
+      return;
+    }
     if (!currentPassword || !newPassword || !confirmPassword) {
       setPasswordNotice({ type: "error", text: "Fill in all password fields." });
       return;
@@ -166,8 +157,6 @@ const Profile = () => {
       setConfirmPassword("");
       setShowCurrent(false);
       setShowNew(false);
-      setShowSaved(false);
-      getUserUsingId(userId);
       setPasswordNotice({ type: "success", text: "Password changed." });
     } catch {
       setPasswordNotice({
@@ -233,7 +222,7 @@ const Profile = () => {
                 Profile
               </h1>
               <p className="mt-1 text-[13px]" style={{ color: T.textMuted }}>
-                Update your name or change your password.
+                Change your password.
               </p>
             </div>
           </header>
@@ -244,88 +233,23 @@ const Profile = () => {
               className="rounded-2xl overflow-hidden lg:sticky lg:top-6"
               style={{ background: T.surface, border: HAIRLINE }}
             >
-              <div
-                className="h-20"
-                style={{
-                  background:
-                    "radial-gradient(120% 140% at 0% 0%, rgba(110,231,168,0.22), rgba(110,231,168,0) 60%), linear-gradient(180deg, #14171A, #111214)",
-                  borderBottom: HAIRLINE_SOFT,
-                }}
-              />
               <div className="px-5 pb-5 -mt-10">
-                <div
-                  className="w-20 h-20 rounded-full flex items-center justify-center text-[26px] font-semibold"
-                  style={{
-                    background: `linear-gradient(135deg, ${T.accent}, #4BC98E)`,
-                    color: T.accentInk,
-                    boxShadow: `0 0 0 4px ${T.surface}`,
-                  }}
-                  aria-hidden
-                >
-                  {initialLoading ? "" : getInitials(currentName)}
-                </div>
+                
 
                 <h2 className="mt-4 text-[18px] font-semibold leading-tight truncate" style={{ color: T.text }}>
-                  {initialLoading ? "Loading…" : currentName || "—"}
                 </h2>
                 <p className="mt-0.5 text-[12.5px] truncate" style={{ color: T.textMuted }}>
                   {initialLoading ? "" : currentEmail}
                 </p>
 
                 <dl className="mt-5 pt-4 space-y-3.5" style={{ borderTop: HAIRLINE_SOFT }}>
-                  <InfoItem icon={UserIcon} label="Full name" value={currentName} loading={initialLoading} />
                   <InfoItem icon={Mail} label="Email" value={currentEmail} loading={initialLoading} />
-                  <InfoItem
-                    icon={KeyRound}
-                    label="Password"
-                    value={storedPassword}
-                    secret
-                    visible={showSaved}
-                    onToggle={storedPassword ? () => setShowSaved((v) => !v) : undefined}
-                    loading={initialLoading}
-                  />
                 </dl>
               </div>
             </aside>
 
             {/* ───── Forms ───── */}
             <div className="space-y-5 min-w-0">
-              {/* Name */}
-              <Card
-                icon={UserIcon}
-                title="Name"
-                description="This is how you appear across the app."
-                footer={
-                  <>
-                    <NoticeLine notice={nameNotice} />
-                    <div className="flex items-center gap-2 ml-auto">
-                      {nameChanged && (
-                        <GhostButton onClick={() => { setName(currentName); setNameNotice(null); }}>
-                          Reset
-                        </GhostButton>
-                      )}
-                      <PrimaryButton onClick={handleSaveName} disabled={!nameChanged || savingName} busy={savingName}>
-                        {savingName ? "Saving" : "Save name"}
-                      </PrimaryButton>
-                    </div>
-                  </>
-                }
-              >
-                <Field label="Full name" htmlFor="prof-name">
-                  <input
-                    id="prof-name"
-                    type="text"
-                    autoComplete="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter" && nameChanged && !savingName) handleSaveName(); }}
-                    disabled={initialLoading}
-                    className="prof-input w-full rounded-lg px-3.5 py-2.5 text-[13.5px]"
-                  />
-                </Field>
-              </Card>
-
-              {/* Password */}
               <Card
                 icon={KeyRound}
                 title="Password"
@@ -473,51 +397,27 @@ const InfoItem = ({
   label,
   value,
   loading,
-  secret,
-  visible,
-  onToggle,
 }: {
   icon: React.ElementType;
   label: string;
   value?: string;
   loading?: boolean;
-  secret?: boolean;
-  visible?: boolean;
-  onToggle?: () => void;
-}) => {
-  const hidden = secret && !visible;
-  const text = loading ? "Loading…" : hidden ? "••••••••••" : value || "—";
-  return (
-    <div className="flex items-center gap-3 min-w-0">
-      <div
-        className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center"
-        style={{ background: T.surface2, color: T.textMuted }}
-      >
-        <Icon size={12} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <dt className="text-[11px]" style={{ color: T.textFaint }}>{label}</dt>
-        <dd
-          className="text-[13px] font-medium truncate"
-          style={{ color: T.text, letterSpacing: hidden ? "0.08em" : undefined }}
-        >
-          {text}
-        </dd>
-      </div>
-      {secret && onToggle && !loading && (
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-label={visible ? "Hide password" : "Show password"}
-          className="prof-ghost shrink-0 p-1.5 rounded-md transition-colors"
-          style={{ color: T.textFaint }}
-        >
-          {visible ? <EyeOff size={14} /> : <Eye size={14} />}
-        </button>
-      )}
+}) => (
+  <div className="flex items-center gap-3 min-w-0">
+    <div
+      className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center"
+      style={{ background: T.surface2, color: T.textMuted }}
+    >
+      <Icon size={12} />
     </div>
-  );
-};
+    <div className="min-w-0 flex-1">
+      <dt className="text-[11px]" style={{ color: T.textFaint }}>{label}</dt>
+      <dd className="text-[13px] font-medium truncate" style={{ color: T.text }}>
+        {loading ? "Loading…" : value || "—"}
+      </dd>
+    </div>
+  </div>
+);
 
 const Field = ({
   label,
@@ -600,15 +500,6 @@ const PrimaryButton = ({
   </button>
 );
 
-const GhostButton = ({ children, onClick }: { children: React.ReactNode; onClick: () => void }) => (
-  <button
-    onClick={onClick}
-    className="prof-ghost rounded-lg px-3.5 py-2 text-[12.5px] font-medium transition-colors"
-    style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
-  >
-    {children}
-  </button>
-);
 
 const NoticeLine = ({ notice }: { notice: Notice }) => {
   if (!notice) return null;
@@ -616,7 +507,7 @@ const NoticeLine = ({ notice }: { notice: Notice }) => {
   const color = ok ? T.accent : T.danger;
   const Icon = ok ? Check : AlertTriangle;
   return (
-    <p role="status" className="flex items-center gap-1.5 text-[12.5px] font-medium" style={{ color }}>
+    <p role={ok ? "status" : "alert"} className="flex items-center gap-1.5 text-[12.5px] font-medium" style={{ color }}>
       <Icon size={13} />
       {notice.text}
     </p>

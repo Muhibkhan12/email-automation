@@ -128,8 +128,6 @@ const pick = (o: any, ...keys: string[]) => {
 };
 const roleLabel = (role?: string) =>
   role ? role.charAt(0).toUpperCase() + role.slice(1).toLowerCase() : "Employee";
-const hasStatus = (l: any, status: string) =>
-  String(l?.status ?? "").trim().toLowerCase() === status.toLowerCase();
 
 /* status groups used for the volume chart */
 const SENT_STATUSES = new Set(["sent", "delivered", "success", "successful", "completed", "processed"]);
@@ -146,12 +144,6 @@ const toArray = (v: any): any[] =>
 const newest = (a: any, b: any) =>
   (parseDate(b.updated_at ?? b.created_at)?.getTime() ?? 0) - (parseDate(a.updated_at ?? a.created_at)?.getTime() ?? 0);
 
-/* ─────────────── status maps ─────────────── */
-type HealthStatus = "Operational" | "Degraded" | "Down";
-const HEALTH_COLOR: Record<HealthStatus, string> = {
-  Operational: T.success, Degraded: T.warn, Down: T.danger,
-};
-const INCIDENT_COLOR = { Critical: T.danger, Warning: T.warn, Resolved: T.success };
 
 const STATUS_COLOR: Record<string, string> = {
   sent: T.success, delivered: T.success, completed: T.success, active: T.success, processed: T.success,
@@ -523,58 +515,6 @@ const AdminDashboard = () => {
   }, [users]);
 
   /* health */
-  const systemComponents = useMemo<{ name: string; status: HealthStatus; detail: string }[]>(() => {
-    const failedRate = serverTotal ? serverFailed / serverTotal : 0;
-    const apiStatus: HealthStatus = campaignsError ? "Degraded" : "Operational";
-    const queueStatus: HealthStatus = failedRate > 0.1 ? "Degraded" : "Operational";
-    const senderStatus: HealthStatus =
-      sendersError || senderAcc.length === 0 ? "Down" : senderStats.attention > 0 ? "Degraded" : "Operational";
-    return [
-      { name: "API", status: apiStatus, detail: "Core requests" },
-      { name: "Campaigns service", status: apiStatus, detail: `${formatNumber(allCampaigns.length)} campaigns` },
-      { name: "Email delivery", status: queueStatus, detail: `${Math.round(failedRate * 100)}% failed` },
-      { name: "Sender accounts", status: senderStatus, detail: `${formatNumber(senderAcc.length)} connected · ${formatNumber(senderStats.attention)} flagged` },
-      { name: "Recipient service", status: (recError || adminRecError) ? "Degraded" : "Operational", detail: `${formatNumber(serverTotal)} recipients` },
-      { name: "Upload service", status: filesError ? "Degraded" : "Operational", detail: `${formatNumber(files.length)} files` },
-      { name: "Template service", status: templatesError || templates.length === 0 ? "Degraded" : "Operational", detail: `${formatNumber(templates.length)} templates` },
-      { name: "Log pipeline", status: logsError ? "Degraded" : "Operational", detail: `${formatNumber(emaillogs.length)} events` },
-    ];
-  }, [campaignsError, logsError, recError, adminRecError, sendersError, filesError, templatesError,
-      emaillogs, senderAcc, senderStats, templates, files, allCampaigns, serverTotal, serverFailed]);
-
-  const healthyCount = systemComponents.filter((c) => c.status === "Operational").length;
-
-  const incidents = useMemo(() => {
-    const items: { title: string; severity: "Critical" | "Warning" | "Resolved"; time: string }[] = [];
-    const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    const inDay = (l: any) => (parseDate(logDateOf(l))?.getTime() ?? 0) >= dayAgo;
-
-    const failCount = emaillogs.filter((l: any) => inDay(l) && isFailedLog(l)).length || Number(serverFailed || 0);
-    if (failCount > 0) {
-      items.push({ title: `${formatNumber(failCount)} failed sends`, severity: failCount > 20 ? "Critical" : "Warning", time: "24h" });
-    }
-
-    if (senderStats.disconnected > 0) {
-      items.push({
-        title: `${senderStats.disconnected} sender account${senderStats.disconnected > 1 ? "s" : ""} disconnected`,
-        severity: "Critical", time: "now",
-      });
-    }
-
-    const stalled = allCampaigns.filter((c: any) =>
-      c.status === "Running" && Date.now() - (parseDate(c.updated_at ?? c.created_at)?.getTime() ?? 0) > 7 * 86400000);
-    if (stalled.length > 0) {
-      items.push({ title: `${stalled.length} campaign${stalled.length > 1 ? "s" : ""} running for over 7 days`, severity: "Warning", time: ">7d" });
-    }
-
-    const nearCap = senderAcc.filter((a: any) => (a.daily_limit ?? 0) > 0 && (a.emails_sent_today ?? 0) / a.daily_limit >= 0.8);
-    if (nearCap.length > 0) {
-      items.push({ title: `${nearCap.length} sender account${nearCap.length > 1 ? "s" : ""} over 80% of daily limit`, severity: "Warning", time: "today" });
-    }
-
-    if (items.length === 0) items.push({ title: "No incidents in the last 24 hours", severity: "Resolved", time: "24h" });
-    return items.slice(0, 5);
-  }, [emaillogs, allCampaigns, senderAcc, senderStats, serverFailed]);
 
   /* tables */
   const topWorkspaces = useMemo(() => {
@@ -904,7 +844,7 @@ const AdminDashboard = () => {
                     <tbody>
                       {recentCampaigns.map((c: any) => (
                         <tr key={c.id} className="row-hover" style={{ borderTop: `1px solid ${T.line}` }}>
-                          <td className="px-5 py-3 text-[13px] truncate max-w-[220px]" style={{ color: T.text }}>
+                          <td className="px-5 py-3 text-[13px] truncate max-w-55" style={{ color: T.text }}>
                             {pick(c, "name", "title", "campaign_name") ?? `Campaign #${c.id}`}
                           </td>
                           <td className="px-3 py-3 text-[12px]" style={{ color: T.textMuted }}>{ownerName(c)}</td>

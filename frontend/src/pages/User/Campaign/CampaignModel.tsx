@@ -121,7 +121,7 @@ const StatCard: React.FC<{
   >
     <span
       aria-hidden
-      className="absolute left-0 top-0 bottom-0 w-[2px]"
+      className="absolute left-0 top-0 bottom-0 w-0.5"
       style={{ background: accent, opacity: 0.6 }}
     />
     <div
@@ -177,7 +177,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-3 md:p-4"
+      className="fixed inset-0 z-100 flex items-center justify-center p-3 md:p-4"
       onClick={onClose}
       style={{ fontFamily: FONT.ui, background: "rgba(11,12,14,0.72)", animation: 'cm-fade 0.15s ease-out' }}
     >
@@ -230,7 +230,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 p-1.5 rounded-md transition-colors duration-[120ms]"
+            className="shrink-0 p-1.5 rounded-md transition-colors duration-120"
             style={{ color: T.textMuted, background: T.surface2, border: HAIRLINE_SOFT }}
             onMouseEnter={(e) => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = T.surface2; }}
@@ -273,7 +273,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11.5px] font-medium transition-colors duration-[120ms]"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11.5px] font-medium transition-colors duration-120"
                   style={{
                     background: active ? T.surfaceHi : 'transparent',
                     color: active ? T.text : T.textMuted,
@@ -289,7 +289,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
                 navigate(`/user/campaigns/${campaign.id}/recipients`);
                 onClose();
               }}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11.5px] font-medium transition-colors duration-[120ms]"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[11.5px] font-medium transition-colors duration-120"
               style={{ color: T.textMuted }}
               onMouseEnter={(e) => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi; }}
               onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}
@@ -445,7 +445,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({
             )}
             <button
               onClick={onClose}
-              className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms]"
+              className="px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-120"
               style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
               onMouseEnter={(e) => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi; }}
               onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}

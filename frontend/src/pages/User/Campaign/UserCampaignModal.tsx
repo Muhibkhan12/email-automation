@@ -238,7 +238,7 @@ const StartCampaignModal: React.FC<Props> = ({ onClose, onSubmit }) => {
           <button
             onClick={() => submit(false)}
             disabled={busy}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-[120ms] disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors duration-120 disabled:opacity-50"
             style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
             onMouseEnter={(e) => { if (!busy) { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi; } }}
             onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent"; }}

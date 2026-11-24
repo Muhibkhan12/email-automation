@@ -107,14 +107,14 @@ const Toggle: React.FC<{ checked: boolean; onChange: () => void; label: string }
     aria-checked={checked}
     aria-label={label}
     onClick={onChange}
-    className="relative h-5 w-9 shrink-0 rounded-full transition-colors duration-[120ms]"
+    className="relative h-5 w-9 shrink-0 rounded-full transition-colors duration-120"
     style={{
       background: checked ? T.accent : T.surfaceHi,
       boxShadow: `inset 0 0 0 1px ${checked ? "rgba(110,231,168,0.28)" : T.border}`,
     }}
   >
     <span
-      className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-[120ms]"
+      className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-120"
       style={{ transform: checked ? "translateX(18px)" : "translateX(2px)" }}
     />
   </button>
@@ -137,7 +137,7 @@ const InputShell: React.FC<{
   children: React.ReactNode;
 }> = ({ icon: Icon, children }) => (
   <div
-    className="flex items-center gap-2 rounded-md px-2.5 py-2 transition-colors duration-[120ms]"
+    className="flex items-center gap-2 rounded-md px-2.5 py-2 transition-colors duration-120"
     style={{ background: T.surface2, border: HAIRLINE_SOFT }}
     onFocusCapture={(e) => (e.currentTarget.style.borderColor = T.accentLine)}
     onBlurCapture={(e) => (e.currentTarget.style.borderColor = T.borderSoft)}
@@ -244,7 +244,7 @@ const SectionDock: React.FC<{
         <button
           key={s.key}
           onClick={() => onChange(s.key)}
-          className="group shrink-0 flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-medium transition-colors duration-[120ms] text-left whitespace-nowrap"
+          className="group shrink-0 flex items-center gap-2 rounded-lg px-3 py-2 text-[12px] font-medium transition-colors duration-120 text-left whitespace-nowrap"
           style={{
             background: isActive ? T.surface2 : "transparent",
             color: isActive ? activeColor : T.textMuted,
@@ -292,7 +292,7 @@ const ModeSwitch: React.FC<{ mode: Mode; onChange: (m: Mode) => void }> = ({ mod
           <button
             key={id}
             onClick={() => onChange(id)}
-            className="relative z-10 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[11.5px] font-medium transition-colors duration-[120ms]"
+            className="relative z-10 flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[11.5px] font-medium transition-colors duration-120"
             style={{ color: isActive ? T.text : T.textMuted }}
           >
             <Icon size={12} />
@@ -390,7 +390,7 @@ const Settings = () => {
       )}
 
       <div
-        className={`fixed lg:sticky top-0 z-50 h-screen flex-shrink-0 transition-transform duration-200 ease-out ${
+        className={`fixed lg:sticky top-0 z-50 h-screen shrink-0 transition-transform duration-200 ease-out ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
@@ -405,7 +405,7 @@ const Settings = () => {
             <div className="flex items-start gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-[120ms]"
+                className="lg:hidden mt-1 p-2 rounded-md transition-colors duration-120"
                 style={{ background: T.surface, color: T.textMuted, border: HAIRLINE }}
                 aria-label="Open menu"
               >
@@ -516,7 +516,7 @@ const Settings = () => {
                           <button
                             key={preset.id}
                             onClick={() => setTheme(preset.id)}
-                            className="flex items-center gap-2 rounded-full pl-1.5 pr-3 py-1.5 transition-colors duration-[120ms]"
+                            className="flex items-center gap-2 rounded-full pl-1.5 pr-3 py-1.5 transition-colors duration-120"
                             style={{
                               background: isActive ? T.surface2 : "transparent",
                               border: isActive ? `1.5px solid ${preset.brand}` : HAIRLINE_SOFT,
@@ -675,7 +675,7 @@ const Settings = () => {
                           type="button"
                           onClick={() => setRevealKey((r) => !r)}
                           aria-label={revealKey ? "Hide API key" : "Reveal API key"}
-                          className="shrink-0 transition-colors duration-[120ms]"
+                          className="shrink-0 transition-colors duration-120"
                           style={{ color: T.textFaint }}
                           onMouseEnter={(e) => { e.currentTarget.style.color = T.text }}
                           onMouseLeave={(e) => { e.currentTarget.style.color = T.textFaint }}
@@ -687,7 +687,7 @@ const Settings = () => {
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button
                           onClick={copyKey}
-                          className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-2 text-[11.5px] font-medium transition-colors duration-[120ms]"
+                          className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-2 text-[11.5px] font-medium transition-colors duration-120"
                           style={{
                             background: copied ? "rgba(110,231,168,0.10)" : T.surface2,
                             color: copied ? T.accent : T.textMuted,
@@ -699,7 +699,7 @@ const Settings = () => {
                         </button>
                         <button
                           aria-label="Regenerate API key"
-                          className="inline-flex items-center justify-center rounded-md p-2 transition-colors duration-[120ms]"
+                          className="inline-flex items-center justify-center rounded-md p-2 transition-colors duration-120"
                           style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
                           onMouseEnter={(e) => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi }}
                           onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent" }}
@@ -794,7 +794,7 @@ const Settings = () => {
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => setDirty(false)}
-                  className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors duration-[120ms]"
+                  className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium transition-colors duration-120"
                   style={{ color: T.textMuted, border: HAIRLINE_SOFT }}
                   onMouseEnter={(e) => { e.currentTarget.style.color = T.text; e.currentTarget.style.background = T.surfaceHi }}
                   onMouseLeave={(e) => { e.currentTarget.style.color = T.textMuted; e.currentTarget.style.background = "transparent" }}
