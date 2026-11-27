@@ -27,3 +27,4 @@ _stash_conflicts/
 celerybeat-schedule*
 backend/storage/uploads/
 *.log
+email_automation.sql

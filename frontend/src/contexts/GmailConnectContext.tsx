@@ -10,7 +10,7 @@ import {
 import {
   GMAIL_OAUTH_CHANNEL, GMAIL_POPUP_NAME,
   type GmailConnectContextValue, type GmailConnectResult, type GmailOAuthMessage,
-} from "../types/gmail";
+} from "../types/Gmail";
 
 const GmailConnectContext = createContext<GmailConnectContextValue | null>(null);
 

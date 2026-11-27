@@ -667,68 +667,7 @@ const AdminDashboard = () => {
             ))}
           </div>
 
-          {/* Volume chart + campaigns by status */}
-          <div className="enter grid grid-cols-1 lg:grid-cols-12 gap-4" style={stagger(2)}>
-            <Card className="lg:col-span-8 min-w-0">
-              <CardHeader title="Email volume"
-                hint={`Sent per day, last ${range} days against the ${range} before${delta !== null ? ` · ${delta >= 0 ? "+" : ""}${delta}%` : ""}`}
-                right={
-                  <div className="flex items-center gap-4 text-[12px]" style={{ color: T.textMuted }}>
-                    <span className="inline-flex items-center gap-2">
-                      <span className="inline-block w-4 h-0.5 rounded-full" style={{ background: T.accent }} /> This period
-                    </span>
-                    <span className="inline-flex items-center gap-2">
-                      <span className="inline-block w-4 h-0 border-t border-dashed" style={{ borderColor: T.neutral2 }} /> Previous
-                    </span>
-                  </div>
-                } />
 
-              {/* FIX: explicit fixed-height wrapper + relative so chart always has real size */}
-              <div className="px-4 min-w-0 relative" style={{ height: 290, width: "100%" }}>
-                {loading && !hasChartData ? (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="w-5 h-5 border-2 rounded-full animate-spin" style={{ borderColor: T.neutral2, borderTopColor: "transparent" }} />
-                  </div>
-                ) : (
-                  <>
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                      <AreaChart data={period.chart} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-                        <CartesianGrid stroke={T.line} vertical={false} />
-                        <XAxis dataKey="day" tick={{ fontSize: 11, fill: T.textFaint, fontFamily: FONT.mono }}
-                          axisLine={false} tickLine={false} interval={range === 30 ? 4 : range === 14 ? 1 : 0} />
-                        <YAxis tick={{ fontSize: 11, fill: T.textFaint, fontFamily: FONT.mono }}
-                          axisLine={false} tickLine={false} allowDecimals={false} domain={[0, (max: number) => Math.max(5, max)]} />
-                        <Tooltip cursor={{ stroke: T.lineStrong }} content={<ChartTooltip />} />
-                        <Area type="monotone" dataKey="prev" stroke={T.neutral2} strokeWidth={1.5}
-                          strokeDasharray="4 4" fill="none" dot={false} isAnimationActive={false} />
-                        <Area type="monotone" dataKey="sent" stroke={T.accent} strokeWidth={2}
-                          fill={T.accent} fillOpacity={0.08} dot={false} isAnimationActive={false} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-
-                    {!hasChartData && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <Activity {...ICON} size={20} style={{ color: T.textFaint }} />
-                        <p className="mt-2 text-[12px]" style={{ color: T.textMuted }}>
-                          No email activity in the last {range * 2} days
-                        </p>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* quick diagnostics so you can see what the chart is built from */}
-              <p className="px-5 pt-1 pb-4 text-[11px] tabular-nums" style={{ color: T.textFaint, fontFamily: FONT.mono }}>
-                {formatNumber(emaillogs.length)} log events loaded · {formatNumber(period.inRange)} in range · {formatNumber(period.sent)} sent
-              </p>
-            </Card>
-
-            <Card className="lg:col-span-4 min-w-0">
-              <CardHeader title="Campaigns by status" hint={`${formatNumber(allCampaigns.length)} total`} />
-              <Breakdown items={campaignMix} total={allCampaigns.length} empty="No campaigns yet" />
-            </Card>
-          </div>
 
           {/* Recipients / logs / roles breakdowns */}
           <div className="enter grid grid-cols-1 lg:grid-cols-3 gap-4" style={stagger(3)}>
